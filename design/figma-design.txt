@@ -1,5 +1,5 @@
 https://www.figma.com/design/TuvTv502EmhaloPswIF3jc/StelloPay?node-id=22-277&t=iQnWqgZpgfaqQKe7-0
 https://www.figma.com/design/TuvTv502EmhaloPswIF3jc/StelloPay?node-id=8-91&t=kkz6wnDHildwypLq-1
 
-Dashboard + Transaction UI Design + Help/Support Page
+Dashboard + Transaction UI Design + Help/Support Page + Profile/Settings Page
 FIGMA LINK: https://www.figma.com/design/wcDLcVPO7I0HZVb6zJr6Ep/Stellopay?node-id=0-1&t=6tyXbOo2ntkV8sxc-1
