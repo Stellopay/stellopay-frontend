@@ -1,12 +1,10 @@
 'use client';
 
 import { useState } from 'react';
+import ToggleCard from '@/app/components/ToggleCard';
 
 export default function SettingsPage() {
   const [activeTab, setActiveTab] = useState('Preferences');
-  const [emailNotifications, setEmailNotifications] = useState(true);
-  const [transactionAlerts, setTransactionAlerts] = useState(true);
-  const [promotionalOffers, setPromotionalOffers] = useState(true);
 
   return (
     <div className="min-h-screen p-6 md:p-10 bg-[#230d22] text-white flex flex-col gap-8">
@@ -19,9 +17,9 @@ export default function SettingsPage() {
           <button
             key={tab}
             onClick={() => setActiveTab(tab)}
-            className={`px-5 py-3 border border-[#180c17] cursor-pointer rounded-r-lg text-sm md:text-base font-medium transition ${
+            className={`px-5 py-3 border border-[#2d2d2d] cursor-pointer text-sm md:text-base font-medium transition ${
               activeTab === tab
-                ? 'bg-white text-black shadow'
+                ? 'bg-white rounded-r-lg text-black shadow'
                 : 'text-gray-400 hover:text-white'
             }`}
           >
@@ -31,8 +29,7 @@ export default function SettingsPage() {
       </div>
 
       {/* Content */}
-      <div className="bg-[#180c17] border border-[#261925] rounded-2xl p-6 md:p-10 shadow-lg">
-   
+      <div className="bg-[#0D0D0D80] h-[480px] border border-[#2d2d2d] rounded-2xl p-6 md:p-10 shadow-lg">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
           
           {/* Left side: Title and description */}
@@ -65,57 +62,15 @@ export default function SettingsPage() {
 
             {activeTab === 'Preferences' && (
               <div className="space-y-6">
-                <ToggleCard 
-                  label="Email, SMS, and Push Notifications" 
-                  enabled={emailNotifications} 
-                  setEnabled={setEmailNotifications} 
-                />
-                <ToggleCard 
-                  label="Transaction Alerts" 
-                  enabled={transactionAlerts} 
-                  setEnabled={setTransactionAlerts} 
-                />
-                <ToggleCard 
-                  label="Promotional Offers" 
-                  enabled={promotionalOffers} 
-                  setEnabled={setPromotionalOffers} 
-                />
+                <ToggleCard title="Email, SMS, and Push Notifications" />
+                <ToggleCard title="Transaction Alerts" />
+                <ToggleCard title="Promotional Offers" />
               </div>
             )}
           </div>
 
         </div>
       </div>
-    </div>
-  );
-}
-
-function ToggleCard({
-  label,
-  enabled,
-  setEnabled,
-}: {
-  label: string;
-  enabled: boolean;
-  setEnabled: (value: boolean) => void;
-}) {
-  return (
-    <div className="flex items-center justify-between bg-[#161015] border border-[#180c17] p-4 rounded-xl shadow-sm">
-      <span className="text-base md:text-lg">{label}</span>
-      <button
-        onClick={() => setEnabled(!enabled)}
-        className={`w-14 h-7 flex items-center rounded-full p-1 duration-300 ${
-          enabled 
-            ? 'bg-[#622f62]'
-            : 'bg-gray-500'
-        }`}
-      >
-        <div
-          className={`bg-white w-5 h-5 rounded-full shadow-md transform duration-300 ${
-            enabled ? 'translate-x-7' : 'translate-x-0'
-          }`}
-        />
-      </button>
     </div>
   );
 }
