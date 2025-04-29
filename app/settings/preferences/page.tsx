@@ -13,15 +13,19 @@ export default function SettingsPage() {
       <h1 className="text-3xl md:text-4xl font-bold">Settings</h1>
 
       {/* Tabs */}
-      <div className="flex mb-8">
+      <div className="flex mb-8 ">
         {['Profile', 'Security', 'Preferences'].map((tab) => (
           <button
             key={tab}
             onClick={() => setActiveTab(tab)}
             className={`px-5 py-3 border border-[#2d2d2d] cursor-pointer text-sm md:text-base font-medium transition ${
               activeTab === tab
-                ? 'bg-white rounded-r-lg text-black shadow'
+                ? 'bg-white text-black shadow'
                 : 'text-gray-400 hover:text-white'
+            } ${
+              tab === 'Profile' ? 'rounded-l-lg' : '' // Round left for Profile
+            } ${
+              tab === 'Preferences' ? 'rounded-r-lg' : '' // Round right for Preferences
             }`}
           >
             {tab}

@@ -28,7 +28,7 @@ export default function SecurityTab() {
   };
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
       {/* Password Update Section */}
       <div className="bg-[#0D0D0D80] p-6 border border-[#2d2d2d] rounded-lg">
         <div className="flex items-center mb-6">
@@ -86,6 +86,7 @@ export default function SecurityTab() {
                 type={showPassword ? "text" : "password"}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
+                placeholder="*****************************"
                 className="w-full p-3 pr-10 border border-[#2d2d2d] rounded-lg bg-[#0D0D0D] text-white"
               />
               <button
@@ -106,6 +107,7 @@ export default function SecurityTab() {
                 type={showConfirmPassword ? "text" : "password"}
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
+                placeholder="*****************************"
                 className="w-full p-3 pr-10 border border-[#2d2d2d] rounded-lg bg-[#0D0D0D] text-white"
               />
               <button
@@ -127,7 +129,7 @@ export default function SecurityTab() {
       </div>
 
       {/* 2-Step Verification Section */}
-      <div className="bg-[#0D0D0D80] p-6 border border-[#2d2d2d] rounded-lg flex flex-col ">
+      <div className="bg-[#0D0D0D80] px-6 pt-6 pb-4 border border-[#2d2d2d] rounded-lg">
         <div className="flex items-center mb-6">
           <div className="mr-2 bg-[#2d2d2d] p-2 rounded-lg">
             <svg
