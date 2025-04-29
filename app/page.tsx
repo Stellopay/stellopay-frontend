@@ -1,9 +1,30 @@
 import Image from "next/image";
+import NotificationPanel from "@/components/NotificationPanel";
 
+// Mock, remove this
+const notifications = [
+  {
+    title: "Payment Sent",
+    message: "#TXN12345 · Your payment of 250 XLM to...",
+    read: false,
+  },
+  {
+    title: "Payment Received",
+    message: "#TXN12345 · You've received 500 USDC...",
+    read: true,
+  },
+  {
+    title: "Low Balance Alert",
+    message: "Your balance is below 50 XLM. Consider adding...",
+    read: false,
+  },
+];
 export default function Home() {
   return (
-    <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
+    <div className="bg-[#201322] grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
       <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
+        <NotificationPanel notifications={notifications} />
+
         <Image
           className="dark:invert"
           src="/next.svg"
