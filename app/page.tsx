@@ -1,6 +1,7 @@
 import Image from "next/image";
 import NotificationPanel from "@/components/NotificationPanel";
 
+
 // Mock, remove this
 const notifications = [
   {
@@ -119,6 +120,7 @@ export default function Home() {
           Go to nextjs.org →
         </a>
       </footer>
+
     </div>
   );
 }
