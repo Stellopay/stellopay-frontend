@@ -10,6 +10,7 @@ import {
   Bell,
   HelpCircle,
 } from "lucide-react";
+import Image from "next/image";
 
 export default function TransactionTable() {
   const [startDate, setStartDate] = useState("28-03-2023");
@@ -97,14 +98,14 @@ export default function TransactionTable() {
   const getTokenIcon = (token: string): JSX.Element | null => {
     if (token === "USDC") {
       return (
-        <div className="h-5 w-5 rounded-full bg-blue-500 flex items-center justify-center mr-2">
-          <span className="text-white text-xs">$</span>
+        <div className="h-5 w-5 rounded-full flex items-center justify-center mr-2">
+          <Image src="/usdc.svg" alt="USDC" width={20} height={20} />
         </div>
       );
     } else if (token === "XLM") {
       return (
-        <div className="h-5 w-5 rounded-full bg-gray-700 flex items-center justify-center mr-2">
-          <span className="text-white text-xs">X</span>
+        <div className="h-5 w-5 rounded-full flex items-center justify-center mr-2">
+          <Image src="/xml.svg" alt="XLM" width={20} height={20} />
         </div>
       );
     }
@@ -136,9 +137,11 @@ export default function TransactionTable() {
           </div>
           <HelpCircle className="h-5 w-5 text-gray-400" />
           <div className="h-8 w-8 rounded-full bg-orange-500 overflow-hidden">
-            <img
-              src="/api/placeholder/36/36"
+            <Image
+              src="/Avatars.svg"
               alt="Profile"
+              width={32}
+              height={32}
               className="w-full h-full object-cover"
             />
           </div>
