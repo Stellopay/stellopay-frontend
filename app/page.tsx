@@ -1,9 +1,13 @@
 "use client";
 import Image from "next/image";
 import NotificationPanel from "@/components/NotificationPanel";
+
+import DashboardPage from "@/pages/dashboard";
+
 import { SideBar } from "./components/SideBar";
 import useSidebar from "@/context/SidebarContext";
 import { Sidebar } from "lucide-react";
+
 
 // Mock, remove this
 const notifications = [
@@ -25,7 +29,17 @@ const notifications = [
 ];
 
 export default function Home() {
+
+  return (
+    <>
+  <DashboardPage/>
+  
+    <div className="bg-[#201322] grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
+      <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
+        <NotificationPanel notifications={notifications} />
+
   const { isSidebarOpen, setSidebarOpen, isMobile } = useSidebar();
+
 
   return (
     <div className="relative bg-[#201322]">
@@ -165,5 +179,6 @@ export default function Home() {
         </div>
       )}
     </div>
+    </>
   );
 }
