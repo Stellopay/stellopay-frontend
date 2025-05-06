@@ -1,13 +1,11 @@
 "use client";
 import Image from "next/image";
 import NotificationPanel from "@/components/NotificationPanel";
-
 import DashboardPage from "@/pages/dashboard";
 
 import { SideBar } from "./components/SideBar";
 import useSidebar from "@/context/SidebarContext";
 import { Sidebar } from "lucide-react";
-
 
 // Mock, remove this
 const notifications = [
@@ -29,36 +27,23 @@ const notifications = [
 ];
 
 export default function Home() {
-
-  return (
-    <>
-  <DashboardPage/>
-  
-    <div className="bg-[#201322] grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
-      <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
-        <NotificationPanel notifications={notifications} />
-
   const { isSidebarOpen, setSidebarOpen, isMobile } = useSidebar();
-
 
   return (
     <div className="relative bg-[#201322]">
-      {/* Main Grid Layout */}
+      {/* Grid layout for desktop */}
       <div
         className={`grid transition-all duration-300 ease-in-out ${
           isMobile
-            ? isSidebarOpen
-              ? "grid-cols-1" // Mobile with fullscreen sidebar
-              : "grid-cols-1" // Mobile without sidebar
+            ? "grid-cols-1"
             : isSidebarOpen
-              ? "grid-cols-[16.25rem_1fr]" // Desktop expanded
-              : "grid-cols-[6rem_1fr]" // Desktop collapsed
+              ? "grid-cols-[16.25rem_1fr]"
+              : "grid-cols-[6rem_1fr]"
         }`}
       >
-        {/* Only render sidebar in grid for desktop */}
         {!isMobile && <SideBar />}
 
-        {/* Main content area */}
+        {/* Main Content */}
         <div className="bg-[#201322] grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)] relative">
           <button
             onClick={() => setSidebarOpen(!isSidebarOpen)}
@@ -67,7 +52,6 @@ export default function Home() {
             <Sidebar className="text-white" />
           </button>
 
-          {/* Main content */}
           <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
             <NotificationPanel notifications={notifications} />
 
@@ -119,7 +103,6 @@ export default function Home() {
             </div>
           </main>
 
-          {/* Footer */}
           <footer className="row-start-3 flex gap-[24px] flex-wrap items-center justify-center">
             <a
               className="flex items-center gap-2 hover:underline hover:underline-offset-4"
@@ -170,16 +153,15 @@ export default function Home() {
         </div>
       </div>
 
-      {/* Mobile fullscreen sidebar - renders outside of grid */}
+      {/* Mobile Fullscreen Sidebar */}
       {isMobile && isSidebarOpen && (
-        <div className="fixed inset-0 z-50 bg-black  ">
+        <div className="fixed inset-0 z-50 bg-black">
           <div className="h-full w-full sm:w-4/5 max-w-sm bg-[#101010] overflow-auto">
             <SideBar />
           </div>
         </div>
       )}
     </div>
-    </>
   );
 }
 
