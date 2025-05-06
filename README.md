@@ -34,3 +34,69 @@ You can check out [the Next.js GitHub repository](https://github.com/vercel/next
 The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
 
 Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+
+
+
+
+
+```
+stellopay-frontend
+├─ .eslintrc.json
+├─ .hintrc
+├─ app
+│  ├─ account-summary
+│  │  └─ page.tsx
+│  ├─ components
+│  │  ├─ Button.tsx
+│  │  ├─ EmailInput.tsx
+│  │  ├─ FaqCard.tsx
+│  │  ├─ TextAreaInput.tsx
+│  │  ├─ TextInput.tsx
+│  │  └─ ToggleCard.tsx
+│  ├─ favicon.ico
+│  ├─ globals.css
+│  ├─ help
+│  │  └─ support
+│  │     └─ page.tsx
+│  ├─ layout.tsx
+│  ├─ page.tsx
+│  └─ settings
+│     ├─ preferences
+│     │  ├─ components
+│     │  │  └─ SecurityTab.tsx
+│     │  ├─ Image.png
+│     │  └─ page.tsx
+│     └─ profile
+│        ├─ components
+│        │  └─ ProfileTab.tsx
+│        └─ page.tsx
+├─ components
+│  ├─ icons
+│  │  └─ BellFillIcon.tsx
+│  ├─ NotificationPanel.tsx
+│  └─ ui
+│     └─ button.tsx
+├─ components.json
+├─ design
+│  └─ figma-design.txt
+├─ lib
+│  └─ utils.ts
+├─ next.config.ts
+├─ package-lock.json
+├─ package.json
+├─ postcss.config.mjs
+├─ public
+│  ├─ bank.png
+│  ├─ file.svg
+│  ├─ globe.svg
+│  ├─ Icon.png
+│  ├─ next.svg
+│  ├─ piggy-bank.png
+│  ├─ vercel.svg
+│  └─ window.svg
+├─ README.md
+├─ tsconfig.json
+└─ types
+   └─ NotificationItem.tsx
+
+```
