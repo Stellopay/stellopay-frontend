@@ -1,11 +1,12 @@
 "use client";
+
 import {
   createContext,
-  FC,
-  ReactNode,
   useContext,
   useState,
   useEffect,
+  FC,
+  ReactNode,
 } from "react";
 
 interface SidebarContextProps {
@@ -14,71 +15,56 @@ interface SidebarContextProps {
   isMobile: boolean;
 }
 
+const SidebarContext = createContext<SidebarContextProps | undefined>(undefined);
+
 interface SidebarProviderProps {
   children: ReactNode;
 }
 
-const SidebarContext = createContext<SidebarContextProps | null>(null);
-
 export const SidebarProvider: FC<SidebarProviderProps> = ({ children }) => {
-  // Initialize with localStorage value if available, default to true otherwise
-  const [isSidebarOpen, setIsSidebarOpenState] = useState<boolean>(() => {
-    // Only run in browser
+  const [isSidebarOpen, setIsSidebarOpen] = useState<boolean>(() => {
     if (typeof window !== "undefined") {
-      const savedState = localStorage.getItem("sidebarOpen");
-      return savedState !== null ? savedState === "true" : true;
+      const saved = localStorage.getItem("sidebarOpen");
+      return saved !== null ? saved === "true" : true;
     }
     return true;
   });
 
-  // Screen size tracking
-  const [screenSize, setScreenSize] = useState<number | undefined>(undefined);
   const [isMobile, setIsMobile] = useState<boolean>(false);
 
+  // Update mobile state on window resize
   useEffect(() => {
-    // Handler to call on window resize
-    function handleResize() {
-      const width = window.innerWidth;
-      setScreenSize(width);
-      setIsMobile(width < 768); // Standard md breakpoint
-    }
+    const checkIsMobile = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
 
-    // Set size at the first client-side load
-    handleResize();
-
-    // Add event listener
-    window.addEventListener("resize", handleResize);
-
-    // Remove event listener on cleanup
-    return () => window.removeEventListener("resize", handleResize);
+    checkIsMobile();
+    window.addEventListener("resize", checkIsMobile);
+    return () => window.removeEventListener("resize", checkIsMobile);
   }, []);
 
-  // Persist sidebar state to localStorage when it changes
+  // Save sidebar state to localStorage
   useEffect(() => {
-    if (typeof window !== "undefined") {
-      localStorage.setItem("sidebarOpen", isSidebarOpen.toString());
-    }
+    localStorage.setItem("sidebarOpen", isSidebarOpen.toString());
   }, [isSidebarOpen]);
 
+  // Explicit wrapper for setting sidebar open state
   const setSidebarOpen = (open: boolean) => {
-    setIsSidebarOpenState(open);
+    setIsSidebarOpen(open);
   };
 
   return (
-    <SidebarContext.Provider
-      value={{ isSidebarOpen, setSidebarOpen, isMobile }}
-    >
+    <SidebarContext.Provider value={{ isSidebarOpen, setSidebarOpen, isMobile }}>
       {children}
     </SidebarContext.Provider>
   );
 };
 
-const useSidebar = () => {
+const useSidebar = (): SidebarContextProps => {
   const context = useContext(SidebarContext);
   if (!context) {
     throw new Error("useSidebar must be used within a SidebarProvider");
   }
   return context;
 };
-
 export default useSidebar;
