@@ -1,16 +1,19 @@
 "use client";
 
 import { useState } from "react";
-import { CalendarIcon } from "lucide-react";
 import { format } from "date-fns";
 import { Calendar } from "@/components/ui/calendar";
 import { Button } from "@/components/ui/button";
+
+import { HugeiconsIcon } from "@hugeicons/react";
+
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
+import { Calendar03Icon } from "@hugeicons/core-free-icons";
 
 interface TransactionsHeaderProps {
   fromDate: string;
@@ -63,7 +66,13 @@ export default function TransactionsHeader({
                 !fromDateObj && "text-muted-foreground"
               )}
             >
-              <CalendarIcon className="mr-2 h-4 w-4" />
+              <HugeiconsIcon
+                icon={Calendar03Icon}
+                size={16}
+                color="currentColor"
+                strokeWidth={1.8}
+                className="mr-2"
+              />
               {fromDateObj ? format(fromDateObj, "dd-MM-yyyy") : "From"}
             </Button>
           </PopoverTrigger>
@@ -93,7 +102,13 @@ export default function TransactionsHeader({
                 !toDateObj && "text-muted-foreground"
               )}
             >
-              <CalendarIcon className="mr-2 h-4 w-4" />
+              <HugeiconsIcon
+                icon={Calendar03Icon}
+                size={16}
+                color="currentColor"
+                strokeWidth={1.8}
+                className="mr-2"
+              />
               {toDateObj ? format(toDateObj, "dd-MM-yyyy") : "To"}
             </Button>
           </PopoverTrigger>

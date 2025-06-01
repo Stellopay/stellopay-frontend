@@ -1,12 +1,12 @@
-"use client";
-
+import { HugeiconsIcon } from "@hugeicons/react";
 import {
-  ChevronDownIcon,
-  FilterIcon,
-  SearchIcon,
-  ArrowUpDownIcon,
-  CalendarClock,
-} from "lucide-react";
+  ArrowDown01Icon,
+  DocumentValidationIcon,
+  FilterMailSquareIcon,
+  Search01Icon,
+  UnfoldMoreIcon,
+} from "@hugeicons/core-free-icons";
+
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -39,44 +39,69 @@ export default function TransactionsFilters({
   return (
     <div className="flex flex-col lg:flex-row lg:items-center justify-between px-6 py-4  rounded-lg  bg-[#160f17]">
       {/* Transaction Type Filter */}
-      <DropdownMenu>
-        <DropdownMenuTrigger asChild>
-          <Button
-            variant="ghost"
-            className="flex items-center gap-2 text-base text-white hover:bg-[#160f17] hover:text-white justify-start"
-          >
-            <CalendarClock className="w-8 h-8" />
-            {selectedFilter}
-            <ChevronDownIcon className="h-4 w-4" />
-          </Button>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent className="border-[#2D2D2D] bg-[#160f17]">
-          <DropdownMenuItem
-            className="text-white hover:bg-gray-800"
-            onClick={() => onFilterChange("All Transactions")}
-          >
-            All Transactions
-          </DropdownMenuItem>
-          <DropdownMenuItem
-            className="text-white hover:bg-gray-800"
-            onClick={() => onFilterChange("Payment Sent")}
-          >
-            Payment Sent
-          </DropdownMenuItem>
-          <DropdownMenuItem
-            className="text-white hover:bg-gray-800"
-            onClick={() => onFilterChange("Payment Received")}
-          >
-            Payment Received
-          </DropdownMenuItem>
-        </DropdownMenuContent>
-      </DropdownMenu>
+      {/* Transaction Type Filter - Updated Section */}
+      <div className="flex items-center gap-2">
+        {/* Calendar icon now outside button but visually aligned */}
+        <div className="bg-[#110e11] p-2 rounded-lg border border-[#3E3E3E] inline-flex items-center justify-center">
+          <HugeiconsIcon
+            icon={DocumentValidationIcon}
+            size={35}
+            color="currentColor"
+            strokeWidth={1.5}
+            className="text-white"
+          />
+        </div>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button
+              variant="ghost"
+              className="text-xl text-white hover:bg-[#160f17] hover:text-white px-2"
+            >
+              {selectedFilter}
+              <HugeiconsIcon
+                icon={ArrowDown01Icon}
+                size={16}
+                color="currentColor"
+                strokeWidth={2}
+                className="ml-1"
+              />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent className="border-[#2D2D2D] bg-[#160f17]">
+            <DropdownMenuItem
+              className="text-white hover:bg-gray-800"
+              onClick={() => onFilterChange("All Transactions")}
+            >
+              All Transactions
+            </DropdownMenuItem>
+            <DropdownMenuItem
+              className="text-white hover:bg-gray-800"
+              onClick={() => onFilterChange("Payment Sent")}
+            >
+              Payment Sent
+            </DropdownMenuItem>
+            <DropdownMenuItem
+              className="text-white hover:bg-gray-800"
+              onClick={() => onFilterChange("Payment Received")}
+            >
+              Payment Received
+            </DropdownMenuItem>
+          </DropdownMenuContent>{" "}
+        </DropdownMenu>
+      </div>
 
       {/* Search and Controls */}
       <div className="flex items-center gap-3 mt-4 lg:mt-0">
         {/* Search Input */}
         <div className="relative">
-          <SearchIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+          <span className="absolute left-3 top-1/2 transform -translate-y-1/2">
+            <HugeiconsIcon
+              icon={Search01Icon}
+              size={16}
+              color="#9CA3AF" // gray-400
+              strokeWidth={1.5}
+            />
+          </span>
           <Input
             placeholder="Search"
             value={searchQuery}
@@ -90,11 +115,18 @@ export default function TransactionsFilters({
           <DropdownMenuTrigger asChild>
             <Button
               variant="ghost"
-              size="sm"
-              className="text-gray-400 hover:text-white hover:bg-[#1a0c1d]"
+              size="default"
+              className="text-gray-400 hover:text-white hover:bg-[#1a0c1d] "
             >
-              <FilterIcon className="h-4 w-4 mr-2" />
-              Filter
+              <HugeiconsIcon
+                icon={FilterMailSquareIcon}
+                size={20}
+                color="currentColor"
+                strokeWidth={1.5}
+                className="mr-2"
+              />
+              <span className="text-base">Filter</span>
+              {/* Responsive text */}
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent className="bg-[#160f17] border-[#2D2D2D]">
@@ -124,10 +156,16 @@ export default function TransactionsFilters({
           <DropdownMenuTrigger asChild>
             <Button
               variant="ghost"
-              size="sm"
-              className="text-gray-400 hover:text-white hover:bg-[#1a0c1d]"
+              size="default"
+              className="text-gray-400 hover:text-white hover:bg-[#1a0c1d] "
             >
-              <ArrowUpDownIcon className="h-4 w-4 mr-2" />
+              <HugeiconsIcon
+                icon={UnfoldMoreIcon}
+                size={20}
+                color="currentColor"
+                strokeWidth={1.5}
+                className="mr-2"
+              />
               Sort
             </Button>
           </DropdownMenuTrigger>

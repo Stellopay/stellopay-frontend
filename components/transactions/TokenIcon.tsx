@@ -7,7 +7,7 @@ interface TokenIconProps {
 export default function TokenIcon({ token }: TokenIconProps) {
   if (token === "USDC") {
     return (
-      <div className="w-5 h-5 rounded-full overflow-hidden flex items-center justify-center bg-white">
+      <div className="w-5 h-5 rounded-full overflow-hidden flex items-center justify-center ">
         <Image
           src="/usdc-logo.png"
           alt="USDC"
@@ -20,7 +20,7 @@ export default function TokenIcon({ token }: TokenIconProps) {
   }
   if (token === "XLM") {
     return (
-      <div className="w-5 h-5 rounded-full overflow-hidden flex items-center justify-center bg-white">
+      <div className="w-5 h-5 rounded-full overflow-hidden flex items-center justify-center ">
         <Image
           src="/stellar-xlm-logo.png"
           alt="XLM"
@@ -31,9 +31,4 @@ export default function TokenIcon({ token }: TokenIconProps) {
       </div>
     );
   }
-  return (
-    <div className="w-5 h-5 bg-gray-400 rounded-full flex items-center justify-center text-white text-xs font-bold">
-      ?
-    </div>
-  );
 }
