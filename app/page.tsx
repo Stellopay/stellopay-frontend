@@ -1,9 +1,7 @@
 "use client";
 import Image from "next/image";
 import NotificationPanel from "@/components/NotificationPanel";
-
 import DashboardPage from "@/pages/dashboard";
-
 import { SideBar } from "./components/SideBar";
 import useSidebar from "@/context/SidebarContext";
 import { Sidebar } from "lucide-react";
