@@ -14,7 +14,7 @@ const FaqCard: React.FC<FaqCardProps> = ({ title, subtitle, link }) => {
 
   // Dummy navigation
   const handleCardClick = () => {
-    router.push(link || '/settings/preferences'); 
+    router.push(link || '/settings/preferences');
   };
 
   return (
