@@ -11,7 +11,7 @@ export const SideBar = () => {
 
   return (
     <motion.aside
-      className={`bg-[#101010] h-full border border-[#1A1A1A] ${isMobile ? "w-full relative z-50" : ""}`}
+      className={`bg-[#101010] h-full min-h-screen  border border-[#1A1A1A] ${isMobile ? "w-full relative z-50" : ""}`}
       initial={false}
       animate={{
         width: !isMobile && !isSidebarOpen ? "6rem" : "100%",

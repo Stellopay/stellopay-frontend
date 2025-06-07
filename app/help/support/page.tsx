@@ -77,6 +77,7 @@ const SupportPage = () => {
             <FaqCard
               title="Account Management"
               subtitle="Update your profile, reset your password, and manage your account"
+              link="/help/support/accountManagement"
             />
             <FaqCard
               title="Transaction Issues"
