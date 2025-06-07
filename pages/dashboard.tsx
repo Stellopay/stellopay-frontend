@@ -6,7 +6,7 @@ export default function DashboardPage() {
   return (
     <>
       <Navbar />
-      <DashboardHeader />
+      <DashboardHeader pageTitle="" />
       {/* You can add more content here */}
     </>
   );
