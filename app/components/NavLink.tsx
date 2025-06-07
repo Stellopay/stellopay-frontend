@@ -37,7 +37,7 @@ export const NavLink = () => {
     {
       link: "Help/Support",
       icon: (color: string) => <HelpCircleIcon color={color} />,
-      route: ""
+      route: "/help/support"
     },
     {
       link: "Settings",
