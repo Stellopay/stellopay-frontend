@@ -4,7 +4,7 @@ import { SearchBar } from "./SearchBar";
 import { NavLink } from "./NavLink";
 import useSidebar from "@/context/SidebarContext";
 import { motion } from "framer-motion";
-import { X } from "lucide-react"; // Import X icon for close button
+import { X, Sidebar } from "lucide-react"; // Import X icon for close button
 
 export const SideBar = () => {
   const { isSidebarOpen, setSidebarOpen, isMobile } = useSidebar();
@@ -20,10 +20,19 @@ export const SideBar = () => {
     >
       <div className="space-y-6 h-full">
         {/* Top section with logo and close button */}
-        <div className="px-6 py-6 flex justify-between items-center">
-          {(isSidebarOpen || isMobile) && <StellOpayLogo />}
+        <div className="px-8 py-6 flex justify-between items-center">
+          {/* Left: Sidebar toggle + Logo */}
+          <div className="flex items-center gap-18">
+            {(isSidebarOpen || isMobile) && <StellOpayLogo />}
+            <button
+              onClick={() => setSidebarOpen(!isSidebarOpen)}
+              className="text-white cursor-pointer"
+            >
+              <Sidebar />
+            </button>
+          </div>
 
-          {/* Show close button on mobile */}
+          {/* Right: Close button (mobile only) */}
           {isMobile && (
             <button
               onClick={() => setSidebarOpen(false)}
