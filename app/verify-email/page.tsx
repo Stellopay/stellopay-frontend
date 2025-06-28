@@ -60,7 +60,7 @@ export default function VerifyEmail() {
           onClick={handleContinue}
           disabled={code.length !== 6}
           className={`w-full  py-3 px-4 rounded-[8px]  bg-[#FFFFFF] text-black font-medium transition  mt-2 ${
-            code.length > 1 ? 'cursor-pointer' : 'opacity-80 cursor-not-allowed'
+            code.length === 6 ? 'cursor-pointer' : 'opacity-80 cursor-not-allowed'
           }`}
         >
           Continue
