@@ -15,7 +15,7 @@ export default function VerifyEmail() {
 
   const handleResend = () => {
     // Placeholder for resend logic
-    alert('Verification code resent.');
+    alert('Verification code resent to your email.');
   };
 
   const handleContinue = () => {
