@@ -26,6 +26,7 @@ export default function AccountSummary() {
         <div className="flex items-center mb-6 space-x-2">
           <Image
             src={Icon} 
+            alt="Icon"
           />
           <h2 className="text-lg font-semibold">Account Summary</h2>
         </div>
@@ -39,6 +40,7 @@ export default function AccountSummary() {
               </span>
               <Image
                 src={Piggy}
+                alt="Piggy Bank Icon"
               />
             </div>
             <div className="text-3xl font-bold mb-2">
