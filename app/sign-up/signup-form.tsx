@@ -1,15 +1,14 @@
 "use client";
 
 import type React from "react";
-
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-// import { Label } from "@/components/ui/label";
-// import { Checkbox } from "@/components/ui/checkbox";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Eye, EyeOff, Check, X, Mail } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
+import EmailVerificationModal from "./components/email-verification-modal";
 
 interface FormErrors {
   fullName?: string;
@@ -42,9 +41,12 @@ export default function SignupForm() {
       uppercase: false,
       specialChar: false,
     });
+
   const [showPasswordRequirements, setShowPasswordRequirements] =
     useState(false);
   const [isPasswordStrong, setIsPasswordStrong] = useState(false);
+  const [showEmailModal, setShowEmailModal] = useState(false);
+  const [submittedEmail, setSubmittedEmail] = useState("");
 
   // Validate email format
   const isValidEmail = (email: string) => {
@@ -59,11 +61,10 @@ export default function SignupForm() {
       uppercase: /[A-Z]/.test(password),
       specialChar: /[@!#%$^&*()_+\-=[\]{};':"\\|,.<>/?]/.test(password),
     };
-    setPasswordRequirements(requirements);
 
+    setPasswordRequirements(requirements);
     const allMet = Object.values(requirements).every((req) => req);
     setIsPasswordStrong(allMet);
-
     return allMet;
   };
 
@@ -79,7 +80,6 @@ export default function SignupForm() {
           delete newErrors.fullName;
         }
         break;
-
       case "email":
         if (!value.trim()) {
           newErrors.email = "Enter your email to continue";
@@ -89,7 +89,6 @@ export default function SignupForm() {
           delete newErrors.email;
         }
         break;
-
       case "password":
         if (!value) {
           newErrors.password = "Password doesn't meet the required format";
@@ -99,7 +98,6 @@ export default function SignupForm() {
           delete newErrors.password;
         }
         break;
-
       case "confirmPassword":
         if (!value) {
           newErrors.confirmPassword =
@@ -168,28 +166,50 @@ export default function SignupForm() {
 
     if (isFormValid()) {
       console.log("Form submitted:", formData);
-      // Handle successful form submission
+      setSubmittedEmail(formData.email);
+      setShowEmailModal(true);
     }
   };
 
+  const handleEmailModalClose = () => {
+    setShowEmailModal(false);
+  };
+
+  const handleEmailModalContinue = () => {
+    // Handle email verification continuation
+    console.log("Continuing with email verification");
+    setShowEmailModal(false);
+    // Redirect to dashboard or next step
+  };
+
+  const handleEmailModalGoBack = () => {
+    setShowEmailModal(false);
+  };
+
+  const handleEmailResend = async () => {
+    // Handle resending verification email
+    console.log("Resending verification email to:", submittedEmail);
+    // Add your resend logic here
+  };
+
   return (
-    <div className="min-h-screen bg-[#201322] flex">
+    <div className="min-h-screen bg-[#201322] flex flex-col-reverse lg:flex-row">
       {/* Left Side - Form */}
-      <div className="w-1/2 flex items-center justify-center p-8">
-        <div className="w-full max-w-md">
+      <div className="w-full lg:w-1/2 flex items-center justify-center p-4 sm:p-6 lg:p-8">
+        <div className="w-full max-w-md pt-8 lg:pt-16">
           {/* Header */}
-          <div className="mb-8">
-            <h1 className="text-[#E5E5E5] text-[16px] font-bold mb-6">
+          <div className="mb-6 lg:mb-8">
+            <h1 className="text-[#E5E5E5] text-sm sm:text-base font-bold mb-4 lg:mb-6">
               Stellopay
             </h1>
-            <h2 className="text-[#F8D2FE] text-[32px] font-bold mb-2">
+            <h2 className="text-[#F8D2FE] text-2xl sm:text-3xl lg:text-[32px] font-bold mb-2">
               Get Started Now
             </h2>
-            <p className="text-[#ACB4B5] text-[13px]">
+            <p className="text-[#ACB4B5] text-xs sm:text-[13px]">
               Already have an account?
               <Link
                 href="/login"
-                className="text-white text-[13px] underline ml-1 hover:no-underline"
+                className="text-white text-xs sm:text-[13px] underline ml-1 hover:no-underline"
               >
                 Log in
               </Link>
@@ -197,63 +217,38 @@ export default function SignupForm() {
           </div>
 
           {/* Social Login Buttons */}
-          <div className="flex justify-between mb-6">
+          <div className="flex flex-col sm:flex-row gap-3 sm:gap-2 mb-6">
             <Button
               variant="outline"
-              className="bg-transparent md:w-[220px] w-full border-[#2D2D2D] text-white hover:bg-gray-800 flex items-center justify-center"
+              className="bg-transparent w-full sm:flex-1 border-[#2D2D2D] text-white hover:bg-[#35183A] hover:text-white flex items-center justify-center gap-2 text-xs sm:text-sm py-2 sm:py-3"
             >
-              <svg className="w-5 h-5 mr-2" viewBox="0 0 24 24">
-                <path
-                  fill="currentColor"
-                  d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
-                />
-                <path
-                  fill="currentColor"
-                  d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
-                />
-                <path
-                  fill="currentColor"
-                  d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"
-                />
-                <path
-                  fill="currentColor"
-                  d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
-                />
-              </svg>
-              Continue With Google
+              <Image src="/google.svg" alt="Google" width={20} height={20} />
+              <span className="hidden sm:inline">Continue With Google</span>
+              <span className="sm:hidden">Google</span>
             </Button>
-
             <Button
               variant="outline"
-              className="bg-transparent md:w-[220px] w-full border-[#2D2D2D] text-white hover:bg-gray-800 flex items-center justify-center"
+              className="bg-transparent w-full sm:flex-1 border-[#2D2D2D] text-white hover:bg-[#35183A] hover:text-white flex items-center justify-center gap-2 text-xs sm:text-sm py-2 sm:py-3"
             >
-              <svg
-                className="w-5 h-5 mr-2"
-                viewBox="0 0 24 24"
-                fill="currentColor"
-              >
-                <path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.81-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11z" />
-              </svg>
-              Continue With Apple
+              <Image src="/apple.svg" alt="Apple" width={20} height={20} />
+              <span className="hidden sm:inline">Continue With Apple</span>
+              <span className="sm:hidden">Apple</span>
             </Button>
           </div>
 
-          <div className="text-center text-white text-[14px] mb-6">Or</div>
+          <div className="text-center text-white text-sm mb-6">Or</div>
 
           {/* Sign Up Form */}
           <div className="space-y-4">
             {/* Full Name */}
             <div>
-              {/* <Label htmlFor="fullName" className="text-gray-300 text-sm">
-                Full Name
-              </Label> */}
               <Input
                 id="fullName"
                 name="fullName"
                 type="text"
                 value={formData.fullName}
                 onChange={handleInputChange}
-                className={`mt-1 bg-transparent border-[#2D2D2D] text-[#707070] placeholder-[#707070] focus:border-purple-400 ${
+                className={`bg-transparent border-[#2D2D2D] text-[#707070] placeholder-[#707070] focus:border-purple-400 ${
                   errors.fullName ? "border-red-500 focus:border-red-500" : ""
                 }`}
                 placeholder="Full Name"
@@ -275,9 +270,6 @@ export default function SignupForm() {
 
             {/* Email */}
             <div>
-              {/* <Label htmlFor="email" className="text-gray-300 text-sm">
-                Email Address
-              </Label> */}
               <div className="relative">
                 <Input
                   id="email"
@@ -285,35 +277,31 @@ export default function SignupForm() {
                   type="email"
                   value={formData.email}
                   onChange={handleInputChange}
-                  className={`mt-1 bg-transparent border-[#2D2D2D] text-[#707070] placeholder-[#707070] focus:border-purple-400 ${
+                  className={`bg-transparent border-[#2D2D2D] text-[#707070] placeholder-[#707070] focus:border-purple-400 pr-10 ${
                     errors.email ? "border-red-500 focus:border-red-500" : ""
                   }`}
                   placeholder="Email Address"
                   aria-describedby={errors.email ? "email-error" : undefined}
                   aria-invalid={!!errors.email}
                 />
-                {errors.email && (
-                  <p
-                    id="email-error"
-                    className="text-red-400 text-sm mt-1"
-                    role="alert"
-                  >
-                    {errors.email}
-                  </p>
-                )}
-
                 <Mail
                   size={20}
-                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 "
+                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400"
                 />
               </div>
+              {errors.email && (
+                <p
+                  id="email-error"
+                  className="text-red-400 text-sm mt-1"
+                  role="alert"
+                >
+                  {errors.email}
+                </p>
+              )}
             </div>
 
             {/* Password */}
             <div>
-              {/* <Label htmlFor="password" className="text-gray-300 text-sm">
-                Password
-              </Label> */}
               <div className="relative">
                 <Input
                   id="password"
@@ -321,8 +309,10 @@ export default function SignupForm() {
                   type={showPassword ? "text" : "password"}
                   value={formData.password}
                   onChange={handleInputChange}
-                  className={`mt-1 bg-transparent border-[#2D2D2D] text-[#707070] placeholder-[#707070]focus:border-purple-400 pr-10 ${
-                    errors.password ? "border-red-500 focus:border-red-500" : ""
+                  className={`bg-transparent border-[#2D2D2D] text-[#707070] placeholder-[#707070] focus:border-purple-400 pr-10 ${
+                    errors.password
+                      ? "border-red-500 focus:border-red-500"
+                      : "focus:border-[#04802E]"
                   }`}
                   placeholder="Password"
                   aria-describedby={
@@ -424,12 +414,6 @@ export default function SignupForm() {
 
             {/* Confirm Password */}
             <div>
-              {/* <Label
-                htmlFor="confirmPassword"
-                className="text-gray-300 text-sm"
-              > */}
-              {/* Confirm Password */}
-              {/* </Label> */}
               <div className="relative">
                 <Input
                   id="confirmPassword"
@@ -437,10 +421,10 @@ export default function SignupForm() {
                   type={showConfirmPassword ? "text" : "password"}
                   value={formData.confirmPassword}
                   onChange={handleInputChange}
-                  className={`mt-1 bg-transparent border-[#2D2D2D] text-[#707070] placeholder-[#707070] focus:border-purple-400 pr-10 ${
+                  className={`bg-transparent border-[#2D2D2D] text-[#707070] placeholder-[#707070] focus:border-purple-400 pr-10 ${
                     errors.confirmPassword
                       ? "border-red-500 focus:border-red-500"
-                      : ""
+                      : "focus:border-[#04802E]"
                   }`}
                   placeholder="Confirm Password"
                   aria-describedby={
@@ -478,24 +462,24 @@ export default function SignupForm() {
 
             {/* Terms Agreement */}
             <div className="flex items-start space-x-2 pt-2">
-              {/* <Checkbox
+              <Checkbox
                 id="agreeToTerms"
                 checked={formData.agreeToTerms}
                 onCheckedChange={handleCheckboxChange}
-                className="border-[#2D2D2D] data-[state=checked]:bg-[#201322] data-[state=checked]:border-[#2D2D2D]"
-              /> */}
-              <div className="text-[#CBD2EB] text-[12px]">
+                className="border-[#2D2D2D] data-[state=checked]:bg-[#201322] data-[state=checked]:border-[#2D2D2D] mt-0.5"
+              />
+              <div className="text-[#CBD2EB] text-xs leading-relaxed">
                 By selecting Agree and continue, I agree to Stellopay's
                 <Link
                   href="/terms"
-                  className="text-[#92569D] text-[12px] ml-1 underline hover:no-underline"
+                  className="text-[#92569D] ml-1 underline hover:no-underline"
                 >
                   Terms of Service
                 </Link>
                 , and acknowledge the
                 <Link
                   href="/privacy"
-                  className="text-[#92569D] text-[12px] ml-1 underline hover:no-underline"
+                  className="text-[#92569D] ml-1 underline hover:no-underline"
                 >
                   Privacy Policy
                 </Link>
@@ -520,27 +504,39 @@ export default function SignupForm() {
       </div>
 
       {/* Right Side - Promotional Content */}
-      <div className="w-1/2 flex items-center justify-center p-8">
-        <div className="bg-[#35183A] relative text-left w-full h-full rounded-2xl p-10">
-          <h2 className="text-[#F8D2FE] text-[24px] font-bold mb-4">
-            StelloPay streamlines global payroll with fast, secure blockchain
-            payments.
-          </h2>
-          <p className="text-[#E5E5E5] text-[16px] mb-8">
-            Enter your credentials to access your account
-          </p>
+      <div className="w-full lg:w-1/2 flex items-center justify-center p-4 sm:p-6 lg:p-8">
+        <div className="bg-[#35183A] h-auto lg:h-[700px] relative text-left w-full rounded-2xl p-6 sm:p-8 lg:p-10 lg:pt-16">
+          <div className="md:pl-16 pl-0">
+            <h2 className="text-[#F8D2FE] text-lg sm:text-xl lg:text-[22px] font-bold mb-4">
+              StelloPay streamlines global payroll with fast, secure blockchain
+              payments.
+            </h2>
+            <p className="text-[#E5E5E5] text-sm sm:text-base mb-6 lg:mb-8">
+              Enter your credentials to access your account
+            </p>
+          </div>
 
           {/* Mock Dashboard Preview */}
-          <div className="absolute right-0 bottom-0 rounded-lg border border-gray-700">
+          <div className="w-full lg:w-[500px] lg:absolute lg:right-0 lg:bottom-0 flex justify-center lg:justify-end items-end rounded-lg overflow-hidden">
             <Image
               src="/mock.png"
               alt="Dashboard mock-up"
-              width={400}
+              width={500}
               height={300}
+              className="w-full max-w-md lg:max-w-none object-contain"
             />
           </div>
         </div>
       </div>
+      {/* Email Verification Modal */}
+      <EmailVerificationModal
+        isOpen={showEmailModal}
+        onClose={handleEmailModalClose}
+        onContinue={handleEmailModalContinue}
+        onGoBack={handleEmailModalGoBack}
+        onResend={handleEmailResend}
+        email={submittedEmail}
+      />
     </div>
   );
 }
