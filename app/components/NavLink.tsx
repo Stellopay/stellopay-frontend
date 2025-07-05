@@ -9,19 +9,17 @@ import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import useSidebar from "@/context/SidebarContext";
 import { Tooltip } from "@material-tailwind/react";
+import { usePathname } from "next/navigation";
 import Link from "next/link";
 
 export const NavLink = () => {
-  const [activeLink, setActiveLink] = useState("dashboard");
+  const pathname = usePathname();
   const { isSidebarOpen, isMobile } = useSidebar();
 
   // Show expanded view on mobile or when desktop sidebar is expanded
   const isExpanded = isMobile || (isSidebarOpen && !isMobile);
 
-  useEffect(() => {
-    const savedLink = localStorage.getItem("activeLink");
-    if (savedLink) setActiveLink(savedLink);
-  }, []);
+
 
   const links = [
     {
@@ -52,20 +50,14 @@ export const NavLink = () => {
     <nav>
       <ul className="space-y-1 flex items-center flex-col">
         {links.map((link, index) => {
-          const isActive = activeLink.toLowerCase() === link.link.toLowerCase();
+          const isActive = pathname === link.route;
           const iconColor = isActive ? "#0D0D0D" : "#E5E5E5";
-
-          const commonClickHandler = () => {
-            setActiveLink(link.link);
-            localStorage.setItem("activeLink", link.link);
-          };
 
           // Expanded version for mobile or desktop
           if (isExpanded) {
             return (
               <li
                 key={index}
-                onClick={commonClickHandler}
                 className="cursor-pointer py-4 px-3 w-full relative rounded-lg flex justify-between items-center hover:bg-[#1c1c1c] transition-colors duration-150"
               >
                 <Link
@@ -116,7 +108,6 @@ export const NavLink = () => {
               className="border border-blue-gray-50 text-black bg-white px-2 py-2 shadow-xl shadow-black/10"
             >
               <li
-                onClick={commonClickHandler}
                 className="cursor-pointer my-4 w-fit self-center p-2 relative rounded-lg flex items-center justify-center hover:bg-[#1c1c1c] transition-colors duration-150"
               >
                 <span className="relative z-20 flex items-center justify-center">
