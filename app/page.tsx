@@ -2,7 +2,7 @@
 
 import NotificationPanel from "@/components/NotificationPanel";
 import DashboardPage from "@/pages/dashboard";
-import { SideBar } from "../app/components/SideBar";
+import { SideBar } from "./components/SideBar";
 import useSidebar from "@/context/SidebarContext";
 
 // Mock notifications

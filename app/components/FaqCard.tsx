@@ -14,7 +14,7 @@ const FaqCard: React.FC<FaqCardProps> = ({ title, subtitle, link }) => {
 
   // Dummy navigation
   const handleCardClick = () => {
-    router.push(link || '/settings/preferences');
+    router.push(link || "/settings/preferences");
   };
 
   return (
@@ -24,10 +24,8 @@ const FaqCard: React.FC<FaqCardProps> = ({ title, subtitle, link }) => {
     >
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div className="flex-1">
-          <h3 className="text-base sm:text-lg font-semibold text-white mb-1">
-            {title}
-          </h3>
-          <p className="line-clamp-2 text-sm sm:text-base text-[#707070]">{subtitle}</p>
+          <h3 className="text-base  font-semibold text-white mb-1">{title}</h3>
+          <p className="line-clamp-2 text-sm  text-[#707070]">{subtitle}</p>
         </div>
 
         <div className="flex justify-center items-center border border-[#2E2E2E] rounded-lg w-8 h-8 min-w-[2rem] min-h-[2rem]">

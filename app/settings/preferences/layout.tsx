@@ -3,7 +3,7 @@ import { SidebarProvider } from "@/context/SidebarContext";
 import { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Stellopay | Transactions",
+  title: "Stellopay | Settings/Preferences",
   description: "Pay with Stellopay",
 };
 
