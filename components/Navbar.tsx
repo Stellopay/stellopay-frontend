@@ -4,13 +4,13 @@ import { Bell, Settings, HelpCircle } from "lucide-react";
 export default function Navbar() {
   return (
     <>
-      <nav className="w-full h-[75px] border-b border-[#1A1A1A] bg-[#1a0c1d] px-4 md:px-8">
-        <div className="max-w-screen-xl mx-auto h-full flex items-center justify-between gap-4 flex-wrap">
+      <nav className="w-full h-[75px] border-b border-[#1A1A1A] bg-[#1a0c1d] my-8">
+        <div className="max-w-screen-xl mx-auto h-full flex items-center justify-between gap-4 flex-wrap px-8">
           {/* Search input */}
           <input
             type="text"
             placeholder="Search here..."
-            className="bg-transparent border border-[#1A1A1A] text-white px-4 py-2 rounded-md w-full sm:w-1/3 md:w-1/4 placeholder:text-[#aaa] outline-none focus-within:ring-1"
+            className="bg-transparent border border-[#242428] text-white px-4 py-2 rounded-md w-full sm:w-1/3 md:w-[400px] placeholder:text-[#E5E5E5] outline-none focus-within:ring-1"
           />
 
           {/* Icons and Avatar */}

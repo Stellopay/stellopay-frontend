@@ -18,7 +18,7 @@ export const SideBar = () => {
       }}
       transition={{ duration: 0.3, ease: "easeInOut" }}
     >
-      <div className="space-y-6 h-full">
+      <div className="space-y-6 my-9 h-full">
         {/* Top section with logo and close button */}
         <div className="px-8 py-6 flex justify-between items-center">
           {/* Left: Sidebar toggle + Logo */}
