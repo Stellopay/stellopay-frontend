@@ -10,7 +10,7 @@ export default function Navbar() {
           <input
             type="text"
             placeholder="Search here..."
-            className="bg-transparent border border-[#1A1A1A] text-white px-4 py-2 rounded-md w-full sm:w-1/3 md:w-1/4 placeholder:text-[#aaa] outline-none focus-within:ring-1"
+            className="bg-transparent border border-[#242428] text-white px-4 py-2 rounded-md w-full sm:w-1/3 md:w-[400px] placeholder:text-[#E5E5E5] outline-none focus-within:ring-1"
           />
 
           {/* Icons and Avatar */}

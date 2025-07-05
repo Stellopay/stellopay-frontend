@@ -2,7 +2,7 @@ import React from "react";
 
 const Date = ({ date }: { date: string }) => {
   return (
-    <button className="flex gap-1 items-center cursor-pointer">
+    <button className="flex gap-1 items-center cursor-pointer rounded-lg border border-[#242428] p-2">
       <svg
         width="16"
         height="17"
