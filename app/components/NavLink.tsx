@@ -8,8 +8,8 @@ import {
 import { motion } from "framer-motion";
 import useSidebar from "@/context/SidebarContext";
 import { Tooltip } from "@material-tailwind/react";
-import Link from "next/link";
 import { usePathname } from "next/navigation";
+import Link from "next/link";
 
 export const NavLink = () => {
   const pathname = usePathname() || "/";
