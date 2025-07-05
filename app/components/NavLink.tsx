@@ -1,5 +1,4 @@
 "use client";
-
 import {
   DashBoardIcon,
   HelpCircleIcon,
@@ -9,18 +8,23 @@ import {
 import { motion } from "framer-motion";
 import useSidebar from "@/context/SidebarContext";
 import { Tooltip } from "@material-tailwind/react";
-import { usePathname } from "next/navigation";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 
 export const NavLink = () => {
   const pathname = usePathname() || "/";
-  const { isSidebarOpen, isMobile } = useSidebar();
-  const isExpanded = isMobile || (isSidebarOpen && !isMobile);
 
+  // Function to check if a link is active
   const isLinkActive = (route: string) => {
-    if (route === "/") return pathname === "/";
+    if (route === "/") {
+      return pathname === "/";
+    }
     return pathname.startsWith(route);
   };
+  const { isSidebarOpen, isMobile } = useSidebar();
+
+  // Show expanded view on mobile or when desktop sidebar is expanded
+  const isExpanded = isMobile || (isSidebarOpen && !isMobile);
 
   const links = [
     {
@@ -54,7 +58,7 @@ export const NavLink = () => {
           const isActive = isLinkActive(link.route);
           const iconColor = isActive ? "#0D0D0D" : "#E5E5E5";
 
-          // Expanded view
+          // Expanded version for mobile or desktop
           if (isExpanded) {
             return (
               <li key={index} className="w-full relative">
@@ -94,7 +98,7 @@ export const NavLink = () => {
             );
           }
 
-          // Collapsed view
+          // Collapsed version for desktop only
           return (
             <Tooltip
               key={index}
