@@ -62,7 +62,7 @@ export default function TransactionsHeader({
             <Button
               variant="outline"
               className={cn(
-                "w-[140px] justify-start text-left font-normal bg-[#1a0c1d] border border-[#242428]",
+                " w-[2000px] justify-start  font-normal px-[13px] py-[8px] bg-[#1a0c1d] border border-[#242428]",
                 !fromDateObj && "text-muted-foreground"
               )}
             >
@@ -71,7 +71,7 @@ export default function TransactionsHeader({
                 size={16}
                 color="currentColor"
                 strokeWidth={1.8}
-                className="mr-2"
+                className="mr-4"
               />
               {fromDateObj ? format(fromDateObj, "dd-MM-yyyy") : "From"}
             </Button>
@@ -90,7 +90,7 @@ export default function TransactionsHeader({
           </PopoverContent>
         </Popover>
 
-        <span className="text-gray-400 text-sm">To</span>
+        <span className="text-gray-400 text-sm">Tom</span>
 
         {/* To Date Picker */}
         <Popover open={toDateOpen} onOpenChange={setToDateOpen}>
