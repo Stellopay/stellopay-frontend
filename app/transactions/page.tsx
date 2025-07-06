@@ -23,12 +23,9 @@ const Transactions = () => {
   const totalPages = Math.ceil(allTransactions.length / itemsPerPage);
   return (
     <>
-      <TransactionHeader pageTitle="Transactions" />
       <div className="grid grid-cols-5">
-        <SideBar />{" "}
         <main className="col-span-4">
-          <Navbar />
-          <div className="container mx-auto py-8 px-8 ">
+          <div className="container mx-auto py-8 px-8">
             <div className="grid md:flex items-center justify-between pb-3 md:pb-0">
               <h1 className="text-2xl font-bold mb-6 text-[#e5e5e5] ">
                 Transactions
