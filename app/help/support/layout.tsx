@@ -1,22 +1,21 @@
-import AppLayout from "@/app/components/AppLayout";
-import { SidebarProvider } from "@/context/SidebarContext";
-import { Metadata } from "next";
-
-
+import type React from "react"
+import AppLayout from "@/app/components/AppLayout"
+import { SidebarProvider } from "@/context/SidebarContext"
+import type { Metadata } from "next"
 
 export const metadata: Metadata = {
   title: "Stellopay | Transactions",
-  description: "Pay with Stellopay",
-};
+  description: "Stellopay Transactions - View and manage your transaction history",
+}
 
-export default function RootLayout({
+export default function TransactionsLayout({
   children,
 }: Readonly<{
-  children: React.ReactNode;
+  children: React.ReactNode
 }>) {
   return (
     <SidebarProvider>
       <AppLayout>{children}</AppLayout>
     </SidebarProvider>
-  );
+  )
 }
