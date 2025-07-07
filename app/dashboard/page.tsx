@@ -1,4 +1,4 @@
-"use client"
+"use client";
 import DashboardHeader from "@/components/DashboardHeader";
 import NotificationPanel from "@/components/NotificationPanel";
 import AccountSummary from "@/app/account-summary/page";
@@ -41,23 +41,16 @@ const page = () => {
     <div className="min-h-screen">
       <DashboardHeader pageTitle="Dashboard" />
       <main className="p-6 space-y-6">
-        {/* Account Summary Section */}
         <AccountSummary />
 
-        {/* Analytics and Notifications Row */}
         <div className="flex flex-col md:flex-row justify-between w-full gap-6">
-          {/* Analytics Views - Takes 2 columns */}
           <div className="flex-1">
             <ClientAnalyticsView />
           </div>
 
-          {/* Notifications - Takes 1 column */}
-          <div className="">
-            <NotificationPanel notifications={notifications} />
-          </div>
+          <NotificationPanel notifications={notifications} />
         </div>
 
-        {/* Transaction History Section */}
         <div className="max-w-full ">
           {" "}
           <div className="bg-foreground border rounded-[1.5rem] border-[#2D2D2D] p-2">
@@ -95,7 +88,7 @@ const page = () => {
                     />
                   </svg>
                 </div>
-                <span> All Transactions</span>
+                <span>Transaction History</span>
               </h6>
               <div className="flex items-center gap-2">
                 <TableSearchbar />
@@ -105,11 +98,6 @@ const page = () => {
             </div>
             <TransactionsTable transactions={transactions} />
           </div>
-          <Pagination
-            currentPage={currentPage}
-            totalPages={totalPages}
-            onPageChange={setCurrentPage}
-          />
         </div>
       </main>
     </div>
