@@ -5,17 +5,19 @@ import ToggleCard from "@/app/components/ToggleCard";
 import SecurityTab from "./components/SecurityTab";
 import Image from "next/image";
 import { Camera } from "lucide-react";
+import SettingsHeader from "@/components/SettingsHeader";
 
 export default function SettingsPage() {
   const [activeTab, setActiveTab] = useState("Profile"); // Default tab
 
   return (
-    <div className="min-h-screen p-6 md:p-10 bg-[#230d22] text-white flex flex-col gap-8">
+    <div className="min-h-screen  text-white flex flex-col ">
       {/* Title */}
-      <h1 className="text-3xl md:text-4xl font-bold">Settings</h1>
+      <SettingsHeader pageTitle="Settings" />
 
-      {/* Tabs */}
-      <div className="flex mb-8 ">
+     <div className="p-8">
+       {/* Tabs */}
+       <div className="flex mb-8 ">
         {["Profile", "Security", "Preferences"].map((tab) => (
           <button
             key={tab}
@@ -155,6 +157,7 @@ export default function SettingsPage() {
           </div>
         )}
       </div>
+     </div>
     </div>
   );
 }

@@ -1,12 +1,19 @@
-export default function TransactionHeader({ pageTitle }: { pageTitle: string }) {
+import Date from "@/app/components/transaction-page/Date";
+
+export default function TransactionHeader({
+  pageTitle,
+}: {
+  pageTitle: string;
+}) {
   return (
-    <div className="w-full px-4 md:px-6 py-4 bg-[#1a0c1d] ">
+    <div className="w-full px-4 md:px-6 pt-4  border-b border-[#1A1A1A]">
       <div className="max-w-screen-xl mx-auto flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-        <div className="pl-4">
-          <h1 className="text-white text-xl font-semibold">{pageTitle}</h1>
-          </div>
+        <h1 className="text-white text-2xl font-semibold pl-4">{pageTitle}</h1>
+        <div className="flex items-center justify-between gap-4">
+          <Date date="26-03-2025" /> <span className="text-sm">To</span>{" "}
+          <Date date="26-03-2025" />
+        </div>
       </div>
-        <div className="w-full h-px bg-[#fff] mt-2"></div>
     </div>
   );
 }
