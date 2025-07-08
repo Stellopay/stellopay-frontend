@@ -1,5 +1,5 @@
-import AppLayout from "@/components/common/AppLayout";
-import { SidebarProvider } from "@/context/SidebarContext";
+import AppLayout from "@/components/common/app-layout";
+import { SidebarProvider } from "@/context/sidebar-context";
 import { Metadata } from "next";
 
 export const metadata: Metadata = {
