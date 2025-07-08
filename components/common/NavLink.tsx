@@ -30,7 +30,7 @@ export const NavLink = () => {
     {
       link: "Dashboard",
       icon: (color: string) => <DashBoardIcon color={color} />,
-      route: "/",
+      route: "/dashboard",
     },
     {
       link: "Transactions",
