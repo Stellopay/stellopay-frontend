@@ -2,14 +2,14 @@
 
 import { useState } from "react";
 import { transactions as allTransactions } from "@/public/data/mock-data";
-import DashboardHeader from "@/components/dashboard/DashboardHeader";
+import DashboardHeader from "@/components/dashboard/dashboard-header";
 import AccountSummary from "../account-summary/page";
-import ClientAnalyticsView from "@/components/analytics/ClientAnalyticsView";
-import NotificationPanel from "@/components/common/NotificationPanel";
-import TableSearchbar from "@/components/transactions/TableSearchbar";
-import Filter from "@/components/transactions/Filter";
-import Sort from "@/components/transactions/Sort";
-import { TransactionsTable } from "@/components/transactions/TransactionsTable";
+import ClientAnalyticsView from "@/components/analytics/client-analytics-view";
+import NotificationPanel from "@/components/common/notification-panel";
+import TableSearchbar from "@/components/transactions/table-searchbar";
+import Filter from "@/components/transactions/filter";
+import Sort from "@/components/transactions/sort";
+import { TransactionsTable } from "@/components/transactions/transactions-table";
 import { getPageItems, getTotalPages } from "@/utils/paginationUtils";
 
 const page = () => {
