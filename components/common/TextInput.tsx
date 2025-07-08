@@ -1,13 +1,5 @@
 import React, { ChangeEvent, ReactNode } from "react";
-
-interface TextInputProps {
-  label?: string;
-  value: string;
-  icon?: ReactNode;
-  placeholder?: string;
-  onChange: (value: string) => void;
-  type?: "text" | "number"; 
-}
+import { TextInputProps } from "@/types/ui";
 
 const TextInput: React.FC<TextInputProps> = ({
   label,
