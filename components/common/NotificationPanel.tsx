@@ -4,9 +4,10 @@ import { Button } from "@/components/ui/button";
 import { IconBell } from "@/components/icons/BellFillIcon";
 import { NotificationItem } from "@/types/NotificationItem";
 import { NotificationProps } from "@/types/ui";
+
 const NotificationPanel = ({ className, notifications }: NotificationProps) => {
   return (
-    <div className="bg-[#0D0D0D80]  bg-opacity-50 border border-[#2D2D2D] w-[400px] rounded-xl  p-4 text-[#E5E5E5]">
+    <div className="bg-[#0D0D0D80]  bg-opacity-50 border border-[#2D2D2D] max-w-[400px] rounded-xl  p-4 text-[#E5E5E5]">
       <div className="flex justify-between items-center mb-4">
         <div className="flex items-center gap-3">
           <Button

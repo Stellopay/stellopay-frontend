@@ -1,16 +1,14 @@
 import type React from "react";
-
+import AppLayout from "@/components/common/AppLayout";
 import { SidebarProvider } from "@/context/SidebarContext";
 import type { Metadata } from "next";
-import AppLayout from "@/components/common/AppLayout";
 
 export const metadata: Metadata = {
-  title: "Stellopay | Hep/Support",
-  description:
-    "Stellopay Hep/Support - Contact support for assistance with your Stellopay account, transactions, security, and more.",
+  title: "Stellopay | Dashboard",
+  description: "Stellopay Dashboard - View and manage your dashboard",
 };
 
-export default function HelpSupportLayout({
+export default function DashboardLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;

@@ -43,7 +43,7 @@ const CustomTooltip = ({ active, payload, label }: any) => {
 
 const AnalyticsViews = () => {
   return (
-    <div className="bg-[#140D13] text-white rounded-lg border border-[#2D2D2D] p-4 w-full max-w-3xl mx-auto">
+    <div className="bg-[#140D13] text-white rounded-lg border border-[#2D2D2D] p-4 w-full h-full flex flex-col justify-between max-w-3xl mx-auto">
       <div className="flex justify-between items-center mb-4 flex-wrap gap-2">
         <div className="flex items-center gap-2">
           <div className="bg-[#1c1729] p-2 rounded-lg">
@@ -56,7 +56,7 @@ const AnalyticsViews = () => {
         </button>
       </div>
 
-      <div className="w-full aspect-[3/1] rounded-lg border border-[#2D2D2D] p-2 sm:p-4">
+      <div className="w-full h-full aspect-[3/1] rounded-lg border border-[#2D2D2D] p-2 sm:p-4">
         <ResponsiveContainer width="100%" height="100%">
           <BarChart data={data}>
             <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#1f1b2e" />
