@@ -29,7 +29,8 @@ export interface TextareaInputProps {
 }
 
 export interface EmailInputProps {
-  // ...copy from components/common/EmailInput.tsx
+  value: string;
+  onChange: (value: string) => void;
 }
 
 export interface FaqCardProps {
