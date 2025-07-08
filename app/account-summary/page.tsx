@@ -5,21 +5,14 @@ import { Copy, Home, PiggyBank } from "lucide-react";
 import Image from "next/image";
 import Icon from "@/public/Icon.png"
 import Piggy from "@/public/piggy-bank.png"
+import { copyToClipboardWithTimeout } from "@/utils/clipboardUtils";
 
 export default function AccountSummary() {
   const [copied, setCopied] = useState(false);
   const address = "0x8dE1243U45...67800UZ";
 
   const handleCopy = () => {
-    navigator.clipboard.writeText(address).then(() => {
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000); 
-    })
-    .catch((error) => {
-      console.error("Failed to copy address to clipboard:", error);
-      alert("Failed to copy address. Please try again.");
-    });
-    
+    copyToClipboardWithTimeout(address, setCopied);
   };
   return (
       <div className="bg-[#140D13] p-4 rounded-xl border border-[#2D2D2D] shadow-lg text-white ">
