@@ -13,7 +13,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
   const { isSidebarOpen, isMobile } = useSidebar();
 
   return (
-    <div className="relative bg-[#201322] min-h-screen">
+    <div className="relative   min-h-screen">
       <div
         className={`grid transition-all duration-300 ease-in-out ${
           isMobile
@@ -27,7 +27,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
         {!isMobile && <SideBar />}
 
         {/* Main content area */}
-        <div className=" relative min-h-screen">
+        <div className=" relative  min-h-screen">
           <Navbar />
           <main className="flex flex-col">{children}</main>
         </div>

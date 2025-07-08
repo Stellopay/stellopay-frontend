@@ -16,16 +16,17 @@ export function Pagination({
   onPageChange
 }: PaginationProps) {
   return (
-    <div className="flex items-center justify-center gap-3 py-2 px-2">
+    <section className="flex items-center justify-center gap-3 py-2 my-4  px-2 ">
       <div className="hidden text-sm text-muted-foreground md:block">
         Showing {(currentPage - 1) * 6 + 1} to{" "}
-        {Math.min(currentPage * 6, 6 * totalPages)} of {6 * totalPages} items
+        0{Math.min(currentPage * 6, 6 * totalPages)} of {6 * totalPages} items
       </div>
       <div className="flex items-center space-x-2">
         <Button
           size="sm"
           onClick={() => onPageChange(currentPage - 1)}
-          disabled={currentPage === 1}
+       
+          className="bg-transparent text-muted-foreground"
         >
           <ChevronLeft className="h-4 w-4" />
         </Button>
@@ -34,7 +35,7 @@ export function Pagination({
             key={page}
             size="sm"
             onClick={() => onPageChange(page)}
-            className={`${page === currentPage && "bg-white text-black"}`}
+            className={`${page === currentPage ? "bg-[#eee] text-black" :"bg-transparent text-muted-foreground"} `}
           >
             {page}
           </Button>
@@ -43,11 +44,11 @@ export function Pagination({
         <Button
           size="sm"
           onClick={() => onPageChange(currentPage + 1)}
-          disabled={currentPage === totalPages}
+          className="bg-transparent text-muted-foreground"
         >
           <ChevronRight className="h-4 w-4" />
         </Button>
       </div>
-    </div>
+    </section>
   );
 }

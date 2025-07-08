@@ -2,7 +2,7 @@ import React from "react";
 
 const Date = ({ date }: { date: string }) => {
   return (
-    <button className="flex gap-1 items-center cursor-pointer rounded-lg border border-[#242428] p-2">
+    <button className="flex space-x-2 w-[133px] items-center cursor-pointer rounded-lg border border-[#242428] p-2">
       <svg
         width="16"
         height="17"
@@ -43,7 +43,7 @@ const Date = ({ date }: { date: string }) => {
         />
       </svg>
 
-      <span className="text-sm">{date}</span>
+      <span className="text-sm #e5e5e5">{date}</span>
     </button>
   );
 };
