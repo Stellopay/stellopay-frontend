@@ -43,7 +43,7 @@
 //     },
 //   ]
 
-import { TransactionProps } from "@/lib/interface";
+import { TransactionProps } from "@/types/transaction";
 
 export const transactions: TransactionProps[] = [
   {
