@@ -34,11 +34,15 @@ export interface EmailInputProps {
 }
 
 export interface FaqCardProps {
-  // ...copy from components/common/FaqCard.tsx
+  title: string;
+  subtitle: string;
+  link?: string;
 }
 
 export interface SupportTabsProps {
-  // ...copy from components/common/SupportTabs.tsx
+  activeTab: string;
+  setActiveTab: (tab: string) => void;
+  children?: React.ReactNode;
 }
 
 export interface ToggleCardProps {
@@ -51,4 +55,16 @@ export interface NotificationProps {
 
 export interface AppLayoutProps {
   children: React.ReactNode;
+}
+
+export interface PaginationProps {
+  currentPage: number;
+  totalPages: number;
+  onPageChange: (page: number) => void;
+}
+
+export interface TransactionsPaginationProps {
+  totalItems: number;
+  currentPage?: number;
+  itemsPerPage?: number;
 } 
