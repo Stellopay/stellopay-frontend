@@ -1,6 +1,6 @@
 import type React from "react";
-import AppLayout from "@/components/common/AppLayout";
-import { SidebarProvider } from "@/context/SidebarContext";
+import AppLayout from "@/components/common/app-layout";
+import { SidebarProvider } from "@/context/sidebar-context";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
