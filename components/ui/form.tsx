@@ -13,7 +13,7 @@ import {
   type FieldValues,
 } from "react-hook-form"
 
-import { cn } from "@/lib/utils"
+import { cn } from "@/utils/commonUtils"
 import { Label } from "@/components/ui/label"
 
 const Form = FormProvider
@@ -65,9 +65,7 @@ const useFormField = () => {
   }
 }
 
-type FormItemContextValue = {
-  id: string
-}
+import { FormItemContextValue } from "@/types/ui";
 
 const FormItemContext = React.createContext<FormItemContextValue>(
   {} as FormItemContextValue

@@ -1,13 +1,14 @@
-import AppLayout from "@/app/components/AppLayout";
-import { SidebarProvider } from "@/context/SidebarContext";
+import AppLayout from "@/components/common/app-layout";
+import { SidebarProvider } from "@/context/sidebar-context";
 import { Metadata } from "next";
 
 export const metadata: Metadata = {
   title: "Stellopay | Settings/Preferences",
-  description: "Pay with Stellopay",
+  description:
+    "Stellopay Settings/Preferences - Manage your account settings and preferences",
 };
 
-export default function RootLayout({
+export default function SettingsPreferencesLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;

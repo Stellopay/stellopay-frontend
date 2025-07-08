@@ -1,4 +1,4 @@
-import { KeyFeatures } from "@/components/landing-page/key-features";
+import { KeyFeatures } from "@/components/landing/key-features";
 import Hero from "./hero";
 
 export default function LandingPage() {

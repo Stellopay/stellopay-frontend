@@ -1,15 +1,15 @@
-"use client"
-import FaqCard from "@/app/components/FaqCard"
-import SupportTabs from "@/app/components/SupportTabs"
-import { CircleHelp } from "lucide-react"
-import { useState } from "react"
+"use client";
+
+import FaqCard from "@/components/common/faq-card";
+import SupportTabs from "@/components/common/support-tabs";
+import { CircleHelp } from "lucide-react";
+import { useState } from "react";
 
 const SupportPage = () => {
-  const [activeTab, setActiveTab] = useState("Client FAQ")
+  const [activeTab, setActiveTab] = useState("Client FAQ");
 
   return (
     <>
-     
       <div className="min-h-screen p-4 sm:p-6 gap-6 text-white flex flex-col">
         {/* Shared Tabs Component with FAQ content as children */}
         <SupportTabs activeTab={activeTab} setActiveTab={setActiveTab}>
@@ -19,7 +19,9 @@ const SupportPage = () => {
               <div className="flex justify-center items-center border border-[#2E2E2E] rounded-[0.5rem] w-[2rem] h-[2rem]">
                 <CircleHelp color="#E5E5E5" />
               </div>
-              <h3 className="text-base font-normal text-[#E5E5E5]">Frequently Asked Questions</h3>
+              <h3 className="text-base font-normal text-[#E5E5E5]">
+                Frequently Asked Questions
+              </h3>
             </div>
 
             {/* FAQ Cards */}
@@ -59,7 +61,7 @@ const SupportPage = () => {
         </SupportTabs>
       </div>
     </>
-  )
-}
+  );
+};
 
-export default SupportPage
+export default SupportPage;
