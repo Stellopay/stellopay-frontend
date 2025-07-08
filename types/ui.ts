@@ -20,7 +20,12 @@ export interface TextInputProps {
 }
 
 export interface TextareaInputProps {
-  // ...copy from components/common/TextAreaInput.tsx
+  label?: string;
+  value: string;
+  icon?: React.ReactNode;
+  placeholder?: string;
+  onChange: (value: string) => void;
+  rows?: number;
 }
 
 export interface EmailInputProps {
