@@ -3,12 +3,7 @@
 
 import { Button } from "@/components/ui/button";
 import { ChevronLeft, ChevronRight } from "lucide-react";
-
-interface PaginationProps {
-  currentPage: number;
-  totalPages: number;
-  onPageChange: (page: number) => void;
-}
+import { PaginationProps } from "@/types/ui";
 
 export function Pagination({
   currentPage,
