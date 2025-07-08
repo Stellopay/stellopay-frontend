@@ -1,15 +1,5 @@
 import React, { MouseEvent, ReactNode } from "react";
-
-interface ButtonProps {
-  text: string | ReactNode;
-  disabled?: boolean;
-  onClick?: (event: MouseEvent<HTMLButtonElement>) => void;
-  loading?: boolean;
-  width?: string;
-  height?: string;
-  fill?: boolean;
-  type?: "button" | "submit" | "reset";
-}
+import { ButtonProps } from "@/types/ui";
 
 const Button: React.FC<ButtonProps> = ({
   text,
