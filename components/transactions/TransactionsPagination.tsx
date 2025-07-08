@@ -1,10 +1,5 @@
 import { Button } from "@/components/ui/button";
-
-interface TransactionsPaginationProps {
-  totalItems: number;
-  currentPage?: number;
-  itemsPerPage?: number;
-}
+import { TransactionsPaginationProps } from "@/types/ui";
 
 export default function TransactionsPagination({
   totalItems,
