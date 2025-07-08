@@ -14,13 +14,7 @@ import {
 } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
 import { Calendar03Icon } from "@hugeicons/core-free-icons";
-
-interface TransactionsHeaderProps {
-  fromDate: string;
-  toDate: string;
-  onFromDateChange: (date: string) => void;
-  onToDateChange: (date: string) => void;
-}
+import { TransactionsHeaderProps } from "@/types/transaction";
 
 export default function TransactionsHeader({
   fromDate,
