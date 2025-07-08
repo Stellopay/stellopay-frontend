@@ -19,6 +19,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { SignUpEmailModal } from "./sign-up-email-modal";
 import { AuthSocialButtons } from "../auth-social-buttons";
 import { signUpSchema, SignUpFormValues } from "@/types/auth";
+import { checkPasswordRequirements } from "@/utils/authUtils";
 
 export function SignUpForm() {
   const [showPassword, setShowPassword] = useState(false);
@@ -32,14 +33,10 @@ export function SignUpForm() {
     useState(false);
   const [isPasswordStrong, setIsPasswordStrong] = useState(false);
   const [showEmailModal, setShowEmailModal] = useState(false);
-  const [submittedEmail, setSubmittedEmail] = useState("");
+    const [submittedEmail, setSubmittedEmail] = useState("");
 
-  const checkPasswordRequirements = (password: string) => {
-    const requirements = {
-      minLength: password.length >= 8,
-      uppercase: /[A-Z]/.test(password),
-      specialChar: /[@!#%$^&*()_+\-=[\]{};':"\\|,.<>/?]/.test(password),
-    };
+  const handlePasswordCheck = (password: string) => {
+    const requirements = checkPasswordRequirements(password);
     setPasswordRequirements(requirements);
     const allMet = Object.values(requirements).every((req) => req);
     setIsPasswordStrong(allMet);
@@ -159,7 +156,7 @@ export function SignUpForm() {
                         const value = e.target.value;
                         if (value.length > 0) {
                           setShowPasswordRequirements(true);
-                          checkPasswordRequirements(value);
+                          handlePasswordCheck(value);
                         } else {
                           setShowPasswordRequirements(false);
                         }
