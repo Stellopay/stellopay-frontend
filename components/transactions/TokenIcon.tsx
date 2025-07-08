@@ -1,8 +1,5 @@
 import Image from "next/image";
-
-interface TokenIconProps {
-  token: string;
-}
+import { TokenIconProps } from "@/types/transaction";
 
 export default function TokenIcon({ token }: TokenIconProps) {
   if (token === "USDC") {
