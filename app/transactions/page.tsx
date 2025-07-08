@@ -23,20 +23,23 @@ const Transactions = () => {
   const totalPages = Math.ceil(allTransactions.length / itemsPerPage);
   return (
     <>
-      <div className="grid grid-cols-5">
-        <main className="col-span-4">
+      <div className="grid grid-cols-5 max-w-7xl ">
+        <main className="col-span-10">
           <div className="container mx-auto py-8 px-8">
             <div className="grid md:flex items-center justify-between pb-3 md:pb-0">
-              <h1 className="text-2xl font-bold mb-6">Transactions</h1>
+              <h1 className="text-2xl font-bold mb-6 text-[#e5e5e5] ">
+                Transactions
+              </h1>
               <div className="flex items-center justify-between gap-4">
-                <Date date="26-03-2025" /> <span className="text-sm">To</span>{" "}
-                <Date date="26-03-2025" />
+                <Date date="26-03-2025" />{" "}
+                <span className="text-sm text-[#e5e5e5]">To</span>{" "}
+                <Date date="01-03-2025" />
               </div>
             </div>
-            <div className="bg-foreground border rounded-[1.5rem] border-[#2D2D2D] p-2">
+            <div className=" border rounded-[1.5rem] border-[#2D2D2D] px-4 py-2 bg-[#0D0D0D80]  ">
               {" "}
-              <div className="grid pb-2 md:pb-0 md:flex items-center justify-between">
-                <h6 className="text-xl font-medium mb-4 p-2 flex gap-1 items-center">
+              <div className="flex justify-between items-center flex-col md:flex-row items-start py-3 space-y-4 md:space-y-0 ">
+                <h2 className="text-xl font-medium   flex gap-1 items-center text-[#e5e5e5]">
                   <div className=" bg-[#121212] rounded-lg border border-[#2E2E2E] p-1">
                     <svg
                       width="24"
@@ -69,21 +72,20 @@ const Transactions = () => {
                     </svg>
                   </div>
                   <span> All Transactions</span>
-                </h6>
-                <div className="flex items-center gap-2">
+                </h2>
+                <div className="flex items-center space-x-8 w-[289px] -mr-6">
                   <TableSearchbar />
                   <Filter />
                   <Sort />
                 </div>
               </div>
               <TransactionsTable transactions={transactions} />
+              <Pagination
+                currentPage={currentPage}
+                totalPages={totalPages}
+                onPageChange={setCurrentPage}
+              />
             </div>
-
-            <Pagination
-              currentPage={currentPage}
-              totalPages={totalPages}
-              onPageChange={setCurrentPage}
-            />
           </div>
         </main>
       </div>

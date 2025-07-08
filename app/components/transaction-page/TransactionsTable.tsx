@@ -24,22 +24,22 @@ export function TransactionsTable({ transactions }: TransactionsTableProps) {
         <Table>
           <TableHeader>
             <TableRow className="bg-[#191919]">
-              <TableHead className="text-white font-bold border-[#2D2D2D] border-y-2 border-t-0">
+              <TableHead className="text-white font-bold border-[#2D2D2D] border-y-2 border-t-0 py-4 px-6">
                 Transaction Type
               </TableHead>
-              <TableHead className="text-white font-bold border-[#2D2D2D] border-y-2 border-t-0">
+              <TableHead className="text-white font-bold border-[#2D2D2D] border-y-2 border-t-0 py-4 px-6">
                 Address
               </TableHead>
-              <TableHead className="text-white font-bold border-[#2D2D2D] border-y-2 border-t-0">
+              <TableHead className="text-white font-bold border-[#2D2D2D] border-y-2 border-t-0 py-4 px-6">
                 Date
               </TableHead>
-              <TableHead className="text-white font-bold border-[#2D2D2D] border-y-2 border-t-0">
+              <TableHead className="text-white font-bold border-[#2D2D2D] border-y-2 border-t-0 py-4 px-6">
                 Token
               </TableHead>
-              <TableHead className="text-white font-bold border-[#2D2D2D] border-y-2 border-t-0">
+              <TableHead className="text-white font-bold border-[#2D2D2D] border-y-2 border-t-0 py-4 px-6">
                 Amount
               </TableHead>
-              <TableHead className="text-white font-bold border-[#2D2D2D] border-y-2 border-t-0">
+              <TableHead className="text-white font-bold border-[#2D2D2D] border-y-2 border-t-0 py-4 px-6">
                 Status
               </TableHead>
             </TableRow>
@@ -47,33 +47,33 @@ export function TransactionsTable({ transactions }: TransactionsTableProps) {
           <TableBody>
             {transactions.map((transaction, index) => (
               <TableRow key={index} className="border border-[#2D2D2D]">
-                <TableCell className="font-medium border border-[#2D2D2D] md:py-4">
+                <TableCell className="font-medium border border-[#2D2D2D] py-4 px-6">
                   <h6 className="text-[#D7E0EF]"> {transaction.type} </h6>
                   <p>#{transaction.id}</p>
                 </TableCell>
-                <TableCell className="border border-[#2D2D2D] md:py-4">
+                <TableCell className="border border-[#2D2D2D] py-4 px-6">
                   {transaction.address}
                 </TableCell>
-                <TableCell className="border border-[#2D2D2D] md:py-4">
+                <TableCell className="border border-[#2D2D2D] py-4 px-6">
                   {transaction.date} {transaction.time}
                 </TableCell>
-                <TableCell className="flex gap-2 h-full items-center my-auto md:py-4">
+                <TableCell className="flex place-items-center space-x-2 py-8 px-6">
                   <Image
                     src={transaction.tokenIcon}
                     alt={transaction.token}
                     width={20}
                     height={20}
                   />
-                  {transaction.token}
+                  <span>{transaction.token}</span>
                 </TableCell>
-                <TableCell className="border border-[#2D2D2D] ">
+                <TableCell className="border border-[#2D2D2D] py-4 px-6 ">
                   {transaction.amount}
                 </TableCell>
-                <TableCell>
+                <TableCell className="py-4 px-6">
                   <Badge
                     className={`${transaction.status === "Completed" ? "bg-[#102B19] text-[#04842E]" : transaction.status === "Pending" ? "bg-[#191919] text-[#9F6603]" : "bg-[#1A1A1A] text-[#B70B05]"}`}
                   >
-                    {transaction.status}
+                    <span className="text-sm">{transaction.status}</span>
                   </Badge>
                 </TableCell>
               </TableRow>
