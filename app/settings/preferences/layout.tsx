@@ -1,4 +1,4 @@
-import AppLayout from "@/app/components/AppLayout";
+import AppLayout from "@/components/common/AppLayout";
 import { SidebarProvider } from "@/context/SidebarContext";
 import { Metadata } from "next";
 
