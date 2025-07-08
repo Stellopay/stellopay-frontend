@@ -65,9 +65,7 @@ const useFormField = () => {
   }
 }
 
-type FormItemContextValue = {
-  id: string
-}
+import { FormItemContextValue } from "@/types/ui";
 
 const FormItemContext = React.createContext<FormItemContextValue>(
   {} as FormItemContextValue
