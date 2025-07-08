@@ -1,13 +1,5 @@
 import React, { ChangeEvent, ReactNode } from "react";
-
-interface TextareaInputProps {
-  label?: string;
-  value: string;
-  icon?: ReactNode;
-  placeholder?: string;
-  onChange: (value: string) => void;
-  rows?: number;
-}
+import { TextareaInputProps } from "@/types/ui";
 
 const TextareaInput: React.FC<TextareaInputProps> = ({
   label,
