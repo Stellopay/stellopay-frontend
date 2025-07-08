@@ -1,12 +1,7 @@
 
 import Image from "next/image";
 import { FC } from "react";
-
-interface FeatureCardProps {
-  imageSrc: string;
-  title: string;
-  description: string;
-}
+import { FeatureCardProps } from "@/types/landing";
 
 export const FeatureCard: FC<FeatureCardProps> = ({ imageSrc, title, description }) => {
   return (
