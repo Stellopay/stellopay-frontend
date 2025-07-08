@@ -1,9 +1,9 @@
 "use client";
 
 import type React from "react";
-import { SideBar } from "./SideBar";
-import Navbar from "@/components/common/Navbar";
-import useSidebar from "@/context/SidebarContext";
+import { SideBar } from "./side-bar";
+import Navbar from "@/components/common/navbar";
+import useSidebar from "@/context/sidebar-context";
 import { AppLayoutProps } from "@/types/ui";
 
 export default function AppLayout({ children }: AppLayoutProps) {

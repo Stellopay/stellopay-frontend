@@ -1,4 +1,4 @@
-import Date from "../transactions/Date";
+import Date from "../transactions/date";
 
 
 export default function TransactionHeader({

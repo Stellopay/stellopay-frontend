@@ -1,8 +1,8 @@
 "use client";
 import { StellOpayLogo } from "@/public/svg/svg";
-import { SearchBar } from "./SearchBar";
-import { NavLink } from "./NavLink";
-import useSidebar from "@/context/SidebarContext";
+import { SearchBar } from "./search-bar";
+import { NavLink } from "./nav-link";
+import useSidebar from "@/context/sidebar-context";
 import { motion } from "framer-motion";
 import { X, Sidebar } from "lucide-react"; // Import X icon for close button
 

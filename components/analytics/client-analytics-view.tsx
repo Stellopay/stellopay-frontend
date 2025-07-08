@@ -2,7 +2,7 @@
 
 import dynamic from "next/dynamic";
 
-const AnalyticsViews = dynamic(() => import("./AnalyticsView"), {
+const AnalyticsViews = dynamic(() => import("./analytics-view"), {
   ssr: false,
 });
 

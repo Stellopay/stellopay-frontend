@@ -2,10 +2,10 @@
 import { usePathname } from "next/navigation";
 import { ChevronRight } from "lucide-react";
 import Link from "next/link";
-import EmailInput from "@/components/common/EmailInput";
-import TextareaInput from "@/components/common/TextAreaInput";
-import TextInput from "@/components/common/TextInput";
-import Button from "@/components/common/Button";
+import EmailInput from "@/components/common/email-input";
+import TextareaInput from "@/components/common/text-area-input";
+import TextInput from "@/components/common/text-input";
+import Button from "@/components/common/button";
 import { Clock3, ContactRound, Mail, Phone } from "lucide-react";
 import React, { useState } from "react";
 import { SupportTabsProps } from "@/types/ui";

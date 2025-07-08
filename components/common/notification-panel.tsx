@@ -1,8 +1,8 @@
 import React from "react";
 import { BellIcon, ChevronRight, ChevronRightIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { IconBell } from "@/components/icons/BellFillIcon";
-import { NotificationItem } from "@/types/NotificationItem";
+import { IconBell } from "@/components/icons/bell-fill-icon";
+import { NotificationItem } from "@/types/notification-item";
 import { NotificationProps } from "@/types/ui";
 
 const NotificationPanel = ({ className, notifications }: NotificationProps) => {

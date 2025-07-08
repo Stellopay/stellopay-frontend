@@ -1,3 +1,4 @@
+import React from "react";
 import { svgInterface } from "@/types/svg";
 export const StellOpayLogo = () => (
   <svg

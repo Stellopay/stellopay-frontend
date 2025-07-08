@@ -6,7 +6,7 @@ import {
   TransactionIcon,
 } from "@/public/svg/svg";
 import { motion } from "framer-motion";
-import useSidebar from "@/context/SidebarContext";
+import useSidebar from "@/context/sidebar-context";
 import { Tooltip } from "@material-tailwind/react";
 import { usePathname } from "next/navigation";
 import Link from "next/link";
