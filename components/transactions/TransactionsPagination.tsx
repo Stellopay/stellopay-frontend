@@ -1,13 +1,14 @@
 import { Button } from "@/components/ui/button";
 import { TransactionsPaginationProps } from "@/types/ui";
+import { getStartIndex, getEndIndex } from "@/utils/paginationUtils";
 
 export default function TransactionsPagination({
   totalItems,
   currentPage = 1,
   itemsPerPage = 10,
 }: TransactionsPaginationProps) {
-  const startItem = (currentPage - 1) * itemsPerPage + 1;
-  const endItem = Math.min(currentPage * itemsPerPage, totalItems);
+  const startItem = getStartIndex(currentPage, itemsPerPage) + 1;
+  const endItem = Math.min(getEndIndex(currentPage, itemsPerPage), totalItems);
 
   return (
     <div className="flex flex-col items-center justify-center mt-6 gap-4 lg:flex-row ">
