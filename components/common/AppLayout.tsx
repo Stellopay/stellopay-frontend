@@ -2,7 +2,7 @@
 
 import type React from "react";
 import { SideBar } from "./SideBar";
-import Navbar from "@/components/Navbar";
+import Navbar from "@/components/common/Navbar";
 import useSidebar from "@/context/SidebarContext";
 
 interface AppLayoutProps {
