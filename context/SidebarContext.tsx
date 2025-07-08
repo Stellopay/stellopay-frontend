@@ -7,16 +7,7 @@ import {
   useState,
   useEffect,
 } from "react";
-
-interface SidebarContextProps {
-  isSidebarOpen: boolean;
-  setSidebarOpen: (open: boolean) => void;
-  isMobile: boolean;
-}
-
-interface SidebarProviderProps {
-  children: ReactNode;
-}
+import type { SidebarContextProps, SidebarProviderProps } from "@/types/sidebar";
 
 const SidebarContext = createContext<SidebarContextProps | null>(null);
 
