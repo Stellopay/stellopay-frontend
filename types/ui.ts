@@ -1,3 +1,5 @@
+import React from "react";
+
 // UI component prop types
 export interface ButtonProps {
   text: string | React.ReactNode;
@@ -46,11 +48,12 @@ export interface SupportTabsProps {
 }
 
 export interface ToggleCardProps {
-  // ...copy from components/common/ToggleCard.tsx
+  title: string;
 }
 
 export interface NotificationProps {
-  // ...copy from components/common/NotificationPanel.tsx
+  className?: string;
+  notifications: import("./NotificationItem").NotificationItem[];
 }
 
 export interface AppLayoutProps {
@@ -67,4 +70,14 @@ export interface TransactionsPaginationProps {
   totalItems: number;
   currentPage?: number;
   itemsPerPage?: number;
-} 
+}
+
+// UI library component types
+export type PaginationLinkProps = {
+  isActive?: boolean;
+} & Pick<React.ComponentProps<typeof import("@/components/ui/button").Button>, "size"> &
+  React.ComponentProps<"a">;
+
+export type FormItemContextValue = {
+  id: string;
+}; 
