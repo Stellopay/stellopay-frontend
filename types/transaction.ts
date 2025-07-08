@@ -34,3 +34,29 @@ export interface TransactionProps {
   status: "Completed" | "Pending" | "Failed";
   tokenIcon: string;
 }
+
+// Transaction component props
+export interface TransactionsTableProps {
+  transactions: TransactionProps[];
+}
+
+export interface TokenIconProps {
+  token: string;
+}
+
+export interface TransactionsHeaderProps {
+  fromDate: string;
+  toDate: string;
+  onFromDateChange: (date: string) => void;
+  onToDateChange: (date: string) => void;
+}
+
+export interface TransactionsFiltersProps {
+  searchQuery: string;
+  selectedFilter: string;
+  sortField: SortField;
+  sortDirection: SortDirection;
+  onSearchChange: (query: string) => void;
+  onFilterChange: (filter: string) => void;
+  onSort: (field: SortField) => void;
+}
