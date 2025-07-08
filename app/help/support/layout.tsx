@@ -5,12 +5,12 @@ import type { Metadata } from "next";
 import AppLayout from "@/components/common/AppLayout";
 
 export const metadata: Metadata = {
-  title: "Stellopay | Transactions",
+  title: "Stellopay | Hep/Support",
   description:
-    "Stellopay Transactions - View and manage your transaction history",
+    "Stellopay Hep/Support - Contact support for assistance with your Stellopay account, transactions, security, and more.",
 };
 
-export default function TransactionsLayout({
+export default function HelpSupportLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;

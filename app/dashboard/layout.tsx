@@ -1,21 +1,21 @@
-import type React from "react"
-import AppLayout from "@/components/common/AppLayout"
-import { SidebarProvider } from "@/context/SidebarContext"
-import type { Metadata } from "next"
+import type React from "react";
+import AppLayout from "@/components/common/AppLayout";
+import { SidebarProvider } from "@/context/SidebarContext";
+import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Stellopay | Transactions",
-  description: "Stellopay Transactions - View and manage your transaction history",
-}
+  title: "Stellopay | Dashboard",
+  description: "Stellopay Dashboard - View and manage your dashboard",
+};
 
-export default function TransactionsLayout({
+export default function DashboardLayout({
   children,
 }: Readonly<{
-  children: React.ReactNode
+  children: React.ReactNode;
 }>) {
   return (
     <SidebarProvider>
       <AppLayout>{children}</AppLayout>
     </SidebarProvider>
-  )
+  );
 }
