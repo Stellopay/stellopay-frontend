@@ -1,10 +1,7 @@
 "use client";
 
 import { useState } from "react";
-
-interface ToggleCardProps {
-  title: string;
-}
+import { ToggleCardProps } from "@/types/ui";
 
 export default function ToggleCard({ title }: ToggleCardProps) {
   const [enabled, setEnabled] = useState(true);

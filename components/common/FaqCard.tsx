@@ -2,12 +2,7 @@
 import { SquareArrowOutUpRight } from "lucide-react";
 import React from "react";
 import { useRouter } from "next/navigation";
-
-interface FaqCardProps {
-  title: string;
-  subtitle: string;
-  link?: string;
-}
+import { FaqCardProps } from "@/types/ui";
 
 const FaqCard: React.FC<FaqCardProps> = ({ title, subtitle, link }) => {
   const router = useRouter();

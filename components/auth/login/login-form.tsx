@@ -2,7 +2,6 @@
 
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
-import { z } from "zod";
 import { useState } from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
@@ -18,18 +17,7 @@ import { Separator } from "@/components/ui/separator";
 import { Eye, EyeOff, Mail, Loader2 } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { AuthSocialButtons } from "../auth-social-buttons";
-
-const loginSchema = z.object({
-  email: z.string().email({
-    message: "Please enter a valid email address.",
-  }),
-  password: z.string().min(8, {
-    message: "Password must be at least 8 characters.",
-  }),
-  rememberMe: z.boolean(),
-});
-
-type LoginFormValues = z.infer<typeof loginSchema>;
+import { loginSchema, LoginFormValues } from "@/types/auth";
 
 export function LoginForm() {
   const [showPassword, setShowPassword] = useState(false);

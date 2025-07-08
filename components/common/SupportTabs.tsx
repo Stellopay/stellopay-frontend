@@ -2,18 +2,13 @@
 import { usePathname } from "next/navigation";
 import { ChevronRight } from "lucide-react";
 import Link from "next/link";
+import EmailInput from "@/components/common/EmailInput";
+import TextareaInput from "@/components/common/TextAreaInput";
+import TextInput from "@/components/common/TextInput";
+import Button from "@/components/common/Button";
 import { Clock3, ContactRound, Mail, Phone } from "lucide-react";
 import React, { useState } from "react";
-import TextInput from "./TextInput";
-import EmailInput from "./EmailInput";
-import TextareaInput from "./TextAreaInput";
-import Button from "./Button";
-
-interface SupportTabsProps {
-  activeTab: string;
-  setActiveTab: (tab: string) => void;
-  children?: React.ReactNode; // For FAQ content on sub-pages
-}
+import { SupportTabsProps } from "@/types/ui";
 
 // Define the route mappings for breadcrumbs
 const routeMappings = {

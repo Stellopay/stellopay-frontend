@@ -1,9 +1,5 @@
 import React, { ChangeEvent } from "react";
-
-interface EmailInputProps {
-  value: string;
-  onChange: (value: string) => void;
-}
+import { EmailInputProps } from "@/types/ui";
 
 const EmailInput: React.FC<EmailInputProps> = ({ value, onChange }) => {
   const handleChange = (event: ChangeEvent<HTMLInputElement>) => {

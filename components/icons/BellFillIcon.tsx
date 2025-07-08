@@ -1,6 +1,5 @@
 import React from "react";
-
-interface IconProps extends React.SVGProps<SVGSVGElement> {}
+import { IconProps } from "@/types/icons";
 
 export const IconBell = ({ className, ...props }: IconProps) => {
   return (

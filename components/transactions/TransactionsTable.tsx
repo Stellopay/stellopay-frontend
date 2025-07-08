@@ -8,13 +8,9 @@ import {
   TableHeader,
   TableRow
 } from "@/components/ui/table";
-import { TransactionProps } from "@/lib/interface";
+import { TransactionProps, TransactionsTableProps } from "@/types/transaction";
 import { Badge } from "@/components/ui/badge";
 import Image from "next/image";
-
-interface TransactionsTableProps {
-  transactions: TransactionProps[];
-}
 
 export function TransactionsTable({ transactions }: TransactionsTableProps) {
   return (

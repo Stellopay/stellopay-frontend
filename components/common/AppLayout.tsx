@@ -2,13 +2,9 @@
 
 import type React from "react";
 import { SideBar } from "./SideBar";
-
+import Navbar from "@/components/common/Navbar";
 import useSidebar from "@/context/SidebarContext";
-import Navbar from "./Navbar";
-
-interface AppLayoutProps {
-  children: React.ReactNode;
-}
+import { AppLayoutProps } from "@/types/ui";
 
 export default function AppLayout({ children }: AppLayoutProps) {
   const { isSidebarOpen, isMobile } = useSidebar();

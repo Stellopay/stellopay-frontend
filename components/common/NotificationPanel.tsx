@@ -1,13 +1,10 @@
 import React from "react";
 import { BellIcon, ChevronRight, ChevronRightIcon } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { IconBell } from "@/components/icons/BellFillIcon";
 import { NotificationItem } from "@/types/NotificationItem";
-import { Button } from "../ui/button";
-import { IconBell } from "../icons/BellFillIcon";
+import { NotificationProps } from "@/types/ui";
 
-interface NotificationProps {
-  className?: string;
-  notifications: NotificationItem[];
-}
 const NotificationPanel = ({ className, notifications }: NotificationProps) => {
   return (
     <div className="bg-[#0D0D0D80]  bg-opacity-50 border border-[#2D2D2D] max-w-[400px] rounded-xl  p-4 text-[#E5E5E5]">

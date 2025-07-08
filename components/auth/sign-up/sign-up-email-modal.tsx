@@ -3,14 +3,7 @@
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
-
-interface SignUpEmailModalProps {
-  isOpen: boolean
-  onClose: () => void
-  onContinue: () => void
-  onGoBack: () => void
-  email?: string
-}
+import { SignUpEmailModalProps } from "@/types/auth"
 
 export function SignUpEmailModal({ isOpen, onClose, onContinue, onGoBack, email }: SignUpEmailModalProps) {
   const [isResending, setIsResending] = useState(false)
