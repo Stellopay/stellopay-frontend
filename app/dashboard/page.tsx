@@ -10,6 +10,7 @@ import TableSearchbar from "@/components/transactions/TableSearchbar";
 import Filter from "@/components/transactions/Filter";
 import Sort from "@/components/transactions/Sort";
 import { TransactionsTable } from "@/components/transactions/TransactionsTable";
+import { getPageItems, getTotalPages } from "@/utils/paginationUtils";
 
 const page = () => {
   const notifications = [
@@ -32,10 +33,8 @@ const page = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 6;
 
-  const startIndex = (currentPage - 1) * itemsPerPage;
-  const endIndex = startIndex + itemsPerPage;
-  const transactions = allTransactions.slice(startIndex, endIndex);
-  const totalPages = Math.ceil(allTransactions.length / itemsPerPage);
+  const transactions = getPageItems(allTransactions, currentPage, itemsPerPage);
+  const totalPages = getTotalPages(allTransactions.length, itemsPerPage);
   return (
     <div className="min-h-screen">
       <DashboardHeader pageTitle="Dashboard" />

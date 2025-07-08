@@ -10,21 +10,15 @@ import useSidebar from "@/context/SidebarContext";
 import { Tooltip } from "@material-tailwind/react";
 import { usePathname } from "next/navigation";
 import Link from "next/link";
+import { isLinkActive, shouldExpandSidebar, getActiveLinkLayoutId } from "@/utils/navigationUtils";
 
 export const NavLink = () => {
   const pathname = usePathname() || "/";
 
-  // Function to check if a link is active
-  const isLinkActive = (route: string) => {
-    if (route === "/") {
-      return pathname === "/";
-    }
-    return pathname.startsWith(route);
-  };
   const { isSidebarOpen, isMobile } = useSidebar();
 
   // Show expanded view on mobile or when desktop sidebar is expanded
-  const isExpanded = isMobile || (isSidebarOpen && !isMobile);
+  const isExpanded = shouldExpandSidebar(isMobile, isSidebarOpen);
 
   const links = [
     {
@@ -55,7 +49,7 @@ export const NavLink = () => {
     <nav>
       <ul className="space-y-1 flex items-center flex-col">
         {links.map((link, index) => {
-          const isActive = isLinkActive(link.route);
+          const isActive = isLinkActive(link.route, pathname);
           const iconColor = isActive ? "#0D0D0D" : "#E5E5E5";
 
           // Expanded version for mobile or desktop
@@ -88,9 +82,7 @@ export const NavLink = () => {
                   {isActive && (
                     <motion.div
                       className="absolute left-0 top-0 w-full h-full bg-white transition duration-75 ease-in-out rounded-lg z-10"
-                      layoutId={
-                        isMobile ? "activeLink-mobile" : "activeLink-desktop"
-                      }
+                      layoutId={getActiveLinkLayoutId(isMobile, isExpanded)}
                     />
                   )}
                 </Link>

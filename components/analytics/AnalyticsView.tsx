@@ -13,6 +13,7 @@ import {
 } from "recharts";
 
 import chart from '@/public/chart-up.png'
+import { formatChartValue } from "@/utils/formatUtils";
 
 const data = [
   { month: "Jan", views: 24000 },
@@ -63,7 +64,7 @@ const AnalyticsViews = () => {
             <XAxis dataKey="month" tick={{ fill: "#aaa", fontSize: 10 }} />
             <YAxis
               tick={{ fill: "#aaa", fontSize: 10 }}
-              tickFormatter={(value) => `${value / 1000}k`}
+              tickFormatter={formatChartValue}
             />
             <Tooltip content={<CustomTooltip />} />
             <Bar dataKey="views" fill="#2E2E2E" radius={[4, 4, 0, 0]} barSize={28} />

@@ -12,9 +12,10 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import { cn } from "@/lib/utils";
+import { cn } from "@/utils/commonUtils";
 import { Calendar03Icon } from "@hugeicons/core-free-icons";
 import { TransactionsHeaderProps } from "@/types/transaction";
+import { formatDateForInput, formatDateForDisplay } from "@/utils/dateUtils";
 
 export default function TransactionsHeader({
   fromDate,
@@ -30,14 +31,14 @@ export default function TransactionsHeader({
 
   const handleFromDateSelect = (date: Date | undefined) => {
     if (date) {
-      onFromDateChange(format(date, "yyyy-MM-dd"));
+      onFromDateChange(formatDateForInput(date));
       setFromDateOpen(false);
     }
   };
 
   const handleToDateSelect = (date: Date | undefined) => {
     if (date) {
-      onToDateChange(format(date, "yyyy-MM-dd"));
+      onToDateChange(formatDateForInput(date));
       setToDateOpen(false);
     }
   };
@@ -67,7 +68,7 @@ export default function TransactionsHeader({
                 strokeWidth={1.8}
                 className="mr-4"
               />
-              {fromDateObj ? format(fromDateObj, "dd-MM-yyyy") : "From"}
+              {fromDateObj ? formatDateForDisplay(fromDateObj) : "From"}
             </Button>
           </PopoverTrigger>
           <PopoverContent className="w-auto p-0" align="start">
@@ -103,7 +104,7 @@ export default function TransactionsHeader({
                 strokeWidth={1.8}
                 className="mr-2"
               />
-              {toDateObj ? format(toDateObj, "dd-MM-yyyy") : "To"}
+              {toDateObj ? formatDateForDisplay(toDateObj) : "To"}
             </Button>
           </PopoverTrigger>
           <PopoverContent className="w-auto p-0" align="start">
