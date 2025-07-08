@@ -1,4 +1,5 @@
-import Date from "@/app/components/transaction-page/Date";
+import Date from "../transactions/Date";
+
 
 export default function TransactionHeader({
   pageTitle,

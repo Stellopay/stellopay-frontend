@@ -1,6 +1,7 @@
 "use client";
-import FaqCard from "@/app/components/FaqCard";
-import SupportTabs from "@/app/components/SupportTabs";
+
+import FaqCard from "@/components/common/FaqCard";
+import SupportTabs from "@/components/common/SupportTabs";
 import { CircleHelp } from "lucide-react";
 import { useState } from "react";
 

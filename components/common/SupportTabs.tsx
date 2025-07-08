@@ -2,12 +2,12 @@
 import { usePathname } from "next/navigation";
 import { ChevronRight } from "lucide-react";
 import Link from "next/link";
-import EmailInput from "@/app/components/EmailInput";
-import TextareaInput from "@/app/components/TextAreaInput";
-import TextInput from "@/app/components/TextInput";
-import Button from "@/app/components/Button";
 import { Clock3, ContactRound, Mail, Phone } from "lucide-react";
 import React, { useState } from "react";
+import TextInput from "./TextInput";
+import EmailInput from "./EmailInput";
+import TextareaInput from "./TextAreaInput";
+import Button from "./Button";
 
 interface SupportTabsProps {
   activeTab: string;

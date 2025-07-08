@@ -1,16 +1,15 @@
 "use client";
-import DashboardHeader from "@/components/DashboardHeader";
-import NotificationPanel from "@/components/NotificationPanel";
-import AccountSummary from "@/app/account-summary/page";
-import ClientAnalyticsView from "@/app/component/ClientAnalyticsView";
-import { TransactionsTable } from "../components/transaction-page/TransactionsTable";
 
-import TableSearchbar from "../components/transaction-page/TableSearchbar";
-import Filter from "../components/transaction-page/Filter";
-import Sort from "../components/transaction-page/Sort";
-import { Pagination } from "../components/transaction-page/Pagination";
 import { useState } from "react";
 import { transactions as allTransactions } from "@/public/data/mock-data";
+import DashboardHeader from "@/components/dashboard/DashboardHeader";
+import AccountSummary from "../account-summary/page";
+import ClientAnalyticsView from "@/components/analytics/ClientAnalyticsView";
+import NotificationPanel from "@/components/common/NotificationPanel";
+import TableSearchbar from "@/components/transactions/TableSearchbar";
+import Filter from "@/components/transactions/Filter";
+import Sort from "@/components/transactions/Sort";
+import { TransactionsTable } from "@/components/transactions/TransactionsTable";
 
 const page = () => {
   const notifications = [

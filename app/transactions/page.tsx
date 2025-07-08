@@ -1,17 +1,16 @@
 "use client";
 
-import TransactionHeader from "@/components/TransactionHeader";
-import Navbar from "@/components/Navbar";
-import React from "react";
-import { SideBar } from "../components/SideBar";
-import { TransactionsTable } from "../components/transaction-page/TransactionsTable";
-import { Pagination } from "../components/transaction-page/Pagination";
+import TransactionHeader from "@/components/dashboard/TransactionHeader";
+import Navbar from "@/components/common/Navbar";
+import React, { useState } from "react";
+import { SideBar } from "@/components/common/SideBar";
+import { TransactionsTable } from "@/components/transactions/TransactionsTable";
+import { Pagination } from "@/components/transactions/Pagination";
 import { transactions as allTransactions } from "@/public/data/mock-data";
-import { useState } from "react";
-import TableSearchbar from "../components/transaction-page/TableSearchbar";
-import Filter from "../components/transaction-page/Filter";
-import Sort from "../components/transaction-page/Sort";
-import Date from "../components/transaction-page/Date";
+import TableSearchbar from "@/components/transactions/TableSearchbar";
+import Filter from "@/components/transactions/Filter";
+import Sort from "@/components/transactions/Sort";
+import Date from "@/components/transactions/Date";
 
 const Transactions = () => {
   const [currentPage, setCurrentPage] = useState(1);

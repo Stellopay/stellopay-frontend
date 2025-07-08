@@ -1,7 +1,6 @@
-import type React from "react"
-import AppLayout from "@/app/components/AppLayout"
-import { SidebarProvider } from "@/context/SidebarContext"
-import type { Metadata } from "next"
+import AppLayout from "@/components/common/AppLayout";
+import { SidebarProvider } from "@/context/SidebarContext";
+import { Metadata } from "next";
 
 export const metadata: Metadata = {
   title: "Stellopay | Transactions",

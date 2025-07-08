@@ -2,8 +2,9 @@
 
 import type React from "react";
 import { SideBar } from "./SideBar";
-import Navbar from "@/components/Navbar";
+
 import useSidebar from "@/context/SidebarContext";
+import Navbar from "./Navbar";
 
 interface AppLayoutProps {
   children: React.ReactNode;

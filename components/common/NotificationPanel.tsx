@@ -1,8 +1,8 @@
 import React from "react";
 import { BellIcon, ChevronRight, ChevronRightIcon } from "lucide-react";
-import { Button } from "./ui/button";
-import { IconBell } from "./icons/BellFillIcon";
 import { NotificationItem } from "@/types/NotificationItem";
+import { Button } from "../ui/button";
+import { IconBell } from "../icons/BellFillIcon";
 
 interface NotificationProps {
   className?: string;

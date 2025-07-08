@@ -1,11 +1,11 @@
 "use client";
 
 import { useState } from "react";
-import ToggleCard from "@/app/components/ToggleCard";
 import SecurityTab from "./components/SecurityTab";
 import Image from "next/image";
 import { Camera } from "lucide-react";
 import SettingsHeader from "@/components/SettingsHeader";
+import ToggleCard from "@/components/common/ToggleCard";
 
 export default function SettingsPage() {
   const [activeTab, setActiveTab] = useState("Profile"); // Default tab
