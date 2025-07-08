@@ -3,7 +3,7 @@ import { Search, Check } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useState } from "react";
-import SupportTabs from "@/components/common/SupportTabs";
+import SupportTabs from "@/components/common/support-tabs";
 
 export default function AccountManagement() {
   const [activeTab, setActiveTab] = useState("Client FAQ");
