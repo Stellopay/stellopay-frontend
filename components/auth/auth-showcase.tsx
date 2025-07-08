@@ -1,12 +1,6 @@
 import { Card, CardContent } from "@/components/ui/card";
 import Image from "next/image";
-
-interface AuthShowcaseProps {
-  title: string;
-  description: string;
-  imagePosition: "left" | "right";
-  imageSrc?: string;
-}
+import { AuthShowcaseProps } from "@/types/auth";
 
 export function AuthShowcase({
   title,
