@@ -1,4 +1,4 @@
-import AppLayout from "../components/AppLayout";
+import AppLayout from "@/components/common/AppLayout";
 
 export default function DashboardPage() {
   return (
