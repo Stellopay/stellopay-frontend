@@ -53,7 +53,7 @@ export interface ToggleCardProps {
 
 export interface NotificationProps {
   className?: string;
-  notifications: import("./NotificationItem").NotificationItem[];
+  notifications: import("./notification-item").NotificationItem[];
 }
 
 export interface AppLayoutProps {
