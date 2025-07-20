@@ -4,10 +4,10 @@ import { useState, useMemo } from "react";
 import type { SortField, TransactionFilters } from "@/types/transaction";
 import { filterTransactions, sortTransactions } from "@/utils/transactionUtils";
 import { allTransactions } from "@/lib/transactions";
-import TransactionsHeader from "./TransactionsHeader";
-import TransactionsFilters from "./TransactionsFilters";
-import TransactionsTable from "./TransactionsTable";
-import TransactionsPagination from "./TransactionsPagination";
+import TransactionsHeader from "./transactions-header";
+import TransactionsFilters from "./transactions-filters";
+import { TransactionsTable } from "./transactions-table";
+import TransactionsPagination from "./transactions-pagination";
 
 export default function TransactionsContent() {
   const [filters, setFilters] = useState<TransactionFilters>({
@@ -17,6 +17,26 @@ export default function TransactionsContent() {
     selectedFilter: "All Transactions",
     sortField: "date",
     sortDirection: "desc",
+  });
+
+  // Helper function to get token icon based on token type
+  const getTokenIcon = (token: string): string => {
+    switch (token) {
+      case "USDC":
+        return "/usdc-logo.png";
+      case "XLM":
+        return "/stellar-xlm-logo.png";
+      default:
+        return "/usd.png";
+    }
+  };
+
+  // Helper function to transform Transaction to TransactionProps
+  const transformTransaction = (transaction: any): any => ({
+    ...transaction,
+    amount: transaction.amount >= 0 ? `+$${transaction.amount.toFixed(2)}` : `-$${Math.abs(transaction.amount).toFixed(2)}`,
+    tokenIcon: getTokenIcon(transaction.token),
+    status: transaction.status as "Completed" | "Pending" | "Failed"
   });
 
   // Process transactions with filters and sorting
@@ -29,7 +49,10 @@ export default function TransactionsContent() {
       filters.toDate
     );
 
-    return sortTransactions(filtered, filters.sortField, filters.sortDirection);
+    const sorted = sortTransactions(filtered, filters.sortField, filters.sortDirection);
+    
+    // Transform to TransactionProps format
+    return sorted.map(transformTransaction);
   }, [filters]);
 
   // Handler functions
