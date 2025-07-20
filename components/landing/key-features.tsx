@@ -1,5 +1,5 @@
 
-import { FeatureCard } from "./FeatureCard";
+import { FeatureCard } from "./feature-card";
 
 const features = [
   {
