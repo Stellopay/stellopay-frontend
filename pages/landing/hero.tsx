@@ -2,7 +2,7 @@ import Image from "next/image";
 import { HeroContent } from "@/types/landing";
 export default function Hero() {
   return (
-    <section className="relative flex flex-col items-center justify-center min-h-[80vh] bg-gradient-to-b from-[#201322] to-[#181028] text-white px-4 pt-24">
+    <section className="relative flex flex-col items-center justify-center min-h-[80vh] bg-gradient-to-b from-[#201322] to-[#181028] text-white px-4 pt-32 md:pt-52">
       <div className="text-center">
         <h1 className="flex flex-col text-4xl md:text-6xl font-bold leading-tight mb-4">
           <span>{HeroContent.titleOne}</span>
