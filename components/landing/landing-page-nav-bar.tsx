@@ -14,7 +14,7 @@ export default function LandingPageNavBar() {
   const [menuOpen, setMenuOpen] = useState(false);
 
   return (
-    <nav className="w-full bg-transparent">
+    <nav className="w-full h-[75px] px-4 md:px-8 absolute top-0 left-0 z-50 bg-transparent">
       <div className="max-w-7xl mx-auto flex items-center justify-between px-4 py-2 md:py-8">
         {/* Logo */}
         <Link href="/" className="font-light text-xl md:text-2xl" style={{ fontFamily: 'Clash Display, sans-serif', color: '#598EFF' }}>
