@@ -6,8 +6,15 @@ export default function LandingPage() {
   return (
     <main>
       <Navbar/>
+
+import Footer from "@/components/common/footer";
+
+export default function LandingPage() {
+  return (
+    <div>
       <Hero />
       <KeyFeatures />
-    </main>
+      <Footer />
+    </div>
   );
 } 
