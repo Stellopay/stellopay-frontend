@@ -30,13 +30,17 @@ const features = [
 
 export const KeyFeatures = () => {
   return (
-    <section className="py-16 px-4 md:px-10 bg-white text-center">
-      <div className="max-w-6xl mx-auto">
+    <section
+      id="KeyFeatures"
+      className="py-16 px-4 md:px-10 bg-white text-center md:h-screen h-full"
+    >
+      <div className="max-w-6xl mx-auto flex flex-col justify-center h-full">
         <p className="text-sm text-[#A0A0A0]">—</p>
         <h2 className="text-4xl font-bold text-black mb-4">Key features</h2>
         <p className="text-gray-700 mb-12 text-2xl text-center">
-          Stellopay simplifies payroll with blockchain efficiency, ensuring seamless transactions
-          for businesses worldwide. Designed for speed and security.
+          Stellopay simplifies payroll with blockchain efficiency, ensuring
+          seamless transactions for businesses worldwide. Designed for speed and
+          security.
         </p>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 justify-center items-start">
           {features.map((feature) => (

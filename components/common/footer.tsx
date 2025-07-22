@@ -1,16 +1,19 @@
-"use client"
+"use client";
 
-import Link from "next/link"
+import Link from "next/link";
 
 export default function Footer() {
   const handleBackToTop = () => {
-    window.scrollTo({ top: 0, behavior: "smooth" })
-  }
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
 
   return (
-    <footer className="w-full bg-[#040404]">
+    <footer className="w-full bg-[#040404] mt-10">
       <div className="max-w-[1040px] mx-auto h-10 flex items-center justify-center gap-[10px] px-4">
-        <Link href="/" className="w-[66px] h-10 flex items-center justify-center p-2">
+        <Link
+          href="/"
+          className="w-[66px] h-10 flex items-center justify-center p-2"
+        >
           <span
             className="text-[#92918e]  text-[18px] font-normal leading-none tracking-[-0.01em] underline decoration-solid"
             style={{ fontFamily: "General Sans, sans-serif" }}
@@ -19,7 +22,10 @@ export default function Footer() {
           </span>
         </Link>
 
-        <Link href="/features" className="w-[66px] h-10 flex items-center justify-center p-2">
+        <Link
+          href="#KeyFeatures"
+          className="w-[66px] h-10 flex items-center justify-center p-2"
+        >
           <span
             className="text-[#92918e]  text-[18px] font-normal leading-none tracking-[-0.01em] underline decoration-solid"
             style={{ fontFamily: "General Sans, sans-serif" }}
@@ -33,7 +39,7 @@ export default function Footer() {
           className="w-[106px] h-10 flex items-center justify-center p-2 cursor-pointer"
         >
           <span
-            className="text-[#92918e] text-[18px] font-normal leading-none tracking-[-0.01em] underline decoration-solid"
+            className="text-[#92918e] text-[18px] font-normal whitespace-nowrap leading-none tracking-[-0.01em] underline decoration-solid"
             style={{ fontFamily: "General Sans, sans-serif" }}
           >
             Back to top
@@ -41,5 +47,5 @@ export default function Footer() {
         </button>
       </div>
     </footer>
-  )
+  );
 }
