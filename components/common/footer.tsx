@@ -8,7 +8,7 @@ export default function Footer() {
   };
 
   return (
-    <footer className="w-full bg-[#040404] mt-10">
+    <footer className="w-full bg-[#040404] py-4">
       <div className="max-w-[1040px] mx-auto h-10 flex items-center justify-center gap-[10px] px-4">
         <Link
           href="/"
