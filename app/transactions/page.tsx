@@ -14,12 +14,20 @@ import Date from "@/components/transactions/date";
 
 const Transactions = () => {
   const [currentPage, setCurrentPage] = useState(1);
+  const [searchParams, setSearchParams] = useState('');
   const itemsPerPage = 6;
+
 
   const startIndex = (currentPage - 1) * itemsPerPage;
   const endIndex = startIndex + itemsPerPage;
   const transactions = allTransactions.slice(startIndex, endIndex);
   const totalPages = Math.ceil(allTransactions.length / itemsPerPage);
+
+  //search functionality
+  const filteredTransaction = allTransactions.filter(transaction => Object.values(transaction).some((value) =>
+    String(value || "").toLowerCase().includes(searchParams.toLowerCase())
+  ))
+
   return (
     <>
       <main className="">
@@ -64,12 +72,17 @@ const Transactions = () => {
                 <span> All Transactions</span>
               </h6>
               <div className="flex items-center gap-2">
-                <TableSearchbar />
+                <TableSearchbar onSearch={setSearchParams}/>
                 <Filter />
                 <Sort />
               </div>
             </div>
-            <TransactionsTable transactions={transactions} />
+            <TransactionsTable transactions={filteredTransaction} />
+            {searchParams && filteredTransaction.length === 0 ? (
+              <div className="text-center text-gray-400 py-4">No Search Result Found</div>
+            ) : (
+              <TransactionsTable transactions={filteredTransaction} />
+            )}
           </div>
 
           <Pagination
