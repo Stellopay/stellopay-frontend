@@ -63,6 +63,7 @@ export interface AppLayoutProps {
 export interface PaginationProps {
   currentPage: number;
   totalPages: number;
+  totalItems: number;
   onPageChange: (page: number) => void;
 }
 
@@ -70,6 +71,7 @@ export interface TransactionsPaginationProps {
   totalItems: number;
   currentPage?: number;
   itemsPerPage?: number;
+  onPageChange?: (page: number) => void;
 }
 
 // UI library component types

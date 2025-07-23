@@ -20,6 +20,7 @@ const Transactions = () => {
   const endIndex = startIndex + itemsPerPage;
   const transactions = allTransactions.slice(startIndex, endIndex);
   const totalPages = Math.ceil(allTransactions.length / itemsPerPage);
+  
   return (
     <>
       <main className="">
@@ -75,6 +76,7 @@ const Transactions = () => {
           <Pagination
             currentPage={currentPage}
             totalPages={totalPages}
+            totalItems={allTransactions.length}
             onPageChange={setCurrentPage}
           />
         </div>
