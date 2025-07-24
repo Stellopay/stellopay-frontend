@@ -29,8 +29,8 @@ export default function BenefitsSection() {
     <section className="bg-[#040404] py-16 px-4 text-white min-h-screen">
         <p className="text-lg font-bold block justify-center text-center text-[#A0A0A0] mb-3">—</p>
       <div className="text-center max-w-4xl mx-auto mb-16">
-        <h2 className="text-5xl font-bold mb-6">Benefits</h2>
-        <p className="text-lg text-[#C7C7C7] leading-relaxed">
+        <h2 className="text-5xl font-clash mb-6">Benefits</h2>
+        <p className="text-lg text-[#C7C7C7] font-general leading-relaxed">
           All in one seamless platform. Stellopay ensures secure, instant salary payments without the complexity.
         </p>
       </div>
@@ -42,8 +42,8 @@ export default function BenefitsSection() {
             <div className="w-16 h-16 mx-auto mb-6 flex items-center justify-center rounded-full bg-white">
               {benefits[0].icon}
             </div>
-            <h3 className="text-2xl font-bold mb-4 text-[#060606]">{benefits[0].title}</h3>
-            <p className="text-[#212121] leading-relaxed">{benefits[0].description}</p>
+            <h3 className="text-2xl  font-clash mb-4 text-[#060606]">{benefits[0].title}</h3>
+            <p className="text-[#212121] font-general font-medium leading-relaxed">{benefits[0].description}</p>
           </div>
         </div>
 
@@ -54,8 +54,8 @@ export default function BenefitsSection() {
               <div className="w-16 h-16 mx-auto mb-6 flex items-center justify-center rounded-full bg-white">
                 {benefit.icon}
               </div>
-              <h3 className="text-2xl font-bold mb-4 text-white">{benefit.title}</h3>
-              <p className="text-gray-300 leading-relaxed">{benefit.description}</p>
+              <h3 className="text-2xl  font-clash mb-4 text-white">{benefit.title}</h3>
+              <p className="text-gray-300 font-general font-medium leading-relaxed">{benefit.description}</p>
             </div>
           ))}
         </div>
