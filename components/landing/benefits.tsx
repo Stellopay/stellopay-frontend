@@ -26,11 +26,11 @@ const benefits = [
 
 export default function BenefitsSection() {
   return (
-    <section className="bg-[#0B0C2A] py-16 px-4 text-white min-h-screen">
+    <section className="bg-[#000000] py-16 px-4 text-white min-h-screen">
         <p className="text-lg font-bold block justify-center text-center text-[#A0A0A0] mb-3">—</p>
       <div className="text-center max-w-4xl mx-auto mb-16">
         <h2 className="text-5xl font-bold mb-6">Benefits</h2>
-        <p className="text-lg text-gray-300 leading-relaxed">
+        <p className="text-lg text-[#C7C7C7] leading-relaxed">
           All in one seamless platform. Stellopay ensures secure, instant salary payments without the complexity.
         </p>
       </div>
@@ -42,15 +42,15 @@ export default function BenefitsSection() {
             <div className="w-16 h-16 mx-auto mb-6 flex items-center justify-center rounded-full bg-white">
               {benefits[0].icon}
             </div>
-            <h3 className="text-2xl font-bold mb-4 text-gray-800">{benefits[0].title}</h3>
-            <p className="text-gray-700 leading-relaxed">{benefits[0].description}</p>
+            <h3 className="text-2xl font-bold mb-4 text-[#060606]">{benefits[0].title}</h3>
+            <p className="text-[#212121] leading-relaxed">{benefits[0].description}</p>
           </div>
         </div>
 
         {/* Bottom two cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl mx-auto">
           {benefits.slice(1).map((benefit, index) => (
-            <div key={index} className="bg-transparent border border-blue-500/30 rounded-2xl p-8 text-center">
+            <div key={index} className="bg-transparent border border-[#598EFF] rounded-2xl p-8 text-center">
               <div className="w-16 h-16 mx-auto mb-6 flex items-center justify-center rounded-full bg-white">
                 {benefit.icon}
               </div>
