@@ -26,7 +26,7 @@ const benefits = [
 
 export default function BenefitsSection() {
   return (
-    <section className="bg-[#000000] py-16 px-4 text-white min-h-screen">
+    <section className="bg-[#040404] py-16 px-4 text-white min-h-screen">
         <p className="text-lg font-bold block justify-center text-center text-[#A0A0A0] mb-3">—</p>
       <div className="text-center max-w-4xl mx-auto mb-16">
         <h2 className="text-5xl font-bold mb-6">Benefits</h2>
