@@ -30,31 +30,30 @@ export default function SideBar() {
 
                 <div className='w-[14.25rem] h-[188px] mt-3 mx-auto flex flex-col justify-between'>
                   <Link href='/'>
-                     <div className='w-[228px] h-11 rounded-[8px] text-[#E5E5E5] hover:bg-[#E5E5E5] hover:text-[#0D0D0D] transition-all duration-200 inline-flex align-middle'>
-                          <Image src='/icon.png' alt="settings" width={20}  height={20} className="w-5 h-5 object-contain text-[white]"/>
+                     <div className='w-[228px] h-11 rounded-[8px] text-[#E5E5E5] hover:bg-[#E5E5E5] hover:text-[#0D0D0D] transition-all duration-200 inline-flex items-center align-middle'>
+                          <Image src='/icon.png' alt="settings" width={20}  height={20} className="w-5 h-5 object-contain text-[white] ml-3"/>
                           <h2 className="font-[Inter] font-medium text-sm pl-2.5">Dasboard</h2>
                      </div>
                   </Link>
 
                    <Link href='/'>
                      <div className='w-[228px] h-11 rounded-[8px] text-[#E5E5E5] hover:bg-[#E5E5E5] hover:text-[#0D0D0D] history transition-all duration-200 inline-flex items-center align-middle'>
-                       <Image src='/transaction-history.svg' alt="settings" width={20}  height={20} className="w-5 h-5 object-contain"/>
-                         {/* <RxQuestionMarkCircled className='w-5 h-5 object-contain '/> */}
-                        <h2 className="font-[Inter] font-medium text-sm pl-2.5">Transactions</h2>
+                       <Image src='/transaction-history.svg' alt="settings" width={20}  height={20} className="w-5 h-5 object-contain ml-3"/>
+                        <h2 className="font-[Inter] font-medium text-sm pl-2.5">Transactions <span className="w-[30px] h-[17px] px-2 rounded-[10px] bg-[#191919] font-medium font-[Inter] text-center ml-12 hover:text-white">10</span></h2>
                      </div>
                   </Link>
 
                    <Link href='/'>
                      <div className='w-[228px] h-11 rounded-[8px] text-[#E5E5E5] hover:bg-[#E5E5E5] hover:text-[#0D0D0D] transition-all duration-200 inline-flex items-center align-middle'>
-                      <RxQuestionMarkCircled className='w-5 h-5 object-contain'/>
+                      <RxQuestionMarkCircled className='w-5 h-5 object-contain ml-3'/>
                         <h2 className="font-[Inter] font-medium text-sm pl-2.5">Help/Support</h2>
                      </div>
                   </Link>
 
                    <Link href='/'>
                      <div className='w-[228px] h-11 rounded-[8px] text-[#E5E5E5] hover:bg-[#E5E5E5] hover:text-[#0D0D0D] transition-all duration-200 inline-flex items-center align-middle'>
-                       <TbSettings className='w-5 h-5 object-contain'/>
-                        <h2 className="font-[Inter] font-medium text-sm pl-2.5">Settings</h2>
+                       <TbSettings className='w-5 h-5 object-contain ml-3'/>
+                        <h2 className="font-[Inter] font-medium text-sm pl-2.5 w-[164px] h-5">Settings</h2>
                      </div>
                   </Link>
                   
