@@ -97,7 +97,7 @@ const Transactions = () => {
 
           <Pagination
             currentPage={currentPage}
-            totalPages={totalPages}
+            totalPages={totalPages}            
             onPageChange={setCurrentPage}
             totalItems={transactionsToShow?.length}
           />

@@ -10,6 +10,7 @@ import TableSearchbar from "@/components/transactions/table-searchbar";
 import Filter from "@/components/transactions/filter";
 import Sort from "@/components/transactions/sort";
 import { TransactionsTable } from "@/components/transactions/transactions-table";
+import { Pagination } from "@/components/transactions/pagination";
 import { getPageItems, getTotalPages } from "@/utils/paginationUtils";
 
 const page = () => {
@@ -35,6 +36,7 @@ const page = () => {
 
   const transactions = getPageItems(allTransactions, currentPage, itemsPerPage);
   const totalPages = getTotalPages(allTransactions.length, itemsPerPage);
+  
   return (
     <div className="min-h-screen">
       <DashboardHeader pageTitle="Dashboard" />
@@ -96,6 +98,13 @@ const page = () => {
             </div>
             <TransactionsTable transactions={transactions} />
           </div>
+          
+          <Pagination
+            currentPage={currentPage}
+            totalPages={totalPages}
+            totalItems={allTransactions.length}
+            onPageChange={setCurrentPage}
+          />
         </div>
       </main>
     </div>
