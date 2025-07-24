@@ -8,13 +8,15 @@ import { PaginationProps } from "@/types/ui";
 export function Pagination({
   currentPage,
   totalPages,
-  onPageChange
+  onPageChange,
+  totalItems
 }: PaginationProps) {
+  console.log(currentPage, totalPages)
   return (
     <section className="flex items-center justify-center gap-3 py-2 my-4  px-2 ">
       <div className="hidden text-sm text-muted-foreground md:block">
         Showing {(currentPage - 1) * 6 + 1} to{" "}
-        0{Math.min(currentPage * 6, 6 * totalPages)} of {6 * totalPages} items
+        0{Math.min(currentPage * 6, totalItems)} of {totalItems} items
       </div>
       <div className="flex items-center space-x-2">
         <Button

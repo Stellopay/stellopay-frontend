@@ -2,7 +2,7 @@
 
 import TransactionHeader from "@/components/dashboard/transaction-header";
 import Navbar from "@/components/common/navbar";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { SideBar } from "@/components/common/side-bar";
 import { TransactionsTable } from "@/components/transactions/transactions-table";
 import { Pagination } from "@/components/transactions/pagination";
@@ -14,19 +14,29 @@ import Date from "@/components/transactions/date";
 
 const Transactions = () => {
   const [currentPage, setCurrentPage] = useState(1);
-  const [searchParams, setSearchParams] = useState('');
+  const [searchParams, setSearchParams] = useState("");
   const itemsPerPage = 6;
 
+  // /search functionality
+  const filteredTransactions = allTransactions.filter((transaction) =>
+    Object.values(transaction).some((value) =>
+      String(value || "")
+        .toLowerCase()
+        .includes(searchParams.toLowerCase())
+    )
+  );
+  const transactionsToShow = searchParams
+    ? filteredTransactions
+    : allTransactions;
 
   const startIndex = (currentPage - 1) * itemsPerPage;
   const endIndex = startIndex + itemsPerPage;
-  const transactions = allTransactions.slice(startIndex, endIndex);
-  const totalPages = Math.ceil(allTransactions.length / itemsPerPage);
+  const transactions = transactionsToShow.slice(startIndex, endIndex);
+  const totalPages = Math.ceil(transactionsToShow.length / itemsPerPage);
 
-  //search functionality added
-  const filteredTransaction = allTransactions.filter(transaction => Object.values(transaction).some((value) =>
-    String(value || "").toLowerCase().includes(searchParams.toLowerCase())
-  ));
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchParams]);
 
   return (
     <>
@@ -72,16 +82,16 @@ const Transactions = () => {
                 <span> All Transactions</span>
               </h6>
               <div className="flex items-center gap-2">
-                <TableSearchbar onSearch={setSearchParams}/>
+                <TableSearchbar onSearch={setSearchParams} />
                 <Filter />
                 <Sort />
               </div>
             </div>
-            <TransactionsTable transactions={filteredTransaction} />
-            {searchParams && filteredTransaction.length === 0 ? (
-              <div className="text-center text-gray-400 py-4">No Search Result Found</div>
-            ) : (
-              <TransactionsTable transactions={filteredTransaction} />
+            <TransactionsTable transactions={transactions} />
+            {searchParams && transactionsToShow.length === 0 && (
+              <div className="text-center text-gray-400 py-4">
+                No Transactions Found
+              </div>
             )}
           </div>
 
@@ -89,6 +99,7 @@ const Transactions = () => {
             currentPage={currentPage}
             totalPages={totalPages}
             onPageChange={setCurrentPage}
+            totalItems={transactionsToShow?.length}
           />
         </div>
       </main>
