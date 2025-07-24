@@ -23,10 +23,10 @@ const Transactions = () => {
   const transactions = allTransactions.slice(startIndex, endIndex);
   const totalPages = Math.ceil(allTransactions.length / itemsPerPage);
 
-  //search functionality
+  //search functionality added
   const filteredTransaction = allTransactions.filter(transaction => Object.values(transaction).some((value) =>
     String(value || "").toLowerCase().includes(searchParams.toLowerCase())
-  ))
+  ));
 
   return (
     <>
