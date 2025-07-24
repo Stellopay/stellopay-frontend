@@ -38,7 +38,7 @@ export default function LandingPageNavBar() {
         {/* Desktop sign-in Button */}
         <div className="hidden md:block">
           <Link
-            href="/sign-in"
+            href="/auth/login"
             className="px-6 py-4 rounded-full border border-[#598EFF] text-[#EEF4FF] bg-transparent font-medium transition-colors duration-200 hover:bg-[#598EFF] hover:text-white"
             style={{ fontFamily: 'General Sans, sans-serif' }}
           >
