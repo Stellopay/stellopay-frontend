@@ -26,36 +26,36 @@ const benefits = [
 
 export default function BenefitsSection() {
   return (
-    <section className="bg-[#040404] py-16 px-4 text-white min-h-screen">
-        <p className="text-lg font-bold block justify-center text-center text-[#A0A0A0] mb-3">—</p>
-      <div className="text-center max-w-4xl mx-auto mb-16">
-        <h2 className="text-5xl font-clash mb-6">Benefits</h2>
-        <p className="text-lg text-[#C7C7C7] font-general leading-relaxed">
+    <section className="bg-[#040404] pt-24 pb-10 px-4 text-white min-h-screen">
+      <div className="w-10 h-1 bg-white mx-auto"/>
+      <div className="text-center max-w-4xl mx-auto">
+        <h2 className="text-[45px] font-clash py-1">Benefits</h2>
+        <p className="text-base leading-[22px] text-[#C7C7C7] font-general max-w-170 mx-auto">
           All in one seamless platform. Stellopay ensures secure, instant salary payments without the complexity.
         </p>
       </div>
 
-      <div className="max-w-6xl mx-auto">
+      <div className="max-w-6xl mx-auto mt-10">
         {/* Featured card - Low Fees */}
-        <div className="flex justify-center mb-8">
-          <div className="w-full max-w-md bg-[#8EB6FF] rounded-2xl p-8 text-center">
-            <div className="w-16 h-16 mx-auto mb-6 flex items-center justify-center rounded-full bg-white">
+        <div className="flex justify-center mb-8 max-w-[400px] mx-auto">
+          <div className="w-full max-w-md bg-[#8EB6FF] rounded-[8px] p-6 text-center">
+            <div className="w-15 h-15 mx-auto mb-6 flex items-center justify-center rounded-full bg-white">
               {benefits[0].icon}
             </div>
-            <h3 className="text-2xl  font-clash mb-4 text-[#060606]">{benefits[0].title}</h3>
-            <p className="text-[#212121] font-general font-medium leading-relaxed">{benefits[0].description}</p>
+            <h3 className="text-2xl  font-clash mb-3 text-[#060606]">{benefits[0].title}</h3>
+            <p className=" text-sm text-[#212121] font-general font-medium leading-[19px]">{benefits[0].description}</p>
           </div>
         </div>
 
         {/* Bottom two cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl mx-auto">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-[832px] mx-auto">
           {benefits.slice(1).map((benefit, index) => (
-            <div key={index} className="bg-transparent border border-[#598EFF] rounded-2xl p-8 text-center">
-              <div className="w-16 h-16 mx-auto mb-6 flex items-center justify-center rounded-full bg-white">
+            <div key={index} className="bg-transparent border border-[#598EFF] max-w-[400px] mx-auto rounded-[8px] p-6 text-center">
+              <div className="w-15 h-15 mx-auto mb-6 flex items-center justify-center rounded-full bg-white">
                 {benefit.icon}
               </div>
-              <h3 className="text-2xl  font-clash mb-4 text-white">{benefit.title}</h3>
-              <p className="text-gray-300 font-general font-medium leading-relaxed">{benefit.description}</p>
+              <h3 className="text-2xl  font-clash mb-3 text-white">{benefit.title}</h3>
+              <p className="text-sm text-[#A3A3A3]  font-general font-medium leading-[19px]">{benefit.description}</p>
             </div>
           ))}
         </div>

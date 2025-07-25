@@ -12,13 +12,15 @@ const inter = Inter({
 const clashDisplay = localFont({
   src: "../public/font/clash-display-variable.ttf",
   variable: "--font-clash",
-  weight: '500'
+  weight: '500',
+  display: 'swap'
 })
 
 const generalSans = localFont({
   src: "../public/font/general-sans-variable.ttf",
   variable: "--font-general",
-  weight: '400'
+  weight: '400',
+  display: 'swap'
 })
 
 export const metadata: Metadata = {
