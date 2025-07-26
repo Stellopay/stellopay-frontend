@@ -26,16 +26,26 @@ const benefits = [
 
 export default function BenefitsSection() {
   return (
-    <section className="bg-[#040404] pt-24 pb-10 px-4 text-white min-h-screen">
-      <div className="w-10 h-1 bg-white mx-auto"/>
-      <div className="text-center max-w-4xl mx-auto">
+    <section className="relative bg-[#040404] pt-24 pb-10 px-4 text-white min-h-screen">
+      <div 
+        className="absolute inset-0 pointer-events-none z-10"
+        style={{
+          background: `
+          radial-gradient(circle at 20% 70%, rgba(27, 67, 245, 0.15) 15%, transparent 30%),
+          radial-gradient(circle at 50% 30%, rgba(27, 67, 245, 0.15) 35%, transparent 50%),
+          radial-gradient(circle at 80% 70%, rgba(27, 67, 245, 0.15) 15%, transparent 30%)`,
+          filter: 'blur(200px)'
+        }}
+      />
+      <div className="relative z-20 w-10 h-1 bg-white mx-auto"/>
+      <div className="relative z-20 text-center max-w-4xl mx-auto">
         <h2 className="text-[45px] font-clash py-1">Benefits</h2>
         <p className="text-base leading-[22px] text-[#C7C7C7] font-general max-w-170 mx-auto">
           All in one seamless platform. Stellopay ensures secure, instant salary payments without the complexity.
         </p>
       </div>
 
-      <div className="max-w-6xl mx-auto mt-10">
+      <div className="relative z-20 max-w-6xl mx-auto mt-10">
         {/* Featured card - Low Fees */}
         <div className="flex justify-center mb-8 max-w-[400px] mx-auto">
           <div className="w-full max-w-md bg-[#8EB6FF] rounded-[8px] p-6 text-center">
