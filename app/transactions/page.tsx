@@ -40,8 +40,7 @@ const Transactions = () => {
 
   return (
     <>
-      <main className="">
-        {" "}
+      <main className="">      
         <TransactionHeader pageTitle="Transaction" />
         <div className="container mx-auto py-8 px-8">
           <div className="bg-foreground border rounded-[1.5rem] border-[#2D2D2D] p-2">
