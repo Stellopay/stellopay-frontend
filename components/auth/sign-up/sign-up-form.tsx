@@ -33,7 +33,7 @@ export function SignUpForm() {
     useState(false);
   const [isPasswordStrong, setIsPasswordStrong] = useState(false);
   const [showEmailModal, setShowEmailModal] = useState(false);
-    const [submittedEmail, setSubmittedEmail] = useState("");
+  const [submittedEmail, setSubmittedEmail] = useState("");
 
   const handlePasswordCheck = (password: string) => {
     const requirements = checkPasswordRequirements(password);
@@ -73,15 +73,16 @@ export function SignUpForm() {
             Get Started Now
           </h1>
           <div>
-            <p className="text-muted-foreground text-sm text-center md:text-left">
-              Already have an account?{" "}
+            <p className="text-sm text-muted-foreground text-center md:text-left">
+              Already have an account?
               <Link
-                href={"/auth/sign-in"}
-                className="underline underline-offset-4 text-white"
+                href="/auth/login"
+                className="ml-1 text-white underline underline-offset-4 hover:text-purple-300 focus:outline-none focus:ring-2 focus:ring-purple-400 rounded"
               >
                 Log in
               </Link>
             </p>
+
           </div>
         </div>
       </div>
