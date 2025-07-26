@@ -1,51 +1,64 @@
-import React from "react";
+"use client"
+import { format } from "date-fns"
+import { CalendarIcon } from "lucide-react"
+import { cn } from "@/utils/commonUtils"
+import { Button } from "@/components/ui/button"
+import { Calendar } from "@/components/ui/calendar"
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 
-const Date = ({ date }: { date: string }) => {
+interface DateProps {
+  date: Date | undefined
+  onDateChange: (date: Date | undefined) => void
+  placeholder?: string
+}
+
+export function Date({ date, onDateChange, placeholder = "Pick a date" }: DateProps) {
   return (
-    <button className="flex space-x-2 w-[133px] items-center cursor-pointer rounded-lg border border-[#242428] p-2">
-      <svg
-        width="16"
-        height="17"
-        viewBox="0 0 16 17"
-        fill="none"
-        xmlns="http://www.w3.org/2000/svg"
-      >
-        <path
-          d="M12 1.83334V3.16667M4 1.83334V3.16667"
-          stroke="#CBD2EB"
-          strokeLinecap="round"
-          strokeLinejoin="round"
+    <Popover>
+      <PopoverTrigger asChild>
+        <Button
+          variant="outline"
+          className={cn(
+            "w-[133px] justify-start text-left font-normal bg-transparent border-[#242428] text-[#CBD2EB] hover:text-white hover:bg-[#1a1a1a] h-10",
+            !date && "text-[#CBD2EB]",
+          )}
+        >
+          <CalendarIcon className="mr-2 h-4 w-4 text-[#CBD2EB]" />
+          {date ? format(date, "dd-MM-yyyy") : <span className="text-sm">{placeholder}</span>}
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent className="w-auto p-0 bg-[#1a1a1a] border-[#2D2D2D] shadow-lg" align="start">
+        <Calendar
+          mode="single"
+          selected={date}
+          onSelect={onDateChange}
+          initialFocus
+          className="bg-[#1a1a1a] text-white border-0"
+          classNames={{
+            months: "flex flex-col sm:flex-row space-y-4 sm:space-x-4 sm:space-y-0",
+            month: "space-y-4",
+            caption: "flex justify-center pt-1 relative items-center text-white",
+            caption_label: "text-sm font-medium text-white",
+            nav: "space-x-1 flex items-center",
+            nav_button: "h-7 w-7 bg-transparent p-0 text-[#CBD2EB] hover:bg-[#2a2a2a]",
+            nav_button_previous: "absolute left-1",
+            nav_button_next: "absolute right-1",
+            table: "w-full border-collapse space-y-1",
+            head_row: "flex",
+            head_cell: "text-[#CBD2EB] rounded-md w-8 font-normal text-[0.8rem] text-center",
+            row: "flex w-full mt-2",
+            cell: "text-center text-sm p-0 relative [&:has([aria-selected])]:bg-[#2a2a2a] first:[&:has([aria-selected])]:rounded-l-md last:[&:has([aria-selected])]:rounded-r-md focus-within:relative focus-within:z-20",
+            day: "h-8 w-8 p-0 font-normal text-white hover:bg-[#2a2a2a] hover:text-white rounded-md",
+            day_selected:
+              "bg-[#04842E] text-white hover:bg-[#04842E] hover:text-white focus:bg-[#04842E] focus:text-white",
+            day_today: "bg-[#2a2a2a] text-white",
+            day_outside: "text-[#666] opacity-50",
+            day_disabled: "text-[#666] opacity-50",
+            day_range_middle: "aria-selected:bg-[#2a2a2a] aria-selected:text-white",
+            day_hidden: "invisible",
+          }}
         />
-        <path
-          d="M7.99716 9.16666H8.00316M7.99716 11.8333H8.00316M10.6608 9.16666H10.6668M5.3335 9.16666H5.33948M5.3335 11.8333H5.33948"
-          stroke="#CBD2EB"
-          strokeWidth="1.33333"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        />
-        <path
-          d="M2.3335 5.83334H13.6668"
-          stroke="#CBD2EB"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        />
-        <path
-          d="M1.6665 8.66213C1.6665 5.75729 1.6665 4.30485 2.50125 3.40243C3.336 2.5 4.6795 2.5 7.3665 2.5H8.63317C11.3202 2.5 12.6637 2.5 13.4984 3.40243C14.3332 4.30485 14.3332 5.75729 14.3332 8.66213V9.00453C14.3332 11.9094 14.3332 13.3618 13.4984 14.2643C12.6637 15.1667 11.3202 15.1667 8.63317 15.1667H7.3665C4.6795 15.1667 3.336 15.1667 2.50125 14.2643C1.6665 13.3618 1.6665 11.9094 1.6665 9.00453V8.66213Z"
-          stroke="#CBD2EB"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        />
-        <path
-          d="M2 5.83334H14"
-          stroke="#CBD2EB"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        />
-      </svg>
-
-      <span className="text-sm #e5e5e5">{date}</span>
-    </button>
-  );
-};
-
-export default Date;
+      </PopoverContent>
+    </Popover>
+  )
+}
