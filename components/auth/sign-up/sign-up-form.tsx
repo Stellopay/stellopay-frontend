@@ -82,7 +82,6 @@ export function SignUpForm() {
                 Log in
               </Link>
             </p>
-
           </div>
         </div>
       </div>
