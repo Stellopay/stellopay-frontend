@@ -12,10 +12,10 @@ export default function Footer() {
       <div className="max-w-[1040px] mx-auto h-10 flex items-center justify-center gap-[10px] px-4">
         <Link
           href="/"
-          className="w-[66px] h-10 flex items-center justify-center p-2"
+          className="h-10 flex items-center justify-center p-2"
         >
           <span
-            className="text-[#92918e]  text-[18px] font-normal leading-none tracking-[-0.01em] underline decoration-solid"
+            className="text-[#909090] text-lg font-general leading-none tracking-[-0.01em] underline decoration-solid"
             style={{ fontFamily: "General Sans, sans-serif" }}
           >
             Home
@@ -24,10 +24,10 @@ export default function Footer() {
 
         <Link
           href="#KeyFeatures"
-          className="w-[66px] h-10 flex items-center justify-center p-2"
+          className="h-10 flex items-center justify-center p-2"
         >
           <span
-            className="text-[#92918e]  text-[18px] font-normal leading-none tracking-[-0.01em] underline decoration-solid"
+            className="text-[#909090] text-lg font-general leading-none tracking-[-0.01em] underline decoration-solid"
             style={{ fontFamily: "General Sans, sans-serif" }}
           >
             Features
@@ -36,10 +36,10 @@ export default function Footer() {
 
         <button
           onClick={handleBackToTop}
-          className="w-[106px] h-10 flex items-center justify-center p-2 cursor-pointer"
+          className="h-10 flex items-center justify-center p-2 cursor-pointer"
         >
           <span
-            className="text-[#92918e] text-[18px] font-normal whitespace-nowrap leading-none tracking-[-0.01em] underline decoration-solid"
+            className="text-[#909090] text-lg font-general whitespace-nowrap leading-none tracking-[-0.01em] underline decoration-solid"
             style={{ fontFamily: "General Sans, sans-serif" }}
           >
             Back to top
