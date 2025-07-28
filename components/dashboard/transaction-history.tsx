@@ -1,4 +1,5 @@
 import { CgLoadbarDoc } from "react-icons/cg";
+import Image from "next/image";
 import Link from 'next/link';
 
 // Define types for better type safety
@@ -46,9 +47,14 @@ const headerTitle: HeaderItem[] = [
 // Sample data for other columns (you can replace with your actual data)
 const sampleData = {
   dates: ["Apr 12, 2023 | 09:32AM", "Apr 12, 2023 | 09:32AM", "Apr 12, 2023 | 09:32AM", "Apr 12, 2023 | 09:32AM", "Apr 12, 2023 | 09:32AM", "Apr 12, 2023 | 09:32AM"],
-  tokens: ["BTC", "ETH", "USDT", "BTC", "ETH", "USDT"],
+  tokens: ["USDC", "XLM", "USDC", "XLM", "USDC", "XLM"],
   amounts: ["0.005", "0.25", "100.00", "0.003", "0.15", "50.00"],
   statuses: ["Completed", "Pending", "Completed", "Failed", "Completed", "Pending"]
+};
+
+const tokenIconMapWithUrls: Record<string, string> = {
+  USDC: "/usd.png",
+  XLM: "/stellar.png", // Removed /public/ as Next.js serves from public root
 };
 
 const TransactionTable: React.FC = () => {
@@ -99,7 +105,20 @@ const TransactionTable: React.FC = () => {
                   )}
                   { header.title === "Date" && (<div className='max-w-[294px] h-[72px] py-4 px-6'>{sampleData.dates[rowIndex]}</div>)}
                  
-                     {header.title === "Token" && (<div className='max-w-[120px] h-[72px] py-4 px-6'>{sampleData.tokens[rowIndex]}</div>)}
+                  {header.title === "Token" && (
+                    <div className='max-w-[120px] h-[72px] py-4 px-6 flex items-center gap-3'>
+                      {tokenIconMapWithUrls[sampleData.tokens[rowIndex]] && (
+                        <Image
+                          src={tokenIconMapWithUrls[sampleData.tokens[rowIndex]]}
+                          alt={`${sampleData.tokens[rowIndex]} icon`}
+                          width={24}
+                          height={24}
+                          className="w-6 h-6 object-contain"
+                        />
+                      )}
+                      <span>{sampleData.tokens[rowIndex]}</span>
+                    </div>
+                  )}
                  
                   {header.title === "Amount" && (<div className='max-w-[200px] py-4 px-6'>{sampleData.amounts[rowIndex]}</div>)}
                   {header.title === "Status" && (
