@@ -1,10 +1,12 @@
 'user client'
 
 import Link from "next/link";
-import Image from "next/image";
 import { HiMiniMagnifyingGlass } from "react-icons/hi2";
-import { TbSettings } from "react-icons/tb";
+import { TbSettings,TbLayout2 } from "react-icons/tb";
+import {  } from "react-icons/tb";
 import { RxQuestionMarkCircled } from "react-icons/rx";
+import { CgLoadbarDoc } from "react-icons/cg";
+// import { TiDocumentText } from "react-icons/ti";
 
 
 
@@ -31,14 +33,14 @@ export default function SideBar() {
                 <div className='w-[14.25rem] h-[188px] mt-3 mx-auto flex flex-col justify-between'>
                   <Link href='/'>
                      <div className='w-[228px] h-11 rounded-[8px] text-[#E5E5E5] hover:bg-[#E5E5E5] hover:text-[#0D0D0D] transition-all duration-200 inline-flex items-center align-middle'>
-                          <Image src='/icon.png' alt="settings" width={20}  height={20} className="w-5 h-5 object-contain text-[white] ml-3"/>
+                          <TbLayout2 className='w-5 h-5 object-contain ml-3'/>
                           <h2 className="font-[Inter] font-medium text-sm pl-2.5">Dasboard</h2>
                      </div>
                   </Link>
 
                    <Link href='/'>
                      <div className='w-[228px] h-11 rounded-[8px] text-[#E5E5E5] hover:bg-[#E5E5E5] hover:text-[#0D0D0D] history transition-all duration-200 inline-flex items-center align-middle'>
-                       <Image src='/transaction-history.svg' alt="settings" width={20}  height={20} className="w-5 h-5 object-contain ml-3"/>
+                       <CgLoadbarDoc className='w-5 h-5 object-contain ml-3'/>
                         <h2 className="font-[Inter] font-medium text-sm pl-2.5">Transactions <span className="w-[30px] h-[17px] px-2 rounded-[10px] bg-[#191919] font-medium font-[Inter] text-center ml-12 hover:text-white">10</span></h2>
                      </div>
                   </Link>
@@ -56,7 +58,6 @@ export default function SideBar() {
                         <h2 className="font-[Inter] font-medium text-sm pl-2.5 w-[164px] h-5">Settings</h2>
                      </div>
                   </Link>
-                  
                 </div>
               </div>
            </div>

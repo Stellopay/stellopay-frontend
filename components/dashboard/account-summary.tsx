@@ -5,8 +5,8 @@ import Image from "next/image";
 
 const summary = [
     {accountInfo: "Your Account Balance", amount: "$ 2,432 USDC", image: "/copy-01.png", item: "Copy Address", address: "BaDE1b23U45...67890UzZ"},
-    {accountInfo: "Paid This Month", amount: "$0", item: "ITEMS", address: "0"},
-    {accountInfo: "To be Paid", amount: "$0", item: "ITEMS", address: "0"}
+    {accountInfo: "Paid This Month", amount: "$ 0", item: "ITEMS", address: "0"},
+    {accountInfo: "To be Paid", amount: "$ 0", item: "ITEMS", address: "0"}
 ]
 
 
@@ -24,7 +24,6 @@ export default function AccountSummary() {
 
             <div className="max-w-[66.75rem] h-[7.5rem] gap-4 justify-between flex overflow-hidden">
                   {summary.map((info, index) => (
-                   
                             <div className="w-[21.58rem]" key={`${info.accountInfo}-${index}`}>
                               <div className=" h-[7.5rem] py-4 px-6 border border-[#2E2E2E] rounded-xl">
                                 <div className="w-full text-sm align-middle font-[Inter]">{info.accountInfo}</div> 
