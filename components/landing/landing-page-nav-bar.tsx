@@ -14,7 +14,7 @@ export default function LandingPageNavBar() {
   const [menuOpen, setMenuOpen] = useState(false);
 
   return (
-    <nav className="w-full bg-transparent">
+    <nav className="w-full h-[75px] px-4 md:px-8 absolute top-0 left-0 z-50 bg-transparent">
       <div className="max-w-7xl mx-auto flex items-center justify-between px-4 py-2 md:py-8">
         {/* Logo */}
         <Link href="/" className="font-light text-xl md:text-2xl" style={{ fontFamily: 'Clash Display, sans-serif', color: '#598EFF' }}>
@@ -38,7 +38,7 @@ export default function LandingPageNavBar() {
         {/* Desktop sign-in Button */}
         <div className="hidden md:block">
           <Link
-            href="/sign-in"
+            href="/auth/login"
             className="px-6 py-4 rounded-full border border-[#598EFF] text-[#EEF4FF] bg-transparent font-medium transition-colors duration-200 hover:bg-[#598EFF] hover:text-white"
             style={{ fontFamily: 'General Sans, sans-serif' }}
           >
