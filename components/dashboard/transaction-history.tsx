@@ -63,8 +63,8 @@ const TransactionTable: React.FC = () => {
   const transactionCount = transactionTypeData?.paymentType?.length || 0;
 
   return (
-    <div className="max-w-[68.75rem] h-[35.375rem] rounded-md p-4 border border-[#2D2D2D] my-6">
-
+    <div className="max-w-[68.75rem] h-[35.375rem] rounded-md p-3 border border-[#2D2D2D] my-6">
+{/* border- */}
       <div className='max-w-[1068px] h-9 flex justify-between'>
         <div className='w-[368px] h-9 inline-flex items-center align-middle'>
              <CgLoadbarDoc className='w-5 h-5 object-contain ml-3'/>
@@ -77,7 +77,7 @@ const TransactionTable: React.FC = () => {
             </Link>
       </div>
 
-      <table className="w-full h-[482px] border border-[] rounded-[12px] my-4">
+      <table className="w-full h-[482px] border rounded-2xl mt-3.5">
         <thead className="rounded-[12px]">
           <tr className="bg-[#191919]">
             {headerTitle.map((header, index) => (

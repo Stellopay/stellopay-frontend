@@ -27,8 +27,7 @@ export default function PaymentHistory() {
                      <div className='w-6 h-6 border-[0.75px] relative border-[#2E2E2E] rounded-[6px] flex justify-center items-center'>
                       <Image src='/notification.png' alt="notify" width={24} height={24} className="w-4 h-4 object-contain"/>
                        <span className="w-1 h-1 absolute -top-0.5 -right-0.5 bg-[#EB6945] rounded-full"></span>
-                      </div>
-                       
+                      </div>     
               </div>
              
             </div>

@@ -1,7 +1,6 @@
 'use client'
 
 import Image from "next/image";
-// import Link from "next/link";
 import PaymentHistory from "./payment-history";
 import { useState } from "react";
 import { IoIosArrowDown, IoIosArrowUp, IoIosArrowForward } from "react-icons/io";
@@ -16,8 +15,7 @@ const amounts = [
 
 const years = [
    {year: "Jan", value: 75}, {year: "Feb", value: 45},
-   {year: "Mar", value: 80}, {year: "Apr", value: 30},
-  {year: "May", value: 65},  {year: "Jun", value: 90},
+    {year: "May", value: 65},  {year: "Jun", value: 90},
   {year: "Jul", value: 55}, {year: "Aug", value: 70},
   {year: "Sept", value: 40}, {year: "Oct", value: 85},
   {year: "Nov", value: 35},  {year: "Dec", value: 60}
@@ -92,7 +90,7 @@ export default function AnalyticsView() {
                         <div className="w-[35.25px] h-[194px] font-[Jakarta Sans] text-xs text-center flex flex-col justify-end items-center relative">
                              {/* Bar chart */}
                              <div 
-                               className="w-6 bg-[#2E2E2E] rounded-sm mb-1"
+                               className="w-8 bg-[#2E2E2E] rounded-sm mb-1"
                                style={{
                                  height: `${(year.value / maxValue) * 160}px`,
                                  minHeight: '4px'
