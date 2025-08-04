@@ -1,8 +1,6 @@
-import { CgLoadbarDoc } from "react-icons/cg";
 import Image from "next/image";
 import Link from 'next/link';
 
-// Define types for better type safety
 interface PaymentType {
   paymentStatus: string;
 }
@@ -17,7 +15,6 @@ interface HeaderItem {
   paymentId?: PaymentId[];
 }
 
-// Your data
 const headerTitle: HeaderItem[] = [
   { 
     title: "Transaction type",
@@ -38,14 +35,16 @@ const headerTitle: HeaderItem[] = [
       {id: "#TXN12350"}
     ],
   },
+  {title: "Address"},
   {title: "Date"},
   {title: "Token"},
   {title: "Amount"},
   {title: "Status"}
 ];
 
-// Sample data for other columns (you can replace with your actual data)
+
 const sampleData = {
+  address: ["GABCDE...XYZ67890","0xA1B2...C3D4E5", "GABCDE...XYZ67890", "0xA1B2...C3D4E5","GABCDE...XYZ67890","0xA1B2...C3D4E5"],
   dates: ["Apr 12, 2023 | 09:32AM", "Apr 12, 2023 | 09:32AM", "Apr 12, 2023 | 09:32AM", "Apr 12, 2023 | 09:32AM", "Apr 12, 2023 | 09:32AM", "Apr 12, 2023 | 09:32AM"],
   tokens: ["USDC", "XLM", "USDC", "XLM", "USDC", "XLM"],
   amounts: ["0.005", "0.25", "100.00", "0.003", "0.15", "50.00"],
@@ -54,20 +53,22 @@ const sampleData = {
 
 const tokenIconMapWithUrls: Record<string, string> = {
   USDC: "/usd.png",
-  XLM: "/stellar.png", // Removed /public/ as Next.js serves from public root
+  XLM: "/stellar.png",
 };
 
 const TransactionTable: React.FC = () => {
-  // Get the transaction type data
   const transactionTypeData = headerTitle.find(item => item.title === "Transaction type");
   const transactionCount = transactionTypeData?.paymentType?.length || 0;
 
   return (
     <div className="max-w-[68.75rem] h-[35.375rem] rounded-md p-3 border border-[#2D2D2D] my-6">
-{/* border- */}
       <div className='max-w-[1068px] h-9 flex justify-between'>
         <div className='w-[368px] h-9 inline-flex items-center align-middle'>
-             <CgLoadbarDoc className='w-5 h-5 object-contain ml-3'/>
+               <svg width="20" height="20" className="ml-3" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M15.8333 8.75V8.3333C15.8333 5.19064 15.8332 3.61926 14.857 2.64296C13.8806 1.66667 12.3093 1.66667 9.16662 1.66667C6.02403 1.66667 4.45267 1.66672 3.47636 2.643C2.50008 3.6193 2.50006 5.1906 2.50003 8.33324L2.5 12.0833C2.49998 14.8228 2.49997 16.1927 3.25657 17.1146C3.3951 17.2834 3.54988 17.4382 3.71869 17.5768C4.64064 18.3333 6.01041 18.3333 8.74995 18.3333" stroke="currentColor" strokeWidth={1.25} strokeLinecap="round" strokeLinejoin="round"/>
+                  <path d="M5.83325 5.83333H12.4999M5.83325 9.16666H9.16659" stroke="currentColor" strokeWidth="1.25" strokeLinecap="round" strokeLinejoin="round"/>
+                  <path d="M15 15.4167L13.75 14.9583V12.9167M10 14.5833C10 16.6544 11.6789 18.3333 13.75 18.3333C15.8211 18.3333 17.5 16.6544 17.5 14.5833C17.5 12.5122 15.8211 10.8333 13.75 10.8333C11.6789 10.8333 10 12.5122 10 14.5833Z" stroke="currentColor" strokeWidth="1.25" strokeLinecap="round" strokeLinejoin="round"/>
+               </svg>   
            <h1 className='w-[148px] font-[Inter] text-base align-middle text-[#E5E5E5'>Transaction History</h1>
         </div>
             <Link href='/'>
@@ -94,7 +95,7 @@ const TransactionTable: React.FC = () => {
               {headerTitle.map((header, colIndex) => (
                 <td key={colIndex} className="whitespace-nowrap text-sm text-[#D7E0EF] border border-[#2D333E]">
                   {header.title === "Transaction type" && (
-                    <div className='w-[294px] h-[73px] py-4 px-6'>
+                    <div className='w-[180px] h-[72px] py-4 px-6'>
                       <div className="font-medium text-sm font-[Inter] text-[#D7E0EF]">
                         {transactionTypeData?.paymentType?.[rowIndex]?.paymentStatus}
                       </div>
@@ -103,10 +104,11 @@ const TransactionTable: React.FC = () => {
                       </div>
                     </div>
                   )}
-                  { header.title === "Date" && (<div className='max-w-[294px] h-[72px] py-4 px-6'>{sampleData.dates[rowIndex]}</div>)}
+                  {header.title === "Address" && (<div className="max-w-[224px] h-[72px] text-center flex items-center pl-4">{sampleData.address[rowIndex]}</div>)}
+                  { header.title === "Date" && (<div className='max-w-[224px] h-[72px] text-center flex items-center pl-4'>{sampleData.dates[rowIndex]}</div>)}
                  
                   {header.title === "Token" && (
-                    <div className='max-w-[120px] h-[72px] py-4 px-6 flex items-center gap-3'>
+                    <div className='max-w-[120px] h-[72px] text-center flex items-center pl-4 gap-3'>
                       {tokenIconMapWithUrls[sampleData.tokens[rowIndex]] && (
                         <Image
                           src={tokenIconMapWithUrls[sampleData.tokens[rowIndex]]}
@@ -120,9 +122,9 @@ const TransactionTable: React.FC = () => {
                     </div>
                   )}
                  
-                  {header.title === "Amount" && (<div className='max-w-[200px] py-4 px-6'>{sampleData.amounts[rowIndex]}</div>)}
+                  {header.title === "Amount" && (<div className='max-w-[160px] text-center flex items-center pl-4'>{sampleData.amounts[rowIndex]}</div>)}
                   {header.title === "Status" && (
-                    <span className={`px-2 py-1 text-sm font-medium font-[Inter] rounded-[12px] w-[160px] mx-6 ${
+                    <span className={`px-2 py-1 text-sm font-medium font-[Inter] rounded-[12px] max-w-[160px] mx-6 ${
                       sampleData.statuses[rowIndex] === "Completed" ? "bg-[#102B19] text-green-800" :
                       sampleData.statuses[rowIndex] === "Pending" ? "bg-[#191919] text-yellow-800" :
                       "bg-[#1A1A1A] text-red-800"
