@@ -38,7 +38,7 @@ export const filterTransactions = (
   searchQuery: string,
   selectedFilter: string,
   fromDate: string,
-  toDate: string
+  toDate: string,
 ): Transaction[] => {
   let filtered = transactions;
 
@@ -50,14 +50,14 @@ export const filterTransactions = (
         transaction.txId.toLowerCase().includes(searchQuery.toLowerCase()) ||
         transaction.address.toLowerCase().includes(searchQuery.toLowerCase()) ||
         transaction.token.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        transaction.status.toLowerCase().includes(searchQuery.toLowerCase())
+        transaction.status.toLowerCase().includes(searchQuery.toLowerCase()),
     );
   }
 
   // Filter by transaction type
   if (selectedFilter !== "All Transactions") {
     filtered = filtered.filter(
-      (transaction) => transaction.type === selectedFilter
+      (transaction) => transaction.type === selectedFilter,
     );
   }
 
@@ -82,7 +82,7 @@ export const filterTransactions = (
 export const sortTransactions = (
   transactions: Transaction[],
   sortField: SortField,
-  sortDirection: SortDirection
+  sortDirection: SortDirection,
 ): Transaction[] => {
   return [...transactions].sort((a, b) => {
     let aValue: any;

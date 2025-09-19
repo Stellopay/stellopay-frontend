@@ -2,8 +2,7 @@ import React from "react";
 import { Input } from "@/components/ui/input";
 import { Search } from "lucide-react";
 
-
-const TableSearchbar = ({onSearch}: any) => {
+const TableSearchbar = ({ onSearch }: any) => {
   return (
     <div className="flex items-center bg-transparent rounded-[6.25rem]   ">
       <Search className="text-gray-600 w-5 h-5 " />

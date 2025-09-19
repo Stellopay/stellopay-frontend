@@ -77,9 +77,12 @@ export interface TransactionsPaginationProps {
 // UI library component types
 export type PaginationLinkProps = {
   isActive?: boolean;
-} & Pick<React.ComponentProps<typeof import("@/components/ui/button").Button>, "size"> &
+} & Pick<
+  React.ComponentProps<typeof import("@/components/ui/button").Button>,
+  "size"
+> &
   React.ComponentProps<"a">;
 
 export type FormItemContextValue = {
   id: string;
-}; 
+};

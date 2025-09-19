@@ -17,9 +17,11 @@ const Button: React.FC<ButtonProps> = ({
       onClick={onClick}
       disabled={disabled || loading}
       className={`
-        ${fill 
-          ? "bg-[#ffffff] text-[#1a1a1a]" 
-          : "bg-[#222222] text-[#ffffff] border border-[#2D2D2D]"} 
+        ${
+          fill
+            ? "bg-[#ffffff] text-[#1a1a1a]"
+            : "bg-[#222222] text-[#ffffff] border border-[#2D2D2D]"
+        } 
         font-medium text-[14px] rounded-[0.375rem] 
         flex items-center justify-center 
         ${disabled || loading ? "opacity-50 cursor-not-allowed" : "cursor-pointer"}

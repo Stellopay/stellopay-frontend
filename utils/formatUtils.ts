@@ -12,7 +12,7 @@
 export const formatCurrency = (
   amount: number,
   currency: string = "$",
-  decimals: number = 2
+  decimals: number = 2,
 ): string => {
   const sign = amount >= 0 ? "+" : "";
   return `${sign}${currency}${Math.abs(amount).toFixed(decimals)}`;
@@ -59,4 +59,4 @@ export const truncateText = (text: string, maxLength: number): string => {
  */
 export const capitalizeFirst = (str: string): string => {
   return str.charAt(0).toUpperCase() + str.slice(1).toLowerCase();
-}; 
+};

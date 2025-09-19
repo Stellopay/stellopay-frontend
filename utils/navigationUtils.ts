@@ -21,7 +21,10 @@ export const isLinkActive = (route: string, pathname: string): boolean => {
  * @param isSidebarOpen - Whether the sidebar is open
  * @returns True if sidebar should be expanded, false otherwise
  */
-export const shouldExpandSidebar = (isMobile: boolean, isSidebarOpen: boolean): boolean => {
+export const shouldExpandSidebar = (
+  isMobile: boolean,
+  isSidebarOpen: boolean,
+): boolean => {
   return isMobile || (isSidebarOpen && !isMobile);
 };
 
@@ -31,9 +34,12 @@ export const shouldExpandSidebar = (isMobile: boolean, isSidebarOpen: boolean): 
  * @param isExpanded - Whether the sidebar is expanded
  * @returns Layout ID string for animation
  */
-export const getActiveLinkLayoutId = (isMobile: boolean, isExpanded: boolean): string => {
+export const getActiveLinkLayoutId = (
+  isMobile: boolean,
+  isExpanded: boolean,
+): string => {
   if (isMobile) {
     return "activeLink-mobile";
   }
   return isExpanded ? "activeLink-desktop" : "activeLink-collapsed";
-}; 
+};

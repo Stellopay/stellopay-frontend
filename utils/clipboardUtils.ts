@@ -26,10 +26,10 @@ export const copyToClipboard = async (text: string): Promise<boolean> => {
 export const copyToClipboardWithFeedback = async (
   text: string,
   onSuccess?: () => void,
-  onError?: (error: string) => void
+  onError?: (error: string) => void,
 ): Promise<void> => {
   const success = await copyToClipboard(text);
-  
+
   if (success) {
     onSuccess?.();
   } else {
@@ -46,14 +46,14 @@ export const copyToClipboardWithFeedback = async (
 export const copyToClipboardWithTimeout = async (
   text: string,
   setCopied: (value: boolean) => void,
-  timeout: number = 2000
+  timeout: number = 2000,
 ): Promise<void> => {
   const success = await copyToClipboard(text);
-  
+
   if (success) {
     setCopied(true);
     setTimeout(() => setCopied(false), timeout);
   } else {
     alert("Failed to copy text. Please try again.");
   }
-}; 
+};

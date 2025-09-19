@@ -8,7 +8,10 @@
  * @param itemsPerPage - Number of items per page
  * @returns Start index for the current page
  */
-export const getStartIndex = (currentPage: number, itemsPerPage: number): number => {
+export const getStartIndex = (
+  currentPage: number,
+  itemsPerPage: number,
+): number => {
   return (currentPage - 1) * itemsPerPage;
 };
 
@@ -18,7 +21,10 @@ export const getStartIndex = (currentPage: number, itemsPerPage: number): number
  * @param itemsPerPage - Number of items per page
  * @returns End index for the current page
  */
-export const getEndIndex = (currentPage: number, itemsPerPage: number): number => {
+export const getEndIndex = (
+  currentPage: number,
+  itemsPerPage: number,
+): number => {
   return currentPage * itemsPerPage;
 };
 
@@ -28,7 +34,10 @@ export const getEndIndex = (currentPage: number, itemsPerPage: number): number =
  * @param itemsPerPage - Number of items per page
  * @returns Total number of pages
  */
-export const getTotalPages = (totalItems: number, itemsPerPage: number): number => {
+export const getTotalPages = (
+  totalItems: number,
+  itemsPerPage: number,
+): number => {
   return Math.ceil(totalItems / itemsPerPage);
 };
 
@@ -42,7 +51,7 @@ export const getTotalPages = (totalItems: number, itemsPerPage: number): number 
 export const getPageItems = <T>(
   items: T[],
   currentPage: number,
-  itemsPerPage: number
+  itemsPerPage: number,
 ): T[] => {
   const startIndex = getStartIndex(currentPage, itemsPerPage);
   const endIndex = getEndIndex(currentPage, itemsPerPage);
@@ -57,4 +66,4 @@ export const getPageItems = <T>(
  */
 export const isValidPage = (page: number, totalPages: number): boolean => {
   return page >= 1 && page <= totalPages;
-}; 
+};

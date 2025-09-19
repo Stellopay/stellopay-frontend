@@ -1,4 +1,4 @@
-"use client"
+"use client";
 
 import TransactionHeader from "@/components/dashboard/transaction-header";
 import Navbar from "@/components/common/navbar";
@@ -10,13 +10,13 @@ import { transactions as allTransactions } from "@/public/data/mock-data";
 import TableSearchbar from "@/components/transactions/table-searchbar";
 import Filter from "@/components/transactions/filter";
 import Sort from "@/components/transactions/sort";
-import { isDateInRange } from "@/utils/date-utils"
+import { isDateInRange } from "@/utils/date-utils";
 
 const Transactions = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [searchParams, setSearchParams] = useState("");
-    const [startDate, setStartDate] = useState<Date | undefined>(undefined)
-  const [endDate, setEndDate] = useState<Date | undefined>(undefined)
+  const [startDate, setStartDate] = useState<Date | undefined>(undefined);
+  const [endDate, setEndDate] = useState<Date | undefined>(undefined);
   const itemsPerPage = 6;
 
   // /search functionality
@@ -24,17 +24,19 @@ const Transactions = () => {
     Object.values(transaction).some((value) =>
       String(value || "")
         .toLowerCase()
-        .includes(searchParams.toLowerCase())
-    )
+        .includes(searchParams.toLowerCase()),
+    ),
   );
   const transactionsToShow = searchParams
     ? searchFilteredTransactions
     : allTransactions;
 
-     // Filter transactions based on date range
+  // Filter transactions based on date range
   const dateFilteredTransactions = useMemo(() => {
-    return transactionsToShow.filter((transaction) => isDateInRange(transaction.date, startDate, endDate))
-  }, [startDate, endDate, transactionsToShow])
+    return transactionsToShow.filter((transaction) =>
+      isDateInRange(transaction.date, startDate, endDate),
+    );
+  }, [startDate, endDate, transactionsToShow]);
 
   const startIndex = (currentPage - 1) * itemsPerPage;
   const endIndex = startIndex + itemsPerPage;
@@ -45,15 +47,18 @@ const Transactions = () => {
     setCurrentPage(1);
   }, [searchParams, startDate, endDate]);
 
-  console.log(transactionsToShow, transactions, dateFilteredTransactions)
+  console.log(transactionsToShow, transactions, dateFilteredTransactions);
 
   return (
     <>
-      <main className="">      
-        <TransactionHeader pageTitle="Transaction"   startDate={startDate}
-        endDate={endDate}
-        onStartDateChange={setStartDate}
-        onEndDateChange={setEndDate} />
+      <main className="">
+        <TransactionHeader
+          pageTitle="Transaction"
+          startDate={startDate}
+          endDate={endDate}
+          onStartDateChange={setStartDate}
+          onEndDateChange={setEndDate}
+        />
         <div className="container mx-auto py-8 px-8">
           <div className="bg-foreground border rounded-[1.5rem] border-[#2D2D2D] p-2">
             {" "}
@@ -91,36 +96,38 @@ const Transactions = () => {
                   </svg>
                 </div>
                 <span> All Transactions</span>
-                 {(startDate || endDate) && (
-                <span className="text-sm text-[#9CA3AF]">({dateFilteredTransactions.length} filtered)</span>
-              )} 
+                {(startDate || endDate) && (
+                  <span className="text-sm text-[#9CA3AF]">
+                    ({dateFilteredTransactions.length} filtered)
+                  </span>
+                )}
               </h6>
               <div className="flex items-center gap-2">
                 <TableSearchbar onSearch={setSearchParams} />
                 <Filter />
                 <Sort />
-              </div>              
-                        
-            </div>          
-            <TransactionsTable transactions={transactions} />
-            {(searchParams || startDate || endDate) && transactions.length === 0 && (
-              <div className="text-center text-gray-400 py-4">
-                No Transactions Found
               </div>
-            )}
-          </div>          
+            </div>
+            <TransactionsTable transactions={transactions} />
+            {(searchParams || startDate || endDate) &&
+              transactions.length === 0 && (
+                <div className="text-center text-gray-400 py-4">
+                  No Transactions Found
+                </div>
+              )}
+          </div>
         </div>
         {dateFilteredTransactions.length > 0 && (
           <Pagination
             currentPage={currentPage}
-            totalPages={totalPages}            
+            totalPages={totalPages}
             onPageChange={setCurrentPage}
             totalItems={transactionsToShow?.length}
           />
-        )}      
-    </main>
+        )}
+      </main>
     </>
-  )
-}
+  );
+};
 
-export default Transactions
+export default Transactions;

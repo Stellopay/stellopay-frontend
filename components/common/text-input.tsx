@@ -31,13 +31,9 @@ const TextInput: React.FC<TextInputProps> = ({
       <div
         className={`flex items-center border border-[#2D2D2D] rounded-[0.375rem]  h-[48px] md:h-[52px] overflow-hidden`}
       >
-        {icon && (
-          <span className="pl-[20px] ">
-            {icon}
-          </span>
-        )}
+        {icon && <span className="pl-[20px] ">{icon}</span>}
         <input
-          type={type} 
+          type={type}
           id="textinput"
           name="textinput"
           placeholder={placeholder}
@@ -51,8 +47,8 @@ const TextInput: React.FC<TextInputProps> = ({
           style={{
             WebkitAppearance: "none",
             MozAppearance: "textfield",
-            fontSize: "14px", 
-            paddingRight: "10px", 
+            fontSize: "14px",
+            paddingRight: "10px",
           }}
         />
       </div>

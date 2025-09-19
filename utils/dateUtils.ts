@@ -22,7 +22,7 @@ export const formatDate = (dateStr: string): string => {
  * @returns Date string in YYYY-MM-DD format
  */
 export const formatDateForInput = (date: Date): string => {
-  return date.toISOString().split('T')[0];
+  return date.toISOString().split("T")[0];
 };
 
 /**
@@ -45,7 +45,11 @@ export const formatDateForDisplay = (date: Date): string => {
  * @param toDate - End of the range
  * @returns True if date is within range, false otherwise
  */
-export const isDateInRange = (date: Date, fromDate: Date, toDate: Date): boolean => {
+export const isDateInRange = (
+  date: Date,
+  fromDate: Date,
+  toDate: Date,
+): boolean => {
   return date >= fromDate && date <= toDate;
 };
 
@@ -55,4 +59,4 @@ export const isDateInRange = (date: Date, fromDate: Date, toDate: Date): boolean
  */
 export const getCurrentDate = (): string => {
   return formatDateForInput(new Date());
-}; 
+};

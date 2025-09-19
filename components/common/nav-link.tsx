@@ -10,7 +10,11 @@ import useSidebar from "@/context/sidebar-context";
 import { Tooltip } from "@material-tailwind/react";
 import { usePathname } from "next/navigation";
 import Link from "next/link";
-import { isLinkActive, shouldExpandSidebar, getActiveLinkLayoutId } from "@/utils/navigationUtils";
+import {
+  isLinkActive,
+  shouldExpandSidebar,
+  getActiveLinkLayoutId,
+} from "@/utils/navigationUtils";
 
 export const NavLink = () => {
   const pathname = usePathname() || "/";
