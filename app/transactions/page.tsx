@@ -18,7 +18,7 @@ const Transactions = () => {
   const [startDate, setStartDate] = useState<Date | undefined>(undefined);
   const [endDate, setEndDate] = useState<Date | undefined>(undefined);
   const itemsPerPage = 6;
-
+ console.log("Current search term:", searchParams);
   // /search functionality
   const searchFilteredTransactions = allTransactions.filter((transaction) =>
     Object.values(transaction).some((value) =>
@@ -27,6 +27,7 @@ const Transactions = () => {
         .includes(searchParams.toLowerCase()),
     ),
   );
+    
   const transactionsToShow = searchParams
     ? searchFilteredTransactions
     : allTransactions;
@@ -62,8 +63,8 @@ const Transactions = () => {
         <div className="container mx-auto py-8 px-8">
           <div className="bg-foreground border rounded-[1.5rem] border-[#2D2D2D] p-2">
             {" "}
-            <div className="grid pb-2 md:pb-0 md:flex items-center justify-between">
-              <h6 className="text-xl font-medium mb-4 p-2 flex gap-1 items-center">
+            <div className="grid items-center justify-between pb-2 md:pb-0 md:flex">
+              <h6 className="flex items-center gap-1 p-2 mb-4 text-xl font-medium">
                 <div className=" bg-[#121212] rounded-lg border border-[#2E2E2E] p-1">
                   <svg
                     width="24"
@@ -102,10 +103,18 @@ const Transactions = () => {
                   </span>
                 )}
               </h6>
+              
               <div className="flex items-center gap-2">
                 <TableSearchbar onSearch={setSearchParams} />
                 <Filter />
                 <Sort />
+              </div>              
+                        
+            </div>          
+            <TransactionsTable transactions={transactions} />
+            {(searchParams || startDate || endDate) && transactions.length === 0 && (
+              <div className="py-4 text-center text-gray-400">
+                No Transactions Found
               </div>
             </div>
             <TransactionsTable transactions={transactions} />
