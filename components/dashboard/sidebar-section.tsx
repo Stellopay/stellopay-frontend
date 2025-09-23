@@ -4,26 +4,26 @@ import { HiMiniMagnifyingGlass } from "react-icons/hi2";
 
 export default function SideBar() {
   return (
-        <div className='w-[16.25rem] h-[1342px] gap-7 border-r border-r-[#1A1A1A] bg-[#101010]'>
-            <div className='w-[16.25rem] h-[373px] gap-8'>
-              <div className='w-[16.25rem] h-20 gap-1 rounded-[4px] py-2 px-6 border-b border-[#1A1A1A] flex items-center'>
+        <div className='w-[12.25rem] xl:w-[16.25rem] h-[1342px] gap-7 border-r border-r-[#1A1A1A] bg-[#101010] hidden lg:flex'>
+            <div className='w-[12.25rem] xl:w-[16.25rem] h-[373px] gap-8'>
+              <div className='w-[12.25rem] xl:w-[16.25rem] h-20 gap-1 rounded-[4px] py-2 px-6 border-b border-[#1A1A1A] flex items-center'>
                  <h1 className='w-[109px] h-[29px] font-semibold text-2xl font-[Inter] text-[#E5E5E5]'>Stellopay</h1>
              </div>
 
-              <div className='w-[16.25rem] h-9 rounded-[4px]   mt-6'>
-                <div className="w-[228px] h-9 px-4 border border-[#2D333E] rounded-[6px] flex items-center mx-auto">
+              <div className='w-[12.25rem] xl:w-[16.25rem] h-9 rounded-[4px]   mt-6'>
+                <div className="w-[85%] xl:w-[228px] h-9 px-4 border border-[#2D333E] rounded-[6px] flex items-center mx-auto">
                    <HiMiniMagnifyingGlass className="w-5 h-5"/>
-                   <input type="text" name='' placeholder='Search' className='outline-none pl-1.5 w-32'/>
+                   <input type="text" name='' placeholder='Search' className='outline-none pl-1.5 w-16 xl:w-32'/>
                 </div>
                 
                   
               </div>
                  {/* Siderbar menu */}
               <div className='w-full h-[201px] mt-7'>
-                <div className='w-[14.25rem] h-0 border border-[#191919] mx-auto'></div>
-                <div className='w-[14.25rem] h-[188px] mt-3 mx-auto flex flex-col justify-between'>
+                <div className='w-[10.25rem] xl:w-[14.25rem] h-0 border border-[#191919] mx-auto'></div>
+                <div className='w-[13.25rem] xl:w-[14.25rem] h-[188px] mt-3 mx-auto flex flex-col justify-between'>
                   <Link href='/'>
-                     <div className='w-[228px] h-11 rounded-[8px] text-[#E5E5E5] hover:bg-[#E5E5E5] hover:text-[#0D0D0D] transition-all duration-200 inline-flex items-center align-middle'>
+                     <div className='w-[96%] xl:w-[228px] h-11 rounded-[8px] text-[#E5E5E5] hover:bg-[#E5E5E5] hover:text-[#0D0D0D] transition-all duration-200 inline-flex items-center align-middle'>
                          <svg width="20" height="20" className="ml-3" viewBox="0 0 20 20" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
                               <path d="M3.33325 9.58333C2.18266 9.58333 1.24992 8.65059 1.24992 7.5L1.24992 3.33333C1.24992 2.18274 2.18266 1.25 3.33325 1.25H7.49992C8.65051 1.25 9.58325 2.18274 9.58325 3.33333V7.5C9.58325 8.65059 8.65051 9.58333 7.49992 9.58333H3.33325ZM2.91659 7.5C2.91659 7.73012 3.10313 7.91667 3.33325 7.91667L7.49992 7.91667C7.73004 7.91667 7.91658 7.73012 7.91658 7.5V3.33333C7.91658 3.10322 7.73004 2.91667 7.49992 2.91667L3.33325 2.91667C3.10313 2.91667 2.91658 3.10322 2.91658 3.33333L2.91659 7.5Z"/>
                               <path d="M6.39662 10.9952C5.62524 10.2238 4.3746 10.2238 3.60322 10.9952L1.41178 13.1866C0.640408 13.958 0.640408 15.2087 1.41178 15.98L3.60322 18.1715C4.3746 18.9428 5.62524 18.9428 6.39662 18.1715L8.58805 15.98C9.35943 15.2087 9.35943 13.958 8.58805 13.1866L6.39662 10.9952ZM4.78173 12.1737C4.90223 12.0532 5.0976 12.0532 5.2181 12.1737L7.40954 14.3651C7.53004 14.4856 7.53004 14.681 7.40954 14.8015L5.2181 16.993C5.0976 17.1135 4.90223 17.1135 4.78173 16.993L2.59029 14.8015C2.46979 14.681 2.46979 14.4856 2.59029 14.3651L4.78173 12.1737Z"/>
@@ -35,18 +35,18 @@ export default function SideBar() {
                   </Link>
 
                    <Link href='/'>
-                     <div className='w-[228px] h-11 rounded-[8px] text-[#E5E5E5] hover:bg-[#E5E5E5] hover:text-[#0D0D0D] history transition-all duration-200 inline-flex items-center align-middle'>
+                     <div className='w-[96%] xl:w-[228px] h-11 rounded-[8px] text-[#E5E5E5] hover:bg-[#E5E5E5] hover:text-[#0D0D0D] history transition-all duration-200 inline-flex items-center align-middle'>
                          <svg width="20" height="20" className="ml-3" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
                             <path d="M15.8333 8.75V8.3333C15.8333 5.19064 15.8332 3.61926 14.857 2.64296C13.8806 1.66667 12.3093 1.66667 9.16662 1.66667C6.02403 1.66667 4.45267 1.66672 3.47636 2.643C2.50008 3.6193 2.50006 5.1906 2.50003 8.33324L2.5 12.0833C2.49998 14.8228 2.49997 16.1927 3.25657 17.1146C3.3951 17.2834 3.54988 17.4382 3.71869 17.5768C4.64064 18.3333 6.01041 18.3333 8.74995 18.3333" stroke="currentColor" strokeWidth={1.25} strokeLinecap="round" strokeLinejoin="round"/>
                             <path d="M5.83325 5.83333H12.4999M5.83325 9.16666H9.16659" stroke="currentColor" strokeWidth="1.25" strokeLinecap="round" strokeLinejoin="round"/>
                             <path d="M15 15.4167L13.75 14.9583V12.9167M10 14.5833C10 16.6544 11.6789 18.3333 13.75 18.3333C15.8211 18.3333 17.5 16.6544 17.5 14.5833C17.5 12.5122 15.8211 10.8333 13.75 10.8333C11.6789 10.8333 10 12.5122 10 14.5833Z" stroke="currentColor" strokeWidth="1.25" strokeLinecap="round" strokeLinejoin="round"/>
                          </svg>
-                        <h2 className="font-[Inter] font-medium text-sm pl-2.5">Transactions <span className="w-[30px] h-[17px] px-2 rounded-[10px] bg-[#191919] font-medium font-[Inter] text-center ml-12 hover:text-white">10</span></h2>
+                        <h2 className="font-[Inter] font-medium text-sm pl-2.5">Transactions <span className="w-fit h-[17px] px-2 rounded-[10px] bg-[#191919] font-medium font-[Inter] text-center ml-6 xl:ml-12 hover:text-white">10</span></h2>
                      </div>
                   </Link>
 
                    <Link href='/'>
-                     <div className='w-[228px] h-11 rounded-[8px] text-[#E5E5E5] hover:bg-[#E5E5E5] hover:text-[#0D0D0D] transition-all duration-200 inline-flex items-center align-middle'>
+                     <div className='w-[96%] xl:w-[228px] h-11 rounded-[8px] text-[#E5E5E5] hover:bg-[#E5E5E5] hover:text-[#0D0D0D] transition-all duration-200 inline-flex items-center align-middle'>
                         <svg width="20" height="20" className="ml-3" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
                           <path d="M10.0001 18.3333C14.6025 18.3333 18.3334 14.6024 18.3334 9.99999C18.3334 5.39762 14.6025 1.66666 10.0001 1.66666C5.39771 1.66666 1.66675 5.39762 1.66675 9.99999C1.66675 14.6024 5.39771 18.3333 10.0001 18.3333Z" stroke="currentColor" strokeWidth="1.25"/>
                           <path d="M8.33325 7.50001C8.33325 6.57954 9.07942 5.83334 9.99992 5.83334C10.9204 5.83334 11.6666 6.57954 11.6666 7.50001C11.6666 7.8318 11.5697 8.14095 11.4025 8.40068C10.9044 9.17476 9.99992 9.91284 9.99992 10.8333V11.25" stroke="currentColor" strokeWidth="1.25" strokeLinecap="round"/>
@@ -58,7 +58,7 @@ export default function SideBar() {
                   </Link>
 
                    <Link href='/'>
-                     <div className='w-[228px] h-11 rounded-[8px] text-[#E5E5E5] hover:bg-[#E5E5E5] hover:text-[#0D0D0D] transition-all duration-200 inline-flex items-center align-middle'>
+                     <div className='w-[96%] xl:w-[228px] h-11 rounded-[8px] text-[#E5E5E5] hover:bg-[#E5E5E5] hover:text-[#0D0D0D] transition-all duration-200 inline-flex items-center align-middle'>
                         <svg width="20" height="20" className="ml-3" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
                           <path d="M17.7645 5.95117L17.3532 5.23734C17.0421 4.69748 16.8866 4.42755 16.6219 4.31991C16.3572 4.21228 16.0579 4.29721 15.4593 4.46708L14.4425 4.7535C14.0603 4.84163 13.6593 4.79163 13.3104 4.61234L13.0297 4.45036C12.7304 4.2587 12.5003 3.97612 12.3728 
                           3.64396L12.0946 2.81281C11.9116 2.2628 11.8201 1.98779 11.6023 1.83049C11.3845 1.67319 11.0952 1.67319 10.5165 1.67319H9.5875C9.00892 1.67319 8.71958 1.67319 8.50175 1.83049C8.28396 1.98779 8.19247 2.2628 8.00949 2.81281L7.73119 3.64396C7.60379 3.97612 7.37363
