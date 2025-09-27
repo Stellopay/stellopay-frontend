@@ -15,9 +15,7 @@ export default function Navbar() {
 
           {/* Icons and Avatar */}
           <div className="flex items-center gap-4 mt-2 sm:mt-0">
-            <div
-              className="p-2 rounded-md"
-            >
+            <div className="p-2 rounded-md">
               <Bell className="w-10 h-10 sm:w-6 sm:h-6 text-[#6e6d6e] hover:text-[#FFFFFF] transition-colors" />
             </div>
 

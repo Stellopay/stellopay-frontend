@@ -24,7 +24,7 @@ export const SideBar = () => {
           {/* Left: Sidebar toggle + Logo */}
           <div className="flex items-center gap-18">
             {(isSidebarOpen || isMobile) && <StellOpayLogo />}
-            
+
             <button
               onClick={() => setSidebarOpen(!isSidebarOpen)}
               className="text-white cursor-pointer"
@@ -46,7 +46,7 @@ export const SideBar = () => {
 
         {/* Search and nav section */}
         <div className="space-y-8 px-4">
-          <hr className="border-gray-800 border-t"/>
+          <hr className="border-gray-800 border-t" />
           {/* Search bar */}
           <div className="w-full flex items-center justify-center">
             <SearchBar />

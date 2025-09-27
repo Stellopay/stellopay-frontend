@@ -13,7 +13,9 @@ export interface PasswordRequirements {
  * @param password - The password to validate
  * @returns Object containing validation results for each requirement
  */
-export const checkPasswordRequirements = (password: string): PasswordRequirements => {
+export const checkPasswordRequirements = (
+  password: string,
+): PasswordRequirements => {
   return {
     minLength: password.length >= 8,
     uppercase: /[A-Z]/.test(password),
@@ -39,4 +41,4 @@ export const isPasswordStrong = (password: string): boolean => {
 export const isValidEmail = (email: string): boolean => {
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
   return emailRegex.test(email);
-}; 
+};

@@ -1,11 +1,13 @@
 # TypeScript Types Centralization Summary
 
 ## Overview
+
 Successfully centralized all TypeScript types and interfaces from scattered component files into a well-organized `types/` directory, grouped by domain and feature.
 
 ## Files Created/Updated
 
 ### New Type Files Created:
+
 1. **`types/auth.ts`** - Authentication-related types
    - `SignUpEmailModalProps`
    - `AuthShowcaseProps`
@@ -21,6 +23,7 @@ Successfully centralized all TypeScript types and interfaces from scattered comp
    - `IconProps`
 
 ### Updated Type Files:
+
 1. **`types/ui.ts`** - UI component types (comprehensive update)
    - `ButtonProps`
    - `TextInputProps`
@@ -48,6 +51,7 @@ Successfully centralized all TypeScript types and interfaces from scattered comp
    - `TransactionsFiltersProps`
 
 ### Existing Type Files (unchanged):
+
 - `types/sidebar.ts` - Sidebar context types
 - `types/NotificationItem.tsx` - Notification types
 - `types/svg.ts` - SVG interface types
@@ -55,12 +59,14 @@ Successfully centralized all TypeScript types and interfaces from scattered comp
 ## Components Updated
 
 ### Auth Components:
+
 - `components/auth/sign-up/sign-up-email-modal.tsx`
 - `components/auth/auth-showcase.tsx`
 - `components/auth/sign-up/sign-up-form.tsx`
 - `components/auth/login/login-form.tsx`
 
 ### Common Components:
+
 - `components/common/AppLayout.tsx`
 - `components/common/Button.tsx`
 - `components/common/EmailInput.tsx`
@@ -72,12 +78,15 @@ Successfully centralized all TypeScript types and interfaces from scattered comp
 - `components/common/ToggleCard.tsx`
 
 ### Landing Components:
+
 - `components/landing/FeatureCard.tsx`
 
 ### Icon Components:
+
 - `components/icons/BellFillIcon.tsx`
 
 ### Transaction Components:
+
 - `components/transactions/TransactionsTable.tsx`
 - `components/transactions/TokenIcon.tsx`
 - `components/transactions/Pagination.tsx`
@@ -86,6 +95,7 @@ Successfully centralized all TypeScript types and interfaces from scattered comp
 - `components/transactions/TransactionsFilters.tsx`
 
 ### UI Library Components:
+
 - `components/ui/pagination.tsx`
 - `components/ui/form.tsx`
 
@@ -101,16 +111,19 @@ Successfully centralized all TypeScript types and interfaces from scattered comp
 ## Acceptance Criteria Met
 
 ✅ **All types/interfaces are in types/ and grouped logically**
+
 - Created domain-specific files (auth.ts, landing.ts, icons.ts)
 - Updated existing files with comprehensive type collections
 - Organized by feature and functionality
 
 ✅ **No duplicate or unused type definitions**
+
 - Removed all local interface/type definitions from component files
 - Consolidated duplicate types into single definitions
 - No unused types found
 
 ✅ **All imports are updated and working**
+
 - Updated all component imports to use centralized types
 - Fixed import paths where necessary
 - All imports are properly structured and functional
@@ -135,4 +148,4 @@ types/
 - ✅ All imports correctly reference centralized types
 - ✅ No duplicate type definitions
 - ✅ Logical grouping by domain/feature
-- ✅ All component files updated with proper imports 
+- ✅ All component files updated with proper imports

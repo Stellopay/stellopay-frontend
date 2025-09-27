@@ -12,7 +12,7 @@ import {
   CartesianGrid,
 } from "recharts";
 
-import chart from '@/public/chart-up.png'
+import chart from "@/public/chart-up.png";
 import { formatChartValue } from "@/utils/formatUtils";
 
 const data = [
@@ -48,7 +48,12 @@ const AnalyticsViews = () => {
       <div className="flex justify-between items-center mb-4 flex-wrap gap-2">
         <div className="flex items-center gap-2">
           <div className="bg-[#1c1729] p-2 rounded-lg">
-            <Image src={chart} alt="Analytics Chart Icon" width={24} height={24} />
+            <Image
+              src={chart}
+              alt="Analytics Chart Icon"
+              width={24}
+              height={24}
+            />
           </div>
           <h2 className="font-semibold text-lg">Analytics views</h2>
         </div>
@@ -60,14 +65,23 @@ const AnalyticsViews = () => {
       <div className="w-full h-full aspect-[3/1] rounded-lg border border-[#2D2D2D] p-2 sm:p-4">
         <ResponsiveContainer width="100%" height="100%">
           <BarChart data={data}>
-            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#1f1b2e" />
+            <CartesianGrid
+              strokeDasharray="3 3"
+              vertical={false}
+              stroke="#1f1b2e"
+            />
             <XAxis dataKey="month" tick={{ fill: "#aaa", fontSize: 10 }} />
             <YAxis
               tick={{ fill: "#aaa", fontSize: 10 }}
               tickFormatter={formatChartValue}
             />
             <Tooltip content={<CustomTooltip />} />
-            <Bar dataKey="views" fill="#2E2E2E" radius={[4, 4, 0, 0]} barSize={28} />
+            <Bar
+              dataKey="views"
+              fill="#2E2E2E"
+              radius={[4, 4, 0, 0]}
+              barSize={28}
+            />
           </BarChart>
         </ResponsiveContainer>
       </div>

@@ -1,21 +1,21 @@
-'use client';
+"use client";
 
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
-import { X } from 'lucide-react';
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { X } from "lucide-react";
 
 export default function VerifyEmail() {
-  const [code, setCode] = useState('');
+  const [code, setCode] = useState("");
   const router = useRouter();
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.value.replace(/[^0-9a-zA-Z]/g, '');
+    const value = e.target.value.replace(/[^0-9a-zA-Z]/g, "");
     if (value.length <= 6) setCode(value);
   };
 
   const handleResend = () => {
     // Placeholder for resend logic
-    alert('Verification code resent to your email.');
+    alert("Verification code resent to your email.");
   };
 
   const handleContinue = () => {
@@ -36,10 +36,15 @@ export default function VerifyEmail() {
 
       {/* Modal Card */}
       <div className="border-[#2D2D2D] border rounded-[24px] px-7 sm:px-11 py-9 w-full max-w-[480px] space-y-4 text-center shadow-lg">
-        <h1 className="text-[#F8D2FE] text-2xl sm:text-[32px] font-medium mb-2">Check your email</h1>
+        <h1 className="text-[#F8D2FE] text-2xl sm:text-[32px] font-medium mb-2">
+          Check your email
+        </h1>
         <p className="text-sm text-[#ACB4B5] mb-6">
-          Didn&apos;t get code?{' '}
-          <button onClick={handleResend} className="text-white font-semibold underline cursor-pointer">
+          Didn&apos;t get code?{" "}
+          <button
+            onClick={handleResend}
+            className="text-white font-semibold underline cursor-pointer"
+          >
             Resend
           </button>
         </p>
@@ -60,7 +65,9 @@ export default function VerifyEmail() {
           onClick={handleContinue}
           disabled={code.length !== 6}
           className={`w-full  py-3 px-4 rounded-[8px]  bg-[#FFFFFF] text-black font-medium transition  mt-2 ${
-            code.length === 6 ? 'cursor-pointer' : 'opacity-80 cursor-not-allowed'
+            code.length === 6
+              ? "cursor-pointer"
+              : "opacity-80 cursor-not-allowed"
           }`}
         >
           Continue

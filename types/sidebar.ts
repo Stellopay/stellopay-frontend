@@ -6,4 +6,4 @@ export interface SidebarContextProps {
 
 export interface SidebarProviderProps {
   children: React.ReactNode;
-} 
+}
