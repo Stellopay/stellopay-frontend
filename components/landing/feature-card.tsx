@@ -1,9 +1,12 @@
-
 import Image from "next/image";
 import { FC } from "react";
 import { FeatureCardProps } from "@/types/landing";
 
-export const FeatureCard: FC<FeatureCardProps> = ({ imageSrc, title, description }) => {
+export const FeatureCard: FC<FeatureCardProps> = ({
+  imageSrc,
+  title,
+  description,
+}) => {
   return (
     <div
       className="

@@ -58,7 +58,7 @@ export default function TransactionsHeader({
               variant="outline"
               className={cn(
                 " w-[2000px] justify-start  font-normal px-[13px] py-[8px] bg-[#1a0c1d] border border-[#242428]",
-                !fromDateObj && "text-muted-foreground"
+                !fromDateObj && "text-muted-foreground",
               )}
             >
               <HugeiconsIcon
@@ -94,7 +94,7 @@ export default function TransactionsHeader({
               variant="outline"
               className={cn(
                 "w-[140px] justify-start text-left font-normal bg-[#1a0c1d] border border-[#242428]",
-                !toDateObj && "text-muted-foreground"
+                !toDateObj && "text-muted-foreground",
               )}
             >
               <HugeiconsIcon

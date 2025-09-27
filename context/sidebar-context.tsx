@@ -7,7 +7,10 @@ import {
   useState,
   useEffect,
 } from "react";
-import type { SidebarContextProps, SidebarProviderProps } from "@/types/sidebar";
+import type {
+  SidebarContextProps,
+  SidebarProviderProps,
+} from "@/types/sidebar";
 
 const SidebarContext = createContext<SidebarContextProps | null>(null);
 

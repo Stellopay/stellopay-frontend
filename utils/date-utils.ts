@@ -1,12 +1,12 @@
-import { parse, isWithinInterval, isValid } from "date-fns"
+import { parse, isWithinInterval, isValid } from "date-fns";
 
 export function parseTransactionDate(dateString: string): Date | null {
   try {
     // Parse the date string "Apr 12, 2023" format
-    const parsed = parse(dateString, "MMM dd, yyyy", new Date())
-    return isValid(parsed) ? parsed : null
+    const parsed = parse(dateString, "MMM dd, yyyy", new Date());
+    return isValid(parsed) ? parsed : null;
   } catch {
-    return null
+    return null;
   }
 }
 
@@ -15,27 +15,27 @@ export function isDateInRange(
   startDate: Date | undefined,
   endDate: Date | undefined,
 ): boolean {
-  const parsedDate = parseTransactionDate(transactionDate)
+  const parsedDate = parseTransactionDate(transactionDate);
 
-  if (!parsedDate) return true // If we can't parse the date, include it
+  if (!parsedDate) return true; // If we can't parse the date, include it
 
   // If no date range is selected, show all transactions
-  if (!startDate && !endDate) return true
+  if (!startDate && !endDate) return true;
 
   // If only start date is selected
   if (startDate && !endDate) {
-    return parsedDate >= startDate
+    return parsedDate >= startDate;
   }
 
   // If only end date is selected
   if (!startDate && endDate) {
-    return parsedDate <= endDate
+    return parsedDate <= endDate;
   }
 
   // If both dates are selected
   if (startDate && endDate) {
-    return isWithinInterval(parsedDate, { start: startDate, end: endDate })
+    return isWithinInterval(parsedDate, { start: startDate, end: endDate });
   }
 
-  return true
+  return true;
 }

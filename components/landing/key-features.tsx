@@ -1,4 +1,3 @@
-
 import { FeatureCard } from "./feature-card";
 
 const features = [

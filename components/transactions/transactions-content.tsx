@@ -1,7 +1,12 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import type { SortField, TransactionFilters, Transaction, TransactionProps } from "@/types/transaction";
+import type {
+  SortField,
+  TransactionFilters,
+  Transaction,
+  TransactionProps,
+} from "@/types/transaction";
 import { filterTransactions, sortTransactions } from "@/utils/transactionUtils";
 import { transactions as allTransactions } from "@/public/data/mock-data";
 import TransactionsHeader from "./transactions-header";
@@ -19,7 +24,7 @@ export default function TransactionsContent() {
     sortField: "date",
     sortDirection: "desc",
   });
-  
+
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 6;
 
@@ -38,9 +43,9 @@ export default function TransactionsContent() {
   // Helper function to convert TransactionProps to Transaction
   const convertToTransaction = (transaction: TransactionProps): Transaction => {
     // Extract numeric amount from string (remove +, -, $ symbols)
-    const amountStr = transaction.amount.replace(/[+$]/g, '');
+    const amountStr = transaction.amount.replace(/[+$]/g, "");
     const amount = parseFloat(amountStr);
-    
+
     return {
       id: transaction.id,
       type: transaction.type,
@@ -51,22 +56,31 @@ export default function TransactionsContent() {
       token: transaction.token,
       amount: amount,
       status: transaction.status,
-      statusColor: transaction.status === "Completed" ? "success" : 
-                   transaction.status === "Pending" ? "warning" : "destructive"
+      statusColor:
+        transaction.status === "Completed"
+          ? "success"
+          : transaction.status === "Pending"
+            ? "warning"
+            : "destructive",
     };
   };
 
   // Helper function to transform Transaction to TransactionProps
-  const transformTransaction = (transaction: Transaction): TransactionProps => ({
+  const transformTransaction = (
+    transaction: Transaction,
+  ): TransactionProps => ({
     id: transaction.id,
     type: transaction.type,
     address: transaction.address,
     date: transaction.date,
     time: transaction.time,
     token: transaction.token,
-    amount: transaction.amount >= 0 ? `+$${transaction.amount.toFixed(2)}` : `-$${Math.abs(transaction.amount).toFixed(2)}`,
+    amount:
+      transaction.amount >= 0
+        ? `+$${transaction.amount.toFixed(2)}`
+        : `-$${Math.abs(transaction.amount).toFixed(2)}`,
     status: transaction.status as "Completed" | "Pending" | "Failed",
-    tokenIcon: getTokenIcon(transaction.token)
+    tokenIcon: getTokenIcon(transaction.token),
   });
 
   // Convert mock data to Transaction format for processing
@@ -81,11 +95,15 @@ export default function TransactionsContent() {
       filters.searchQuery,
       filters.selectedFilter,
       filters.fromDate,
-      filters.toDate
+      filters.toDate,
     );
 
-    const sorted = sortTransactions(filtered, filters.sortField, filters.sortDirection);
-    
+    const sorted = sortTransactions(
+      filtered,
+      filters.sortField,
+      filters.sortDirection,
+    );
+
     // Transform back to TransactionProps format for display
     return sorted.map(transformTransaction);
   }, [convertedTransactions, filters]);
@@ -147,7 +165,7 @@ export default function TransactionsContent() {
             <TransactionsTable transactions={paginatedTransactions} />
 
             {/* Pagination */}
-            <TransactionsPagination 
+            <TransactionsPagination
               totalItems={processedTransactions.length}
               currentPage={currentPage}
               itemsPerPage={itemsPerPage}

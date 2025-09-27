@@ -1,6 +1,10 @@
 import { Button } from "@/components/ui/button";
 import { TransactionsPaginationProps } from "@/types/ui";
-import { getStartIndex, getEndIndex, getTotalPages } from "@/utils/paginationUtils";
+import {
+  getStartIndex,
+  getEndIndex,
+  getTotalPages,
+} from "@/utils/paginationUtils";
 
 export default function TransactionsPagination({
   totalItems,
@@ -11,7 +15,7 @@ export default function TransactionsPagination({
   const startItem = getStartIndex(currentPage, itemsPerPage) + 1;
   const endItem = Math.min(getEndIndex(currentPage, itemsPerPage), totalItems);
   const totalPages = getTotalPages(totalItems, itemsPerPage);
-  
+
   // Check if we're at the first or last page
   const isFirstPage = currentPage === 1;
   const isLastPage = currentPage === totalPages;
@@ -46,14 +50,14 @@ export default function TransactionsPagination({
           onClick={handlePreviousPage}
           disabled={isFirstPage}
           className={`${
-            isFirstPage 
-              ? "text-gray-400 opacity-50 cursor-not-allowed w-8 h-8 p-0" 
+            isFirstPage
+              ? "text-gray-400 opacity-50 cursor-not-allowed w-8 h-8 p-0"
               : "text-gray-400 hover:bg-white w-8 h-8 p-0"
           }`}
         >
           &lt;
         </Button>
-        
+
         {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
           <Button
             key={page}
@@ -61,23 +65,23 @@ export default function TransactionsPagination({
             size="sm"
             onClick={() => handlePageClick(page)}
             className={`${
-              page === currentPage 
-                ? "bg-white text-black w-8 h-8 p-0" 
+              page === currentPage
+                ? "bg-white text-black w-8 h-8 p-0"
                 : "text-gray-400 hover:text-black hover:bg-white w-8 h-8 p-0"
             }`}
           >
             {page}
           </Button>
         ))}
-        
+
         <Button
           variant="ghost"
           size="sm"
           onClick={handleNextPage}
           disabled={isLastPage}
           className={`${
-            isLastPage 
-              ? "text-gray-400 opacity-50 cursor-not-allowed w-8 h-8 p-0" 
+            isLastPage
+              ? "text-gray-400 opacity-50 cursor-not-allowed w-8 h-8 p-0"
               : "text-gray-400 hover:bg-white w-8 h-8 p-0"
           }`}
         >

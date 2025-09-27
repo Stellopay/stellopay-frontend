@@ -14,7 +14,7 @@ export default function ToggleCard({ title }: ToggleCardProps) {
         className={`w-14 h-8 flex items-center rounded-full p-1 duration-300 ease-in-out ${
           enabled ? "bg-[#5B3861]" : "bg-gray-400"
         }`}
-      > 
+      >
         <div
           className={`bg-white w-6 h-6 rounded-full shadow-md transform duration-300 ease-in-out ${
             enabled ? "translate-x-6" : "translate-x-0"

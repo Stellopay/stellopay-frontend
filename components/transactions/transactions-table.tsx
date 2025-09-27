@@ -6,7 +6,7 @@ import {
   TableCell,
   TableHead,
   TableHeader,
-  TableRow
+  TableRow,
 } from "@/components/ui/table";
 import { TransactionProps, TransactionsTableProps } from "@/types/transaction";
 import { Badge } from "@/components/ui/badge";

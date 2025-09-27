@@ -61,8 +61,8 @@ const TransactionTable: React.FC = () => {
   const transactionCount = transactionTypeData?.paymentType?.length || 0;
 
   return (
-    <div className="max-w-[68.75rem] h-[35.375rem] rounded-md p-3 border border-[#2D2D2D] my-6">
-      <div className='max-w-[1068px] h-9 flex justify-between'>
+    <div className="max-w-full h-[35.375rem] rounded-md p-3 border border-[#2D2D2D] my-6">
+      <div className='max-w-full h-9 flex justify-between'>
         <div className='w-[368px] h-9 inline-flex items-center align-middle'>
                <svg width="20" height="20" className="ml-3" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
                   <path d="M15.8333 8.75V8.3333C15.8333 5.19064 15.8332 3.61926 14.857 2.64296C13.8806 1.66667 12.3093 1.66667 9.16662 1.66667C6.02403 1.66667 4.45267 1.66672 3.47636 2.643C2.50008 3.6193 2.50006 5.1906 2.50003 8.33324L2.5 12.0833C2.49998 14.8228 2.49997 16.1927 3.25657 17.1146C3.3951 17.2834 3.54988 17.4382 3.71869 17.5768C4.64064 18.3333 6.01041 18.3333 8.74995 18.3333" stroke="currentColor" strokeWidth={1.25} strokeLinecap="round" strokeLinejoin="round"/>
@@ -79,12 +79,12 @@ const TransactionTable: React.FC = () => {
       </div>
 
       <table className="w-full h-[482px] border rounded-2xl mt-3.5">
-        <thead className="rounded-[12px]">
+        <thead className="rounded-[12px] w-full">
           <tr className="bg-[#191919]">
             {headerTitle.map((header, index) => (
               <th 
                 key={index}
-                className="w-[294px] h-11 py-3 px-6 font-[Inter] text-start font-medium text-xs bg-[#191919] text-[#FFFFFF]">{header.title}
+                className="w-fit xl:w-[294px] h-11 py-3 px-6 font-[Inter] text-start font-medium text-xs bg-[#191919] text-[#FFFFFF]">{header.title}
               </th>  
             ))}
           </tr>
@@ -95,7 +95,7 @@ const TransactionTable: React.FC = () => {
               {headerTitle.map((header, colIndex) => (
                 <td key={colIndex} className="whitespace-nowrap text-sm text-[#D7E0EF] border border-[#2D333E]">
                   {header.title === "Transaction type" && (
-                    <div className='w-[180px] h-[72px] py-4 px-6'>
+                    <div className='w-fit xl:w-[180px] h-[72px] py-4 px-6'>
                       <div className="font-medium text-sm font-[Inter] text-[#D7E0EF]">
                         {transactionTypeData?.paymentType?.[rowIndex]?.paymentStatus}
                       </div>
@@ -104,8 +104,8 @@ const TransactionTable: React.FC = () => {
                       </div>
                     </div>
                   )}
-                  {header.title === "Address" && (<div className="max-w-[224px] h-[72px] text-center flex items-center pl-4">{sampleData.address[rowIndex]}</div>)}
-                  { header.title === "Date" && (<div className='max-w-[224px] h-[72px] text-center flex items-center pl-4'>{sampleData.dates[rowIndex]}</div>)}
+                  {header.title === "Address" && (<div className="max-w-fit xl:max-w-[224px] h-[72px] text-center flex items-center pl-4">{sampleData.address[rowIndex]}</div>)}
+                  { header.title === "Date" && (<div className='max-w-fit xl:max-w-[224px] h-[72px] text-center flex items-center pl-4'>{sampleData.dates[rowIndex]}</div>)}
                  
                   {header.title === "Token" && (
                     <div className='max-w-[120px] h-[72px] text-center flex items-center pl-4 gap-3'>
