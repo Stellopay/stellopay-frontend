@@ -9,12 +9,12 @@ const historyPayment = [
 
 export default function PaymentHistory() {
   return (
-    <div className="max-w-[23rem] h-[15.5rem] gap-4 mt-3.5">
+    <div className="max-w-full h-[15.5rem] gap-4 mt-3.5">
     <div className='flex flex-col gap-3.5'>
         {historyPayment.map((history, index) => (
             <div key={`${history.paymentDescription}-${index}`}>
               <div className='w-full h-[4.5rem] font-[Inter] text-sm align-middle gap-2.5 py-3 px-6 border border-[#2D2D2D] rounded-md text-[#E5E5E5] flex'>
-                <div className="">
+                <div className="w-full">
                   {history.paymentDescription}
                     <div className='font-[Inter] font-medium text-xs align-middle text-[#535353]'> 
                       {history.paymentId}

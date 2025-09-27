@@ -14,7 +14,7 @@ import { PiPaperPlaneTilt } from "react-icons/pi";
 
 export default function dashboard() {
   return (
-    <div className='max-w-[1440px] h-[1342px] flex max-md:flex-col'>
+    <div className='max-w-[2100px] h-[1342px] flex max-md:flex-col mx-auto'>
         <SidebarSection />
         
             <div className='w-full h-[1338px] overflow-hidden'>
