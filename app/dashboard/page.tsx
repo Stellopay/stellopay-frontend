@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { transactions as allTransactions } from "@/public/data/mock-data";
 import DashboardHeader from "@/components/dashboard/dashboard-header";
-import AccountSummary from "../account-summary/page";
+import AccountSummary from "@/components/dashboard/account-summary";
 import ClientAnalyticsView from "@/components/analytics/client-analytics-view";
 import NotificationPanel from "@/components/common/notification-panel";
 import { TransactionsTable } from "@/components/transactions/transactions-table";
@@ -45,7 +45,7 @@ const page = () => {
   return (
     <div className="min-h-screen">
       <DashboardHeader pageTitle="Dashboard" />
-      <main className="p-6 space-y-6">
+      <main className="px-4 md:px-10 pt-6 pb-8 space-y-6">
         <AccountSummary />
 
         <div className="flex flex-col md:flex-row justify-between w-full gap-6">
@@ -56,10 +56,8 @@ const page = () => {
           <NotificationPanel notifications={notifications} />
         </div>
 
-        <div className="max-w-full ">
-          {" "}
+        <div className="max-w-full">
           <div className="bg-foreground border rounded-[1.5rem] border-[#2D2D2D] p-2">
-            {" "}
             <div className="grid pb-2 md:pb-0 md:flex items-center justify-between">
               <h6 className="text-xl font-medium mb-4 p-2 flex gap-1 items-center">
                 <div className=" bg-[#121212] rounded-lg border border-[#2E2E2E] p-1">

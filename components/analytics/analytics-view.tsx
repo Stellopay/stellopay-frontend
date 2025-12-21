@@ -44,10 +44,10 @@ const CustomTooltip = ({ active, payload, label }: any) => {
 
 const AnalyticsViews = () => {
   return (
-    <div className="bg-[#140D13] text-white rounded-lg border border-[#2D2D2D] p-4 w-full h-full flex flex-col justify-between max-w-3xl mx-auto">
+    <div className="bg-[#0D0D0D80] text-white rounded-xl border border-[#2D2D2D] p-4 w-full h-full flex flex-col justify-between">
       <div className="flex justify-between items-center mb-4 flex-wrap gap-2">
         <div className="flex items-center gap-2">
-          <div className="bg-[#1c1729] p-2 rounded-lg">
+          <div className="bg-[#121212] border border-[#2E2E2E] p-2 rounded-lg">
             <Image
               src={chart}
               alt="Analytics Chart Icon"
@@ -57,7 +57,7 @@ const AnalyticsViews = () => {
           </div>
           <h2 className="font-semibold text-lg">Analytics views</h2>
         </div>
-        <button className="px-3 py-1 text-sm rounded-lg border border-[#2D2D2D]">
+        <button className="px-3 py-1 text-sm rounded-lg border border-[#2D2D2D] bg-transparent">
           This Year
         </button>
       </div>

@@ -4,8 +4,8 @@ import { Bell, Settings, HelpCircle } from "lucide-react";
 export default function Navbar() {
   return (
     <>
-      <nav className="w-full h-[75px] border-b border-[#1A1A1A] px-4 md:px-8">
-        <div className="max-w-screen-xl mx-auto h-full flex items-center justify-between gap-4 flex-wrap px-8">
+      <nav className="w-full h-[75px] border-b border-[#1A1A1A] px-4 md:px-10">
+        <div className="h-full flex items-center justify-between gap-4 flex-wrap">
           {/* Search input */}
           <input
             type="text"
@@ -15,8 +15,9 @@ export default function Navbar() {
 
           {/* Icons and Avatar */}
           <div className="flex items-center gap-4 mt-2 sm:mt-0">
-            <div className="p-2 rounded-md">
+            <div className="p-2 rounded-md relative">
               <Bell className="w-10 h-10 sm:w-6 sm:h-6 text-[#6e6d6e] hover:text-[#FFFFFF] transition-colors" />
+              <span className="absolute top-2 right-2 sm:top-2.5 sm:right-2.5 w-2.5 h-2.5 bg-[#EB6945] rounded-full" />
             </div>
 
             <div className="p-2 rounded-md">

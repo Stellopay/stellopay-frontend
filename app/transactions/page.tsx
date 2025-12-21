@@ -116,14 +116,7 @@ const Transactions = () => {
               <div className="py-4 text-center text-gray-400">
                 No Transactions Found
               </div>
-            </div>
-            <TransactionsTable transactions={transactions} />
-            {(searchParams || startDate || endDate) &&
-              transactions.length === 0 && (
-                <div className="text-center text-gray-400 py-4">
-                  No Transactions Found
-                </div>
-              )}
+            )}
           </div>
         </div>
         {dateFilteredTransactions.length > 0 && (

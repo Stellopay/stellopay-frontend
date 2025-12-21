@@ -1,6 +1,9 @@
 'use client';
 
+import { useState } from "react";
 import Image from "next/image";
+import { Copy } from "lucide-react";
+import { copyToClipboardWithTimeout } from "@/utils/clipboardUtils";
 const summary = [
     {
         accountInfo: "Your Account Balance", 
@@ -27,6 +30,7 @@ const summary = [
 ]
 
 export default function AccountSummary() {
+  const [copied, setCopied] = useState(false);
     
   return (
     <div className="max-w-full p-4 rounded-xl h-[12.75rem] my-6 border-[1px] border-[#2D2D2D] bg-[#0D0D0D80]">
@@ -56,15 +60,23 @@ export default function AccountSummary() {
                             {info.item} : 
                             <span className="text-[#D8D8D8] cursor-pointer">{info.address}</span>
                             {info.image && (
-                                <span>
-                                    <Image 
-                                        src={info.image} 
-                                        alt='copy' 
-                                        width={14} 
-                                        height={14} 
-                                        className="object-contain w-3.5 h-3.5 cursor-pointer ml-1"
-                                    />
-                                </span>
+                                <button
+                                  type="button"
+                                  onClick={() => copyToClipboardWithTimeout(info.address, setCopied, 1200)}
+                                  className="ml-1 inline-flex items-center"
+                                  aria-label="Copy address"
+                                >
+                                  <Image 
+                                      src={info.image} 
+                                      alt='copy' 
+                                      width={14} 
+                                      height={14} 
+                                      className="object-contain w-3.5 h-3.5 cursor-pointer"
+                                  />
+                                </button>
+                            )}
+                            {copied && info.item === "Copy Address" && (
+                              <span className="ml-2 text-[#E5E5E5]">Copied</span>
                             )}
                         </p> 
                     </div>

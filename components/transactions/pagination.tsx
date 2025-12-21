@@ -44,10 +44,10 @@ export function Pagination({
           size="sm"
           onClick={handlePreviousPage}
           disabled={isFirstPage}
-          className={`${
+          className={`border border-[#2D2D2D] ${
             isFirstPage
-              ? "bg-transparent text-muted-foreground opacity-50 cursor-not-allowed"
-              : "bg-transparent text-muted-foreground hover:bg-gray-100"
+              ? "bg-transparent text-[#505050] opacity-60 cursor-not-allowed"
+              : "bg-[#12121266] text-[#E5E5E5] hover:bg-[#2D2D2D]"
           }`}
         >
           <ChevronLeft className="h-4 w-4" />
@@ -58,10 +58,10 @@ export function Pagination({
             key={page}
             size="sm"
             onClick={() => onPageChange(page)}
-            className={`${
+            className={`border border-[#2D2D2D] ${
               page === currentPage
-                ? "bg-[#eee] text-black"
-                : "bg-transparent text-muted-foreground hover:bg-gray-100"
+                ? "bg-white text-black"
+                : "bg-[#12121266] text-[#E5E5E5] hover:bg-[#2D2D2D]"
             }`}
           >
             {page}
@@ -72,10 +72,10 @@ export function Pagination({
           size="sm"
           onClick={handleNextPage}
           disabled={isLastPage}
-          className={`${
+          className={`border border-[#2D2D2D] ${
             isLastPage
-              ? "bg-transparent text-muted-foreground opacity-50 cursor-not-allowed"
-              : "bg-transparent text-muted-foreground hover:bg-gray-100"
+              ? "bg-transparent text-[#505050] opacity-60 cursor-not-allowed"
+              : "bg-[#12121266] text-[#E5E5E5] hover:bg-[#2D2D2D]"
           }`}
         >
           <ChevronRight className="h-4 w-4" />

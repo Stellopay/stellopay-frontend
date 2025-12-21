@@ -8,7 +8,7 @@ module.exports = {
     extend: {
       fontFamily: {
         clash: ["var(--font-clash)"],
-        general: ["var(--font-general"],
+        general: ["var(--font-general)"],
       },
     },
   },
