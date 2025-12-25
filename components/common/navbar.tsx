@@ -1,5 +1,6 @@
 // components/Navbar.tsx
 import { Bell, Settings, HelpCircle } from "lucide-react";
+import ConnectWalletButton from "@/components/wallet/connect-wallet-button";
 
 export default function Navbar() {
   return (
@@ -28,14 +29,9 @@ export default function Navbar() {
               <HelpCircle className="w-10 h-10 sm:w-6 sm:h-6 text-[#6e6d6e] hover:text-[#FFFFFF] transition-colors" />
             </div>
 
-            {/* Avatar */}
-            <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-full border-2 border-pink-500 relative">
-              <img
-                src="/avatar.jpg"
-                alt="User"
-                className="w-full h-full rounded-full object-cover"
-              />
-              <span className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 rounded-full border-2 border-[#1a0c1d]"></span>
+            {/* Wallet (replaces avatar) */}
+            <div className="relative">
+              <ConnectWalletButton variant="avatar" />
             </div>
           </div>
         </div>
