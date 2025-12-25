@@ -1,42 +1,72 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { transactions as allTransactions } from "@/public/data/mock-data";
 import DashboardHeader from "@/components/dashboard/dashboard-header";
 import AccountSummary from "@/components/dashboard/account-summary";
+import ContractSetupCard from "@/components/dashboard/contract-setup-card";
 import ClientAnalyticsView from "@/components/analytics/client-analytics-view";
 import NotificationPanel from "@/components/common/notification-panel";
 import { TransactionsTable } from "@/components/transactions/transactions-table";
 import { Pagination } from "@/components/transactions/pagination";
 import { Button } from "@/components/ui/button";
 import { getPageItems, getTotalPages } from "@/utils/paginationUtils";
+import { apiGet } from "@/lib/backend";
+import { useWallet } from "@/context/wallet-context";
+import type { TransactionProps } from "@/types/transaction";
+import type { NotificationItem } from "@/types/notification-item";
 
 const page = () => {
   const router = useRouter();
-
-  const notifications = [
-    {
-      title: "Payment Sent",
-      message: "#TXN12345 · Your payment of 250 XLM to...",
-      read: false,
-    },
-    {
-      title: "Payment Received",
-      message: "#TXN12345 · You've received 500 USDC...",
-      read: true,
-    },
-    {
-      title: "Low Balance Alert",
-      message: "Your balance is below 50 XLM. Consider adding...",
-      read: false,
-    },
-  ];
+  const { address } = useWallet();
+  const [transactions, setTransactions] = useState<TransactionProps[]>([]);
+  const [notifications, setNotifications] = useState<NotificationItem[]>([]);
+  const [loading, setLoading] = useState(true);
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 6;
 
-  const transactions = getPageItems(allTransactions, currentPage, itemsPerPage);
-  const totalPages = getTotalPages(allTransactions.length, itemsPerPage);
+  // Fetch transactions and notifications
+  useEffect(() => {
+    if (!address) {
+      setLoading(false);
+      return;
+    }
+
+    const fetchData = async () => {
+      try {
+        setLoading(true);
+        const [txData, notifData] = await Promise.all([
+          apiGet<{ transactions: TransactionProps[] }>(`/transactions/${address}?limit=50`).catch((e) => {
+            console.error("[dashboard] Failed to fetch transactions:", e);
+            return { transactions: [] };
+          }),
+          apiGet<{ notifications: Array<{ title: string; message: string; read: boolean }> }>(`/notifications/${address}?limit=50`).catch((e) => {
+            console.error("[dashboard] Failed to fetch notifications:", e);
+            return { notifications: [] };
+          }),
+        ]);
+        
+        console.log("[dashboard] Fetched data:", { 
+          transactions: txData.transactions?.length || 0, 
+          notifications: notifData.notifications?.length || 0 
+        });
+        
+        setTransactions(txData.transactions || []);
+        setNotifications(notifData.notifications || []);
+      } catch (e) {
+        console.error("[dashboard] Failed to fetch data:", e);
+        setTransactions([]);
+        setNotifications([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
+  }, [address]);
+
+  const paginatedTransactions = getPageItems(transactions, currentPage, itemsPerPage);
+  const totalPages = getTotalPages(transactions.length, itemsPerPage);
 
   const handleViewAllTransactions = () => {
     router.push("/transactions");
@@ -47,16 +77,19 @@ const page = () => {
       <DashboardHeader pageTitle="Dashboard" />
       <main className="px-4 md:px-10 pt-6 pb-8 space-y-6">
         <AccountSummary />
+        <ContractSetupCard />
 
         <div className="flex flex-col md:flex-row justify-between w-full gap-6">
-          <div className="flex-1">
+          <div className="flex-[1.3] min-w-0">
             <ClientAnalyticsView />
           </div>
 
-          <NotificationPanel notifications={notifications} />
+          <div className="flex-[0.7] min-w-0">
+            <NotificationPanel notifications={notifications} />
+          </div>
         </div>
 
-        <div className="max-w-full">
+        <div className="w-full overflow-hidden">
           <div className="bg-foreground border rounded-[1.5rem] border-[#2D2D2D] p-2">
             <div className="grid pb-2 md:pb-0 md:flex items-center justify-between">
               <h6 className="text-xl font-medium mb-4 p-2 flex gap-1 items-center">
@@ -104,14 +137,22 @@ const page = () => {
                 </Button>
               </div>
             </div>
-            <TransactionsTable transactions={transactions} />
+            {loading ? (
+              <div className="py-8 text-center text-[#A0A0A0]">Loading transactions...</div>
+            ) : transactions.length === 0 ? (
+              <div className="py-8 text-center text-[#A0A0A0]">No transactions found</div>
+            ) : (
+              <TransactionsTable transactions={paginatedTransactions} />
+            )}
           </div>
-          <Pagination
-            currentPage={currentPage}
-            totalPages={totalPages}
-            totalItems={allTransactions.length}
-            onPageChange={setCurrentPage}
-          />
+          {transactions.length > 0 && (
+            <Pagination
+              currentPage={currentPage}
+              totalPages={totalPages}
+              totalItems={transactions.length}
+              onPageChange={setCurrentPage}
+            />
+          )}
         </div>
       </main>
     </div>
