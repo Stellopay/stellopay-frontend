@@ -34,10 +34,11 @@ const defaultData = [
 
 const CustomTooltip = ({ active, payload, label }: any) => {
   if (active && payload && payload.length) {
+    const value = Math.max(0, payload[0].value || 0);
     return (
       <div className="bg-white text-black p-2 rounded shadow text-sm">
         <p className="font-semibold">{label}</p>
-        <p>{payload[0].value.toLocaleString()} views</p>
+        <p>{value.toLocaleString()} views</p>
       </div>
     );
   }
@@ -63,7 +64,14 @@ const AnalyticsViews = () => {
           `/analytics/${address}?year=${year}`
         );
         console.log("[analytics] Fetched analytics data:", result.data?.length || 0, "months with data");
-        setData(result.data || defaultData);
+        
+        // Normalize data: ensure views are never negative (clamp to 0)
+        const normalizedData = (result.data || defaultData).map(item => ({
+          ...item,
+          views: Math.max(0, item.views || 0)
+        }));
+        
+        setData(normalizedData);
       } catch (e) {
         console.error("[analytics] Failed to fetch analytics:", e);
         setData(defaultData);
@@ -112,6 +120,7 @@ const AnalyticsViews = () => {
             <YAxis
               tick={{ fill: "#aaa", fontSize: 10 }}
               tickFormatter={formatChartValue}
+              domain={[0, 'auto']}
             />
             <Tooltip content={<CustomTooltip />} />
             <Bar
