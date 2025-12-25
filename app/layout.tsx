@@ -3,6 +3,8 @@ import { Inter } from "next/font/google";
 import localFont from "next/font/local";
 import "./globals.css";
 import { SidebarProvider } from "@/context/sidebar-context";
+import { WalletProvider } from "@/context/wallet-context";
+import { ToastProvider } from "@/components/ui/toast";
 
 const inter = Inter({
   variable: "--font-inter",
@@ -38,7 +40,11 @@ export default function RootLayout({
       <body
         className={`${inter.variable} ${clashDisplay.variable} ${generalSans.variable} antialiased`}
       >
-        <SidebarProvider> {children}</SidebarProvider>
+        <SidebarProvider>
+          <WalletProvider>
+            <ToastProvider>{children}</ToastProvider>
+          </WalletProvider>
+        </SidebarProvider>
       </body>
     </html>
   );
