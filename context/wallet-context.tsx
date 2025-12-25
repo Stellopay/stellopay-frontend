@@ -30,6 +30,7 @@ type WalletContextValue = {
   isConnecting: boolean;
   isExecuting: boolean;
   isVerifying: boolean;
+  isInitializing: boolean;
   error: string | null;
   connectWallet: () => Promise<void>;
   disconnectWallet: () => Promise<void>;
@@ -108,6 +109,7 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
   const [isConnecting, setIsConnecting] = useState(false);
   const [isExecuting, setIsExecuting] = useState(false);
   const [isVerifying, setIsVerifying] = useState(false);
+  const [isInitializing, setIsInitializing] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   // Helper to perform verification flow (challenge + sign + verify)
@@ -154,7 +156,10 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     // Restore previous session token (best-effort) so API calls can work after refresh.
     // Wallet connection itself still depends on the user wallet extension.
-    if (typeof window === "undefined") return;
+    if (typeof window === "undefined") {
+      setIsInitializing(false);
+      return;
+    }
 
     const savedAddress = localStorage.getItem(STORAGE_KEY_ADDRESS);
     const savedToken = localStorage.getItem(STORAGE_KEY_SESSION);
@@ -172,6 +177,7 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
         if (!starknet) {
           console.log("[wallet] No wallet extension found for auto-verification");
           setIsVerifying(false);
+          setIsInitializing(false);
           return;
         }
         
@@ -181,12 +187,14 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
         if (!currentAddress) {
           console.log("[wallet] Wallet connected but no address available");
           setIsVerifying(false);
+          setIsInitializing(false);
           return;
         }
         
         if (savedAddress && currentAddress.toLowerCase() !== savedAddress.toLowerCase()) {
           console.log("[wallet] Wallet address changed, skipping auto-verification");
           setIsVerifying(false);
+          setIsInitializing(false);
           return;
         }
         
@@ -205,6 +213,7 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
         // Don't throw - let user manually reconnect if needed
       } finally {
         setIsVerifying(false);
+        setIsInitializing(false);
       }
     };
 
@@ -219,6 +228,7 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
           setSessionToken(savedToken);
           setIsVerified(true);
           console.log("[wallet] Session validated successfully");
+          setIsInitializing(false);
         })
         .catch((err) => {
           console.log("[wallet] Session validation failed, attempting auto-verification:", err);
@@ -234,6 +244,9 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
       // We have an address but no session token -> check if wallet is still connected and auto-verify
       console.log("[wallet] Address found but no session token, attempting auto-verification");
       void attemptAutoVerification();
+    } else {
+      // No saved address or token - initialization complete
+      setIsInitializing(false);
     }
   }, [performVerification]);
 
@@ -345,6 +358,7 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
       isConnecting,
       isExecuting,
       isVerifying,
+      isInitializing,
       error,
       connectWallet,
       disconnectWallet,
@@ -357,6 +371,7 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
       isConnecting,
       isExecuting,
       isVerifying,
+      isInitializing,
       error,
       connectWallet,
       disconnectWallet,

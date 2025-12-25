@@ -13,12 +13,13 @@ import { Button } from "@/components/ui/button";
 import { getPageItems, getTotalPages } from "@/utils/paginationUtils";
 import { apiGet } from "@/lib/backend";
 import { useWallet } from "@/context/wallet-context";
+import WalletConnectionModal from "@/components/wallet/wallet-connection-modal";
 import type { TransactionProps } from "@/types/transaction";
 import type { NotificationItem } from "@/types/notification-item";
 
 const page = () => {
   const router = useRouter();
-  const { address } = useWallet();
+  const { address, isVerified, isInitializing } = useWallet();
   const [transactions, setTransactions] = useState<TransactionProps[]>([]);
   const [notifications, setNotifications] = useState<NotificationItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -72,10 +73,31 @@ const page = () => {
     router.push("/transactions");
   };
 
+  // Show modal if wallet is not connected or not verified (but not while initializing)
+  const showModal = !isInitializing && (!address || !isVerified);
+
   return (
     <div className="min-h-screen">
-      <DashboardHeader pageTitle="Dashboard" />
-      <main className="px-4 md:px-10 pt-6 pb-8 space-y-6">
+      <WalletConnectionModal />
+      {isInitializing ? (
+        // Show loading state while checking for saved wallet session
+        <div className="min-h-screen flex items-center justify-center">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-white mx-auto mb-4"></div>
+            <p className="text-[#9CA3AF]">Loading...</p>
+          </div>
+        </div>
+      ) : showModal ? (
+        // Show empty state while waiting for wallet connection
+        <div className="min-h-screen flex items-center justify-center">
+          <div className="text-center">
+            <p className="text-[#9CA3AF]">Please connect your wallet to continue</p>
+          </div>
+        </div>
+      ) : (
+        <>
+          <DashboardHeader pageTitle="Dashboard" />
+          <main className="px-4 md:px-10 pt-6 pb-8 space-y-6">
         <AccountSummary />
         <ContractSetupCard />
 
@@ -155,6 +177,8 @@ const page = () => {
           )}
         </div>
       </main>
+        </>
+      )}
     </div>
   );
 };
