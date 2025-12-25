@@ -33,6 +33,7 @@ export interface TransactionProps {
   amount: string;
   status: "Completed" | "Pending" | "Failed";
   tokenIcon: string;
+  txHash?: string;
 }
 
 // Transaction component props
