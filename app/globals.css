@@ -141,4 +141,30 @@ html {
     -webkit-text-fill-color: #ffffff !important;
     transition: background-color 5000s ease-in-out 0s;
   }
+
+  /* Custom scrollbar for notification panel */
+  .notification-scrollbar::-webkit-scrollbar {
+    width: 6px !important;
+  }
+
+  .notification-scrollbar::-webkit-scrollbar-track {
+    background: transparent;
+    margin: 0;
+  }
+
+  .notification-scrollbar::-webkit-scrollbar-thumb {
+    background-color: #2D2D2D;
+    border-radius: 3px;
+    border: none;
+    min-height: 20px;
+  }
+
+  .notification-scrollbar::-webkit-scrollbar-thumb:hover {
+    background-color: #2D2D2D;
+    width: 6px !important;
+  }
+
+  .notification-scrollbar:hover::-webkit-scrollbar {
+    width: 6px !important;
+  }
 }
