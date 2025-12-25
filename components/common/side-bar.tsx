@@ -11,14 +11,14 @@ export const SideBar = () => {
 
   return (
     <motion.aside
-      className={`bg-[#101010] h-full min-h-screen   border border-[#1A1A1A] ${isMobile ? "w-full relative z-50" : ""}`}
+      className={`bg-[#101010] h-screen border-r border-[#1A1A1A] overflow-y-auto ${isMobile ? "w-full relative z-50" : ""}`}
       initial={false}
       animate={{
         width: !isMobile && !isSidebarOpen ? "6rem" : "100%",
       }}
       transition={{ duration: 0.3, ease: "easeInOut" }}
     >
-      <div className="space-y-6 my-9 h-full">
+      <div className="space-y-6 py-9 h-full">
         {/* Top section with logo and close button */}
         <div className="px-8 py-6 flex justify-between items-center">
           {/* Left: Sidebar toggle + Logo */}
