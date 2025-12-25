@@ -17,12 +17,13 @@ export default function WalletConnectionModal() {
   // Show modal only if:
   // 1. Not initializing (wait for initial check to complete)
   // 2. Wallet is not connected or not verified
-  const isOpen = !isInitializing && (!address || !isVerified);
+  // 3. Not currently connecting (hide when wallet provider modal is showing)
+  const isOpen = !isInitializing && (!address || !isVerified) && !isConnecting;
 
   return (
     <Dialog open={isOpen} onOpenChange={() => {}}>
       <DialogContent 
-        className="bg-[#1a0c1d] border-[#2E2E2E] text-white max-w-md"
+        className="bg-[#1a0c1d] border-[#2E2E2E] text-white max-w-md z-40"
         showCloseButton={false}
         onInteractOutside={(e) => e.preventDefault()}
         onEscapeKeyDown={(e) => e.preventDefault()}
