@@ -1,6 +1,7 @@
 "use client";
 import React, { useState } from "react";
 import Link from "next/link";
+import ConnectWalletButton from "@/components/wallet/connect-wallet-button";
 
 const navLinks = [
   { name: "Home", href: "/" },
@@ -41,20 +42,10 @@ export default function LandingPageNavBar() {
 
         {/* Desktop Auth Buttons */}
         <div className="hidden md:flex items-center gap-4">
-          <Link
-            href="/auth/login"
-            className="px-6 py-4 rounded-full border border-[#598EFF] text-[#EEF4FF] bg-transparent font-medium transition-colors duration-200 hover:bg-[#598EFF] hover:text-white"
-            style={{ fontFamily: "General Sans, sans-serif" }}
-          >
-            Log in
-          </Link>
-          <Link
-            href="/auth/sign-up"
-            className="px-6 py-4 rounded-full bg-[#598EFF] text-white font-medium transition-colors duration-200 hover:bg-[#4A7CE8] hover:shadow-lg"
-            style={{ fontFamily: "General Sans, sans-serif" }}
-          >
-            Sign Up
-          </Link>
+          <ConnectWalletButton
+            variant="button"
+            className="px-6 py-4 rounded-full bg-[#598EFF] text-white font-medium transition-colors duration-200 hover:bg-[#4A7CE8] hover:shadow-lg disabled:opacity-60 disabled:cursor-not-allowed"
+          />
         </div>
 
         {/* Mobile Hamburger */}
@@ -85,22 +76,11 @@ export default function LandingPageNavBar() {
               </Link>
             ))}
             <div className="flex flex-col gap-3 w-full px-6">
-              <Link
-                href="/auth/login"
-                className="px-6 py-2 rounded-full border border-[#598EFF] text-[#EEF4FF] bg-transparent font-medium transition-colors duration-200 hover:bg-[#598EFF] hover:text-white text-center"
-                style={{ fontFamily: "General Sans, sans-serif" }}
-                onClick={() => setMenuOpen(false)}
-              >
-                Log in
-              </Link>
-              <Link
-                href="/auth/sign-up"
-                className="px-6 py-2 rounded-full bg-[#598EFF] text-white font-medium transition-colors duration-200 hover:bg-[#4A7CE8] text-center"
-                style={{ fontFamily: "General Sans, sans-serif" }}
-                onClick={() => setMenuOpen(false)}
-              >
-                Sign Up
-              </Link>
+              <ConnectWalletButton
+                variant="button"
+                className="px-6 py-2 rounded-full bg-[#598EFF] text-white font-medium transition-colors duration-200 hover:bg-[#4A7CE8] text-center disabled:opacity-60 disabled:cursor-not-allowed"
+                onConnected={() => setMenuOpen(false)}
+              />
             </div>
           </div>
         </div>
