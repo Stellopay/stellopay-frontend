@@ -1084,19 +1084,6 @@ export default function ContractSetupCard() {
                         setPayrollPeriodSeconds("2592000");
                         setPayrollNumPeriods("1");
                         
-                        // Automatically refresh the agreements list to show the new agreement
-                        if (address && agreementDefault) {
-                          try {
-                            const refreshedData = await apiGet<{ agreements: typeof myAgreements }>(
-                              `/agreement/${agreementDefault}/list/${address}?refresh=true`
-                            );
-                            setMyAgreements(refreshedData.agreements);
-                          } catch (refreshErr) {
-                            console.error("Failed to refresh agreements list:", refreshErr);
-                            // Don't fail the whole flow if refresh fails
-                          }
-                        }
-                        
                         showToast(
                           "Agreement created",
                           `Transaction completed successfully.`,

@@ -4,11 +4,13 @@ import Link from "next/link";
 import { useRouter, usePathname } from "next/navigation";
 import ConnectWalletButton from "@/components/wallet/connect-wallet-button";
 
-const handleNavClick = (e: React.MouseEvent<HTMLAnchorElement>, name: string, href: string, router: any, pathname: string) => {
+const handleNavClick = (e: React.MouseEvent<HTMLAnchorElement>, name: string, href: string, router: any, pathname: string | null) => {
   e.preventDefault();
   
+  const currentPath = pathname || "/";
+  
   if (name === "Features") {
-    if (pathname === "/") {
+    if (currentPath === "/") {
       const featuresSection = document.getElementById("KeyFeatures");
       if (featuresSection) {
         featuresSection.scrollIntoView({ behavior: "smooth" });
@@ -17,7 +19,7 @@ const handleNavClick = (e: React.MouseEvent<HTMLAnchorElement>, name: string, hr
       router.push("/#KeyFeatures");
     }
   } else if (name === "How it works") {
-    if (pathname === "/") {
+    if (currentPath === "/") {
       const benefitsSection = document.getElementById("Benefits");
       if (benefitsSection) {
         benefitsSection.scrollIntoView({ behavior: "smooth" });

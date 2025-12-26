@@ -9,7 +9,8 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useWallet } from "@/context/wallet-context";
-import { useToast } from "@/components/ui/toast";
+import { useContext } from "react";
+import { ToastContext } from "@/components/ui/toast";
 
 // Shared across all instances to prevent duplicate toasts
 // Use a Map to track shown errors with timestamps
@@ -42,7 +43,8 @@ export default function ConnectWalletButton({
 }: ConnectWalletButtonProps) {
   const { address, isConnecting, error, connectWallet, disconnectWallet } =
     useWallet();
-  const { showToast } = useToast();
+  // Use ToastContext directly to handle cases where ToastProvider might not be available (e.g., static generation)
+  const toastContext = useContext(ToastContext);
   const prevErrorRef = useRef<string | null>(null);
 
   // Show toast when error occurs (only once per unique error across all instances)
@@ -54,7 +56,7 @@ export default function ConnectWalletButton({
     
     prevErrorRef.current = error;
 
-    if (!error) {
+    if (!error || !toastContext) {
       return;
     }
 
@@ -75,14 +77,14 @@ export default function ConnectWalletButton({
         title = "Transaction failed";
       }
       
-      showToast(title, error, "error");
+      toastContext.showToast(title, error, "error");
       
       // Clean up old entries after delay
       setTimeout(() => {
         shownErrorMap.delete(error);
       }, DEBOUNCE_MS);
     }
-  }, [error, showToast]);
+  }, [error, toastContext]);
 
   const label = useMemo(() => {
     if (isConnecting) return "Connecting…";
