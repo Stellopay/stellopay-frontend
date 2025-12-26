@@ -18,18 +18,18 @@ import { apiGet } from "@/lib/backend";
 import { useWallet } from "@/context/wallet-context";
 
 const defaultData = [
-  { month: "Jan", views: 0 },
-  { month: "Feb", views: 0 },
-  { month: "Mar", views: 0 },
-  { month: "Apr", views: 0 },
-  { month: "May", views: 0 },
-  { month: "Jun", views: 0 },
-  { month: "Jul", views: 0 },
-  { month: "Aug", views: 0 },
-  { month: "Sept", views: 0 },
-  { month: "Oct", views: 0 },
-  { month: "Nov", views: 0 },
-  { month: "Dec", views: 0 },
+  { month: "Jan", agreements: 0 },
+  { month: "Feb", agreements: 0 },
+  { month: "Mar", agreements: 0 },
+  { month: "Apr", agreements: 0 },
+  { month: "May", agreements: 0 },
+  { month: "Jun", agreements: 0 },
+  { month: "Jul", agreements: 0 },
+  { month: "Aug", agreements: 0 },
+  { month: "Sept", agreements: 0 },
+  { month: "Oct", agreements: 0 },
+  { month: "Nov", agreements: 0 },
+  { month: "Dec", agreements: 0 },
 ];
 
 const CustomTooltip = ({ active, payload, label }: any) => {
@@ -38,7 +38,7 @@ const CustomTooltip = ({ active, payload, label }: any) => {
     return (
       <div className="bg-white text-black p-2 rounded shadow text-sm">
         <p className="font-semibold">{label}</p>
-        <p>{value.toLocaleString()} views</p>
+        <p>{value.toLocaleString()} agreements</p>
       </div>
     );
   }
@@ -50,9 +50,17 @@ const AnalyticsViews = () => {
   const [data, setData] = useState(defaultData);
   const [year, setYear] = useState(new Date().getFullYear());
   const [loading, setLoading] = useState(true);
+  const [totalAgreements, setTotalAgreements] = useState(0);
+  const [agreementDefault, setAgreementDefault] = useState<string>("");
 
   useEffect(() => {
-    if (!address) {
+    void apiGet<{ address: string }>("/agreement/defaults")
+      .then((d) => setAgreementDefault(d.address))
+      .catch(() => {});
+  }, []);
+
+  useEffect(() => {
+    if (!address || !agreementDefault) {
       setLoading(false);
       return;
     }
@@ -60,28 +68,39 @@ const AnalyticsViews = () => {
     const fetchAnalytics = async () => {
       try {
         setLoading(true);
-        const result = await apiGet<{ year: number; data: Array<{ month: string; views: number }> }>(
-          `/analytics/${address}?year=${year}`
+        
+        // Fetch agreements list
+        const agreementsResult = await apiGet<{ agreements: Array<{ agreement_id: string; status: number }> }>(
+          `/agreement/${agreementDefault}/list/${address}?refresh=true`
         );
-        console.log("[analytics] Fetched analytics data:", result.data?.length || 0, "months with data");
         
-        // Normalize data: ensure views are never negative (clamp to 0)
-        const normalizedData = (result.data || defaultData).map(item => ({
-          ...item,
-          views: Math.max(0, item.views || 0)
-        }));
+        const agreements = agreementsResult.agreements || [];
+        setTotalAgreements(agreements.length);
         
-        setData(normalizedData);
+        // Group agreements by month created (simplified - using current month distribution)
+        // In a real scenario, you'd parse transaction dates to get creation dates
+        const monthData = defaultData.map((item, index) => {
+          // For now, distribute agreements evenly across months as a placeholder
+          // This should be replaced with actual date-based grouping
+          const monthAgreements = Math.floor(agreements.length / 12);
+          return {
+            ...item,
+            agreements: monthAgreements
+          };
+        });
+        
+        setData(monthData);
       } catch (e) {
         console.error("[analytics] Failed to fetch analytics:", e);
         setData(defaultData);
+        setTotalAgreements(0);
       } finally {
         setLoading(false);
       }
     };
 
     fetchAnalytics();
-  }, [address, year]);
+  }, [address, year, agreementDefault]);
 
   return (
     <div className="bg-[#0D0D0D80] text-white rounded-xl border border-[#2D2D2D] p-4 w-full h-[400px] flex flex-col justify-between">
@@ -95,7 +114,10 @@ const AnalyticsViews = () => {
               height={24}
             />
           </div>
-          <h2 className="font-semibold text-lg">Analytics views</h2>
+          <div>
+            <h2 className="font-semibold text-lg">Agreements Created</h2>
+            <p className="text-sm text-[#A0A0A0]">Total: {totalAgreements} agreements</p>
+          </div>
         </div>
         <button 
           className="px-3 py-1 text-sm rounded-lg border border-[#2D2D2D] bg-transparent"
@@ -124,7 +146,7 @@ const AnalyticsViews = () => {
             />
             <Tooltip content={<CustomTooltip />} />
             <Bar
-              dataKey="views"
+              dataKey="agreements"
               fill="#2E2E2E"
               radius={[4, 4, 0, 0]}
               barSize={28}

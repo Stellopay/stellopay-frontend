@@ -78,53 +78,60 @@ export default function SecurityTab() {
           <h2 className="text-xl font-medium">Update Account Password</h2>
         </div>
 
-        <div className="border-t border-[#2d2d2d] pt-4">
-          <div className="mb-4">
-            <label className="block mb-2 text-gray-300">New Password</label>
-            <div className="relative">
-              <input
-                type={showPassword ? "text" : "password"}
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="*****************************"
-                className="w-full p-3 pr-10 border border-[#2d2d2d] rounded-lg bg-[#0D0D0D] text-white"
-              />
-              <button
-                className="absolute right-3 top-3 text-gray-400"
-                onClick={togglePasswordVisibility}
-              >
-                {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
-              </button>
-            </div>
+        <div className="border-t border-[#2d2d2d] pt-4 relative">
+          <div className="absolute inset-0 bg-[#0D0D0D80] bg-opacity-80 backdrop-blur-sm z-10 rounded-lg flex items-center justify-center">
+            <p className="text-white text-xl font-medium">Coming Soon</p>
           </div>
-
-          <div className="mb-6">
-            <label className="block mb-2 text-gray-300">
-              Re-Enter Password
-            </label>
-            <div className="relative">
-              <input
-                type={showConfirmPassword ? "text" : "password"}
-                value={confirmPassword}
-                onChange={(e) => setConfirmPassword(e.target.value)}
-                placeholder="*****************************"
-                className="w-full p-3 pr-10 border border-[#2d2d2d] rounded-lg bg-[#0D0D0D] text-white"
-              />
-              <button
-                className="absolute right-3 top-3 text-gray-400"
-                onClick={toggleConfirmPasswordVisibility}
-              >
-                {showConfirmPassword ? <EyeOff size={20} /> : <Eye size={20} />}
-              </button>
+          <div className="opacity-50 pointer-events-none">
+            <div className="mb-4">
+              <label className="block mb-2 text-gray-300">New Password</label>
+              <div className="relative">
+                <input
+                  type={showPassword ? "text" : "password"}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="*****************************"
+                  disabled
+                  className="w-full p-3 pr-10 border border-[#2d2d2d] rounded-lg bg-[#0D0D0D] text-white"
+                />
+                <button
+                  className="absolute right-3 top-3 text-gray-400"
+                  onClick={togglePasswordVisibility}
+                >
+                  {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                </button>
+              </div>
             </div>
-          </div>
 
-          <button
-            onClick={handleSaveChanges}
-            className="w-full py-3 bg-white text-black rounded-lg font-medium hover:bg-gray-100 transition"
-          >
-            Save Changes
-          </button>
+            <div className="mb-6">
+              <label className="block mb-2 text-gray-300">
+                Re-Enter Password
+              </label>
+              <div className="relative">
+                <input
+                  type={showConfirmPassword ? "text" : "password"}
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  placeholder="*****************************"
+                  disabled
+                  className="w-full p-3 pr-10 border border-[#2d2d2d] rounded-lg bg-[#0D0D0D] text-white"
+                />
+                <button
+                  className="absolute right-3 top-3 text-gray-400"
+                  onClick={toggleConfirmPasswordVisibility}
+                >
+                  {showConfirmPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                </button>
+              </div>
+            </div>
+
+            <button
+              onClick={handleSaveChanges}
+              className="w-full py-3 bg-white text-black rounded-lg font-medium hover:bg-gray-100 transition"
+            >
+              Save Changes
+            </button>
+          </div>
         </div>
       </div>
 
@@ -162,28 +169,34 @@ export default function SecurityTab() {
           <h2 className="text-xl font-medium">Set 2-Step verification</h2>
         </div>
 
-        <div className="border-t border-[#2d2d2d] pt-4">
-          <div className="flex items-center justify-between p-4 bg-[#0D0D0D80] border border-[#2d2d2d] rounded-lg text-white">
-            <div>
-              <span className="block text-base font-medium">
-                2-Step verification
-              </span>
-              <span className="block text-sm text-gray-400">
-                Enable 2-step authentication
-              </span>
-            </div>
-            <button
-              onClick={handleToggle2FA}
-              className={`w-12 h-7 flex items-center rounded-full p-1 cursor-pointer transition-colors ${
-                twoFactorEnabled ? "bg-purple-600" : "bg-gray-600"
-              }`}
-            >
-              <span
-                className={`block w-5 h-5 rounded-full bg-white shadow-md transform transition-transform ${
-                  twoFactorEnabled ? "translate-x-5" : "translate-x-0"
+        <div className="border-t border-[#2d2d2d] pt-4 relative">
+          <div className="absolute inset-0 bg-[#0D0D0D80] bg-opacity-80 backdrop-blur-sm z-10 rounded-lg flex items-center justify-center">
+            <p className="text-white text-xl font-medium">Coming Soon</p>
+          </div>
+          <div className="opacity-50 pointer-events-none">
+            <div className="flex items-center justify-between p-4 bg-[#0D0D0D80] border border-[#2d2d2d] rounded-lg text-white">
+              <div>
+                <span className="block text-base font-medium">
+                  2-Step verification
+                </span>
+                <span className="block text-sm text-gray-400">
+                  Enable 2-step authentication
+                </span>
+              </div>
+              <button
+                onClick={handleToggle2FA}
+                disabled
+                className={`w-12 h-7 flex items-center rounded-full p-1 cursor-pointer transition-colors ${
+                  twoFactorEnabled ? "bg-purple-600" : "bg-gray-600"
                 }`}
-              ></span>
-            </button>
+              >
+                <span
+                  className={`block w-5 h-5 rounded-full bg-white shadow-md transform transition-transform ${
+                    twoFactorEnabled ? "translate-x-5" : "translate-x-0"
+                  }`}
+                ></span>
+              </button>
+            </div>
           </div>
         </div>
       </div>

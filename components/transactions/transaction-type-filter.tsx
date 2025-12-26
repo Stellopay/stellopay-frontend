@@ -100,14 +100,14 @@ export function TransactionTypeFilter({
   return (
     <Popover open={isOpen} onOpenChange={setIsOpen}>
       <PopoverTrigger asChild>
-        <div className="flex items-center rounded-[6.25rem] px-3 py-1 border border-[#2E2E2E] bg-[#121212] cursor-pointer hover:bg-[#1A1A1A] transition-colors h-9">
+        <div className="flex items-center rounded-[6.25rem] px-3 py-1 border border-[#2E2E2E] bg-[#121212] cursor-pointer hover:bg-[#1A1A1A] transition-colors h-9 w-full">
           <svg
             width="16"
             height="16"
             viewBox="0 0 16 16"
             fill="none"
             xmlns="http://www.w3.org/2000/svg"
-            className="text-gray-600 mr-2"
+            className="text-gray-600 mr-2 flex-shrink-0"
           >
             <path
               d="M2 4H14M4 8H12M6 12H10"
@@ -116,10 +116,10 @@ export function TransactionTypeFilter({
               strokeLinecap="round"
             />
           </svg>
-          <div className="flex items-center gap-2">
-            <span className="text-[13px] sm:text-[14px] text-gray-400">Transaction Types</span>
+          <div className="flex items-center gap-2 flex-1 min-w-0">
+            <span className="text-[13px] sm:text-[14px] text-gray-400 truncate">Transaction Types</span>
             {selectedTypes.length < allTypes.length && selectedTypes.length > 0 && (
-              <span className="px-1.5 py-0.5 text-xs bg-[#2E2E2E] rounded text-white">
+              <span className="px-1.5 py-0.5 text-xs bg-[#2E2E2E] rounded text-white flex-shrink-0">
               {selectedTypes.length}
             </span>
           )}

@@ -136,8 +136,12 @@ const Transactions = () => {
               </h6>
               
               <div className="flex items-center gap-2">
-                <TableSearchbar onSearch={setSearchParams} />
-                <TransactionTypeFilter selectedTypes={selectedTypes} onTypesChange={setSelectedTypes} />
+                <div className="w-[200px]">
+                  <TableSearchbar onSearch={setSearchParams} />
+                </div>
+                <div className="w-[200px]">
+                  <TransactionTypeFilter selectedTypes={selectedTypes} onTypesChange={setSelectedTypes} />
+                </div>
               </div>              
                         
             </div>          

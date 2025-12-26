@@ -41,7 +41,17 @@ export default function SideBar() {
               <div className='w-[12.25rem] xl:w-[16.25rem] h-9 rounded-[4px]   mt-6'>
                 <div className="w-[85%] xl:w-[228px] h-9 px-4 border border-[#2D333E] rounded-[6px] flex items-center mx-auto">
                    <HiMiniMagnifyingGlass className="w-5 h-5"/>
-                   <input type="text" name='' placeholder='Search' className='outline-none pl-1.5 w-16 xl:w-32'/>
+                   <input 
+                     type="text" 
+                     name='' 
+                     placeholder='Search' 
+                     className='outline-none pl-1.5 w-16 xl:w-32 bg-transparent text-white placeholder:text-gray-400'
+                     onKeyPress={(e) => {
+                       if (e.key === "Enter" && e.currentTarget.value.trim()) {
+                         window.location.href = `/transactions?search=${encodeURIComponent(e.currentTarget.value)}`;
+                       }
+                     }}
+                   />
                 </div>
                 
                   
