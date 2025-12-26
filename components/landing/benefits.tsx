@@ -38,7 +38,7 @@ export default function BenefitsSection() {
         }}
       />
       <div className="relative z-20 w-10 h-1 bg-white mx-auto" />
-      <div className="relative z-20 text-center max-w-4xl mx-auto">
+      <div id="Benefits" className="relative z-20 text-center max-w-4xl mx-auto">
         <h2 className="text-[45px] font-clash py-1">Benefits</h2>
         <p className="text-base leading-[22px] text-[#C7C7C7] font-general max-w-170 mx-auto">
           All in one seamless platform. Stellopay ensures secure, instant salary

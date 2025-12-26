@@ -33,8 +33,10 @@ export default function TransactionsContent() {
     switch (token) {
       case "USDC":
         return "/usdc-logo.png";
-      case "XLM":
-        return "/stellar-xlm-logo.png";
+      case "STRK":
+        return "/starknet.png";
+      case "USDT":
+        return "/usdt.svg";
       default:
         return "/usd.png";
     }

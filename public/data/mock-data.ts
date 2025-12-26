@@ -66,7 +66,7 @@ export const transactions: TransactionProps[] = [
     token: "XLM",
     amount: "+$307.07",
     status: "Completed",
-    tokenIcon: "/stellar.png",
+    tokenIcon: "/starknet.png",
   },
   {
     id: "TXN12345",
@@ -88,7 +88,7 @@ export const transactions: TransactionProps[] = [
     token: "XLM",
     amount: "+$2000.00",
     status: "Completed",
-    tokenIcon: "/stellar.png",
+    tokenIcon: "/starknet.png",
   },
   {
     id: "TXN12345",
@@ -110,7 +110,7 @@ export const transactions: TransactionProps[] = [
     token: "XLM",
     amount: "+$2000.00",
     status: "Completed",
-    tokenIcon: "/stellar.png",
+    tokenIcon: "/starknet.png",
   },
   {
     id: "TXN12345",
@@ -132,7 +132,7 @@ export const transactions: TransactionProps[] = [
     token: "XLM",
     amount: "+$2000.00",
     status: "Completed",
-    tokenIcon: "/stellar.png",
+    tokenIcon: "/starknet.png",
   },
   {
     id: "TXN12345",
@@ -154,7 +154,7 @@ export const transactions: TransactionProps[] = [
     token: "XLM",
     amount: "+$2000.00",
     status: "Completed",
-    tokenIcon: "/stellar.png",
+    tokenIcon: "/starknet.png",
   },
   {
     id: "TXN12345",
@@ -176,7 +176,7 @@ export const transactions: TransactionProps[] = [
     token: "XLM",
     amount: "+$2000.00",
     status: "Completed",
-    tokenIcon: "/stellar.png",
+    tokenIcon: "/starknet.png",
   },
   {
     id: "TXN12345",
@@ -198,6 +198,6 @@ export const transactions: TransactionProps[] = [
     token: "XLM",
     amount: "+$2000.00",
     status: "Completed",
-    tokenIcon: "/stellar.png",
+    tokenIcon: "/starknet.png",
   },
 ];

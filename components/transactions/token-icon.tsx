@@ -6,8 +6,6 @@ const getTokenIconPath = (token: string): string | null => {
   switch (tokenUpper) {
     case "USDC":
       return "/usdc-logo.png";
-    case "XLM":
-      return "/stellar-xlm-logo.png";
     case "STRK":
       return "/starknet.png";
     case "USDT":
