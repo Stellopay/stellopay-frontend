@@ -42,7 +42,8 @@ export default function AgreementsPage() {
     total_amount: string;
     paid_amount: string;
   }>>([]);
-  const [loadingAgreements, setLoadingAgreements] = useState(false);
+  const [loadingAgreements, setLoadingAgreements] = useState(true);
+  const [hasLoadedOnce, setHasLoadedOnce] = useState(false);
   const [agreementsError, setAgreementsError] = useState<string | null>(null);
   const [agreementDefault, setAgreementDefault] = useState<string>("");
   const [selectedAgreementId, setSelectedAgreementId] = useState<string | null>(null);
@@ -56,15 +57,19 @@ export default function AgreementsPage() {
   }, []);
 
   useEffect(() => {
-    if (address && agreementDefault && isVerified) {
+    // Only attempt to load if we have all prerequisites
+    if (address && agreementDefault && isVerified && !hasLoadedOnce) {
       void loadAgreements();
     }
-  }, [address, agreementDefault, isVerified]);
+    // Keep loading state true while waiting for prerequisites
+    // Only set to false if we don't have wallet connection (handled by showModal check)
+  }, [address, agreementDefault, isVerified, hasLoadedOnce]);
 
   const loadAgreements = async () => {
     if (!address || !agreementDefault) return;
     setLoadingAgreements(true);
     setAgreementsError(null);
+    setHasLoadedOnce(true);
     try {
       const data = await apiGet<{ agreements: typeof myAgreements }>(
         `/agreement/${agreementDefault}/list/${address}?refresh=true`
@@ -99,6 +104,8 @@ export default function AgreementsPage() {
   }
 
   const showModal = !address || !isVerified;
+  // Determine if we should show loading: either actively loading OR waiting for prerequisites
+  const shouldShowLoading = loadingAgreements || (address && isVerified && !agreementDefault && !hasLoadedOnce);
 
   return (
     <div className="min-h-screen">
@@ -145,7 +152,7 @@ export default function AgreementsPage() {
                   </div>
                 ) : null}
 
-                {loadingAgreements ? (
+                {shouldShowLoading ? (
                   <div className="flex items-center justify-center py-12">
                     <Loader2 className="w-6 h-6 animate-spin text-white" />
                     <span className="ml-2 text-[#A0A0A0]">Loading agreements...</span>

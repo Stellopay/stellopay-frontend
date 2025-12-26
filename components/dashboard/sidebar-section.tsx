@@ -1,8 +1,36 @@
-'user client'
+"use client";
 import Link from "next/link";
 import { HiMiniMagnifyingGlass } from "react-icons/hi2";
+import { useEffect, useState } from "react";
+import { useWallet } from "@/context/wallet-context";
+import { apiGet } from "@/lib/backend";
 
 export default function SideBar() {
+  const { address } = useWallet();
+  const [transactionCount, setTransactionCount] = useState<number>(0);
+
+  // Fetch transaction count
+  useEffect(() => {
+    if (!address) {
+      setTransactionCount(0);
+      return;
+    }
+
+    const fetchTransactionCount = async () => {
+      try {
+        const result = await apiGet<{ transactions: unknown[] }>(
+          `/transactions/${address}?limit=100`
+        );
+        setTransactionCount(result.transactions?.length || 0);
+      } catch (e) {
+        console.error("[sidebar-section] Failed to fetch transaction count:", e);
+        setTransactionCount(0);
+      }
+    };
+
+    void fetchTransactionCount();
+  }, [address]);
+
   return (
         <div className='w-[12.25rem] xl:w-[16.25rem] h-[1342px] gap-7 border-r border-r-[#1A1A1A] bg-[#101010] hidden lg:flex'>
             <div className='w-[12.25rem] xl:w-[16.25rem] h-[373px] gap-8'>
@@ -41,7 +69,7 @@ export default function SideBar() {
                             <path d="M5.83325 5.83333H12.4999M5.83325 9.16666H9.16659" stroke="currentColor" strokeWidth="1.25" strokeLinecap="round" strokeLinejoin="round"/>
                             <path d="M15 15.4167L13.75 14.9583V12.9167M10 14.5833C10 16.6544 11.6789 18.3333 13.75 18.3333C15.8211 18.3333 17.5 16.6544 17.5 14.5833C17.5 12.5122 15.8211 10.8333 13.75 10.8333C11.6789 10.8333 10 12.5122 10 14.5833Z" stroke="currentColor" strokeWidth="1.25" strokeLinecap="round" strokeLinejoin="round"/>
                          </svg>
-                        <h2 className="font-[Inter] font-medium text-sm pl-2.5">Transactions <span className="w-fit h-[17px] px-2 rounded-[10px] bg-[#191919] font-medium font-[Inter] text-center ml-6 xl:ml-12 hover:text-white">10</span></h2>
+                        <h2 className="font-[Inter] font-medium text-sm pl-2.5">Transactions {transactionCount > 0 && <span className="w-fit h-[17px] px-2 rounded-[10px] bg-[#191919] font-medium font-[Inter] text-center ml-6 xl:ml-12 hover:text-white">{transactionCount}</span>}</h2>
                      </div>
                   </Link>
 

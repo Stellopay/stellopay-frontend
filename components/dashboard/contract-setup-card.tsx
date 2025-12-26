@@ -705,7 +705,7 @@ export default function ContractSetupCard() {
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-5 mb-4 bg-[#0D0D0D] border border-[#2D2D2D] p-1 rounded-md h-auto">
+        <TabsList className="grid w-full grid-cols-6 mb-4 bg-[#0D0D0D] border border-[#2D2D2D] p-1 rounded-md h-auto">
           <TabsTrigger 
             value="fund"
             className="data-[state=active]:bg-[#1a0c1d] data-[state=active]:text-white data-[state=active]:border-white text-[#A0A0A0] border border-transparent px-3 py-2 text-sm font-medium transition-colors hover:text-white cursor-pointer"

@@ -18,7 +18,7 @@ export default function Hero() {
               {HeroContent.button}
             </button>
           </Link>
-          <Link href="https://docs.stellopay.io" target="_blank" rel="noopener noreferrer">
+          <Link href="https://stellopay.gitbook.io/docs/" target="_blank" rel="noopener noreferrer">
             <button className="border border-[#598EFF] text-[#FFFFFF] hover:bg-[#23213a] font-semibold py-3 px-8 rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-[#5b5bf6] focus:ring-offset-2 cursor-pointer">
               Docs
             </button>

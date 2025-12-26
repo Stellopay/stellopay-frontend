@@ -11,6 +11,9 @@ import useSidebar from "@/context/sidebar-context";
 import { Tooltip } from "@material-tailwind/react";
 import { usePathname } from "next/navigation";
 import Link from "next/link";
+import { useEffect, useState } from "react";
+import { useWallet } from "@/context/wallet-context";
+import { apiGet } from "@/lib/backend";
 import {
   isLinkActive,
   shouldExpandSidebar,
@@ -19,11 +22,34 @@ import {
 
 export const NavLink = () => {
   const pathname = usePathname() || "/";
-
+  const { address } = useWallet();
   const { isSidebarOpen, isMobile } = useSidebar();
+  const [transactionCount, setTransactionCount] = useState<number>(0);
 
   // Show expanded view on mobile or when desktop sidebar is expanded
   const isExpanded = shouldExpandSidebar(isMobile, isSidebarOpen);
+
+  // Fetch transaction count
+  useEffect(() => {
+    if (!address) {
+      setTransactionCount(0);
+      return;
+    }
+
+    const fetchTransactionCount = async () => {
+      try {
+        const result = await apiGet<{ transactions: unknown[] }>(
+          `/transactions/${address}?limit=100`
+        );
+        setTransactionCount(result.transactions?.length || 0);
+      } catch (e) {
+        console.error("[nav-link] Failed to fetch transaction count:", e);
+        setTransactionCount(0);
+      }
+    };
+
+    void fetchTransactionCount();
+  }, [address]);
 
   const links = [
     {
@@ -53,8 +79,6 @@ export const NavLink = () => {
     },
   ];
 
-  const transactionNotification = 10;
-
   return (
     <nav>
       <ul className="space-y-1 flex items-center flex-col">
@@ -81,10 +105,10 @@ export const NavLink = () => {
                     </span>
                   </div>
 
-                  {link.link.toLowerCase() === "transactions" && (
+                  {link.link.toLowerCase() === "transactions" && transactionCount > 0 && (
                     <div className="px-2 bg-[#191919] rounded-[10px] relative z-20">
                       <p className="text-white text-xs font-medium">
-                        {transactionNotification}
+                        {transactionCount}
                       </p>
                     </div>
                   )}
@@ -117,10 +141,10 @@ export const NavLink = () => {
                     {link.icon(iconColor)}
                   </span>
 
-                  {link.link.toLowerCase() === "transactions" && (
+                  {link.link.toLowerCase() === "transactions" && transactionCount > 0 && (
                     <div className="bg-[#191919] rounded-full -bottom-2 right-0 absolute z-20 p-1">
                       <p className="text-white text-xs font-normal">
-                        {transactionNotification}
+                        {transactionCount}
                       </p>
                     </div>
                   )}
