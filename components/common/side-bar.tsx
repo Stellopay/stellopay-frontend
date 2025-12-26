@@ -37,7 +37,7 @@ export const SideBar = () => {
           {isMobile && (
             <button
               onClick={() => setSidebarOpen(false)}
-              className="text-white p-2"
+              className="text-white p-2 cursor-pointer"
             >
               <X size={24} />
             </button>

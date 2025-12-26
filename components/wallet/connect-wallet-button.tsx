@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useCallback, useMemo } from "react";
+import React, { useCallback, useMemo, useEffect, useRef } from "react";
 import { LogOut, Wallet as WalletIcon } from "lucide-react";
 import {
   DropdownMenu,
@@ -9,6 +9,12 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useWallet } from "@/context/wallet-context";
+import { useToast } from "@/components/ui/toast";
+
+// Shared across all instances to prevent duplicate toasts
+// Use a Map to track shown errors with timestamps
+const shownErrorMap = new Map<string, number>();
+const DEBOUNCE_MS = 3000; // Don't show same error within 3 seconds
 
 type ConnectWalletButtonProps = {
   className?: string;
@@ -36,6 +42,47 @@ export default function ConnectWalletButton({
 }: ConnectWalletButtonProps) {
   const { address, isConnecting, error, connectWallet, disconnectWallet } =
     useWallet();
+  const { showToast } = useToast();
+  const prevErrorRef = useRef<string | null>(null);
+
+  // Show toast when error occurs (only once per unique error across all instances)
+  useEffect(() => {
+    // Only process if error actually changed
+    if (error === prevErrorRef.current) {
+      return;
+    }
+    
+    prevErrorRef.current = error;
+
+    if (!error) {
+      return;
+    }
+
+    const now = Date.now();
+    const lastShown = shownErrorMap.get(error);
+    const shouldShow = !lastShown || (now - lastShown) > DEBOUNCE_MS;
+
+    if (shouldShow) {
+      // Mark this error as shown with current timestamp (atomic operation)
+      shownErrorMap.set(error, now);
+      
+      // Determine appropriate title based on error message
+      const errorLower = error.toLowerCase();
+      let title = "Connection failed";
+      if (errorLower.includes("sign") || errorLower.includes("message") || errorLower.includes("please sign")) {
+        title = "Signing required";
+      } else if (errorLower.includes("transaction")) {
+        title = "Transaction failed";
+      }
+      
+      showToast(title, error, "error");
+      
+      // Clean up old entries after delay
+      setTimeout(() => {
+        shownErrorMap.delete(error);
+      }, DEBOUNCE_MS);
+    }
+  }, [error, showToast]);
 
   const label = useMemo(() => {
     if (isConnecting) return "Connecting…";
@@ -56,7 +103,7 @@ export default function ConnectWalletButton({
     if (variant === "avatar") {
       const baseClassName =
         className ??
-        "h-10 rounded-full border border-[#242428] bg-[#101010] flex items-center gap-2 px-3 text-sm text-[#EEF4FF] hover:bg-[#141414] transition-colors disabled:opacity-60 disabled:cursor-not-allowed";
+        "h-10 rounded-full border border-[#242428] bg-[#101010] flex items-center gap-2 px-3 text-sm text-[#EEF4FF] hover:bg-[#141414] transition-colors cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed";
 
       // Dashboard navbar behavior:
       // - Disconnected: show "Connect Wallet" CTA
@@ -106,41 +153,25 @@ export default function ConnectWalletButton({
   }, [address, className, handleConnect, isConnecting, label, variant]);
 
   if (!address) {
-    return (
-      <div className="flex flex-col gap-2">
-        {trigger}
-        {error ? (
-          <p className="text-xs text-red-400" role="alert">
-            {error}
-          </p>
-        ) : null}
-      </div>
-    );
+    return trigger;
   }
 
   return (
-    <div className="flex flex-col gap-2">
-      <DropdownMenu>
-        <DropdownMenuTrigger asChild>{trigger}</DropdownMenuTrigger>
-        <DropdownMenuContent align="end" className="min-w-[12rem]">
-          <DropdownMenuItem
-            onSelect={(e) => {
-              e.preventDefault();
-              void handleDisconnect();
-            }}
-            variant="destructive"
-          >
-            <LogOut />
-            Disconnect
-          </DropdownMenuItem>
-        </DropdownMenuContent>
-      </DropdownMenu>
-      {error ? (
-        <p className="text-xs text-red-400" role="alert">
-          {error}
-        </p>
-      ) : null}
-    </div>
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>{trigger}</DropdownMenuTrigger>
+      <DropdownMenuContent align="end" className="min-w-[12rem]">
+        <DropdownMenuItem
+          onSelect={(e) => {
+            e.preventDefault();
+            void handleDisconnect();
+          }}
+          variant="destructive"
+        >
+          <LogOut />
+          Disconnect
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
   );
 }
 

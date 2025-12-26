@@ -77,7 +77,7 @@ export function SignUpForm() {
               Already have an account?
               <Link
                 href="/auth/login"
-                className="ml-1 text-white underline underline-offset-4 hover:text-purple-300 focus:outline-none focus:ring-2 focus:ring-purple-400 rounded"
+                className="ml-1 text-white underline underline-offset-4 hover:text-purple-300 focus:outline-none focus:ring-2 focus:ring-purple-400 rounded cursor-pointer"
               >
                 Log in
               </Link>

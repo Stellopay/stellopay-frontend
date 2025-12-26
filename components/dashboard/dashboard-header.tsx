@@ -1,5 +1,5 @@
-import { ArrowDownToLine, Send } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { ArrowDownToLine, Send, Plus } from "lucide-react";
+import { useEffect, useMemo, useState, useRef } from "react";
 import {
   Dialog,
   DialogContent,
@@ -11,10 +11,22 @@ import {
 } from "@/components/ui/dialog";
 import { apiGet, apiPost } from "@/lib/backend";
 import { useWallet } from "@/context/wallet-context";
+import { useToast } from "@/components/ui/toast";
+import { getWalletErrorMessage } from "@/utils/wallet-error-handler";
 
-export default function DashboardHeader({ pageTitle }: { pageTitle: string }) {
+export default function DashboardHeader({ 
+  pageTitle, 
+  onCreateAgreementClick 
+}: { 
+  pageTitle: string;
+  onCreateAgreementClick?: () => void;
+}) {
   const { address, sessionToken, isVerified, isConnecting, isExecuting, executeCall } =
     useWallet();
+  const { showToast } = useToast();
+  
+  // Don't show toast for wallet errors here - let connect-wallet-button handle it
+  // This component only shows toasts for its own specific errors
 
   // --- Send Payment (Escrow release) ---
   const [sendOpen, setSendOpen] = useState(false);
@@ -98,7 +110,13 @@ export default function DashboardHeader({ pageTitle }: { pageTitle: string }) {
     );
 
     const tx = await executeCall(prepared.call);
-    if (tx?.transaction_hash) setSendTx(tx.transaction_hash);
+    if (tx?.transaction_hash) {
+      setSendTx(tx.transaction_hash);
+      showToast("Payment sent", "Transaction submitted successfully.", "success");
+    } else {
+      // Error toast is shown by connect-wallet-button component
+      setSendError("Transaction failed. Please try again.");
+    }
   };
 
   const onRequestPayment = async () => {
@@ -148,7 +166,13 @@ export default function DashboardHeader({ pageTitle }: { pageTitle: string }) {
 
     const prepared = await apiPost<{ call: any }>(path, body);
     const tx = await executeCall(prepared.call);
-    if (tx?.transaction_hash) setRequestTx(tx.transaction_hash);
+    if (tx?.transaction_hash) {
+      setRequestTx(tx.transaction_hash);
+      showToast("Payment requested", "Transaction submitted successfully.", "success");
+    } else {
+      // Error toast is shown by connect-wallet-button component
+      setRequestError("Transaction failed. Please try again.");
+    }
   };
 
   return (
@@ -156,10 +180,21 @@ export default function DashboardHeader({ pageTitle }: { pageTitle: string }) {
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <h1 className="text-white text-2xl font-semibold">{pageTitle}</h1>
 
-        <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 w-full sm:w-auto">
-          <Dialog open={sendOpen} onOpenChange={setSendOpen}>
+        {pageTitle === "My Agreements" && onCreateAgreementClick && (
+          <button
+            onClick={onCreateAgreementClick}
+            disabled={!address}
+            className="flex items-center justify-center gap-2 bg-white text-black px-4 py-2 rounded-md border border-[#E5E5E5]/10 hover:bg-[#f3f3f3] disabled:opacity-60 disabled:cursor-not-allowed cursor-pointer transition w-full sm:w-auto"
+          >
+            <Plus className="h-4 w-4" />
+            Create Agreement
+          </button>
+        )}
+        {pageTitle !== "My Agreements" && (
+          <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 w-full sm:w-auto">
+            <Dialog open={sendOpen} onOpenChange={setSendOpen}>
             <DialogTrigger asChild>
-              <button className="flex items-center justify-center gap-2 bg-black text-white px-4 py-2 rounded-md border border-[#2C2C2C] hover:bg-[#111] transition w-full sm:w-auto">
+              <button className="flex items-center justify-center gap-2 bg-black text-white px-4 py-2 rounded-md border border-[#2C2C2C] hover:bg-[#111] cursor-pointer transition w-full sm:w-auto">
                 <Send className="h-4 w-4" />
                 Send Payment
               </button>
@@ -227,7 +262,7 @@ export default function DashboardHeader({ pageTitle }: { pageTitle: string }) {
                 <button
                   type="button"
                   onClick={() => setSendOpen(false)}
-                  className="px-4 py-2 rounded-md border border-[#2C2C2C] bg-transparent text-white hover:bg-[#111]"
+                  className="px-4 py-2 rounded-md border border-[#2C2C2C] bg-transparent text-white hover:bg-[#111] cursor-pointer"
                 >
                   Close
                 </button>
@@ -235,7 +270,7 @@ export default function DashboardHeader({ pageTitle }: { pageTitle: string }) {
                   type="button"
                   disabled={!address || !sessionToken || isExecuting}
                   onClick={() => void onSendPayment().catch((e) => setSendError(String(e?.message ?? e)))}
-                  className="px-4 py-2 rounded-md bg-[#598EFF] text-white hover:bg-[#4A7CE8] disabled:opacity-60 disabled:cursor-not-allowed"
+                  className="px-4 py-2 rounded-md bg-[#598EFF] text-white hover:bg-[#4A7CE8] disabled:opacity-60 disabled:cursor-not-allowed cursor-pointer"
                 >
                   {isExecuting ? "Submitting…" : "Submit"}
                 </button>
@@ -245,7 +280,7 @@ export default function DashboardHeader({ pageTitle }: { pageTitle: string }) {
 
           <Dialog open={requestOpen} onOpenChange={setRequestOpen}>
             <DialogTrigger asChild>
-              <button className="flex items-center justify-center gap-2 bg-white text-black px-4 py-2 rounded-md border border-[#E5E5E5]/10 hover:bg-[#f3f3f3] transition w-full sm:w-auto">
+              <button className="flex items-center justify-center gap-2 bg-white text-black px-4 py-2 rounded-md border border-[#E5E5E5]/10 hover:bg-[#f3f3f3] cursor-pointer transition w-full sm:w-auto">
                 <ArrowDownToLine className="h-4 w-4" />
                 Request Payment
               </button>
@@ -287,9 +322,9 @@ export default function DashboardHeader({ pageTitle }: { pageTitle: string }) {
                   <button
                     type="button"
                     onClick={() => setClaimMode("time")}
-                    className={`px-3 py-2 rounded-md border ${
+                    className={`px-3 py-2 rounded-md border cursor-pointer ${
                       claimMode === "time"
-                        ? "border-[#598EFF] bg-[#598EFF]/10 text-white"
+                        ? "bg-white text-black border-white shadow"
                         : "border-[#242428] bg-transparent text-[#E5E5E5]"
                     }`}
                   >
@@ -298,9 +333,9 @@ export default function DashboardHeader({ pageTitle }: { pageTitle: string }) {
                   <button
                     type="button"
                     onClick={() => setClaimMode("milestone")}
-                    className={`px-3 py-2 rounded-md border ${
+                    className={`px-3 py-2 rounded-md border cursor-pointer ${
                       claimMode === "milestone"
-                        ? "border-[#598EFF] bg-[#598EFF]/10 text-white"
+                        ? "bg-white text-black border-white shadow"
                         : "border-[#242428] bg-transparent text-[#E5E5E5]"
                     }`}
                   >
@@ -309,9 +344,9 @@ export default function DashboardHeader({ pageTitle }: { pageTitle: string }) {
                   <button
                     type="button"
                     onClick={() => setClaimMode("payroll")}
-                    className={`px-3 py-2 rounded-md border ${
+                    className={`px-3 py-2 rounded-md border cursor-pointer ${
                       claimMode === "payroll"
-                        ? "border-[#598EFF] bg-[#598EFF]/10 text-white"
+                        ? "bg-white text-black border-white shadow"
                         : "border-[#242428] bg-transparent text-[#E5E5E5]"
                     }`}
                   >
@@ -364,11 +399,9 @@ export default function DashboardHeader({ pageTitle }: { pageTitle: string }) {
                   type="button"
                   disabled={!address || !sessionToken || isExecuting}
                   onClick={() =>
-                    void onRequestPayment().catch((e) =>
-                      setRequestError(String(e?.message ?? e)),
-                    )
+                    () => void onRequestPayment()
                   }
-                  className="px-4 py-2 rounded-md bg-[#598EFF] text-white hover:bg-[#4A7CE8] disabled:opacity-60 disabled:cursor-not-allowed"
+                  className="px-4 py-2 rounded-md bg-[#598EFF] text-white hover:bg-[#4A7CE8] disabled:opacity-60 disabled:cursor-not-allowed cursor-pointer"
                 >
                   {isExecuting ? "Submitting…" : "Submit"}
                 </button>
@@ -376,6 +409,7 @@ export default function DashboardHeader({ pageTitle }: { pageTitle: string }) {
             </DialogContent>
           </Dialog>
         </div>
+        )}
       </div>
     </div>
   );

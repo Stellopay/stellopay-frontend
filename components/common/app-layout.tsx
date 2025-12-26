@@ -13,7 +13,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
     <div className="relative min-h-screen">
       {/* Sidebar for desktop - fixed position */}
       {!isMobile && (
-        <div
+      <div
           className={`fixed left-0 top-0 h-screen z-30 transition-all duration-300 ease-in-out ${
             isSidebarOpen ? "w-[16.25rem]" : "w-[6rem]"
           }`}
@@ -32,8 +32,8 @@ export default function AppLayout({ children }: AppLayoutProps) {
               : "ml-[6rem]"
         }`}
       >
-        <Navbar />
-        <main className="flex flex-col">{children}</main>
+          <Navbar />
+          <main className="flex flex-col">{children}</main>
       </div>
 
       {/* Mobile fullscreen sidebar */}

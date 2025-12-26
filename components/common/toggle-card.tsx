@@ -11,7 +11,7 @@ export default function ToggleCard({ title }: ToggleCardProps) {
       <span className="text-base">{title}</span>
       <button
         onClick={() => setEnabled(!enabled)}
-        className={`w-14 h-8 flex items-center rounded-full p-1 duration-300 ease-in-out ${
+        className={`w-14 h-8 flex items-center rounded-full p-1 duration-300 ease-in-out cursor-pointer ${
           enabled ? "bg-[#5B3861]" : "bg-gray-400"
         }`}
       >

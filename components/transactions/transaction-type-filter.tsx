@@ -120,9 +120,9 @@ export function TransactionTypeFilter({
             <span className="text-[13px] sm:text-[14px] text-gray-400">Transaction Types</span>
             {selectedTypes.length < allTypes.length && selectedTypes.length > 0 && (
               <span className="px-1.5 py-0.5 text-xs bg-[#2E2E2E] rounded text-white">
-                {selectedTypes.length}
-              </span>
-            )}
+              {selectedTypes.length}
+            </span>
+          )}
           </div>
         </div>
       </PopoverTrigger>

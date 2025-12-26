@@ -32,7 +32,7 @@ export default function LandingPageNavBar() {
             <Link
               key={link.name}
               href={link.href}
-              className="text-white text-base font-normal hover:text-[#598EFF] transition-colors duration-200"
+              className="text-white text-base font-normal hover:text-[#598EFF] transition-colors duration-200 cursor-pointer"
               style={{ fontFamily: "General Sans, sans-serif" }}
             >
               {link.name}
@@ -50,7 +50,7 @@ export default function LandingPageNavBar() {
 
         {/* Mobile Hamburger */}
         <button
-          className="md:hidden flex flex-col items-center justify-center p-2 rounded focus:outline-none"
+          className="md:hidden flex flex-col items-center justify-center p-2 rounded focus:outline-none cursor-pointer"
           aria-label="Open menu"
           onClick={() => setMenuOpen((open) => !open)}
         >
@@ -68,7 +68,7 @@ export default function LandingPageNavBar() {
               <Link
                 key={link.name}
                 href={link.href}
-                className="text-white text-lg font-normal hover:text-[#598EFF] transition-colors duration-200"
+                className="text-white text-lg font-normal hover:text-[#598EFF] transition-colors duration-200 cursor-pointer"
                 style={{ fontFamily: "General Sans, sans-serif" }}
                 onClick={() => setMenuOpen(false)}
               >

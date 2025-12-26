@@ -96,8 +96,8 @@ const page = () => {
         </div>
       ) : (
         <>
-          <DashboardHeader pageTitle="Dashboard" />
-          <main className="px-4 md:px-10 pt-6 pb-8 space-y-6">
+      <DashboardHeader pageTitle="Dashboard" />
+      <main className="px-4 md:px-10 pt-6 pb-8 space-y-6">
         <AccountSummary />
         <ContractSetupCard />
 

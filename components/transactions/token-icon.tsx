@@ -24,19 +24,19 @@ export default function TokenIcon({ token }: TokenIconProps) {
     return null;
   }
 
-  return (
+    return (
     <div className="w-5 h-5 rounded-full overflow-hidden flex items-center justify-center flex-shrink-0">
-      <Image
+        <Image
         src={iconPath}
         alt={token || "Token"}
-        width={20}
-        height={20}
-        className="w-full h-full object-cover"
+          width={20}
+          height={20}
+          className="w-full h-full object-cover"
         onError={(e) => {
           // Fallback to a default icon if image fails to load
           e.currentTarget.src = "/usd.png";
         }}
-      />
-    </div>
-  );
+        />
+      </div>
+    );
 }

@@ -11,6 +11,7 @@ import React, {
 } from "react";
 import { connect } from "@starknet-io/get-starknet";
 import { getBackendBaseUrl } from "@/lib/backend";
+import { getWalletErrorMessage } from "@/utils/wallet-error-handler";
 
 type WalletLike = {
   selectedAddress?: string;
@@ -114,7 +115,7 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
 
   // Helper to perform verification flow (challenge + sign + verify)
   const performVerification = useCallback(
-    async (wallet: WalletLike, walletAddress: string) => {
+    async (wallet: WalletLike, walletAddress: string): Promise<{ success: boolean; error?: string }> => {
       const apiBase = getBackendBaseUrl();
       try {
         // Step 1: get challenge from backend
@@ -125,9 +126,23 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
         // Step 2: wallet signs typed data challenge
         const signMessage = wallet.account?.signMessage;
         if (typeof signMessage !== "function") {
-          throw new Error("Connected wallet does not support message signing");
+          const error = "Connected wallet does not support message signing";
+          setSessionToken(null);
+          setIsVerified(false);
+          return { success: false, error: getWalletErrorMessage(new Error(error)) };
         }
-        const sigRaw = await signMessage(challenge.typed_data);
+        
+        let sigRaw;
+        try {
+          sigRaw = await signMessage(challenge.typed_data);
+        } catch (signError: any) {
+          // Handle WalletRPCError and other signing errors
+          const friendlyError = getWalletErrorMessage(signError);
+          setSessionToken(null);
+          setIsVerified(false);
+          return { success: false, error: friendlyError };
+        }
+        
         const signature = normalizeSignature(sigRaw);
 
         // Step 3: backend verifies signature and issues session token
@@ -143,11 +158,14 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
           localStorage.setItem(STORAGE_KEY_ADDRESS, walletAddress);
           localStorage.setItem(STORAGE_KEY_SESSION, verify.session_token);
         }
+        
+        return { success: true };
       } catch (e) {
-        console.error("[wallet] Auto-verification failed:", e);
+        console.error("[wallet] Verification failed:", e);
         setSessionToken(null);
         setIsVerified(false);
-        throw e;
+        const friendlyError = getWalletErrorMessage(e);
+        return { success: false, error: friendlyError };
       }
     },
     [],
@@ -206,8 +224,12 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
           typeof wallet.enable === "function" ? wallet.enable() : Promise.resolve();
         await Promise.resolve(enablePromise);
         
-        await performVerification(wallet, currentAddress);
-        console.log("[wallet] Auto-verification successful");
+        const result = await performVerification(wallet, currentAddress);
+        if (result.success) {
+          console.log("[wallet] Auto-verification successful");
+        } else {
+          console.error("[wallet] Auto-verification failed:", result.error);
+        }
       } catch (e) {
         console.error("[wallet] Auto-verification failed:", e);
         // Don't throw - let user manually reconnect if needed
@@ -251,6 +273,7 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
   }, [performVerification]);
 
   const connectWallet = useCallback(async () => {
+    // Clear any previous errors when starting a new connection attempt
     setError(null);
     setIsConnecting(true);
     try {
@@ -270,12 +293,45 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
       setAddress(nextAddress);
 
       if (!nextAddress) {
-        throw new Error("Wallet connected but no address was provided");
+        const error = "Wallet connected but no address was provided";
+        setError(getWalletErrorMessage(new Error(error)));
+        setIsConnecting(false);
+        return;
       }
 
-      await performVerification(wallet, nextAddress);
+      const result = await performVerification(wallet, nextAddress);
+      
+      if (!result.success && result.error) {
+        const errorMessage = result.error.toLowerCase();
+        
+        // If user rejected signing, reset the address so they can try again
+        const isSigningRejection = 
+          errorMessage.includes("sign") ||
+          errorMessage.includes("user_refused") ||
+          errorMessage.includes("user rejected") ||
+          errorMessage.includes("user cancelled") ||
+          errorMessage.includes("user canceled") ||
+          errorMessage.includes("rejected by user") ||
+          errorMessage.includes("user abort");
+        
+        if (isSigningRejection) {
+          // Reset address so the modal shows "Connect Wallet" button again
+          setAddress(null);
+          walletRef.current = null;
+          if (typeof window !== "undefined") {
+            localStorage.removeItem(STORAGE_KEY_ADDRESS);
+            localStorage.removeItem(STORAGE_KEY_SESSION);
+          }
+        }
+        
+        setError(result.error);
+        setIsVerified(false);
+        setSessionToken(null);
+      }
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Failed to connect wallet");
+      // Catch any unexpected errors
+      const friendlyError = getWalletErrorMessage(e);
+      setError(friendlyError);
       setIsVerified(false);
       setSessionToken(null);
     } finally {
@@ -323,16 +379,25 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
     }
     
     if (!wallet) {
-      throw new Error("Wallet not connected. Please connect your wallet first.");
+      const error = "Wallet not connected. Please connect your wallet first.";
+      setError(getWalletErrorMessage(new Error(error)));
+      setIsExecuting(false);
+      return {};
     }
     
     const exec = wallet.account?.execute;
     if (typeof exec !== "function") {
       // Try to get account from wallet if not available
       if (!wallet.account) {
-        throw new Error("Wallet account not available. Please reconnect your wallet.");
+        const error = "Wallet account not available. Please reconnect your wallet.";
+        setError(getWalletErrorMessage(new Error(error)));
+        setIsExecuting(false);
+        return {};
       }
-      throw new Error("Connected wallet does not support execute(). Please use a compatible wallet.");
+      const error = "Connected wallet does not support execute(). Please use a compatible wallet.";
+      setError(getWalletErrorMessage(new Error(error)));
+      setIsExecuting(false);
+      return {};
     }
     
     setError(null);
@@ -342,9 +407,11 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
       const result = await exec(calls);
       return result ?? {};
     } catch (e) {
-      const errorMsg = e instanceof Error ? e.message : "Transaction failed";
-      setError(errorMsg);
-      throw new Error(errorMsg);
+      const friendlyError = getWalletErrorMessage(e);
+      setError(friendlyError);
+      // Don't throw - let the caller handle the error via error state
+      // Return empty result to indicate failure
+      return {};
     } finally {
       setIsExecuting(false);
     }

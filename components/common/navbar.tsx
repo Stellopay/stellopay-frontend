@@ -16,16 +16,16 @@ export default function Navbar() {
 
           {/* Icons and Avatar */}
           <div className="flex items-center gap-4 mt-2 sm:mt-0">
-            <div className="p-2 rounded-md relative">
+            <div className="p-2 rounded-md relative cursor-pointer">
               <Bell className="w-10 h-10 sm:w-6 sm:h-6 text-[#6e6d6e] hover:text-[#FFFFFF] transition-colors" />
               <span className="absolute top-2 right-2 sm:top-2.5 sm:right-2.5 w-2.5 h-2.5 bg-[#EB6945] rounded-full" />
             </div>
 
-            <div className="p-2 rounded-md">
+            <div className="p-2 rounded-md cursor-pointer">
               <Settings className="w-10 h-10 sm:w-6 sm:h-6 text-[#6e6d6e] hover:text-[#FFFFFF] transition-colors" />
             </div>
 
-            <div className="p-2 rounded-md">
+            <div className="p-2 rounded-md cursor-pointer">
               <HelpCircle className="w-10 h-10 sm:w-6 sm:h-6 text-[#6e6d6e] hover:text-[#FFFFFF] transition-colors" />
             </div>
 

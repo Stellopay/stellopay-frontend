@@ -4,6 +4,7 @@ import {
   HelpCircleIcon,
   SettinIcon,
   TransactionIcon,
+  AgreementsIcon,
 } from "@/public/svg/svg";
 import { motion } from "framer-motion";
 import useSidebar from "@/context/sidebar-context";
@@ -29,6 +30,11 @@ export const NavLink = () => {
       link: "Dashboard",
       icon: (color: string) => <DashBoardIcon color={color} />,
       route: "/dashboard",
+    },
+    {
+      link: "Agreements",
+      icon: (color: string) => <AgreementsIcon color={color} />,
+      route: "/agreements",
     },
     {
       link: "Transactions",

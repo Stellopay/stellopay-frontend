@@ -22,7 +22,7 @@ export function getBackendBaseUrl() {
     // If on localhost, use localhost backend
     if (hostname.includes("localhost") || hostname.includes("127.0.0.1")) {
       return `http://${hostname}:4002/api/v1`;
-    }
+  }
     // If not on localhost and in production, use production URL
     if (isProduction) {
       return productionUrl;

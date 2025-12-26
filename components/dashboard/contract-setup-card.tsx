@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useRef } from "react";
 import {
   ChevronDown,
   Coins,
@@ -235,6 +235,9 @@ export default function ContractSetupCard() {
   const { address, sessionToken, isExecuting, isVerified, executeCall } = useWallet();
   const authHint = useAuthHint();
   const { showToast } = useToast();
+  
+  // Don't show toast for wallet errors here - let connect-wallet-button handle it
+  // This component only shows toasts for its own specific errors
   const [escrowCopied, setEscrowCopied] = useState(false);
   const [agreementCopied, setAgreementCopied] = useState(false);
 
@@ -297,11 +300,6 @@ export default function ContractSetupCard() {
     ];
   }, []);
 
-  // Agreement details view
-  const [viewAgreementId, setViewAgreementId] = useState("");
-  const [agreementDetails, setAgreementDetails] = useState<AgreementDetails | null>(null);
-  const [loadingDetails, setLoadingDetails] = useState(false);
-  const [detailsError, setDetailsError] = useState<string | null>(null);
 
   // Initialize escrow
   const [initEscrowOpen, setInitEscrowOpen] = useState(false);
@@ -412,19 +410,7 @@ export default function ContractSetupCard() {
     refundEmployer?: string;
   }>({});
 
-  // My Agreements
-  const [myAgreements, setMyAgreements] = useState<Array<{
-    agreement_id: string;
-    employer: string;
-    contributor: string;
-    status: number;
-    mode: number;
-    total_amount: string;
-    paid_amount: string;
-  }>>([]);
-  const [loadingAgreements, setLoadingAgreements] = useState(false);
-  const [agreementsError, setAgreementsError] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState("create");
+  const [activeTab, setActiveTab] = useState("fund");
 
   useEffect(() => {
     void Promise.all([
@@ -571,62 +557,6 @@ export default function ContractSetupCard() {
     return undefined;
   };
 
-  const loadAgreementDetails = async () => {
-    if (!agreementDefault || !viewAgreementId) return;
-    setLoadingDetails(true);
-    setDetailsError(null);
-    try {
-      const id = BigInt(viewAgreementId);
-      const [employer, contributor, token, escrow, total, paid, status, mode, dispute_status] = await Promise.all([
-        apiGet<{ employer: string }>(`/agreement/${agreementDefault}/get_employer/${id}`).catch(() => ({ employer: "" })),
-        apiGet<{ contributor: string }>(`/agreement/${agreementDefault}/get_contributor/${id}`).catch(() => ({ contributor: "" })),
-        apiGet<{ token: string }>(`/agreement/${agreementDefault}/get_token/${id}`).catch(() => ({ token: "" })),
-        apiGet<{ escrow: string }>(`/agreement/${agreementDefault}/get_escrow`).catch(() => ({ escrow: "" })),
-        apiGet<{ total_amount: string }>(`/agreement/${agreementDefault}/get_total_amount/${id}`).catch(() => ({ total_amount: "0" })),
-        apiGet<{ paid_amount: string }>(`/agreement/${agreementDefault}/get_paid_amount/${id}`).catch(() => ({ paid_amount: "0" })),
-        apiGet<{ status: number }>(`/agreement/${agreementDefault}/get_status/${id}`).catch(() => ({ status: 0 })),
-        apiGet<{ mode: number }>(`/agreement/${agreementDefault}/get_agreement_mode/${id}`).catch(() => ({ mode: 0 })),
-        apiGet<{ dispute_status: number }>(`/agreement/${agreementDefault}/get_dispute_status/${id}`).catch(() => ({ dispute_status: 0 })),
-      ]);
-
-      const details: AgreementDetails = {
-        agreement_id: viewAgreementId,
-        employer: employer.employer,
-        contributor: contributor.contributor,
-        token: token.token,
-        escrow: escrow.escrow,
-        total_amount: total.total_amount,
-        paid_amount: paid.paid_amount,
-        status: status.status,
-        mode: mode.mode,
-        dispute_status: dispute_status.dispute_status,
-      };
-
-      // Load additional details for payroll
-      if (mode.mode === 1) {
-        try {
-          const employeeCount = await apiGet<{ employee_count: number }>(
-            `/agreement/${agreementDefault}/get_employee_count/${id}`
-          );
-          details.employee_count = employeeCount.employee_count;
-        } catch {}
-      }
-
-      // Load grace period status
-      try {
-        const gracePeriod = await apiGet<{ is_grace_period_active: boolean }>(
-          `/agreement/${agreementDefault}/is_grace_period_active/${id}`
-        );
-        details.is_grace_period_active = gracePeriod.is_grace_period_active;
-      } catch {}
-
-      setAgreementDetails(details);
-    } catch (err: any) {
-      setDetailsError(err?.message || "Failed to load agreement details");
-    } finally {
-      setLoadingDetails(false);
-    }
-  };
 
   const executeAction = async (endpoint: string, body: any, setError: (e: string | null) => void, setTx: (t: string | null) => void): Promise<string | null> => {
     setError(null);
@@ -655,7 +585,7 @@ export default function ContractSetupCard() {
       if (!prepared?.call) {
         throw new Error("Backend did not return a call object");
       }
-    const tx = await executeCall(prepared.call);
+      const tx = await executeCall(prepared.call);
       if (tx?.transaction_hash) {
         setTx(tx.transaction_hash);
         // Process events in the background (don't wait for it)
@@ -664,20 +594,20 @@ export default function ContractSetupCard() {
         });
         return tx.transaction_hash;
       }
+      // If no transaction hash, there was an error
+      // Error toast is shown by connect-wallet-button component
+      const errorMsg = "Transaction failed. Please try again.";
+      setError(errorMsg);
       return null;
     } catch (e: any) {
-      let errorMsg = e?.message || "Failed to execute action";
-      
-      // Provide more helpful error messages for session issues
-      if (errorMsg.toLowerCase().includes('invalid session') || 
-          errorMsg.toLowerCase().includes('401') ||
-          (e?.response?.status === 401)) {
-        errorMsg = "Session expired or invalid. Please reconnect and verify your wallet.";
-      }
+      // Catch any other errors (like API errors)
+      const { getWalletErrorMessage } = await import("@/utils/wallet-error-handler");
+      let errorMsg = getWalletErrorMessage(e);
       
       setError(errorMsg);
+      showToast("Action failed", errorMsg, "error");
       console.error("[executeAction] Error:", e);
-      throw e;
+      return null;
     }
   };
 
@@ -757,105 +687,65 @@ export default function ContractSetupCard() {
       </div>
 
       <div className="mb-4 space-y-2">
-        {escrowInitialized === false ? (
+        {escrowInitialized === false && (
           <div className="p-3 rounded-md bg-yellow-900/20 border border-yellow-700/50">
             <div className="text-sm text-yellow-400">
               <strong>⚠️ Escrow Not Initialized:</strong> The escrow contract needs to be initialized once before creating agreements.
             </div>
           </div>
-        ) : escrowInitialized === true ? (
-          <div className="p-3 rounded-md bg-green-900/20 border border-green-700/50">
-            <div className="text-sm text-green-400">
-              <strong>✓ Escrow Initialized:</strong> The escrow is ready to use.
-              {escrowToken ? (
-                <span className="text-[#A0A0A0] ml-2">
-                  Token: <span className="text-white font-mono">{shortHex(escrowToken)}</span>
-                </span>
-              ) : null}
-            </div>
-          </div>
-        ) : null}
+        )}
         
-        {agreementInitialized === false ? (
+        {agreementInitialized === false && (
           <div className="p-3 rounded-md bg-yellow-900/20 border border-yellow-700/50">
             <div className="text-sm text-yellow-400">
               <strong>⚠️ Agreement Not Initialized:</strong> The WorkAgreement contract needs to be initialized once before creating agreements.
             </div>
           </div>
-        ) : agreementInitialized === true ? (
-          <div className="p-3 rounded-md bg-green-900/20 border border-green-700/50">
-            <div className="text-sm text-green-400">
-              <strong>✓ Agreement Initialized:</strong> The agreement contract is ready to use.
-              {agreementEscrow ? (
-                <span className="text-[#A0A0A0] ml-2">
-                  Escrow: <span className="text-white font-mono">{shortHex(agreementEscrow)}</span>
-                </span>
-              ) : null}
-            </div>
-          </div>
-        ) : null}
+        )}
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-9 mb-4 bg-[#0D0D0D] border border-[#2D2D2D] p-1 rounded-md h-auto">
-          <TabsTrigger 
-            value="create"
-            className="data-[state=active]:bg-[#1a0c1d] data-[state=active]:text-white data-[state=active]:border-[#598EFF] text-[#A0A0A0] border border-transparent px-3 py-2 text-sm font-medium transition-colors hover:text-white cursor-pointer"
-          >
-            Create
-          </TabsTrigger>
-          <TabsTrigger 
-            value="view"
-            className="data-[state=active]:bg-[#1a0c1d] data-[state=active]:text-white data-[state=active]:border-[#598EFF] text-[#A0A0A0] border border-transparent px-3 py-2 text-sm font-medium transition-colors hover:text-white cursor-pointer"
-          >
-            View
-          </TabsTrigger>
+        <TabsList className="grid w-full grid-cols-5 mb-4 bg-[#0D0D0D] border border-[#2D2D2D] p-1 rounded-md h-auto">
           <TabsTrigger 
             value="fund"
-            className="data-[state=active]:bg-[#1a0c1d] data-[state=active]:text-white data-[state=active]:border-[#598EFF] text-[#A0A0A0] border border-transparent px-3 py-2 text-sm font-medium transition-colors hover:text-white cursor-pointer"
+            className="data-[state=active]:bg-[#1a0c1d] data-[state=active]:text-white data-[state=active]:border-white text-[#A0A0A0] border border-transparent px-3 py-2 text-sm font-medium transition-colors hover:text-white cursor-pointer"
           >
             Fund
           </TabsTrigger>
           <TabsTrigger 
             value="activate"
-            className="data-[state=active]:bg-[#1a0c1d] data-[state=active]:text-white data-[state=active]:border-[#598EFF] text-[#A0A0A0] border border-transparent px-3 py-2 text-sm font-medium transition-colors hover:text-white cursor-pointer"
+            className="data-[state=active]:bg-[#1a0c1d] data-[state=active]:text-white data-[state=active]:border-white text-[#A0A0A0] border border-transparent px-3 py-2 text-sm font-medium transition-colors hover:text-white cursor-pointer"
           >
             Activate
           </TabsTrigger>
           <TabsTrigger 
             value="manage"
-            className="data-[state=active]:bg-[#1a0c1d] data-[state=active]:text-white data-[state=active]:border-[#598EFF] text-[#A0A0A0] border border-transparent px-3 py-2 text-sm font-medium transition-colors hover:text-white cursor-pointer"
+            className="data-[state=active]:bg-[#1a0c1d] data-[state=active]:text-white data-[state=active]:border-white text-[#A0A0A0] border border-transparent px-3 py-2 text-sm font-medium transition-colors hover:text-white cursor-pointer"
           >
             Manage
           </TabsTrigger>
           <TabsTrigger 
             value="employees"
-            className="data-[state=active]:bg-[#1a0c1d] data-[state=active]:text-white data-[state=active]:border-[#598EFF] text-[#A0A0A0] border border-transparent px-3 py-2 text-sm font-medium transition-colors hover:text-white cursor-pointer"
+            className="data-[state=active]:bg-[#1a0c1d] data-[state=active]:text-white data-[state=active]:border-white text-[#A0A0A0] border border-transparent px-3 py-2 text-sm font-medium transition-colors hover:text-white cursor-pointer"
           >
             Employees
           </TabsTrigger>
           <TabsTrigger 
             value="milestones"
-            className="data-[state=active]:bg-[#1a0c1d] data-[state=active]:text-white data-[state=active]:border-[#598EFF] text-[#A0A0A0] border border-transparent px-3 py-2 text-sm font-medium transition-colors hover:text-white cursor-pointer"
+            className="data-[state=active]:bg-[#1a0c1d] data-[state=active]:text-white data-[state=active]:border-white text-[#A0A0A0] border border-transparent px-3 py-2 text-sm font-medium transition-colors hover:text-white cursor-pointer"
           >
             Milestones
           </TabsTrigger>
           <TabsTrigger 
             value="disputes"
-            className="data-[state=active]:bg-[#1a0c1d] data-[state=active]:text-white data-[state=active]:border-[#598EFF] text-[#A0A0A0] border border-transparent px-3 py-2 text-sm font-medium transition-colors hover:text-white cursor-pointer"
+            className="data-[state=active]:bg-[#1a0c1d] data-[state=active]:text-white data-[state=active]:border-white text-[#A0A0A0] border border-transparent px-3 py-2 text-sm font-medium transition-colors hover:text-white cursor-pointer"
           >
             Disputes
           </TabsTrigger>
-          <TabsTrigger 
-            value="my-agreements"
-            className="data-[state=active]:bg-[#1a0c1d] data-[state=active]:text-white data-[state=active]:border-[#598EFF] text-[#A0A0A0] border border-transparent px-3 py-2 text-sm font-medium transition-colors hover:text-white cursor-pointer"
-          >
-            My Agreements
-          </TabsTrigger>
         </TabsList>
 
-        {/* Create Agreement Tab */}
-        <TabsContent value="create" className="space-y-4">
+        {/* Manage Tab - Continue in next part due to length */}
+        <TabsContent value="manage" className="space-y-4">
           <Card className="bg-[#1a0c1d] border-[#2D2D2D]">
             <CardHeader>
               <CardTitle className="text-white">Create New Agreement</CardTitle>
@@ -874,7 +764,7 @@ export default function ContractSetupCard() {
                     onClick={() => setAgreementMode("payroll")}
                     className={`px-4 py-2 rounded-md border cursor-pointer transition ${
                       agreementMode === "payroll"
-                        ? "border-[#598EFF] bg-[#598EFF]/10 text-white"
+                        ? "bg-white text-black border-white shadow"
                         : "border-[#242428] bg-transparent text-[#E5E5E5] hover:bg-[#1A1A1A]"
                     }`}
                   >
@@ -885,7 +775,7 @@ export default function ContractSetupCard() {
                     onClick={() => setAgreementMode("escrow")}
                     className={`px-4 py-2 rounded-md border cursor-pointer transition ${
                       agreementMode === "escrow"
-                        ? "border-[#598EFF] bg-[#598EFF]/10 text-white"
+                        ? "bg-white text-black border-white shadow"
                         : "border-[#242428] bg-transparent text-[#E5E5E5] hover:bg-[#1A1A1A]"
                     }`}
                   >
@@ -959,7 +849,7 @@ export default function ContractSetupCard() {
                         onClick={() => setEscrowPaymentType("time")}
                         className={`px-4 py-2 rounded-md border cursor-pointer transition ${
                           escrowPaymentType === "time"
-                            ? "border-[#598EFF] bg-[#598EFF]/10 text-white"
+                            ? "bg-white text-black border-white shadow"
                             : "border-[#242428] bg-transparent text-[#E5E5E5] hover:bg-[#1A1A1A]"
                         }`}
                       >
@@ -970,7 +860,7 @@ export default function ContractSetupCard() {
                         onClick={() => setEscrowPaymentType("milestone")}
                         className={`px-4 py-2 rounded-md border cursor-pointer transition ${
                           escrowPaymentType === "milestone"
-                            ? "border-[#598EFF] bg-[#598EFF]/10 text-white"
+                            ? "bg-white text-black border-white shadow"
                             : "border-[#242428] bg-transparent text-[#E5E5E5] hover:bg-[#1A1A1A]"
                         }`}
                       >
@@ -1208,9 +1098,9 @@ export default function ContractSetupCard() {
                         }
                         
                         showToast(
-                          `${agreementType} Agreement Created Successfully!`,
-                          "success",
-                          `Agreement ID: ${agreementId}. Transaction: ${shortHex(txHash)}. The agreement has been added to your list.`
+                          "Agreement created",
+                          `Transaction completed successfully.`,
+                          "success"
                         );
                       } catch (e) {
                         // If we can't get agreement ID, still show success
@@ -1222,15 +1112,15 @@ export default function ContractSetupCard() {
                         setPayrollNumPeriods("1");
                         
                         showToast(
-                          `${agreementType} Agreement Created Successfully!`,
-                          "success",
-                          `Transaction: ${shortHex(txHash)}. Use the "My Agreements" tab to view all your agreements.`
+                          "Agreement created",
+                          `Transaction completed successfully.`,
+                          "success"
                         );
                       }
                     }
                   } catch (e: any) {
                     setCreateAgreementError(e?.message || "Failed to create agreement");
-                    showToast("Failed to create agreement", "error", e?.message);
+                    showToast("Creation failed", e?.message || "Please try again.", "error");
                   }
                 }}
                 className="w-full px-4 py-2 rounded-md bg-white text-black border border-[#E5E5E5]/10 hover:bg-[#f3f3f3] disabled:opacity-60 disabled:cursor-not-allowed transition cursor-pointer flex items-center justify-center gap-2"
@@ -1245,86 +1135,6 @@ export default function ContractSetupCard() {
                 )}
               </button>
             </CardFooter>
-          </Card>
-        </TabsContent>
-
-        {/* View Details Tab */}
-        <TabsContent value="view" className="space-y-4">
-          <Card className="bg-[#1a0c1d] border-[#2D2D2D]">
-            <CardHeader>
-              <CardTitle className="text-white">View Agreement Details</CardTitle>
-              <CardDescription className="text-[#A0A0A0]">
-                Enter an agreement ID to view its details
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="space-y-2">
-                <Label className="text-white">Agreement ID</Label>
-                <div className="flex gap-2">
-                  <Input
-                    value={viewAgreementId}
-                    onChange={(e) => setViewAgreementId(e.target.value)}
-                    placeholder="e.g. 1"
-                    className="bg-transparent border-[#242428] text-white"
-                  />
-              <button
-                type="button"
-                    onClick={loadAgreementDetails}
-                    disabled={!viewAgreementId || loadingDetails}
-                    className="px-4 py-2 rounded-md bg-white text-black border border-[#E5E5E5]/10 hover:bg-[#f3f3f3] disabled:opacity-60 disabled:cursor-not-allowed transition cursor-pointer"
-                  >
-                    {loadingDetails ? <Loader2 className="animate-spin w-4 h-4" /> : <Eye className="w-4 h-4" />}
-              </button>
-              </div>
-            </div>
-
-              {detailsError ? (
-                <div className="text-sm text-red-400">{detailsError}</div>
-            ) : null}
-
-              {agreementDetails && (
-                <div className="space-y-3 p-4 rounded-md bg-[#0D0D0D] border border-[#242428]">
-                  <div className="grid grid-cols-2 gap-4 text-sm">
-                    <div>
-                      <span className="text-[#A0A0A0]">Status:</span>
-                      <span className="text-white ml-2">{statusLabels[agreementDetails.status || 0]}</span>
-              </div>
-                    <div>
-                      <span className="text-[#A0A0A0]">Mode:</span>
-                      <span className="text-white ml-2">{modeLabels[agreementDetails.mode || 0]}</span>
-            </div>
-                    <div>
-                      <span className="text-[#A0A0A0]">Employer:</span>
-                      <span className="text-white ml-2 font-mono">{shortHex(agreementDetails.employer || "")}</span>
-                    </div>
-                    {agreementDetails.contributor && (
-                      <div>
-                        <span className="text-[#A0A0A0]">Contributor:</span>
-                        <span className="text-white ml-2 font-mono">{shortHex(agreementDetails.contributor)}</span>
-                      </div>
-                    )}
-                    <div>
-                      <span className="text-[#A0A0A0]">Total Amount:</span>
-                      <span className="text-white ml-2">{agreementDetails.total_amount || "0"}</span>
-                    </div>
-                    <div>
-                      <span className="text-[#A0A0A0]">Paid Amount:</span>
-                      <span className="text-white ml-2">{agreementDetails.paid_amount || "0"}</span>
-                    </div>
-                    <div>
-                      <span className="text-[#A0A0A0]">Dispute Status:</span>
-                      <span className="text-white ml-2">{disputeStatusLabels[agreementDetails.dispute_status || 0]}</span>
-                    </div>
-                    {agreementDetails.employee_count !== undefined && (
-                      <div>
-                        <span className="text-[#A0A0A0]">Employees:</span>
-                        <span className="text-white ml-2">{agreementDetails.employee_count}</span>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              )}
-            </CardContent>
           </Card>
         </TabsContent>
 
@@ -1370,7 +1180,7 @@ export default function ContractSetupCard() {
                     onClick={() => setManageAction("pause")}
                     className={`px-4 py-2 rounded-md border cursor-pointer transition ${
                       manageAction === "pause"
-                        ? "border-[#598EFF] bg-[#598EFF]/10 text-white"
+                        ? "bg-white text-black border-white shadow"
                         : "border-[#242428] bg-transparent text-[#E5E5E5] hover:bg-[#1A1A1A]"
                     }`}
                   >
@@ -1382,7 +1192,7 @@ export default function ContractSetupCard() {
                     onClick={() => setManageAction("resume")}
                     className={`px-4 py-2 rounded-md border cursor-pointer transition ${
                       manageAction === "resume"
-                        ? "border-[#598EFF] bg-[#598EFF]/10 text-white"
+                        ? "bg-white text-black border-white shadow"
                         : "border-[#242428] bg-transparent text-[#E5E5E5] hover:bg-[#1A1A1A]"
                     }`}
                   >
@@ -1394,7 +1204,7 @@ export default function ContractSetupCard() {
                     onClick={() => setManageAction("cancel")}
                     className={`px-4 py-2 rounded-md border cursor-pointer transition ${
                       manageAction === "cancel"
-                        ? "border-[#598EFF] bg-[#598EFF]/10 text-white"
+                        ? "bg-white text-black border-white shadow"
                         : "border-[#242428] bg-transparent text-[#E5E5E5] hover:bg-[#1A1A1A]"
                     }`}
                   >
@@ -1406,7 +1216,7 @@ export default function ContractSetupCard() {
                     onClick={() => setManageAction("finalize_grace_period")}
                     className={`px-4 py-2 rounded-md border cursor-pointer transition ${
                       manageAction === "finalize_grace_period"
-                        ? "border-[#598EFF] bg-[#598EFF]/10 text-white"
+                        ? "bg-white text-black border-white shadow"
                         : "border-[#242428] bg-transparent text-[#E5E5E5] hover:bg-[#1A1A1A]"
                     }`}
                   >
@@ -1445,14 +1255,14 @@ export default function ContractSetupCard() {
                     if (txHash) {
                       setManageAgreementId("");
                       showToast(
-                        `Agreement ${actionName} Successful!`,
-                        "success",
-                        `Transaction: ${shortHex(txHash)}`
+                        "Action successful",
+                        `Transaction completed successfully.`,
+                        "success"
                       );
                     }
                   } catch (e: any) {
                     setManageError(e?.message || "Failed to execute action");
-                    showToast("Action failed", "error", e?.message);
+                    showToast("Action failed", e?.message || "Please try again.", "error");
                   }
                 }}
                 className="w-full px-4 py-2 rounded-md bg-white text-black border border-[#E5E5E5]/10 hover:bg-[#f3f3f3] disabled:opacity-60 disabled:cursor-not-allowed transition cursor-pointer flex items-center justify-center gap-2"
@@ -1596,9 +1406,9 @@ export default function ContractSetupCard() {
                     // Step 3: Approve if needed
                     if (allowance < amountBigInt) {
                       showToast(
-                        "Approval Required", 
-                        "info", 
-                        "Please review and confirm the approval transaction in your wallet. Click 'Review' on the warning banner if the Confirm button is disabled."
+                        "Approval required", 
+                        "Please confirm the transaction in your wallet.",
+                        "info"
                       );
                       
                       // Approve exactly the amount needed (or a small buffer of 10% to avoid frequent approvals)
@@ -1615,10 +1425,12 @@ export default function ContractSetupCard() {
                       
                       const approveTx = await executeCall(approvePrepared.call);
                       if (!approveTx?.transaction_hash) {
-                        throw new Error("Token approval failed. Please make sure to review the warning and click 'Review' if the Confirm button is disabled.");
+                        // Error toast is shown by connect-wallet-button component
+                        const errorMsg = "Token approval failed. Please make sure to review the warning and click 'Review' if the Confirm button is disabled.";
+                        throw new Error(errorMsg);
                       }
                       
-                      showToast("Token Approved!", "success", `Transaction: ${shortHex(approveTx.transaction_hash)}`);
+                      showToast("Token approved", `Transaction completed successfully.`, "success");
                       
                       // Process events in the background
                       processTransactionEvents(approveTx.transaction_hash).catch(() => {});
@@ -1638,16 +1450,16 @@ export default function ContractSetupCard() {
                       setFundAgreementId("");
                       setFundAmount("");
                       showToast(
-                        "Agreement Funded Successfully!",
-                        "success",
-                        `Transaction: ${shortHex(txHash)}. Agreement ID: ${agreementId}`
+                        "Agreement funded",
+                        `Transaction completed successfully.`,
+                        "success"
                       );
                       // Process events (also done in executeAction, but ensure it happens)
                       processTransactionEvents(txHash).catch(() => {});
                     }
                   } catch (e: any) {
                     setFundError(e?.message || "Failed to fund agreement");
-                    showToast("Failed to fund agreement", "error", e?.message);
+                    showToast("Funding failed", e?.message || "Please try again.", "error");
                   }
                 }}
                 className="w-full px-4 py-2 rounded-md bg-white text-black border border-[#E5E5E5]/10 hover:bg-[#f3f3f3] disabled:opacity-60 disabled:cursor-not-allowed transition cursor-pointer flex items-center justify-center gap-2"
@@ -1786,14 +1598,14 @@ export default function ContractSetupCard() {
                       setAddEmployeeAddress("");
                       setAddEmployeeSalary("");
                       showToast(
-                        "Employee Added Successfully!",
-                        "success",
-                        `Transaction: ${shortHex(txHash)}. Agreement ID: ${agreementId}`
+                        "Employee added",
+                        `Transaction completed successfully.`,
+                        "success"
                       );
                     }
                   } catch (e: any) {
                     setAddEmployeeError(e?.message || "Failed to add employee");
-                    showToast("Failed to add employee", "error", e?.message);
+                    showToast("Addition failed", "error", e?.message || "Please try again.");
                   }
                 }}
                 className="w-full px-4 py-2 rounded-md bg-white text-black border border-[#E5E5E5]/10 hover:bg-[#f3f3f3] disabled:opacity-60 disabled:cursor-not-allowed transition cursor-pointer flex items-center justify-center gap-2"
@@ -1902,14 +1714,14 @@ export default function ContractSetupCard() {
                         setAddMilestoneAgreementId("");
                         setAddMilestoneAmount("");
                         showToast(
-                          "Milestone Added Successfully!",
-                          "success",
-                          `Transaction: ${shortHex(txHash)}. Agreement ID: ${agreementId}`
+                          "Milestone added",
+                          `Transaction completed successfully.`,
+                          "success"
                         );
                       }
                     } catch (e: any) {
                       setAddMilestoneError(e?.message || "Failed to add milestone");
-                      showToast("Failed to add milestone", "error", e?.message);
+                      showToast("Addition failed", e?.message || "Please try again.", "error");
                     }
                   }}
                   className="w-full px-4 py-2 rounded-md bg-white text-black border border-[#E5E5E5]/10 hover:bg-[#f3f3f3] disabled:opacity-60 disabled:cursor-not-allowed transition cursor-pointer flex items-center justify-center gap-2"
@@ -2008,14 +1820,14 @@ export default function ContractSetupCard() {
                         setApproveMilestoneAgreementId("");
                         setApproveMilestoneId("");
                         showToast(
-                          "Milestone Approved Successfully!",
-                          "success",
-                          `Transaction: ${shortHex(txHash)}. Agreement ID: ${agreementId}, Milestone ID: ${milestoneId}`
+                          "Milestone approved",
+                          `Transaction completed successfully.`,
+                          "success"
                         );
                       }
                     } catch (e: any) {
                       setApproveMilestoneError(e?.message || "Failed to approve milestone");
-                      showToast("Failed to approve milestone", "error", e?.message);
+                      showToast("Approval failed", e?.message || "Please try again.", "error");
                     }
                   }}
                   className="w-full px-4 py-2 rounded-md bg-white text-black border border-[#E5E5E5]/10 hover:bg-[#f3f3f3] disabled:opacity-60 disabled:cursor-not-allowed transition cursor-pointer flex items-center justify-center gap-2"
@@ -2097,14 +1909,14 @@ export default function ContractSetupCard() {
                     if (txHash) {
                       setActivateAgreementId("");
                       showToast(
-                        "Agreement Activated Successfully!",
-                        "success",
-                        `Transaction: ${shortHex(txHash)}. Agreement ID: ${agreementId} is now active.`
+                        "Agreement activated",
+                        `Transaction completed successfully.`,
+                        "success"
                       );
                     }
                   } catch (e: any) {
                     setActivateError(e?.message || "Failed to activate agreement");
-                    showToast("Failed to activate agreement", "error", e?.message);
+                    showToast("Activation failed", e?.message || "Please try again.", "error");
                   }
                 }}
                 className="w-full px-4 py-2 rounded-md bg-white text-black border border-[#E5E5E5]/10 hover:bg-[#f3f3f3] disabled:opacity-60 disabled:cursor-not-allowed transition cursor-pointer flex items-center justify-center gap-2"
@@ -2152,7 +1964,7 @@ export default function ContractSetupCard() {
                     onClick={() => setDisputeAction("raise")}
                     className={`px-4 py-2 rounded-md border transition cursor-pointer ${
                       disputeAction === "raise"
-                        ? "border-[#598EFF] bg-[#598EFF]/10 text-white"
+                        ? "bg-white text-black border-white shadow"
                         : "border-[#242428] bg-transparent text-[#E5E5E5] hover:bg-[#1A1A1A]"
                     }`}
                   >
@@ -2164,7 +1976,7 @@ export default function ContractSetupCard() {
                     onClick={() => setDisputeAction("resolve")}
                     className={`px-4 py-2 rounded-md border transition cursor-pointer ${
                       disputeAction === "resolve"
-                        ? "border-[#598EFF] bg-[#598EFF]/10 text-white"
+                        ? "bg-white text-black border-white shadow"
                         : "border-[#242428] bg-transparent text-[#E5E5E5] hover:bg-[#1A1A1A]"
                     }`}
                   >
@@ -2270,9 +2082,9 @@ export default function ContractSetupCard() {
                       if (txHash) {
                         setDisputeAgreementId("");
                         showToast(
-                          "Dispute Raised Successfully!",
-                          "success",
-                          `Transaction: ${shortHex(txHash)}. Agreement ID: ${agreementId}`
+                          "Dispute raised",
+                          `Transaction completed successfully.`,
+                          "success"
                         );
                       }
                     } else {
@@ -2291,15 +2103,15 @@ export default function ContractSetupCard() {
                         setDisputePayContributor("");
                         setDisputeRefundEmployer("");
                         showToast(
-                          "Dispute Resolved Successfully!",
-                          "success",
-                          `Transaction: ${shortHex(txHash)}. Agreement ID: ${agreementId}`
+                          "Dispute resolved",
+                          `Transaction completed successfully.`,
+                          "success"
                         );
                       }
                     }
                   } catch (e: any) {
                     setDisputeError(e?.message || "Failed to process dispute");
-                    showToast("Failed to process dispute", "error", e?.message);
+                    showToast("Processing failed", e?.message || "Please try again.", "error");
                   }
                 }}
                 className="w-full px-4 py-2 rounded-md bg-white text-black border border-[#E5E5E5]/10 hover:bg-[#f3f3f3] disabled:opacity-60 disabled:cursor-not-allowed transition cursor-pointer flex items-center justify-center gap-2"
@@ -2317,108 +2129,6 @@ export default function ContractSetupCard() {
           </Card>
         </TabsContent>
 
-        {/* My Agreements Tab */}
-        <TabsContent value="my-agreements" className="space-y-4">
-          <Card className="bg-[#1a0c1d] border-[#2D2D2D]">
-            <CardHeader>
-              <CardTitle className="text-white">My Agreements</CardTitle>
-              <CardDescription className="text-[#A0A0A0]">
-                View all agreements where you are the employer, contributor, or employee
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              {authHint ? <div className="text-sm text-[#EB6945]">{authHint}</div> : null}
-
-              <button
-                type="button"
-                onClick={async () => {
-                  if (!address || !agreementDefault) return;
-                  setLoadingAgreements(true);
-                  setAgreementsError(null);
-                  try {
-                    // Force refresh the index to ensure we get newly created agreements
-                    const data = await apiGet<{ agreements: typeof myAgreements }>(
-                      `/agreement/${agreementDefault}/list/${address}?refresh=true`
-                    );
-                    setMyAgreements(data.agreements);
-                  } catch (e: any) {
-                    setAgreementsError(e?.message || "Failed to load agreements");
-                  } finally {
-                    setLoadingAgreements(false);
-                  }
-                }}
-                disabled={!address || loadingAgreements}
-                className="px-4 py-2 rounded-md bg-white text-black border border-[#E5E5E5]/10 hover:bg-[#f3f3f3] disabled:opacity-60 disabled:cursor-not-allowed transition cursor-pointer flex items-center gap-2"
-              >
-                {loadingAgreements ? (
-                  <>
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                    Loading...
-                  </>
-                ) : (
-                  <>
-                    <RefreshCw className="w-4 h-4" />
-                    Refresh Agreements
-                  </>
-                )}
-              </button>
-
-              {agreementsError ? (
-                <div className="text-sm text-red-400">{agreementsError}</div>
-              ) : null}
-
-              {myAgreements.length === 0 && !loadingAgreements ? (
-                <div className="text-sm text-[#A0A0A0] text-center py-8">
-                  No agreements found. Create an agreement to get started.
-                </div>
-              ) : (
-                <div className="space-y-3">
-                  {myAgreements.map((agreement) => (
-                    <div
-                      key={agreement.agreement_id}
-                      className="p-4 rounded-md bg-[#0D0D0D] border border-[#242428] hover:border-[#598EFF]/50 transition cursor-pointer"
-                      onClick={() => {
-                        setViewAgreementId(agreement.agreement_id);
-                        setActiveTab("view");
-                      }}
-                    >
-                      <div className="flex justify-between items-start mb-2">
-                        <div>
-                          <div className="text-white font-semibold">
-                            Agreement #{agreement.agreement_id}
-                          </div>
-                          <div className="text-sm text-[#A0A0A0]">
-                            {modeLabels[agreement.mode]} • {statusLabels[agreement.status]}
-                          </div>
-                        </div>
-                        <div className="text-right">
-                          <div className="text-sm text-[#A0A0A0]">Total</div>
-                          <div className="text-white font-mono text-sm">{agreement.total_amount}</div>
-                        </div>
-                      </div>
-                      <div className="grid grid-cols-2 gap-4 mt-3 text-xs">
-                        <div>
-                          <span className="text-[#A0A0A0]">Employer:</span>
-                          <span className="text-white ml-2 font-mono">{shortHex(agreement.employer)}</span>
-                        </div>
-                        {agreement.contributor && agreement.contributor !== "0x0" && (
-                          <div>
-                            <span className="text-[#A0A0A0]">Contributor:</span>
-                            <span className="text-white ml-2 font-mono">{shortHex(agreement.contributor)}</span>
-                          </div>
-                        )}
-                        <div>
-                          <span className="text-[#A0A0A0]">Paid:</span>
-                          <span className="text-white ml-2 font-mono">{agreement.paid_amount}</span>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        </TabsContent>
       </Tabs>
 
       {/* Initialize Contracts */}
@@ -2509,14 +2219,14 @@ export default function ContractSetupCard() {
                   if (txHash) {
                     setInitEscrowOpen(false);
                     showToast(
-                      "Escrow Initialized Successfully!",
-                      "success",
-                      `Transaction: ${shortHex(txHash)}. The escrow is now ready to use.`
+                      "Escrow initialized",
+                      `Transaction completed successfully.`,
+                      "success"
                     );
                   }
                 } catch (e: any) {
                   setInitEscrowError(e?.message || "Failed to initialize escrow");
-                  showToast("Failed to initialize escrow", "error", e?.message);
+                  showToast("Initialization failed", e?.message || "Please try again.", "error");
                 }
               }}
               className="px-4 py-2 rounded-md bg-white text-black border border-[#E5E5E5]/10 hover:bg-[#f3f3f3] disabled:opacity-60 disabled:cursor-not-allowed transition cursor-pointer flex items-center justify-center gap-2"
@@ -2672,16 +2382,16 @@ export default function ContractSetupCard() {
                     if (txHash) {
                       setInitAgreementOpen(false);
                       showToast(
-                        "Agreement Initialized Successfully!",
-                        "success",
-                        `Transaction: ${shortHex(txHash)}. The agreement contract is now ready to use.`
+                        "Agreement initialized",
+                        `Transaction completed successfully.`,
+                        "success"
                       );
                     }
                   } catch (e: any) {
                     const errorMsg = e?.message || "Failed to initialize agreement";
                     setInitAgreementError(errorMsg);
                     console.error("[Initialize Agreement] Error:", e);
-                    showToast("Failed to initialize agreement", "error", errorMsg);
+                    showToast("Initialization failed", errorMsg || "Please try again.", "error");
                   }
                 }}
                 className="px-4 py-2 rounded-md bg-white text-black border border-[#E5E5E5]/10 hover:bg-[#f3f3f3] disabled:opacity-60 disabled:cursor-not-allowed transition cursor-pointer flex items-center justify-center gap-2"
