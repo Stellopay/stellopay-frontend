@@ -1,11 +1,4 @@
-export type Network =
-  | "ethereum"
-  | "starknet"
-  | "polygon"
-  | "arbitrum"
-  | "optimism"
-  | "stellar"
-  | "all";
+export type Network = "ethereum" | "starknet" | "stellar" | "all";
 
 export interface NetworkContextProps {
   selectedNetwork: Network;

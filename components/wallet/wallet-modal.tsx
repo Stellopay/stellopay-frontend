@@ -17,7 +17,7 @@ const ALL_WALLETS: Wallet[] = [
     id: "metamask",
     name: "MetaMask",
     icon: "/logos/MetaMask.svg",
-    supportedNetworks: ["ethereum", "polygon", "arbitrum", "optimism"],
+    supportedNetworks: ["ethereum"],
     installUrl: "https://metamask.io/download/",
   },
   {
@@ -38,14 +38,14 @@ const ALL_WALLETS: Wallet[] = [
     id: "trustwallet",
     name: "Trust Wallet",
     icon: "/logos/trust-wallet.svg",
-    supportedNetworks: ["ethereum", "polygon"],
+    supportedNetworks: ["ethereum"],
     installUrl: "https://trustwallet.com/",
   },
   {
     id: "coinbase",
     name: "Coinbase Wallet",
     icon: "/logos/coinbase.png",
-    supportedNetworks: ["ethereum", "polygon", "arbitrum"],
+    supportedNetworks: ["ethereum"],
     installUrl: "https://www.coinbase.com/wallet",
   },
 

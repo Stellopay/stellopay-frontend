@@ -15,9 +15,6 @@ import Image from "next/image";
 const NETWORKS: { value: Network; label: string; icon: string }[] = [
   { value: "ethereum", label: "ETH", icon: "/logos/eth.svg" },
   { value: "starknet", label: "Starknet", icon: "/logos/starknet.svg" },
-  { value: "polygon", label: "Polygon", icon: "/logos/polygon.svg" },
-  { value: "arbitrum", label: "Arbitrum", icon: "/logos/arbitrum.svg" },
-  { value: "optimism", label: "Optimism", icon: "/logos/optimism.svg" },
   { value: "stellar", label: "Stellar", icon: "/stellar.png" },
 ];
 
@@ -31,9 +28,9 @@ export function NetworkSwitcher() {
       <Image
         src={icon}
         alt=""
-        width={isSelected ? 40 : 20}
-        height={isSelected ? 40 : 20}
-        className={isSelected ? "w-10 h-10" : "w-5 h-5"}
+        width={isSelected ? 20 : 20}
+        height={isSelected ? 20 : 20}
+        className={isSelected ? "w-6 h-6" : "w-6 h-5"}
       />
     );
   };
@@ -41,7 +38,7 @@ export function NetworkSwitcher() {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button className="text-white outline-0 bg-[#1A0C1D] hover:bg-[#1A0C1D] cursor-pointer flex items-center gap-2">
+        <Button className="text-white bg-[#1A0C1D] hover:bg-[#1A0C1D] cursor-pointer flex items-center gap-2">
           {renderIcon(currentNetwork?.icon || "", true)}
           <span className="hidden sm:inline">{currentNetwork?.label}</span>
           <ChevronDown className="h-4 w-4" />
