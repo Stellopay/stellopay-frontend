@@ -3,6 +3,7 @@ import { Inter } from "next/font/google";
 import localFont from "next/font/local";
 import "./globals.css";
 import { SidebarProvider } from "@/context/sidebar-context";
+import { NetworkProvider } from "@/context/network-context";
 
 const inter = Inter({
   variable: "--font-inter",
@@ -38,7 +39,9 @@ export default function RootLayout({
       <body
         className={`${inter.variable} ${clashDisplay.variable} ${generalSans.variable} antialiased`}
       >
-        <SidebarProvider> {children}</SidebarProvider>
+        <SidebarProvider>
+          <NetworkProvider>{children}</NetworkProvider>
+        </SidebarProvider>
       </body>
     </html>
   );

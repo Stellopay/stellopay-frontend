@@ -1,7 +1,20 @@
 // components/Navbar.tsx
-import { Bell, Settings, HelpCircle } from "lucide-react";
+"use client";
+
+import { useState } from "react";
+import { Bell, Settings, HelpCircle, Wallet } from "lucide-react";
+import { NetworkSwitcher } from "./network-switcher";
+import { WalletModal } from "@/components/wallet/wallet-modal";
+import { Button } from "@/components/ui/button";
+import { Wallet as WalletType } from "@/types/wallet";
 
 export default function Navbar() {
+  const [isWalletModalOpen, setIsWalletModalOpen] = useState(false);
+
+  const handleConnectWallet = (wallet: WalletType) => {
+    console.log("Connecting to wallet:", wallet.name);
+  };
+
   return (
     <>
       <nav className="w-full h-[75px] border-b border-[#1A1A1A] px-4 md:px-10">
@@ -28,18 +41,27 @@ export default function Navbar() {
               <HelpCircle className="w-10 h-10 sm:w-6 sm:h-6 text-[#6e6d6e] hover:text-[#FFFFFF] transition-colors" />
             </div>
 
-            {/* Avatar */}
-            <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-full border-2 border-pink-500 relative">
-              <img
-                src="/avatar.jpg"
-                alt="User"
-                className="w-full h-full rounded-full object-cover"
-              />
-              <span className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 rounded-full border-2 border-[#1a0c1d]"></span>
+            <div className="flex items-center gap-4 mt-2 sm:mt-0">
+              <NetworkSwitcher />
+              <Button
+                onClick={() => setIsWalletModalOpen(true)}
+                className="bg-[#0D0D0D] cursor-pointer text-white flex items-center gap-2"
+              >
+                <img src="/wallet.svg" className="w-5 h-5" alt="" />
+                <span className="hidden sm:inline font-medium text-sm">
+                  Connect Wallet
+                </span>
+              </Button>
             </div>
           </div>
         </div>
       </nav>
+
+      <WalletModal
+        isOpen={isWalletModalOpen}
+        onClose={() => setIsWalletModalOpen(false)}
+        onConnect={handleConnectWallet}
+      />
     </>
   );
 }
