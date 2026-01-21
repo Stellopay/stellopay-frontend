@@ -27,16 +27,25 @@ const features = [
   },
 ];
 
+// background: linear-gradient(180deg, #512DA4 0%, #A818B6 100%);
+// background: linear-gradient(180deg, #512DA4 0%, #A818B6 100%);
+
+
+
 export const KeyFeatures = () => {
   return (
     <section
       id="KeyFeatures"
-      className="py-16 px-4 md:px-10 text-center min-h-screen bg-[#EEF4FF]"
+      className="py-24 px-4 md:px-10 text-center relative overflow-hidden"
+      style={{
+        background: "linear-gradient(to bottom, transparent 0%, #EEF4FF 10%, #EEF4FF 90%, transparent 100%)",
+        backgroundColor: "#EEF4FF"
+      }}
     >
-      <div className="max-w-6xl mx-auto flex flex-col justify-center h-full">
-        <div className="bg-white w-12 h-1 rounded-full mb-4 mx-auto" />
-        <h2 className="text-4xl font-bold text-black mb-4 font-clash">Key features</h2>
-        <p className="text-gray-700 mb-12 text-base text-center max-w-4xl mx-auto">
+      <div className="max-w-7xl mx-auto flex flex-col justify-center h-full relative z-10">
+        <div className="bg-[#598EFF] w-12 h-1 rounded-full mb-6 mx-auto" />
+        <h2 className="text-[40px] md:text-[48px] font-bold text-black mb-6 font-clash tracking-tight">Key features</h2>
+        <p className="text-[#4A4A4A] mb-16 text-base md:text-lg text-center max-w-3xl mx-auto font-general leading-relaxed">
           Stellopay simplifies payroll with blockchain efficiency, ensuring
           seamless transactions for businesses worldwide. Designed for speed and
           security.

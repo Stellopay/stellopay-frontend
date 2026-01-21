@@ -1,6 +1,8 @@
 "use client";
 import React, { useState } from "react";
 import Link from "next/link";
+import { FaEthereum } from "react-icons/fa";
+import { HiChevronDown } from "react-icons/hi";
 
 const navLinks = [
   { name: "Home", href: "/" },
@@ -14,24 +16,24 @@ export default function LandingPageNavBar() {
   const [menuOpen, setMenuOpen] = useState(false);
 
   return (
-    <nav className="w-full h-[75px] px-4 md:px-8 absolute top-0 left-0 z-50 bg-transparent">
-      <div className="max-w-7xl mx-auto flex items-center justify-between px-4 py-2 md:py-8">
+    <nav className="w-full h-[80px] px-4 md:px-8 absolute top-0 left-0 z-50 bg-transparent">
+      <div className="max-w-7xl mx-auto flex items-center justify-between h-full py-4">
         {/* Logo */}
         <Link
           href="/"
-          className="font-[500] text-xl md:text-2xl"
-          style={{ fontFamily: "Clash Display, sans-serif", color: "#598EFF" }}
+          className="font-clash text-xl md:text-[24px] font-medium tracking-tight flex-1"
+          style={{ color: "#598EFF" }}
         >
           StelloPay
         </Link>
 
         {/* Desktop Nav Links */}
-        <div className="hidden md:flex flex-1 justify-center items-center gap-6">
+        <div className="hidden md:flex items-center gap-8 justify-center flex-2">
           {navLinks.map((link) => (
             <Link
               key={link.name}
               href={link.href}
-              className="text-white text-base font-normal hover:text-[#598EFF] transition-colors duration-200"
+              className="text-white text-lg font-normal hover:text-[#598EFF] transition-colors duration-200"
               style={{ fontFamily: "General Sans, sans-serif" }}
             >
               {link.name}
@@ -39,9 +41,18 @@ export default function LandingPageNavBar() {
           ))}
         </div>
 
-        {/* Desktop Auth Buttons */}
+        {/* Desktop Actions */}
         <div className="hidden md:flex items-center gap-4">
-          <button className="px-6 py-3.5 rounded-full border border-[#598EFF] text-[#EEF4FF] bg-transparent font-medium transition-colors duration-200 hover:bg-[#598EFF] hover:text-white cursor-pointer">
+          {/* ETH Selector */}
+          <div className="flex items-center gap-2 backdrop-blur-md rounded-full px-4 py-2 text-white cursor-pointer transition-colors">
+            <div className="w-10 h-10 rounded-full bg-[#1A1A1A] flex items-center justify-center p-1">
+              <FaEthereum className="text-[#221c27] text-xl" />
+            </div>
+            <span className="text-sm font-medium">ETH</span>
+            <HiChevronDown className="text-white text-lg" />
+          </div>
+
+          <button className="px-6 py-2.5 rounded-full border border-[#598EFF] text-white bg-transparent font-[400] transition-all duration-200 hover:bg-[#598EFF] hover:border-[#598EFF] cursor-pointer">
             Connect Wallet
           </button>
         </div>
@@ -74,7 +85,7 @@ export default function LandingPageNavBar() {
               </Link>
             ))}
             <div className="flex flex-col gap-3 w-full px-6">
-              <button className="border border-[#598EFF] text-[#FFFFFF] hover:bg-[#23213a] font-semibold py-3 px-8 rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-[#5b5bf6] focus:ring-offset-2 cursor-pointer">
+              <button className="px-6 py-3.5 rounded-full border border-[#598EFF] text-[#EEF4FF] bg-transparent font-medium transition-colors duration-200 hover:bg-[#598EFF] hover:text-white cursor-pointer text-center">
                 Connect Wallet
               </button>
             </div>
