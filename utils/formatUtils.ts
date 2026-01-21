@@ -60,3 +60,15 @@ export const truncateText = (text: string, maxLength: number): string => {
 export const capitalizeFirst = (str: string): string => {
   return str.charAt(0).toUpperCase() + str.slice(1).toLowerCase();
 };
+
+/**
+ * Formats a wallet address for display (shows first 6 and last 4 characters)
+ * @param address - The wallet address to format
+ * @returns Formatted address string
+ */
+export const formatAddress = (address: string): string => {
+  if (address.length <= 10) {
+    return address;
+  }
+  return `${address.slice(0, 6)}...${address.slice(-4)}`;
+};

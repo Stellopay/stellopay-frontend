@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import Image from "next/image";
 import { Wallet, WalletModalProps } from "@/types/wallet";
 import { Network, useNetwork } from "@/context/network-context";
+import { ethers } from "ethers";
 
 const ALL_WALLETS: Wallet[] = [
   {
@@ -58,9 +59,10 @@ const ALL_WALLETS: Wallet[] = [
   },
 ];
 
-export function WalletModal({ isOpen, onClose, onConnect }: WalletModalProps) {
+export function WalletModal({ isOpen, onClose, onSuccess }: WalletModalProps) {
   const { selectedNetwork } = useNetwork();
   const [filteredWallets, setFilteredWallets] = useState<Wallet[]>([]);
+  const [connectingWallet, setConnectingWallet] = useState<string | null>(null);
 
   useEffect(() => {
     if (selectedNetwork && selectedNetwork !== "all") {
@@ -73,9 +75,153 @@ export function WalletModal({ isOpen, onClose, onConnect }: WalletModalProps) {
     }
   }, [selectedNetwork]);
 
-  const handleConnect = (wallet: Wallet) => {
-    onConnect(wallet);
-    onClose();
+  const getEthereumProvider = (walletId: string) => {
+    const win = window as any;
+
+    console.log("Getting provider for:", walletId);
+    console.log("window.ethereum exists:", !!win.ethereum);
+    console.log("window.ethereum.providers:", win.ethereum?.providers);
+
+    // Handle multiple providers
+    if (Array.isArray(win.ethereum?.providers)) {
+      console.log("Multiple providers detected");
+      const provider = win.ethereum.providers.find((p: any) => {
+        console.log("Checking provider:", {
+          isMetaMask: p.isMetaMask,
+          isCoinbaseWallet: p.isCoinbaseWallet,
+          isTrust: p.isTrust,
+        });
+
+        switch (walletId) {
+          case "metamask":
+            return p.isMetaMask && !p.isCoinbaseWallet;
+          case "coinbase":
+            return p.isCoinbaseWallet;
+          case "trustwallet":
+            return p.isTrust;
+          default:
+            return false;
+        }
+      });
+
+      if (provider) {
+        console.log("Found provider in providers array");
+        return provider;
+      }
+    }
+
+    // Handle single provider or specific wallet instances
+    console.log("Checking single provider");
+    console.log("ethereum.isMetaMask:", win.ethereum?.isMetaMask);
+    console.log("ethereum.isCoinbaseWallet:", win.ethereum?.isCoinbaseWallet);
+
+    switch (walletId) {
+      case "metamask":
+        if (win.ethereum?.isMetaMask && !win.ethereum?.isCoinbaseWallet) {
+          console.log("Found MetaMask as single provider");
+          return win.ethereum;
+        }
+        break;
+      case "coinbase":
+        if (win.coinbaseWalletExtension) return win.coinbaseWalletExtension;
+        if (win.ethereum?.isCoinbaseWallet) return win.ethereum;
+        break;
+      case "trustwallet":
+        if (win.trustwallet) return win.trustwallet;
+        if (win.ethereum?.isTrust) return win.ethereum;
+        break;
+    }
+
+    console.log("No provider found for", walletId);
+    return null;
+  };
+
+  const handleConnect = async (wallet: Wallet) => {
+    setConnectingWallet(wallet.id);
+    try {
+      if (wallet.supportedNetworks.includes("starknet")) {
+        let starknetWallet: any = null;
+
+        if (wallet.id === "braavos" && (window as any).starknet_braavos) {
+          starknetWallet = (window as any).starknet_braavos;
+        } else if (
+          wallet.id === "argentx" &&
+          (window as any).starknet_argentX
+        ) {
+          starknetWallet = (window as any).starknet_argentX;
+        }
+
+        if (starknetWallet) {
+          try {
+            await starknetWallet.enable();
+            if (starknetWallet.isConnected && starknetWallet.selectedAddress) {
+              const address = starknetWallet.selectedAddress;
+              onSuccess?.(wallet, address);
+              onClose();
+            } else {
+              console.log(
+                "Failed to connect to Starknet wallet - not connected",
+              );
+              alert(
+                `Failed to connect to ${wallet.name}. Please unlock the wallet and try again.`,
+              );
+            }
+          } catch (error) {
+            console.log("Error connecting to Starknet wallet:", error);
+            alert(`Failed to connect to ${wallet.name}. Please try again.`);
+          }
+        } else {
+          console.log(
+            `Starknet wallet ${wallet.name} not found. Please install the wallet extension.`,
+          );
+          alert(`Please install ${wallet.name} wallet extension to connect.`);
+        }
+      } else if (
+        wallet.supportedNetworks.some((net) => ["ethereum"].includes(net))
+      ) {
+        const walletProvider = getEthereumProvider(wallet.id);
+
+        console.log("Wallet provider found:", !!walletProvider);
+
+        if (walletProvider) {
+          try {
+            const provider = new ethers.BrowserProvider(walletProvider);
+            const accounts = await provider.send("eth_requestAccounts", []);
+
+            const signer = await provider.getSigner();
+            const address = await signer.getAddress();
+            console.log(
+              "Connected to Ethereum wallet:",
+              wallet.name,
+              "Address:",
+              address,
+            );
+            onSuccess?.(wallet, address);
+            onClose();
+          } catch (error: any) {
+            console.error(`Failed to connect to ${wallet.name}:`, error);
+            console.error("Error details:", {
+              message: error.message,
+              code: error.code,
+              data: error.data,
+            });
+          }
+        } else {
+          console.error(`No provider found for ${wallet.name}`);
+          alert(
+            `Could not find ${wallet.name}. Please make sure it's installed and unlocked.`,
+          );
+        }
+      } else {
+        console.log("Unsupported network for wallet:", wallet.name);
+        alert("This wallet is not supported for the current network");
+      }
+    } catch (error) {
+      console.error("Failed to connect wallet:", error);
+      alert("Failed to connect wallet. Please try again.");
+    } finally {
+      setConnectingWallet(null);
+    }
   };
 
   const handleInstall = (wallet: Wallet) => {
@@ -92,14 +238,20 @@ export function WalletModal({ isOpen, onClose, onConnect }: WalletModalProps) {
         );
       case "coinbase":
         return (
-          !!(window as any).ethereum &&
-          (window as any).ethereum.isCoinbaseWallet
+          !!(window as any).coinbaseWalletExtension ||
+          (!!(window as any).ethereum &&
+            (window as any).ethereum.isCoinbaseWallet) ||
+          (Array.isArray((window as any).ethereum?.providers) &&
+            (window as any).ethereum.providers.some(
+              (p: any) => p.isCoinbaseWallet,
+            ))
         );
       case "trustwallet":
         return (
-          !!(window as any).ethereum &&
-          !(window as any).ethereum.isMetaMask &&
-          !(window as any).ethereum.isCoinbaseWallet
+          !!(window as any).trustwallet ||
+          (!!(window as any).ethereum && (window as any).ethereum.isTrust) ||
+          (Array.isArray((window as any).ethereum?.providers) &&
+            (window as any).ethereum.providers.some((p: any) => p.isTrust))
         );
       case "braavos":
         return !!(window as any).starknet_braavos;
@@ -162,10 +314,13 @@ export function WalletModal({ isOpen, onClose, onConnect }: WalletModalProps) {
                   {installed ? (
                     <Button
                       onClick={() => handleConnect(wallet)}
-                      className="bg-[#598EFF] hover:bg-[#4a7eff] text-white"
+                      disabled={connectingWallet === wallet.id}
+                      className="bg-[#598EFF] hover:bg-[#4a7eff] text-white disabled:opacity-50"
                       size="sm"
                     >
-                      Connect
+                      {connectingWallet === wallet.id
+                        ? "Connecting..."
+                        : "Connect"}
                     </Button>
                   ) : (
                     <Button

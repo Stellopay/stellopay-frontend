@@ -4,6 +4,7 @@ import localFont from "next/font/local";
 import "./globals.css";
 import { SidebarProvider } from "@/context/sidebar-context";
 import { NetworkProvider } from "@/context/network-context";
+import { WalletProvider } from "@/context/wallet-context";
 
 const inter = Inter({
   variable: "--font-inter",
@@ -40,7 +41,9 @@ export default function RootLayout({
         className={`${inter.variable} ${clashDisplay.variable} ${generalSans.variable} antialiased`}
       >
         <SidebarProvider>
-          <NetworkProvider>{children}</NetworkProvider>
+          <NetworkProvider>
+            <WalletProvider>{children}</WalletProvider>
+          </NetworkProvider>
         </SidebarProvider>
       </body>
     </html>

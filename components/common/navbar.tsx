@@ -7,12 +7,17 @@ import { NetworkSwitcher } from "./network-switcher";
 import { WalletModal } from "@/components/wallet/wallet-modal";
 import { Button } from "@/components/ui/button";
 import { Wallet as WalletType } from "@/types/wallet";
+import { useWallet } from "@/context/wallet-context";
+import { useNetwork } from "@/context/network-context";
+import { formatAddress } from "@/utils/formatUtils";
 
 export default function Navbar() {
   const [isWalletModalOpen, setIsWalletModalOpen] = useState(false);
+  const { connectedWallet, connectWallet, disconnectWallet } = useWallet();
+  const { selectedNetwork } = useNetwork();
 
-  const handleConnectWallet = (wallet: WalletType) => {
-    console.log("Connecting to wallet:", wallet.name);
+  const handleWalletSuccess = (wallet: WalletType, address: string) => {
+    connectWallet(wallet, address, selectedNetwork || "ethereum");
   };
 
   return (
@@ -41,8 +46,28 @@ export default function Navbar() {
               <HelpCircle className="w-10 h-10 sm:w-6 sm:h-6 text-[#6e6d6e] hover:text-[#FFFFFF] transition-colors" />
             </div>
 
-            <div className="flex items-center gap-4 mt-2 sm:mt-0">
-              <NetworkSwitcher />
+            <NetworkSwitcher />
+            {connectedWallet ? (
+              <div className="flex items-center gap-2">
+                <div className="bg-[#0D0D0D] px-3 py-2 rounded-lg flex items-center gap-2">
+                  <img
+                    src={connectedWallet.wallet.icon}
+                    className="w-5 h-5"
+                    alt=""
+                  />
+                  <span className="text-white font-medium text-sm">
+                    {formatAddress(connectedWallet.address)}
+                  </span>
+                </div>
+                <Button
+                  onClick={disconnectWallet}
+                  variant="outline"
+                  className="text-xs px-2 py-1 h-8"
+                >
+                  Disconnect
+                </Button>
+              </div>
+            ) : (
               <Button
                 onClick={() => setIsWalletModalOpen(true)}
                 className="bg-[#0D0D0D] cursor-pointer text-white flex items-center gap-2"
@@ -52,7 +77,7 @@ export default function Navbar() {
                   Connect Wallet
                 </span>
               </Button>
-            </div>
+            )}
           </div>
         </div>
       </nav>
@@ -60,7 +85,7 @@ export default function Navbar() {
       <WalletModal
         isOpen={isWalletModalOpen}
         onClose={() => setIsWalletModalOpen(false)}
-        onConnect={handleConnectWallet}
+        onSuccess={handleWalletSuccess}
       />
     </>
   );
