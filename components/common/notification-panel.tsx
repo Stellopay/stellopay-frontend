@@ -1,103 +1,80 @@
 "use client";
 
-import React, { useState } from "react";
-import { BellIcon, ChevronRight, ChevronRightIcon } from "lucide-react";
+import React from "react";
+import { BellIcon, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { IconBell } from "@/components/icons/bell-fill-icon";
-import { NotificationItem } from "@/types/notification-item";
 import { NotificationProps } from "@/types/ui";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import useSidebar from "@/context/sidebar-context";
 
 const NotificationPanel = ({ className, notifications }: NotificationProps) => {
-  const [showAll, setShowAll] = useState(false);
-  // Always show all notifications when "View All" is clicked, but make the container scrollable
-  const displayedNotifications = notifications;
+  const { isMobile } = useSidebar();
 
   return (
-    <div className="bg-[#0D0D0D80] bg-opacity-50 border border-[#2D2D2D] w-full max-w-[500px] rounded-xl p-3 text-[#E5E5E5] flex flex-col h-[400px]">
-      <div className="flex justify-between items-center mb-3 flex-shrink-0 px-1 gap-4">
-        <div className="flex items-center gap-2.5">
-          <Button
-            className="bg-[#121212] border border-[#2E2E2E] cursor-pointer hover:bg-inherit h-8 w-8"
-            size="icon"
-          >
-            <BellIcon className="h-4 w-4" />
-          </Button>
-
-          <span className="text-sm font-medium">Notifications</span>
+    <Popover>
+      <PopoverTrigger asChild>
+        <div className="p-2 rounded-md relative cursor-pointer group">
+          <BellIcon
+            className="w-10 h-10 sm:w-6 sm:h-6 text-[#6e6d6e] group-hover:text-[#FFFFFF] transition-colors"
+          />
+          {notifications.some((n) => !n.read) && (
+            <span className="absolute top-2 right-2 sm:top-2.5 sm:right-2.5 w-2.5 h-2.5 bg-[#EB6945] rounded-full"></span>
+          )}
         </div>
-        {notifications.length > 3 && (
-          <Button 
-            className="bg-[#12121266] border border-[#2E2E2E] cursor-pointer px-2.5 py-1.5 h-7 hover:bg-inherit flex items-center gap-1"
-            onClick={() => setShowAll(!showAll)}
-          >
-            <p className="text-[#E5E5E5] font-light text-xs">{showAll ? "Show Less" : "View All"}</p>
-            <ChevronRight className={`h-3 w-3 ${showAll ? "rotate-90" : ""}`} />
-          </Button>
-        )}
-      </div>
-
-      <div 
-        className="flex flex-col gap-2.5 overflow-y-auto flex-1 pr-3 min-h-0 pb-0 notification-scrollbar"
-        style={{
-          scrollbarWidth: 'thin',
-          scrollbarColor: '#2D2D2D transparent',
-        }}
+      </PopoverTrigger>
+      <PopoverContent
+        align={isMobile ? "center" : "end"}
+        className="w-screen sm:w-[400px] p-0 border-[#2D2D2D] bg-[#0D0D0D] text-[#E5E5E5] shadow-xl z-50"
       >
-        {displayedNotifications.length === 0 ? (
-          <div className="text-center text-[#A0A0A0] py-4 text-xs">No notifications</div>
-        ) : (
-          <>
-            {showAll ? (
-              // Show all notifications with scroll
-              displayedNotifications.map((notification, index) => (
-                <div
-                  key={index}
-                  className="bg-[#12121266] bg-opacity-40 border border-[#2D2D2D] rounded-lg p-2.5 px-3 flex justify-between items-center flex-shrink-0"
-                >
-                  <div className="grid gap-0.5 flex-1 min-w-0 pr-2">
-                    <p className="font-light text-[#E5E5E5] text-xs">
-                      {notification.title}
-                    </p>
-                    <p className="text-[10px] text-[#505050] truncate">
-                      {notification.message}
-                    </p>
-                  </div>
-                  <div className="relative w-5 h-5 flex items-center justify-center bg-[#0D0D0D80]/50 border border-[#2E2E2E] rounded-sm flex-shrink-0">
-                    <IconBell className="h-3 w-3" />
-                    {!notification.read && (
-                      <div className="absolute -top-0.5 -right-0.5 w-1 h-1 bg-[#EB6945] rounded-full" />
-                    )}
-                  </div>
+        <div className="p-4 border-b border-[#2D2D2D] flex justify-between items-center">
+          <div className="flex items-center gap-3">
+            <div className="bg-[#121212] border border-[#2E2E2E] p-2 rounded-md">
+              <BellIcon className="h-4 w-4" />
+            </div>
+            <span className="font-medium">Notifications</span>
+          </div>
+          <Button variant="ghost" size="sm" className="h-8 px-2 text-[#E5E5E5] hover:bg-[#121212] hover:text-white border border-[#2E2E2E] bg-[#12121266]">
+            <p className="font-light text-xs mr-1">View All</p>
+            <ChevronRight className="h-3 w-3" />
+          </Button>
+        </div>
+
+        <div className="p-4 space-y-3 max-h-[400px] overflow-y-auto">
+          {notifications.length === 0 ? (
+            <div className="text-center py-8 text-muted-foreground text-sm">
+              No new notifications
+            </div>
+          ) : (
+            notifications.map((notification, index) => (
+              <div
+                key={index}
+                className="bg-[#12121266] hover:bg-[#121212] transition-colors border border-[#2D2D2D] rounded-lg p-3 flex justify-between items-start gap-3"
+              >
+                <div className="grid gap-1">
+                  <p className="font-medium text-[#E5E5E5] text-sm">
+                    {notification.title}
+                  </p>
+                  <p className="text-xs text-[#888] line-clamp-2">
+                    {notification.message}
+                  </p>
                 </div>
-              ))
-            ) : (
-              // Show only first 3 notifications
-              displayedNotifications.slice(0, 5).map((notification, index) => (
-                <div
-                  key={index}
-                  className="bg-[#12121266] bg-opacity-40 border border-[#2D2D2D] rounded-lg p-2.5 px-3 flex justify-between items-center flex-shrink-0"
-                >
-                  <div className="grid gap-0.5 flex-1 min-w-0 pr-2">
-                    <p className="font-light text-[#E5E5E5] text-xs">
-                      {notification.title}
-                    </p>
-                    <p className="text-[10px] text-[#505050] truncate">
-                      {notification.message}
-                    </p>
-                  </div>
-                  <div className="relative w-5 h-5 flex items-center justify-center bg-[#0D0D0D80]/50 border border-[#2E2E2E] rounded-sm flex-shrink-0">
-                    <IconBell className="h-3 w-3" />
-                    {!notification.read && (
-                      <div className="absolute -top-0.5 -right-0.5 w-1 h-1 bg-[#EB6945] rounded-full" />
-                    )}
-                  </div>
+                <div className="relative shrink-0 w-8 h-8 flex items-center justify-center bg-[#0D0D0D80] border border-[#2E2E2E] rounded-md">
+                  <IconBell className="w-4 h-4" />
+                  {!notification.read && (
+                    <div className="absolute top-1.5 right-1.5 w-1.5 h-1.5 bg-[#EB6945] rounded-full" />
+                  )}
                 </div>
-              ))
-            )}
-          </>
-        )}
-      </div>
-    </div>
+              </div>
+            ))
+          )}
+        </div>
+      </PopoverContent>
+    </Popover>
   );
 };
 
