@@ -5,7 +5,7 @@ export default function Hero() {
   return (
     <section className="relative flex flex-col items-center justify-center min-h-[80vh] bg-gradient-to-b from-[#201322] to-[#181028] text-white px-4 pt-32 md:pt-52">
       <div className="text-center">
-        <h1 className="flex flex-col text-4xl md:text-6xl font-bold leading-tight mb-4">
+        <h1 className="flex flex-col text-4xl md:text-6xl font-bold font-clash leading-tight mb-4">
           <span>{HeroContent.titleOne}</span>
           <span>{HeroContent.titleTwo}</span>
         </h1>
