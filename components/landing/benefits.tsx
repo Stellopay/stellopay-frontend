@@ -26,7 +26,7 @@ const benefits = [
 
 export default function BenefitsSection() {
   return (
-    <section className="relative bg-[#040404] pt-24 pb-10 px-4 text-white min-h-screen">
+    <section className="relative bg-[#040404] pt-24 pb-10 px-4 text-white">
       <div
         className="absolute inset-0 pointer-events-none z-10"
         style={{

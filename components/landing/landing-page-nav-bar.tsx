@@ -28,7 +28,7 @@ export default function LandingPageNavBar() {
         </Link>
 
         {/* Desktop Nav Links */}
-        <div className="hidden md:flex items-center gap-8 justify-center flex-2">
+        <div className="hidden lg:flex items-center gap-8 justify-center flex-2">
           {navLinks.map((link) => (
             <Link
               key={link.name}
@@ -57,34 +57,44 @@ export default function LandingPageNavBar() {
           </button>
         </div>
 
-        {/* Mobile Hamburger */}
+        {/* Mobile/Tablet Hamburger (Shown below lg) */}
         <button
-          className="md:hidden flex flex-col items-center justify-center p-2 rounded focus:outline-none"
-          aria-label="Open menu"
+          className="lg:hidden flex flex-col items-center justify-center p-2 rounded focus:outline-none ml-2 z-[110]"
+          aria-label="Toggle menu"
           onClick={() => setMenuOpen((open) => !open)}
         >
-          <span className="block w-6 h-0.5 bg-[#598EFF] mb-1"></span>
-          <span className="block w-6 h-0.5 bg-[#598EFF] mb-1"></span>
-          <span className="block w-6 h-0.5 bg-[#598EFF]"></span>
+          <span
+            className={`absolute w-6 h-0.5 bg-[#598EFF] transition-all duration-300 ${menuOpen ? 'rotate-45' : '-translate-y-2'
+              }`}
+          />
+          <span
+            className={`absolute w-6 h-0.5 bg-[#598EFF] transition-all duration-300 ${menuOpen ? 'opacity-0' : ''
+              }`}
+          />
+          <span
+            className={`absolute w-6 h-0.5 bg-[#598EFF] transition-all duration-300 ${menuOpen ? '-rotate-45' : 'translate-y-2'
+              }`}
+          />
         </button>
       </div>
 
-      {/* Mobile Menu */}
+      {/* Mobile/Tablet Menu (Shown below lg) */}
       {menuOpen && (
-        <div className="md:hidden fixed top-[56px] left-0 w-full bg-[#0a0a0a]/95 shadow-lg z-[100] animate-fade-in">
+        <div className="lg:hidden fixed top-[80px] left-0 w-full bg-[#0a0a0a]/95 shadow-lg z-[100] animate-fade-in border-t border-white/5">
           <div className="flex flex-col items-center gap-4 py-6">
             {navLinks.map((link) => (
               <Link
                 key={link.name}
                 href={link.href}
-                className="text-white text-lg font-normal hover:text-[#598EFF] transition-colors duration-200"
+                className="text-white text-lg font-normal hover:text-[#598EFF] transition-colors duration-200 w-full text-center py-2"
                 style={{ fontFamily: "General Sans, sans-serif" }}
                 onClick={() => setMenuOpen(false)}
               >
                 {link.name}
               </Link>
             ))}
-            <div className="flex flex-col gap-3 w-full px-6">
+            {/* Show actions in dropdown for mobile (below md) */}
+            <div className="flex flex-col gap-3 w-full px-6 md:hidden">
               <button className="px-6 py-3.5 rounded-full border border-[#598EFF] text-[#EEF4FF] bg-transparent font-medium transition-colors duration-200 hover:bg-[#598EFF] hover:text-white cursor-pointer text-center">
                 Connect Wallet
               </button>
