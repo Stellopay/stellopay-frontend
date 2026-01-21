@@ -26,13 +26,13 @@ export default function Hero() {
 
       <div className="flex items-end justify-center w-full mt-4 md:mt-8">
         {/* Center cards */}
-        <div className="z-10 w-full md:w-[50%] overflow-hidden h-[285px]">
+        <div className="z-10 w-full md:w-[50%] overflow-hidden aspect-[3.2/1]">
           <Image
             src={HeroContent.image}
             alt={HeroContent.imageAlt}
             width={HeroContent.imageWidth}
             height={HeroContent.imageHeight}
-            className="w-full h-auto shadow-xl"
+            className="w-full h-auto shadow-xl object-top"
             priority
           />
         </div>

@@ -46,7 +46,7 @@ export default function LandingPageNavBar() {
           {/* ETH Selector */}
           <div className="flex items-center gap-2 backdrop-blur-md rounded-full px-4 py-2 text-white cursor-pointer transition-colors">
             <div className="w-10 h-10 rounded-full bg-[#1A1A1A] flex items-center justify-center p-1">
-              <FaEthereum className="text-[#221c27] text-xl" />
+              <img src="/icon-eth.svg" alt="ETH" className="size-6" />
             </div>
             <span className="text-sm font-medium">ETH</span>
             <HiChevronDown className="text-white text-lg" />
