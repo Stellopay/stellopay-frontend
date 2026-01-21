@@ -53,7 +53,8 @@ const sampleData = {
 
 const tokenIconMapWithUrls: Record<string, string> = {
   USDC: "/usd.png",
-  XLM: "/stellar.png",
+  STRK: "/starknet.png",
+  USDT: "/usdt.svg",
 };
 
 const TransactionTable: React.FC = () => {

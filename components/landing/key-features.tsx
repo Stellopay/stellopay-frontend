@@ -5,7 +5,7 @@ const features = [
     imageSrc: "/feature4.svg",
     title: "Secure Transactions",
     description:
-      "Your payroll is protected with advanced blockchain encryption, ensuring safe and tamper-proof salary disbursements. Transaction is recorded transparently on the Stellar blockchain.",
+      "Your payroll is protected with advanced blockchain encryption, ensuring safe and tamper-proof salary disbursements. Transaction is recorded transparently on the Starknet blockchain.",
   },
   {
     imageSrc: "/feature2.svg",

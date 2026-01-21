@@ -1,14 +1,15 @@
 "use client";
 import { usePathname } from "next/navigation";
-import { ChevronRight } from "lucide-react";
+import { ChevronRight, Send } from "lucide-react";
 import Link from "next/link";
 import EmailInput from "@/components/common/email-input";
 import TextareaInput from "@/components/common/text-area-input";
 import TextInput from "@/components/common/text-input";
 import Button from "@/components/common/button";
-import { Clock3, ContactRound, Mail, Phone } from "lucide-react";
+import { Clock3, ContactRound, Mail } from "lucide-react";
 import React, { useState } from "react";
 import { SupportTabsProps } from "@/types/ui";
+import { useToast } from "@/components/ui/toast";
 
 // Define the route mappings for breadcrumbs
 const routeMappings = {
@@ -31,6 +32,8 @@ export default function SupportTabs({
   const [email, setEmail] = useState<string>("");
   const [textarea, setTextarea] = useState<string>("");
   const [isButtonDisabled, setIsButtonDisabled] = useState<boolean>(true);
+  const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
+  const { showToast } = useToast();
 
   React.useEffect(() => {
     setIsButtonDisabled(!(email && firstName && lastName && textarea));
@@ -43,8 +46,37 @@ export default function SupportTabs({
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    if (!isButtonDisabled) {
-      console.log("Submitted");
+    if (isButtonDisabled || isSubmitting) return;
+
+    setIsSubmitting(true);
+    try {
+      // Use mailto: link - simplest solution, no backend or email service needed
+      const subject = encodeURIComponent(`Contact Form Submission from ${firstName} ${lastName}`);
+      const body = encodeURIComponent(
+        `Name: ${firstName} ${lastName}\nEmail: ${email}\n\nMessage:\n${textarea}`
+      );
+      
+      // Open email client with pre-filled message
+      window.location.href = `mailto:jagadeesh26062002@gmail.com?subject=${subject}&body=${body}`;
+      
+      // Show success message and reset form
+      setTimeout(() => {
+        showToast("Email client opened", "Please send the email from your email client.", "success");
+        // Reset form
+        setFirstName("");
+        setLastName("");
+        setEmail("");
+        setTextarea("");
+        setIsSubmitting(false);
+      }, 500);
+    } catch (error: any) {
+      console.error("Failed to open email client:", error);
+      showToast(
+        "Failed to open email client",
+        "Please send an email directly to jagadeesh26062002@gmail.com",
+        "error"
+      );
+      setIsSubmitting(false);
     }
   };
 
@@ -125,22 +157,30 @@ export default function SupportTabs({
                 </h3>
                 <div className="flex gap-1 items-center">
                   <Mail size={14} />
-                  <p className="text-sm font-normal text-[#707070]">
-                    support@stellopay.com
-                  </p>
+                  <a 
+                    href="mailto:jagadeesh26062002@gmail.com"
+                    className="text-sm font-normal text-[#707070] hover:text-[#E5E5E5] transition-colors"
+                  >
+                    jagadeesh26062002@gmail.com
+                  </a>
                 </div>
               </div>
 
-              {/* Phone Number */}
+              {/* Telegram */}
               <div className="space-y-2">
                 <h3 className="font-semibold text-[1rem] text-[#FFFFFF]">
-                  Phone Number:
+                  Telegram:
                 </h3>
                 <div className="flex gap-1 items-center">
-                  <Phone size={14} />
-                  <p className="text-[0.875rem] font-normal text-[#707070]">
-                    +234 800 123 4567
-                  </p>
+                  <Send size={14} />
+                  <a 
+                    href="https://t.me/+H1S4w4HOmZdkZjA1"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-[0.875rem] font-normal text-[#707070] hover:text-[#E5E5E5] transition-colors"
+                  >
+                    Join our Telegram group
+                  </a>
                 </div>
               </div>
 
@@ -189,9 +229,9 @@ export default function SupportTabs({
             />
 
             <Button
-              text="Send Message"
+              text={isSubmitting ? "Sending..." : "Send Message"}
               fill={true}
-              disabled={isButtonDisabled}
+              disabled={isButtonDisabled || isSubmitting}
             />
           </form>
         </div>
