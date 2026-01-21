@@ -19,6 +19,11 @@ export interface WalletModalProps {
   onClose: () => void;
   onSuccess?: (wallet: Wallet, address: string) => void;
 }
+export interface WalletContextProps {
+  connectedWallet: ConnectedWallet | null;
+  connectWallet: (wallet: Wallet, address: string, network: string) => void;
+  disconnectWallet: () => void;
+}
 
 export interface WalletContextProps {
   connectedWallet: ConnectedWallet | null;
