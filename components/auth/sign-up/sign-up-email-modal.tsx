@@ -45,7 +45,7 @@ export function SignUpEmailModal({
             <button
               onClick={handleResend}
               disabled={isResending}
-              className="text-[#92569D] underline hover:no-underline disabled:opacity-50 disabled:cursor-not-allowed"
+              className="text-[#92569D] underline hover:no-underline cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {isResending ? "Sending..." : "Resend"}
             </button>
@@ -54,13 +54,13 @@ export function SignUpEmailModal({
           <div className="space-y-3 pt-4">
             <Button
               onClick={onContinue}
-              className="w-full bg-white text-black hover:bg-gray-100 font-medium"
+              className="w-full bg-white text-black hover:bg-gray-100 font-medium cursor-pointer"
             >
               Continue
             </Button>
             <button
               onClick={onGoBack}
-              className="w-full text-gray-400 hover:text-white text-sm transition-colors"
+              className="w-full text-gray-400 hover:text-white text-sm transition-colors cursor-pointer"
             >
               Go Back
             </button>

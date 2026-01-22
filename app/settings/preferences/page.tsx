@@ -94,8 +94,11 @@ export default function SettingsPage() {
                     </button>
                   </div>
 
-                  <div className="mt-6 md:mt-0 md:pl-6 lg:pl-20 w-50%">
-                    <form>
+                  <div className="mt-6 md:mt-0 md:pl-6 lg:pl-20 w-50% relative">
+                    <div className="absolute inset-0 bg-[#0D0D0D80] bg-opacity-80 backdrop-blur-sm z-10 rounded-lg flex items-center justify-center">
+                      <p className="text-white text-xl font-medium">Coming Soon</p>
+                    </div>
+                    <form className="opacity-50 pointer-events-none">
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6 mb-6">
                         <div>
                           <label className="block text-sm font-medium mb-2">
@@ -105,6 +108,7 @@ export default function SettingsPage() {
                             type="text"
                             name="firstName"
                             placeholder="Maya"
+                            disabled
                             className="w-full  border border-[#4A3A4D] rounded-lg px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-pink-500"
                           />
                         </div>
@@ -116,6 +120,7 @@ export default function SettingsPage() {
                             type="text"
                             name="lastName"
                             placeholder="Sullivan"
+                            disabled
                             className="w-full border border-[#4A3A4D] rounded-lg px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-pink-500"
                           />
                         </div>
@@ -128,6 +133,7 @@ export default function SettingsPage() {
                           type="email"
                           name="email"
                           placeholder="Mayasullivan@rmail.com"
+                          disabled
                           className="w-full border border-[#4A3A4D] rounded-lg px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-pink-500"
                         />
                       </div>
@@ -140,19 +146,24 @@ export default function SettingsPage() {
           {activeTab === "Security" && <SecurityTab />}
 
           {activeTab === "Preferences" && (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
-              <div>
-                <h2 className="text-md md:text-xl font-semibold mb-2">
-                  Notification Preferences
-                </h2>
-                <p className="text-xs max-w-64 md:text-base text-gray-400">
-                  Enable or disable your notification preferences below.
-                </p>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-10 relative">
+              <div className="absolute inset-0 bg-[#0D0D0D80] bg-opacity-80 backdrop-blur-sm z-10 rounded-lg flex items-center justify-center">
+                <p className="text-white text-xl font-medium">Coming Soon</p>
               </div>
-              <div className="space-y-6">
-                <ToggleCard title="Email, SMS, and Push Notifications" />
-                <ToggleCard title="Transaction Alerts" />
-                <ToggleCard title="Promotional Offers" />
+              <div className="opacity-50 pointer-events-none">
+                <div>
+                  <h2 className="text-md md:text-xl font-semibold mb-2">
+                    Notification Preferences
+                  </h2>
+                  <p className="text-xs max-w-64 md:text-base text-gray-400">
+                    Enable or disable your notification preferences below.
+                  </p>
+                </div>
+                <div className="space-y-6">
+                  <ToggleCard title="Email, SMS, and Push Notifications" />
+                  <ToggleCard title="Transaction Alerts" />
+                  <ToggleCard title="Promotional Offers" />
+                </div>
               </div>
             </div>
           )}

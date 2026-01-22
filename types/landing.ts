@@ -9,9 +9,9 @@ export const HeroContent = {
   titleOne: "Secure Digital Payments",
   titleTwo: "For a Smarter Future",
   description:
-    "Stellopay, automating salary payments globally, while experiencing instant, secure payroll on the stellar blockchain",
+    "Stellopay, automating salary payments globally, while experiencing instant, secure payroll on the Starknet blockchain",
   button: "Get started",
-  buttonSecondary: "Learn More",
+  buttonSecondary: "Docs",
   image: "/landing/heroCards.png",
   imageAlt: "Stellopay Cards",
   imageWidth: 400,

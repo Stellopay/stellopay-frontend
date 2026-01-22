@@ -14,6 +14,16 @@ const navLinks = [
 
 export default function LandingPageNavBar() {
   const [menuOpen, setMenuOpen] = useState(false);
+  const router = useRouter();
+  const pathname = usePathname();
+
+  const navLinks = [
+    { name: "Home", href: "/" },
+    { name: "Features", href: "/#KeyFeatures" },
+    { name: "How it works", href: "/#Benefits" },
+    { name: "Pricing", href: "/pricing" },
+    { name: "Support", href: "/help/support" },
+  ];
 
   return (
     <nav className="w-full h-[80px] px-4 md:px-8 absolute top-0 left-0 z-50 bg-transparent">
@@ -30,14 +40,14 @@ export default function LandingPageNavBar() {
         {/* Desktop Nav Links */}
         <div className="hidden lg:flex items-center gap-8 justify-center flex-2">
           {navLinks.map((link) => (
-            <Link
+            <a
               key={link.name}
               href={link.href}
               className="text-white text-lg font-normal hover:text-[#598EFF] transition-colors duration-200"
               style={{ fontFamily: "General Sans, sans-serif" }}
             >
               {link.name}
-            </Link>
+            </a>
           ))}
         </div>
 
@@ -83,15 +93,14 @@ export default function LandingPageNavBar() {
         <div className="lg:hidden fixed top-[80px] left-0 w-full bg-[#0a0a0a]/95 shadow-lg z-[100] animate-fade-in border-t border-white/5">
           <div className="flex flex-col items-center gap-4 py-6">
             {navLinks.map((link) => (
-              <Link
+              <a
                 key={link.name}
                 href={link.href}
                 className="text-white text-lg font-normal hover:text-[#598EFF] transition-colors duration-200 w-full text-center py-2"
                 style={{ fontFamily: "General Sans, sans-serif" }}
-                onClick={() => setMenuOpen(false)}
               >
                 {link.name}
-              </Link>
+              </a>
             ))}
             {/* Show actions in dropdown for mobile (below md) */}
             <div className="flex flex-col gap-3 w-full px-6 md:hidden">
