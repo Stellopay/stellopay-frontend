@@ -6,7 +6,8 @@ import DashboardHeader from "@/components/dashboard/dashboard-header";
 import AccountSummary from "@/components/dashboard/account-summary";
 import ContractSetupCard from "@/components/dashboard/contract-setup-card";
 import ClientAnalyticsView from "@/components/analytics/client-analytics-view";
-import NotificationPanel from "@/components/common/notification-panel";
+// import NotificationPanel from "@/components/common/notification-panel"; // Unused if switched to Widget
+import NotificationWidget from "@/components/common/notification-widget";
 import { TransactionsTable } from "@/components/transactions/transactions-table";
 import { Pagination } from "@/components/transactions/pagination";
 import { Button } from "@/components/ui/button";
@@ -114,8 +115,8 @@ const page = () => {
                 <ClientAnalyticsView />
               </div>
 
-              <div className="flex-[0.7] min-w-0">
-                <NotificationPanel notifications={notifications} />
+              <div className="w-full md:w-auto">
+                <NotificationWidget notifications={notifications} />
               </div>
             </div>
 

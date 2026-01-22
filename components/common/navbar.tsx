@@ -1,6 +1,4 @@
 "use client";
-// components/Navbar.tsx
-"use client";
 
 import { Bell, Settings, HelpCircle, Wallet } from "lucide-react";
 import { NetworkSwitcher } from "./network-switcher";
@@ -10,8 +8,9 @@ import { Wallet as WalletType } from "@/types/wallet";
 import { useWallet } from "@/context/wallet-context";
 import { useNetwork } from "@/context/network-context";
 import { formatAddress } from "@/utils/formatUtils";
+
 import { useRouter, usePathname } from "next/navigation";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import ConnectWalletButton from "@/components/wallet/connect-wallet-button";
 import NotificationPanel from "@/components/common/notification-panel";
 import {
@@ -19,6 +18,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
+
 import { NotificationItem } from "@/types/notification-item";
 
 export default function Navbar() {

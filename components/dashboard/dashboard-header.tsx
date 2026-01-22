@@ -200,7 +200,7 @@ export default function DashboardHeader({
 
   return (
     <div className="w-full px-4 md:px-10 pt-6 pb-4 border-b border-[#1A1A1A]">
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+      <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
         <h1 className="text-white text-2xl font-semibold">{pageTitle}</h1>
 
         {pageTitle === "My Agreements" && onCreateAgreementClick && (
