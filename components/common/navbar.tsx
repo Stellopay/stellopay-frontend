@@ -102,12 +102,12 @@ export default function Navbar() {
               <div className="flex items-center gap-2">
                 <div className="bg-[#0D0D0D] px-3 py-2 rounded-lg flex items-center gap-2">
                   <img
-                    src={connectedWallet.wallet.icon}
+                    src={connectedWallet.wallet?.icon}
                     className="w-5 h-5"
                     alt=""
                   />
                   <span className="text-white font-medium text-sm">
-                    {formatAddress(connectedWallet.address)}
+                    {formatAddress(connectedWallet?.address)}
                   </span>
                 </div>
                 <Button

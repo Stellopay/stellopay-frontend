@@ -279,7 +279,7 @@ export function WalletModal({ isOpen, onClose, onSuccess }: WalletModalProps) {
         </DialogHeader>
 
         <div className="space-y-3 mt-4">
-          {filteredWallets.length === 0 ? (
+          {filteredWallets?.length === 0 ? (
             <div className="text-center py-8">
               <p className="text-gray-400">
                 No wallets available for the selected network.

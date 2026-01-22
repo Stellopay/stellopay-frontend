@@ -67,8 +67,8 @@ export const capitalizeFirst = (str: string): string => {
  * @returns Formatted address string
  */
 export const formatAddress = (address: string): string => {
-  if (address.length <= 10) {
+  if (address?.length <= 10) {
     return address;
   }
-  return `${address.slice(0, 6)}...${address.slice(-4)}`;
+  return `${address?.slice(0, 6)}...${address?.slice(-4)}`;
 };
