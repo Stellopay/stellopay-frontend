@@ -10,6 +10,7 @@ import {
 import { connect } from "@starknet-io/get-starknet";
 import { getBackendBaseUrl } from "@/lib/backend";
 import { getWalletErrorMessage } from "@/utils/wallet-error-handler";
+import { useRef, useCallback, useMemo } from "react";
 
 type WalletLike = {
   selectedAddress?: string;
