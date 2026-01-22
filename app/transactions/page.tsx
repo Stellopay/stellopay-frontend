@@ -7,15 +7,20 @@ import { SideBar } from "@/components/common/side-bar";
 import { TransactionsTable } from "@/components/transactions/transactions-table";
 import { Pagination } from "@/components/transactions/pagination";
 import TableSearchbar from "@/components/transactions/table-searchbar";
-import { TransactionTypeFilter, type TransactionType } from "@/components/transactions/transaction-type-filter";
+import {
+  TransactionTypeFilter,
+  type TransactionType,
+} from "@/components/transactions/transaction-type-filter";
 import { isDateInRange } from "@/utils/date-utils";
 import { apiGet } from "@/lib/backend";
 import { useWallet } from "@/context/wallet-context";
 import type { TransactionProps } from "@/types/transaction";
 
 const Transactions = () => {
-  const { address } = useWallet();
-  const [allTransactions, setAllTransactions] = useState<TransactionProps[]>([]);
+  const { connectedWallet } = useWallet();
+  const [allTransactions, setAllTransactions] = useState<TransactionProps[]>(
+    [],
+  );
   const [loading, setLoading] = useState(true);
   const [currentPage, setCurrentPage] = useState(1);
   const [searchParams, setSearchParams] = useState("");
@@ -26,7 +31,7 @@ const Transactions = () => {
 
   // Fetch transactions
   useEffect(() => {
-    if (!address) {
+    if (!connectedWallet?.address) {
       setLoading(false);
       return;
     }
@@ -34,9 +39,12 @@ const Transactions = () => {
     const fetchTransactions = async () => {
       try {
         setLoading(true);
-        const eventTypesParam = selectedTypes.length > 0 ? `&eventTypes=${selectedTypes.join(',')}` : '';
+        const eventTypesParam =
+          selectedTypes.length > 0
+            ? `&eventTypes=${selectedTypes.join(",")}`
+            : "";
         const result = await apiGet<{ transactions: TransactionProps[] }>(
-          `/transactions/${address}?limit=100${eventTypesParam}`
+          `/transactions/${connectedWallet.address}?limit=100${eventTypesParam}`,
         );
         setAllTransactions(result.transactions || []);
       } catch (e) {
@@ -48,7 +56,7 @@ const Transactions = () => {
     };
 
     fetchTransactions();
-  }, [address, selectedTypes]);
+  }, [connectedWallet?.address, selectedTypes]);
 
   // Search functionality
   const searchFilteredTransactions = allTransactions.filter((transaction) =>
@@ -58,7 +66,7 @@ const Transactions = () => {
         .includes(searchParams.toLowerCase()),
     ),
   );
-    
+
   const transactionsToShow = searchParams
     ? searchFilteredTransactions
     : allTransactions;
@@ -134,19 +142,23 @@ const Transactions = () => {
                   </span>
                 )}
               </h6>
-              
+
               <div className="flex items-center gap-2">
                 <div className="w-[200px]">
                   <TableSearchbar onSearch={setSearchParams} />
                 </div>
                 <div className="w-[200px]">
-                  <TransactionTypeFilter selectedTypes={selectedTypes} onTypesChange={setSelectedTypes} />
+                  <TransactionTypeFilter
+                    selectedTypes={selectedTypes}
+                    onTypesChange={setSelectedTypes}
+                  />
                 </div>
-              </div>              
-                        
-            </div>          
+              </div>
+            </div>
             {loading ? (
-              <div className="py-8 text-center text-[#A0A0A0]">Loading transactions...</div>
+              <div className="py-8 text-center text-[#A0A0A0]">
+                Loading transactions...
+              </div>
             ) : transactions.length === 0 ? (
               <div className="py-4 text-center text-gray-400">
                 No Transactions Found

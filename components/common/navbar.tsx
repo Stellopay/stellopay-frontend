@@ -1,12 +1,35 @@
 "use client";
-import { Settings, HelpCircle } from "lucide-react";
+
+import { Bell, Settings, HelpCircle, Wallet } from "lucide-react";
+import { NetworkSwitcher } from "./network-switcher";
+import { WalletModal } from "@/components/wallet/wallet-modal";
+import { Button } from "@/components/ui/button";
+import { Wallet as WalletType } from "@/types/wallet";
+import { useWallet } from "@/context/wallet-context";
+import { useNetwork } from "@/context/network-context";
+import { formatAddress } from "@/utils/formatUtils";
+
 import { useRouter, usePathname } from "next/navigation";
 import { useState } from "react";
 import ConnectWalletButton from "@/components/wallet/connect-wallet-button";
 import NotificationPanel from "@/components/common/notification-panel";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+
 import { NotificationItem } from "@/types/notification-item";
 
 export default function Navbar() {
+  const [isWalletModalOpen, setIsWalletModalOpen] = useState(false);
+  const { connectedWallet, connectWallet, disconnectWallet } = useWallet();
+  const { selectedNetwork } = useNetwork();
+
+  const handleWalletSuccess = (wallet: WalletType, address: string) => {
+    connectWallet(wallet, address, selectedNetwork || "ethereum");
+  };
+
   const router = useRouter();
   const pathname = usePathname();
   const [searchQuery, setSearchQuery] = useState("");
@@ -45,7 +68,20 @@ export default function Navbar() {
 
           {/* Icons and Avatar */}
           <div className="flex items-center gap-4 mt-2 sm:mt-0">
-            <NotificationPanel notifications={notifications} />
+            <Popover>
+              <PopoverTrigger asChild>
+                <div className="p-2 rounded-md relative cursor-pointer">
+                  <Bell className="w-10 h-10 sm:w-6 sm:h-6 text-[#6e6d6e] hover:text-[#FFFFFF] transition-colors" />
+                  <span className="absolute top-2 right-2 sm:top-2.5 sm:right-2.5 w-2.5 h-2.5 bg-[#EB6945] rounded-full" />
+                </div>
+              </PopoverTrigger>
+              <PopoverContent
+                className="w-auto p-0 bg-transparent border-0 shadow-none"
+                align="end"
+              >
+                <NotificationPanel notifications={notifications} />
+              </PopoverContent>
+            </Popover>
 
             <div
               className="p-2 rounded-md cursor-pointer"
@@ -61,13 +97,49 @@ export default function Navbar() {
               <HelpCircle className="w-10 h-10 sm:w-6 sm:h-6 text-[#6e6d6e] hover:text-[#FFFFFF] transition-colors" />
             </div>
 
-            {/* Wallet (replaces avatar) */}
-            <div className="relative">
-              <ConnectWalletButton variant="avatar" />
-            </div>
+            <NetworkSwitcher />
+            {connectedWallet && connectedWallet.address ? (
+              <div className="flex items-center gap-2">
+                <div className="bg-[#0D0D0D] px-3 py-2 rounded-lg flex items-center gap-2">
+                  {connectedWallet.wallet?.icon && (
+                    <img
+                      src={connectedWallet.wallet.icon}
+                      className="w-5 h-5"
+                      alt={connectedWallet.wallet.name || "Wallet"}
+                    />
+                  )}
+                  <span className="text-white font-medium text-sm">
+                    {formatAddress(connectedWallet.address)}
+                  </span>
+                </div>
+                <Button
+                  onClick={disconnectWallet}
+                  variant="outline"
+                  className="text-xs px-2 py-1 h-8"
+                >
+                  Disconnect
+                </Button>
+              </div>
+            ) : (
+              <Button
+                onClick={() => setIsWalletModalOpen(true)}
+                className="bg-[#0D0D0D] cursor-pointer text-white flex items-center gap-2"
+              >
+                <img src="/wallet.svg" className="w-5 h-5" alt="Wallet" />
+                <span className="hidden sm:inline font-medium text-sm">
+                  Connect Wallet
+                </span>
+              </Button>
+            )}
           </div>
         </div>
       </nav>
+
+      <WalletModal
+        isOpen={isWalletModalOpen}
+        onClose={() => setIsWalletModalOpen(false)}
+        onSuccess={handleWalletSuccess}
+      />
     </>
   );
 }

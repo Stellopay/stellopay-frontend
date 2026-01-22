@@ -57,9 +57,7 @@ function ActionTile({
       <span className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-[#2E2E2E] bg-[#121212]">
         {icon}
       </span>
-      <span className="text-sm font-semibold whitespace-nowrap">
-        {title}
-      </span>
+      <span className="text-sm font-semibold whitespace-nowrap">{title}</span>
     </button>
   );
 }
@@ -106,11 +104,20 @@ function TokenSelector({
 }: {
   selectedTokenKey: string;
   onTokenChange: (key: string) => void;
-  supportedTokens: Array<{ key: string; label: string; icon: string; color: string; address: string; decimals: number }>;
+  supportedTokens: Array<{
+    key: string;
+    label: string;
+    icon: string;
+    color: string;
+    address: string;
+    decimals: number;
+  }>;
   balance: string | null;
   balanceError: string | null;
 }) {
-  const selectedToken = supportedTokens.find((t) => t.key === selectedTokenKey) ?? supportedTokens[0];
+  const selectedToken =
+    supportedTokens.find((t) => t.key === selectedTokenKey) ??
+    supportedTokens[0];
   const isLoading = !balanceError && balance === null;
   return (
     <div className="rounded-xl border border-[#242428] bg-black/30 px-4 py-3 flex items-center justify-between gap-4">
@@ -188,7 +195,9 @@ function TokenSelector({
                     />
                   )}
                   <div className="flex flex-col">
-                    <span className="text-sm text-white font-semibold">{t.key}</span>
+                    <span className="text-sm text-white font-semibold">
+                      {t.key}
+                    </span>
                     <span className="text-xs text-[#A0A0A0]">
                       {t.label}
                       {disabled ? " · Not configured" : ""}
@@ -236,18 +245,23 @@ function formatUnitsShort(raw: string | null, decimals: number) {
       .padStart(decimals, "0")
       .slice(0, 2)
       .replace(/0+$/, "");
-    return fracStr.length ? `${whole.toLocaleString()}.${fracStr}` : whole.toLocaleString();
+    return fracStr.length
+      ? `${whole.toLocaleString()}.${fracStr}`
+      : whole.toLocaleString();
   } catch {
     return raw;
   }
 }
 
 function useAuthHint() {
-  const { address, sessionToken, isVerified, isConnecting } = useWallet();
+  const { connectedWallet } = useWallet();
+  const { address, isConnecting, isVerified, sessionToken } =
+    connectedWallet || {};
   return useMemo(() => {
     if (isConnecting) return "Connecting wallet…";
     if (!address) return "Connect a wallet to continue.";
-    if (!isVerified || !sessionToken) return "Wallet connected, but not verified with backend.";
+    if (!isVerified || !sessionToken)
+      return "Wallet connected, but not verified with backend.";
     return null;
   }, [address, isConnecting, isVerified, sessionToken]);
 }
@@ -265,22 +279,28 @@ interface Milestone {
 }
 
 export default function ContractSetupCard() {
-  const { address, sessionToken, isExecuting, executeCall } = useWallet();
+  const { connectedWallet, executeCall } = useWallet();
+  const { address, sessionToken, isExecuting } = connectedWallet || {};
   const authHint = useAuthHint();
   const [escrowCopied, setEscrowCopied] = useState(false);
   const [agreementCopied, setAgreementCopied] = useState(false);
 
   const [escrowDefault, setEscrowDefault] = useState("");
   const [agreementDefault, setAgreementDefault] = useState("");
-  const [escrowInitialized, setEscrowInitialized] = useState<boolean | null>(null);
+  const [escrowInitialized, setEscrowInitialized] = useState<boolean | null>(
+    null,
+  );
   const [escrowToken, setEscrowToken] = useState<string | null>(null);
 
   // Initialize escrow
   const [initEscrowOpen, setInitEscrowOpen] = useState(false);
   const supportedTokens = useMemo(() => {
-    const DEFAULT_USDC = "0x053b40a647cedfca6ca84f542a0fe36736031905a9639a7f19a3c1e66bfd5080";
-    const DEFAULT_USDT = "0x02ab8758891e84b968ff11361789070c6b1af2df618d6d2f4a78b0757573c6eb";
-    const DEFAULT_STRK = "0x04718f5a0fc34cc1af16a1cdee98ffb20c31f5cd61d6ab07201858f4287c938d";
+    const DEFAULT_USDC =
+      "0x053b40a647cedfca6ca84f542a0fe36736031905a9639a7f19a3c1e66bfd5080";
+    const DEFAULT_USDT =
+      "0x02ab8758891e84b968ff11361789070c6b1af2df618d6d2f4a78b0757573c6eb";
+    const DEFAULT_STRK =
+      "0x04718f5a0fc34cc1af16a1cdee98ffb20c31f5cd61d6ab07201858f4287c938d";
 
     const usdc = (process.env.NEXT_PUBLIC_TOKEN_USDC ?? DEFAULT_USDC).trim();
     const usdt = (process.env.NEXT_PUBLIC_TOKEN_USDT ?? DEFAULT_USDT).trim();
@@ -314,41 +334,60 @@ export default function ContractSetupCard() {
   }, []);
   const [selectedTokenKey, setSelectedTokenKey] = useState<string>("STRK");
   const selectedToken = useMemo(
-    () => supportedTokens.find((t) => t.key === selectedTokenKey) ?? supportedTokens[0],
+    () =>
+      supportedTokens.find((t) => t.key === selectedTokenKey) ??
+      supportedTokens[0],
     [supportedTokens, selectedTokenKey],
   );
-  const [selectedTokenBalance, setSelectedTokenBalance] = useState<string | null>(null);
-  const [selectedTokenBalanceError, setSelectedTokenBalanceError] = useState<string | null>(null);
+  const [selectedTokenBalance, setSelectedTokenBalance] = useState<
+    string | null
+  >(null);
+  const [selectedTokenBalanceError, setSelectedTokenBalanceError] = useState<
+    string | null
+  >(null);
   const [initEscrowError, setInitEscrowError] = useState<string | null>(null);
   const [initEscrowTx, setInitEscrowTx] = useState<string | null>(null);
 
   // Create Agreement - Mode selection
   const [createAgreementOpen, setCreateAgreementOpen] = useState(false);
   const [agreementMode, setAgreementMode] = useState<AgreementMode>("escrow");
-  const [escrowPaymentType, setEscrowPaymentType] = useState<EscrowPaymentType>("time");
-  
+  const [escrowPaymentType, setEscrowPaymentType] =
+    useState<EscrowPaymentType>("time");
+
   // Common agreement fields
   const [agreementTokenKey, setAgreementTokenKey] = useState<string>("STRK");
-  const [agreementTokenBalance, setAgreementTokenBalance] = useState<string | null>(null);
-  const [agreementTokenBalanceError, setAgreementTokenBalanceError] = useState<string | null>(null);
-  
+  const [agreementTokenBalance, setAgreementTokenBalance] = useState<
+    string | null
+  >(null);
+  const [agreementTokenBalanceError, setAgreementTokenBalanceError] = useState<
+    string | null
+  >(null);
+
   // Escrow time-based fields
   const [escrowContributor, setEscrowContributor] = useState("");
   const [amountPerPeriod, setAmountPerPeriod] = useState("");
   const [periodSeconds, setPeriodSeconds] = useState("2592000"); // 30 days
   const [numPeriods, setNumPeriods] = useState("1");
-  
+
   // Escrow milestone fields
   const [milestones, setMilestones] = useState<Milestone[]>([{ amount: "" }]);
-  
+
   // Payroll fields
   const [payrollPeriodSeconds, setPayrollPeriodSeconds] = useState("2592000");
   const [payrollNumPeriods, setPayrollNumPeriods] = useState("1");
-  const [employees, setEmployees] = useState<Employee[]>([{ address: "", salary: "" }]);
-  
-  const [createAgreementError, setCreateAgreementError] = useState<string | null>(null);
-  const [createAgreementTx, setCreateAgreementTx] = useState<string | null>(null);
-  const [createdAgreementId, setCreatedAgreementId] = useState<string | null>(null);
+  const [employees, setEmployees] = useState<Employee[]>([
+    { address: "", salary: "" },
+  ]);
+
+  const [createAgreementError, setCreateAgreementError] = useState<
+    string | null
+  >(null);
+  const [createAgreementTx, setCreateAgreementTx] = useState<string | null>(
+    null,
+  );
+  const [createdAgreementId, setCreatedAgreementId] = useState<string | null>(
+    null,
+  );
 
   // Fund Agreement
   const [fundAgreementOpen, setFundAgreementOpen] = useState(false);
@@ -369,7 +408,9 @@ export default function ContractSetupCard() {
   const [addMilestoneOpen, setAddMilestoneOpen] = useState(false);
   const [addMilestoneAgreementId, setAddMilestoneAgreementId] = useState("");
   const [addMilestoneAmount, setAddMilestoneAmount] = useState("");
-  const [addMilestoneError, setAddMilestoneError] = useState<string | null>(null);
+  const [addMilestoneError, setAddMilestoneError] = useState<string | null>(
+    null,
+  );
   const [addMilestoneTx, setAddMilestoneTx] = useState<string | null>(null);
 
   // Activate agreement
@@ -380,7 +421,9 @@ export default function ContractSetupCard() {
 
   useEffect(() => {
     void Promise.all([
-      apiGet<{ address: string }>("/escrow/defaults").then((d) => setEscrowDefault(d.address)),
+      apiGet<{ address: string }>("/escrow/defaults").then((d) =>
+        setEscrowDefault(d.address),
+      ),
       apiGet<{ address: string }>("/agreement/defaults").then((d) =>
         setAgreementDefault(d.address),
       ),
@@ -397,7 +440,7 @@ export default function ContractSetupCard() {
     // Reset state while checking
     setEscrowInitialized(null);
     setEscrowToken(null);
-    
+
     void apiGet<{ initialized: boolean; token: string | null; error?: string }>(
       `/escrow/${escrowDefault}/is_initialized`,
     )
@@ -425,7 +468,9 @@ export default function ContractSetupCard() {
       return;
     }
     setAgreementTokenBalanceError(null);
-    void apiGet<{ balance: string }>(`/token/${token.address}/balance/${address}`)
+    void apiGet<{ balance: string }>(
+      `/token/${token.address}/balance/${address}`,
+    )
       .then((d) => setAgreementTokenBalance(d.balance))
       .catch(() => {
         setAgreementTokenBalance(null);
@@ -459,7 +504,9 @@ export default function ContractSetupCard() {
       return;
     }
     setSelectedTokenBalanceError(null);
-    void apiGet<{ balance: string }>(`/token/${selectedToken.address}/balance/${address}`)
+    void apiGet<{ balance: string }>(
+      `/token/${selectedToken.address}/balance/${address}`,
+    )
       .then((d) => setSelectedTokenBalance(d.balance))
       .catch(() => {
         setSelectedTokenBalance(null);
@@ -516,7 +563,8 @@ export default function ContractSetupCard() {
   const submitInitEscrow = async () => {
     setInitEscrowError(null);
     setInitEscrowTx(null);
-    const { address: wallet_address, sessionToken: session_token } = requireAuth();
+    const { address: wallet_address, sessionToken: session_token } =
+      requireAuth();
     if (!escrowDefault || !agreementDefault) {
       throw new Error("Escrow or Agreement address not loaded.");
     }
@@ -534,6 +582,9 @@ export default function ContractSetupCard() {
         manager: agreementDefault,
       },
     );
+    if (!executeCall) {
+      throw new Error("Wallet not ready: executeCall is undefined.");
+    }
     const tx = await executeCall(prepared.call);
     if (tx?.transaction_hash) setInitEscrowTx(tx.transaction_hash);
   };
@@ -542,7 +593,8 @@ export default function ContractSetupCard() {
     setCreateAgreementError(null);
     setCreateAgreementTx(null);
     setCreatedAgreementId(null);
-    const { address: wallet_address, sessionToken: session_token } = requireAuth();
+    const { address: wallet_address, sessionToken: session_token } =
+      requireAuth();
     if (!agreementDefault) {
       throw new Error("Agreement address not loaded.");
     }
@@ -608,7 +660,10 @@ export default function ContractSetupCard() {
         );
       }
     }
-    
+
+    if (!executeCall) {
+      throw new Error("Wallet not ready: executeCall is undefined.");
+    }
     const tx = await executeCall(prepared.call);
     if (tx?.transaction_hash) {
       setCreateAgreementTx(tx.transaction_hash);
@@ -620,7 +675,8 @@ export default function ContractSetupCard() {
   const submitFundAgreement = async () => {
     setFundError(null);
     setFundTx(null);
-    const { address: wallet_address, sessionToken: session_token } = requireAuth();
+    const { address: wallet_address, sessionToken: session_token } =
+      requireAuth();
     if (!agreementDefault) {
       throw new Error("Agreement address not loaded.");
     }
@@ -639,6 +695,9 @@ export default function ContractSetupCard() {
         amount: fundAmount,
       },
     );
+    if (!executeCall) {
+      throw new Error("Wallet not ready: executeCall is undefined.");
+    }
     const tx = await executeCall(prepared.call);
     if (tx?.transaction_hash) setFundTx(tx.transaction_hash);
   };
@@ -646,7 +705,8 @@ export default function ContractSetupCard() {
   const submitAddEmployee = async () => {
     setAddEmployeeError(null);
     setAddEmployeeTx(null);
-    const { address: wallet_address, sessionToken: session_token } = requireAuth();
+    const { address: wallet_address, sessionToken: session_token } =
+      requireAuth();
     if (!agreementDefault) {
       throw new Error("Agreement address not loaded.");
     }
@@ -669,6 +729,9 @@ export default function ContractSetupCard() {
         salary_per_period: addEmployeeSalary,
       },
     );
+    if (!executeCall) {
+      throw new Error("Wallet not ready: executeCall is undefined.");
+    }
     const tx = await executeCall(prepared.call);
     if (tx?.transaction_hash) setAddEmployeeTx(tx.transaction_hash);
   };
@@ -676,7 +739,8 @@ export default function ContractSetupCard() {
   const submitAddMilestone = async () => {
     setAddMilestoneError(null);
     setAddMilestoneTx(null);
-    const { address: wallet_address, sessionToken: session_token } = requireAuth();
+    const { address: wallet_address, sessionToken: session_token } =
+      requireAuth();
     if (!agreementDefault) {
       throw new Error("Agreement address not loaded.");
     }
@@ -695,6 +759,9 @@ export default function ContractSetupCard() {
         amount: addMilestoneAmount,
       },
     );
+    if (!executeCall) {
+      throw new Error("Wallet not ready: executeCall is undefined.");
+    }
     const tx = await executeCall(prepared.call);
     if (tx?.transaction_hash) setAddMilestoneTx(tx.transaction_hash);
   };
@@ -702,7 +769,8 @@ export default function ContractSetupCard() {
   const submitActivate = async () => {
     setActivateError(null);
     setActivateTx(null);
-    const { address: wallet_address, sessionToken: session_token } = requireAuth();
+    const { address: wallet_address, sessionToken: session_token } =
+      requireAuth();
     if (!agreementDefault) {
       throw new Error("Agreement address not loaded.");
     }
@@ -717,6 +785,9 @@ export default function ContractSetupCard() {
         agreement_id: activateAgreementId,
       },
     );
+    if (!executeCall) {
+      throw new Error("Wallet not ready: executeCall is undefined.");
+    }
     const tx = await executeCall(prepared.call);
     if (tx?.transaction_hash) setActivateTx(tx.transaction_hash);
   };
@@ -729,7 +800,11 @@ export default function ContractSetupCard() {
     setEmployees(employees.filter((_, i) => i !== index));
   };
 
-  const updateEmployee = (index: number, field: keyof Employee, value: string) => {
+  const updateEmployee = (
+    index: number,
+    field: keyof Employee,
+    value: string,
+  ) => {
     const updated = [...employees];
     updated[index] = { ...updated[index], [field]: value };
     setEmployees(updated);
@@ -769,7 +844,11 @@ export default function ContractSetupCard() {
               <button
                 type="button"
                 onClick={() =>
-                  copyToClipboardWithTimeout(escrowDefault, setEscrowCopied, 1200)
+                  copyToClipboardWithTimeout(
+                    escrowDefault,
+                    setEscrowCopied,
+                    1200,
+                  )
                 }
                 className="cursor-pointer inline-flex items-center justify-center rounded-md border border-[#2E2E2E] bg-[#121212] p-1 hover:bg-[#1A1A1A]"
                 aria-label="Copy escrow address"
@@ -791,7 +870,11 @@ export default function ContractSetupCard() {
               <button
                 type="button"
                 onClick={() =>
-                  copyToClipboardWithTimeout(agreementDefault, setAgreementCopied, 1200)
+                  copyToClipboardWithTimeout(
+                    agreementDefault,
+                    setAgreementCopied,
+                    1200,
+                  )
                 }
                 className="cursor-pointer inline-flex items-center justify-center rounded-md border border-[#2E2E2E] bg-[#121212] p-1 hover:bg-[#1A1A1A]"
                 aria-label="Copy agreement address"
@@ -810,17 +893,23 @@ export default function ContractSetupCard() {
         {escrowInitialized === false ? (
           <div className="flex-1 p-3 rounded-md bg-yellow-900/20 border border-yellow-700/50">
             <div className="text-sm text-yellow-400">
-              <strong>⚠️ Escrow Not Initialized:</strong> The escrow contract needs to be initialized once before creating agreements. 
-              This is typically done by an administrator. Once initialized, all users can create agreements using this escrow.
+              <strong>⚠️ Escrow Not Initialized:</strong> The escrow contract
+              needs to be initialized once before creating agreements. This is
+              typically done by an administrator. Once initialized, all users
+              can create agreements using this escrow.
             </div>
           </div>
         ) : escrowInitialized === true ? (
           <div className="flex-1 p-3 rounded-md bg-green-900/20 border border-green-700/50">
             <div className="text-sm text-green-400">
-              <strong>✓ Escrow Initialized:</strong> The escrow is ready to use. You can create agreements without initializing it again.
+              <strong>✓ Escrow Initialized:</strong> The escrow is ready to use.
+              You can create agreements without initializing it again.
               {escrowToken ? (
                 <span className="text-[#A0A0A0] ml-2">
-                  Token: <span className="text-white font-mono">{shortHex(escrowToken)}</span>
+                  Token:{" "}
+                  <span className="text-white font-mono">
+                    {shortHex(escrowToken)}
+                  </span>
                 </span>
               ) : null}
             </div>
@@ -838,9 +927,11 @@ export default function ContractSetupCard() {
             if (!escrowDefault) return;
             setEscrowInitialized(null);
             setEscrowToken(null);
-            void apiGet<{ initialized: boolean; token: string | null; error?: string }>(
-              `/escrow/${escrowDefault}/is_initialized`,
-            )
+            void apiGet<{
+              initialized: boolean;
+              token: string | null;
+              error?: string;
+            }>(`/escrow/${escrowDefault}/is_initialized`)
               .then((d) => {
                 console.log("Escrow initialization check (manual):", d);
                 setEscrowInitialized(d.initialized);
@@ -870,15 +961,19 @@ export default function ContractSetupCard() {
             <DialogHeader>
               <DialogTitle>Initialize Escrow</DialogTitle>
               <DialogDescription className="text-[#A0A0A0]">
-                Initialize the Payroll Escrow contract with token and manager (WorkAgreement contract).
+                Initialize the Payroll Escrow contract with token and manager
+                (WorkAgreement contract).
                 <br />
                 <span className="text-yellow-400 font-semibold">
-                  ⚠️ This is a one-time operation. The escrow can only be initialized once per deployment.
+                  ⚠️ This is a one-time operation. The escrow can only be
+                  initialized once per deployment.
                 </span>
               </DialogDescription>
             </DialogHeader>
 
-            {authHint ? <div className="text-sm text-[#EB6945]">{authHint}</div> : null}
+            {authHint ? (
+              <div className="text-sm text-[#EB6945]">{authHint}</div>
+            ) : null}
 
             {escrowInitialized === true ? (
               <div className="p-4 rounded-md bg-yellow-900/20 border border-yellow-700/50">
@@ -886,24 +981,35 @@ export default function ContractSetupCard() {
                   Escrow Already Initialized
                 </div>
                 <div className="text-sm text-[#A0A0A0]">
-                  This escrow contract has already been initialized. You cannot initialize it again.
+                  This escrow contract has already been initialized. You cannot
+                  initialize it again.
                   {escrowToken ? (
                     <div className="mt-2">
-                      Current token: <span className="text-white font-mono">{shortHex(escrowToken)}</span>
+                      Current token:{" "}
+                      <span className="text-white font-mono">
+                        {shortHex(escrowToken)}
+                      </span>
                     </div>
                   ) : null}
                 </div>
                 <div className="text-sm text-[#A0A0A0] mt-2">
-                  <strong>Note:</strong> The escrow is multi-tenant and supports multiple agreements. 
-                  You can create new agreements using this escrow without re-initializing it. 
-                  All agreements will use the same token that was set during initialization.
+                  <strong>Note:</strong> The escrow is multi-tenant and supports
+                  multiple agreements. You can create new agreements using this
+                  escrow without re-initializing it. All agreements will use the
+                  same token that was set during initialization.
                 </div>
               </div>
             ) : null}
 
             <div className="space-y-4">
-              <ReadOnlyAddress label="Escrow contract" address={escrowDefault} />
-              <ReadOnlyAddress label="Manager (Agreement)" address={agreementDefault} />
+              <ReadOnlyAddress
+                label="Escrow contract"
+                address={escrowDefault}
+              />
+              <ReadOnlyAddress
+                label="Manager (Agreement)"
+                address={agreementDefault}
+              />
 
               <TokenSelector
                 selectedTokenKey={selectedTokenKey}
@@ -914,7 +1020,9 @@ export default function ContractSetupCard() {
               />
             </div>
 
-            {initEscrowError ? <div className="text-sm text-red-400">{initEscrowError}</div> : null}
+            {initEscrowError ? (
+              <div className="text-sm text-red-400">{initEscrowError}</div>
+            ) : null}
             {initEscrowTx ? <TxRow txHash={initEscrowTx} /> : null}
 
             <DialogFooter>
@@ -927,19 +1035,33 @@ export default function ContractSetupCard() {
               </button>
               <button
                 type="button"
-                disabled={!address || !sessionToken || isExecuting || escrowInitialized === true}
+                disabled={
+                  !address ||
+                  !sessionToken ||
+                  isExecuting ||
+                  escrowInitialized === true
+                }
                 onClick={() =>
-                  void submitInitEscrow().catch((e) => setInitEscrowError(String(e?.message ?? e)))
+                  void submitInitEscrow().catch((e) =>
+                    setInitEscrowError(String(e?.message ?? e)),
+                  )
                 }
                 className="px-4 py-2 rounded-md bg-white text-black border border-[#E5E5E5]/10 hover:bg-[#f3f3f3] disabled:opacity-60 disabled:cursor-not-allowed"
               >
-                {isExecuting ? "Submitting…" : escrowInitialized === true ? "Already Initialized" : "Submit"}
+                {isExecuting
+                  ? "Submitting…"
+                  : escrowInitialized === true
+                    ? "Already Initialized"
+                    : "Submit"}
               </button>
             </DialogFooter>
           </DialogContent>
         </Dialog>
 
-        <Dialog open={createAgreementOpen} onOpenChange={setCreateAgreementOpen}>
+        <Dialog
+          open={createAgreementOpen}
+          onOpenChange={setCreateAgreementOpen}
+        >
           <DialogTrigger asChild>
             <ActionTile
               icon={<FileText className="h-5 w-5 text-[#E5E5E5]" />}
@@ -954,10 +1076,15 @@ export default function ContractSetupCard() {
               </DialogDescription>
             </DialogHeader>
 
-            {authHint ? <div className="text-sm text-[#EB6945]">{authHint}</div> : null}
+            {authHint ? (
+              <div className="text-sm text-[#EB6945]">{authHint}</div>
+            ) : null}
 
             <div className="space-y-4">
-              <ReadOnlyAddress label="Agreement contract" address={agreementDefault} />
+              <ReadOnlyAddress
+                label="Agreement contract"
+                address={agreementDefault}
+              />
               <ReadOnlyAddress label="Employer" address={address ?? ""} />
 
               {/* Mode Selection */}
@@ -1001,16 +1128,22 @@ export default function ContractSetupCard() {
                 <>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div className="space-y-1">
-                      <label className="text-sm text-[#E5E5E5]">Period (seconds)</label>
+                      <label className="text-sm text-[#E5E5E5]">
+                        Period (seconds)
+                      </label>
                       <input
                         value={payrollPeriodSeconds}
-                        onChange={(e) => setPayrollPeriodSeconds(e.target.value)}
+                        onChange={(e) =>
+                          setPayrollPeriodSeconds(e.target.value)
+                        }
                         placeholder="2592000"
                         className="w-full bg-transparent border border-[#242428] text-white px-4 py-2 rounded-md outline-none font-mono text-sm"
                       />
                     </div>
                     <div className="space-y-1">
-                      <label className="text-sm text-[#E5E5E5]">Number of periods</label>
+                      <label className="text-sm text-[#E5E5E5]">
+                        Number of periods
+                      </label>
                       <input
                         value={payrollNumPeriods}
                         onChange={(e) => setPayrollNumPeriods(e.target.value)}
@@ -1027,7 +1160,9 @@ export default function ContractSetupCard() {
                 <>
                   {/* Escrow Payment Type Selection */}
                   <div className="space-y-2">
-                    <label className="text-sm text-[#E5E5E5]">Payment Type</label>
+                    <label className="text-sm text-[#E5E5E5]">
+                      Payment Type
+                    </label>
                     <div className="flex gap-3">
                       <button
                         type="button"
@@ -1055,7 +1190,9 @@ export default function ContractSetupCard() {
                   </div>
 
                   <div className="space-y-1">
-                    <label className="text-sm text-[#E5E5E5]">Contributor wallet address</label>
+                    <label className="text-sm text-[#E5E5E5]">
+                      Contributor wallet address
+                    </label>
                     <input
                       value={escrowContributor}
                       onChange={(e) => setEscrowContributor(e.target.value)}
@@ -1067,7 +1204,9 @@ export default function ContractSetupCard() {
                   {escrowPaymentType === "time" ? (
                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                       <div className="space-y-1">
-                        <label className="text-sm text-[#E5E5E5]">Amount per period</label>
+                        <label className="text-sm text-[#E5E5E5]">
+                          Amount per period
+                        </label>
                         <input
                           value={amountPerPeriod}
                           onChange={(e) => setAmountPerPeriod(e.target.value)}
@@ -1076,7 +1215,9 @@ export default function ContractSetupCard() {
                         />
                       </div>
                       <div className="space-y-1">
-                        <label className="text-sm text-[#E5E5E5]">Period (seconds)</label>
+                        <label className="text-sm text-[#E5E5E5]">
+                          Period (seconds)
+                        </label>
                         <input
                           value={periodSeconds}
                           onChange={(e) => setPeriodSeconds(e.target.value)}
@@ -1085,7 +1226,9 @@ export default function ContractSetupCard() {
                         />
                       </div>
                       <div className="space-y-1">
-                        <label className="text-sm text-[#E5E5E5]">Number of periods</label>
+                        <label className="text-sm text-[#E5E5E5]">
+                          Number of periods
+                        </label>
                         <input
                           value={numPeriods}
                           onChange={(e) => setNumPeriods(e.target.value)}
@@ -1109,7 +1252,8 @@ export default function ContractSetupCard() {
             {createAgreementTx ? <TxRow txHash={createAgreementTx} /> : null}
             {createdAgreementId ? (
               <div className="text-sm text-[#A0A0A0]">
-                Agreement ID: <span className="text-white">{createdAgreementId}</span>
+                Agreement ID:{" "}
+                <span className="text-white">{createdAgreementId}</span>
               </div>
             ) : null}
 
@@ -1139,20 +1283,29 @@ export default function ContractSetupCard() {
 
         <Dialog open={fundAgreementOpen} onOpenChange={setFundAgreementOpen}>
           <DialogTrigger asChild>
-            <ActionTile icon={<Coins className="h-5 w-5 text-[#E5E5E5]" />} title="Fund Agreement" />
+            <ActionTile
+              icon={<Coins className="h-5 w-5 text-[#E5E5E5]" />}
+              title="Fund Agreement"
+            />
           </DialogTrigger>
           <DialogContent className="bg-[#1a0c1d] border border-[#2D2D2D] text-white max-h-[85vh] overflow-y-auto overflow-x-hidden">
             <DialogHeader>
               <DialogTitle>Fund Agreement</DialogTitle>
               <DialogDescription className="text-[#A0A0A0]">
-                Fund an agreement by depositing tokens to the escrow (requires prior ERC20 approve).
+                Fund an agreement by depositing tokens to the escrow (requires
+                prior ERC20 approve).
               </DialogDescription>
             </DialogHeader>
 
-            {authHint ? <div className="text-sm text-[#EB6945]">{authHint}</div> : null}
+            {authHint ? (
+              <div className="text-sm text-[#EB6945]">{authHint}</div>
+            ) : null}
 
             <div className="space-y-4">
-              <ReadOnlyAddress label="Agreement contract" address={agreementDefault} />
+              <ReadOnlyAddress
+                label="Agreement contract"
+                address={agreementDefault}
+              />
               <div className="space-y-1">
                 <label className="text-sm text-[#E5E5E5]">Agreement ID</label>
                 <input
@@ -1163,7 +1316,9 @@ export default function ContractSetupCard() {
                 />
               </div>
               <div className="space-y-1">
-                <label className="text-sm text-[#E5E5E5]">Amount (on-chain units)</label>
+                <label className="text-sm text-[#E5E5E5]">
+                  Amount (on-chain units)
+                </label>
                 <input
                   value={fundAmount}
                   onChange={(e) => setFundAmount(e.target.value)}
@@ -1171,12 +1326,15 @@ export default function ContractSetupCard() {
                   className="w-full bg-transparent border border-[#242428] text-white px-4 py-2 rounded-md outline-none font-mono text-sm"
                 />
                 <div className="text-xs text-[#A0A0A0]">
-                  Enter the amount in raw token units (e.g., 1000000 for 1 USDC with 6 decimals)
+                  Enter the amount in raw token units (e.g., 1000000 for 1 USDC
+                  with 6 decimals)
                 </div>
               </div>
             </div>
 
-            {fundError ? <div className="text-sm text-red-400">{fundError}</div> : null}
+            {fundError ? (
+              <div className="text-sm text-red-400">{fundError}</div>
+            ) : null}
             {fundTx ? <TxRow txHash={fundTx} /> : null}
 
             <DialogFooter>
@@ -1191,7 +1349,9 @@ export default function ContractSetupCard() {
                 type="button"
                 disabled={!address || !sessionToken || isExecuting}
                 onClick={() =>
-                  void submitFundAgreement().catch((e) => setFundError(String(e?.message ?? e)))
+                  void submitFundAgreement().catch((e) =>
+                    setFundError(String(e?.message ?? e)),
+                  )
                 }
                 className="px-4 py-2 rounded-md bg-white text-black border border-[#E5E5E5]/10 hover:bg-[#f3f3f3] disabled:opacity-60 disabled:cursor-not-allowed"
               >
@@ -1217,10 +1377,15 @@ export default function ContractSetupCard() {
                 </DialogDescription>
               </DialogHeader>
 
-              {authHint ? <div className="text-sm text-[#EB6945]">{authHint}</div> : null}
+              {authHint ? (
+                <div className="text-sm text-[#EB6945]">{authHint}</div>
+              ) : null}
 
               <div className="space-y-4">
-                <ReadOnlyAddress label="Agreement contract" address={agreementDefault} />
+                <ReadOnlyAddress
+                  label="Agreement contract"
+                  address={agreementDefault}
+                />
                 <div className="space-y-1">
                   <label className="text-sm text-[#E5E5E5]">Agreement ID</label>
                   <input
@@ -1231,7 +1396,9 @@ export default function ContractSetupCard() {
                   />
                 </div>
                 <div className="space-y-1">
-                  <label className="text-sm text-[#E5E5E5]">Employee address</label>
+                  <label className="text-sm text-[#E5E5E5]">
+                    Employee address
+                  </label>
                   <input
                     value={addEmployeeAddress}
                     onChange={(e) => setAddEmployeeAddress(e.target.value)}
@@ -1240,7 +1407,9 @@ export default function ContractSetupCard() {
                   />
                 </div>
                 <div className="space-y-1">
-                  <label className="text-sm text-[#E5E5E5]">Salary per period</label>
+                  <label className="text-sm text-[#E5E5E5]">
+                    Salary per period
+                  </label>
                   <input
                     value={addEmployeeSalary}
                     onChange={(e) => setAddEmployeeSalary(e.target.value)}
@@ -1294,10 +1463,15 @@ export default function ContractSetupCard() {
                 </DialogDescription>
               </DialogHeader>
 
-              {authHint ? <div className="text-sm text-[#EB6945]">{authHint}</div> : null}
+              {authHint ? (
+                <div className="text-sm text-[#EB6945]">{authHint}</div>
+              ) : null}
 
               <div className="space-y-4">
-                <ReadOnlyAddress label="Agreement contract" address={agreementDefault} />
+                <ReadOnlyAddress
+                  label="Agreement contract"
+                  address={agreementDefault}
+                />
                 <div className="space-y-1">
                   <label className="text-sm text-[#E5E5E5]">Agreement ID</label>
                   <input
@@ -1308,7 +1482,9 @@ export default function ContractSetupCard() {
                   />
                 </div>
                 <div className="space-y-1">
-                  <label className="text-sm text-[#E5E5E5]">Milestone amount</label>
+                  <label className="text-sm text-[#E5E5E5]">
+                    Milestone amount
+                  </label>
                   <input
                     value={addMilestoneAmount}
                     onChange={(e) => setAddMilestoneAmount(e.target.value)}
@@ -1359,14 +1535,20 @@ export default function ContractSetupCard() {
             <DialogHeader>
               <DialogTitle>Activate Agreement</DialogTitle>
               <DialogDescription className="text-[#A0A0A0]">
-                Activates the Work Agreement so contributors/employees can claim.
+                Activates the Work Agreement so contributors/employees can
+                claim.
               </DialogDescription>
             </DialogHeader>
 
-            {authHint ? <div className="text-sm text-[#EB6945]">{authHint}</div> : null}
+            {authHint ? (
+              <div className="text-sm text-[#EB6945]">{authHint}</div>
+            ) : null}
 
             <div className="space-y-4">
-              <ReadOnlyAddress label="Agreement contract" address={agreementDefault} />
+              <ReadOnlyAddress
+                label="Agreement contract"
+                address={agreementDefault}
+              />
               <div className="space-y-1">
                 <label className="text-sm text-[#E5E5E5]">Agreement ID</label>
                 <input
@@ -1377,12 +1559,14 @@ export default function ContractSetupCard() {
                 />
               </div>
               <div className="text-sm text-[#A0A0A0]">
-                This will activate the agreement contract. Make sure the escrow is funded before
-                activating.
+                This will activate the agreement contract. Make sure the escrow
+                is funded before activating.
               </div>
             </div>
 
-            {activateError ? <div className="text-sm text-red-400">{activateError}</div> : null}
+            {activateError ? (
+              <div className="text-sm text-red-400">{activateError}</div>
+            ) : null}
             {activateTx ? <TxRow txHash={activateTx} /> : null}
 
             <DialogFooter>
@@ -1397,7 +1581,9 @@ export default function ContractSetupCard() {
                 type="button"
                 disabled={!address || !sessionToken || isExecuting}
                 onClick={() =>
-                  void submitActivate().catch((e) => setActivateError(String(e?.message ?? e)))
+                  void submitActivate().catch((e) =>
+                    setActivateError(String(e?.message ?? e)),
+                  )
                 }
                 className="px-4 py-2 rounded-md bg-white text-black border border-[#E5E5E5]/10 hover:bg-[#f3f3f3] disabled:opacity-60 disabled:cursor-not-allowed"
               >

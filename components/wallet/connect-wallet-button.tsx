@@ -41,11 +41,12 @@ export default function ConnectWalletButton({
   variant = "button",
   onConnected,
 }: ConnectWalletButtonProps) {
-  const { address, isConnecting, error, connectWallet, disconnectWallet } =
+  const { connectedWallet, error, connectWallet, disconnectWallet } =
     useWallet();
+  const { address, isConnecting } = connectedWallet || {};
   // Use ToastContext directly to handle cases where ToastProvider might not be available (e.g., static generation)
   const toastContext = useContext(ToastContext);
-  const prevErrorRef = useRef<string | null>(null);
+  const prevErrorRef = useRef<string | null>(undefined);
 
   // Show toast when error occurs (only once per unique error across all instances)
   useEffect(() => {
@@ -53,7 +54,7 @@ export default function ConnectWalletButton({
     if (error === prevErrorRef.current) {
       return;
     }
-    
+
     prevErrorRef.current = error;
 
     if (!error || !toastContext) {
@@ -62,23 +63,27 @@ export default function ConnectWalletButton({
 
     const now = Date.now();
     const lastShown = shownErrorMap.get(error);
-    const shouldShow = !lastShown || (now - lastShown) > DEBOUNCE_MS;
+    const shouldShow = !lastShown || now - lastShown > DEBOUNCE_MS;
 
     if (shouldShow) {
       // Mark this error as shown with current timestamp (atomic operation)
       shownErrorMap.set(error, now);
-      
+
       // Determine appropriate title based on error message
       const errorLower = error.toLowerCase();
       let title = "Connection failed";
-      if (errorLower.includes("sign") || errorLower.includes("message") || errorLower.includes("please sign")) {
+      if (
+        errorLower.includes("sign") ||
+        errorLower.includes("message") ||
+        errorLower.includes("please sign")
+      ) {
         title = "Signing required";
       } else if (errorLower.includes("transaction")) {
         title = "Transaction failed";
       }
-      
+
       toastContext.showToast(title, error, "error");
-      
+
       // Clean up old entries after delay
       setTimeout(() => {
         shownErrorMap.delete(error);
@@ -88,7 +93,7 @@ export default function ConnectWalletButton({
 
   const label = useMemo(() => {
     if (isConnecting) return "Connecting…";
-    if (address) return formatAddress(address);
+    if (address) return address;
     return "Connect Wallet";
   }, [address, isConnecting]);
 
@@ -135,7 +140,7 @@ export default function ConnectWalletButton({
           aria-label="Wallet menu"
         >
           <WalletIcon className="w-5 h-5 text-[#EEF4FF]" />
-          <span>{formatAddress(address)}</span>
+          <span>{address}</span>
         </button>
       );
     }
@@ -176,5 +181,3 @@ export default function ConnectWalletButton({
     </DropdownMenu>
   );
 }
-
-

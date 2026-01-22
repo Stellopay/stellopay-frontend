@@ -3,6 +3,7 @@ import { Inter } from "next/font/google";
 import localFont from "next/font/local";
 import "./globals.css";
 import { SidebarProvider } from "@/context/sidebar-context";
+import { NetworkProvider } from "@/context/network-context";
 import { WalletProvider } from "@/context/wallet-context";
 import { ToastProvider } from "@/components/ui/toast";
 
@@ -48,9 +49,9 @@ export default function RootLayout({
         className={`${inter.variable} ${clashDisplay.variable} ${generalSans.variable} antialiased`}
       >
         <SidebarProvider>
-          <WalletProvider>
-            <ToastProvider>{children}</ToastProvider>
-          </WalletProvider>
+          <NetworkProvider>
+            <WalletProvider><ToastProvider>{children}</ToastProvider></WalletProvider>
+          </NetworkProvider>
         </SidebarProvider>
       </body>
     </html>

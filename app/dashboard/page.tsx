@@ -20,7 +20,7 @@ import type { NotificationItem } from "@/types/notification-item";
 
 const page = () => {
   const router = useRouter();
-  const { address, isVerified, isInitializing } = useWallet();
+  const { connectedWallet } = useWallet();
   const [transactions, setTransactions] = useState<TransactionProps[]>([]);
   const [notifications, setNotifications] = useState<NotificationItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -29,7 +29,7 @@ const page = () => {
 
   // Fetch transactions and notifications
   useEffect(() => {
-    if (!address) {
+    if (!connectedWallet) {
       setLoading(false);
       return;
     }
@@ -38,19 +38,29 @@ const page = () => {
       try {
         setLoading(true);
         const [txData, notifData] = await Promise.all([
-          apiGet<{ transactions: TransactionProps[] }>(`/transactions/${address}?limit=50`).catch((e) => {
+          apiGet<{ transactions: TransactionProps[] }>(
+            `/transactions/${connectedWallet.address}?limit=50`,
+          ).catch((e) => {
             console.error("[dashboard] Failed to fetch transactions:", e);
             return { transactions: [] };
           }),
-          apiGet<{ notifications: Array<{ title: string; message: string; read: boolean }> }>(`/notifications/${address}?limit=50`).catch((e) => {
-            console.error("[dashboard] Failed to fetch notifications:", e);
-            return { notifications: [] };
-          }),
+          apiGet<{
+            notifications: Array<{
+              title: string;
+              message: string;
+              read: boolean;
+            }>;
+          }>(`/notifications/${connectedWallet.address}?limit=50`).catch(
+            (e) => {
+              console.error("[dashboard] Failed to fetch notifications:", e);
+              return { notifications: [] };
+            },
+          ),
         ]);
 
         console.log("[dashboard] Fetched data:", {
           transactions: txData.transactions?.length || 0,
-          notifications: notifData.notifications?.length || 0
+          notifications: notifData.notifications?.length || 0,
         });
 
         setTransactions(txData.transactions || []);
@@ -65,34 +75,32 @@ const page = () => {
     };
 
     fetchData();
-  }, [address]);
+  }, [connectedWallet]);
 
-  const paginatedTransactions = getPageItems(transactions, currentPage, itemsPerPage);
+  const paginatedTransactions = getPageItems(
+    transactions,
+    currentPage,
+    itemsPerPage,
+  );
   const totalPages = getTotalPages(transactions.length, itemsPerPage);
 
   const handleViewAllTransactions = () => {
     router.push("/transactions");
   };
 
-  // Show modal if wallet is not connected or not verified (but not while initializing)
-  const showModal = !isInitializing && (!address || !isVerified);
+  // Show modal if wallet is not connected
+  const showModal = !connectedWallet;
 
   return (
     <div className="min-h-screen">
       <WalletConnectionModal />
-      {isInitializing ? (
-        // Show loading state while checking for saved wallet session
-        <div className="min-h-screen flex items-center justify-center">
-          <div className="text-center">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-white mx-auto mb-4"></div>
-            <p className="text-[#9CA3AF]">Loading...</p>
-          </div>
-        </div>
-      ) : showModal ? (
+      {showModal ? (
         // Show empty state while waiting for wallet connection
         <div className="min-h-screen flex items-center justify-center">
           <div className="text-center">
-            <p className="text-[#9CA3AF]">Please connect your wallet to continue</p>
+            <p className="text-[#9CA3AF]">
+              Please connect your wallet to continue
+            </p>
           </div>
         </div>
       ) : (
@@ -161,9 +169,13 @@ const page = () => {
                   </div>
                 </div>
                 {loading ? (
-                  <div className="py-8 text-center text-[#A0A0A0]">Loading transactions...</div>
+                  <div className="py-8 text-center text-[#A0A0A0]">
+                    Loading transactions...
+                  </div>
                 ) : transactions.length === 0 ? (
-                  <div className="py-8 text-center text-[#A0A0A0]">No transactions found</div>
+                  <div className="py-8 text-center text-[#A0A0A0]">
+                    No transactions found
+                  </div>
                 ) : (
                   <TransactionsTable transactions={paginatedTransactions} />
                 )}

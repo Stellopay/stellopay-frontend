@@ -22,7 +22,7 @@ import {
 
 export const NavLink = () => {
   const pathname = usePathname() || "/";
-  const { address } = useWallet();
+  const { connectedWallet } = useWallet();
   const { isSidebarOpen, isMobile } = useSidebar();
   const [transactionCount, setTransactionCount] = useState<number>(0);
 
@@ -31,7 +31,7 @@ export const NavLink = () => {
 
   // Fetch transaction count
   useEffect(() => {
-    if (!address) {
+    if (!connectedWallet?.address) {
       setTransactionCount(0);
       return;
     }
@@ -39,7 +39,7 @@ export const NavLink = () => {
     const fetchTransactionCount = async () => {
       try {
         const result = await apiGet<{ transactions: unknown[] }>(
-          `/transactions/${address}?limit=100`
+          `/transactions/${connectedWallet.address}?limit=100`
         );
         setTransactionCount(result.transactions?.length || 0);
       } catch (e) {
@@ -49,7 +49,7 @@ export const NavLink = () => {
     };
 
     void fetchTransactionCount();
-  }, [address]);
+  }, [connectedWallet?.address]);
 
   const links = [
     {

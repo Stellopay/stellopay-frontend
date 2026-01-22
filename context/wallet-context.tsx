@@ -1,17 +1,17 @@
 "use client";
-
-import React, {
+import {
   createContext,
-  useCallback,
+  FC,
+  ReactNode,
   useContext,
-  useMemo,
-  useEffect,
-  useRef,
   useState,
+  useEffect,
 } from "react";
 import { connect } from "@starknet-io/get-starknet";
 import { getBackendBaseUrl } from "@/lib/backend";
 import { getWalletErrorMessage } from "@/utils/wallet-error-handler";
+import { useRef, useCallback, useMemo } from "react";
+import { Network } from "../types/network";
 
 type WalletLike = {
   selectedAddress?: string;
@@ -24,19 +24,32 @@ type WalletLike = {
   disconnect?: () => Promise<void> | void;
 };
 
+export interface Wallet {
+  id: string;
+  name: string;
+  icon: string;
+  supportedNetworks: Network[];
+  installUrl?: string;
+}
+
 type WalletContextValue = {
-  address: string | null;
-  sessionToken: string | null;
-  isVerified: boolean;
-  isConnecting: boolean;
-  isExecuting: boolean;
-  isVerifying: boolean;
-  isInitializing: boolean;
-  error: string | null;
-  connectWallet: () => Promise<void>;
+  connectedWallet: ConnectedWallet | null;
+  connectWallet: (wallet?: Wallet, address?: string, network?: string) => Promise<void>;
+  error?: string | null;
   disconnectWallet: () => Promise<void>;
-  executeCall: (call: any) => Promise<{ transaction_hash?: string }>;
+  executeCall?: (call: any) => Promise<{ transaction_hash?: string }>;
 };
+
+export interface ConnectedWallet {
+  wallet: Wallet;
+  address: string;
+  network: string;
+  sessionToken?: string;
+  isVerified?: boolean;
+  isExecuting?: boolean;
+  isConnecting?: boolean;
+  isVerifying?: boolean;
+}
 
 const WalletContext = createContext<WalletContextValue | null>(null);
 
@@ -64,7 +77,8 @@ async function postJson<TResponse>(
   const parsed = await res.json().catch(() => null);
   if (!res.ok) {
     const msg =
-      parsed?.error ?? `Request failed (${res.status} ${res.statusText || "Error"})`;
+      parsed?.error ??
+      `Request failed (${res.status} ${res.statusText || "Error"})`;
     // Don't mislabel backend-provided errors as "unreachable"
     throw new Error(msg);
   }
@@ -115,13 +129,19 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
 
   // Helper to perform verification flow (challenge + sign + verify)
   const performVerification = useCallback(
-    async (wallet: WalletLike, walletAddress: string): Promise<{ success: boolean; error?: string }> => {
+    async (
+      wallet: WalletLike,
+      walletAddress: string,
+    ): Promise<{ success: boolean; error?: string }> => {
       const apiBase = getBackendBaseUrl();
       try {
         // Step 1: get challenge from backend
-        const challenge = await postJson<{ typed_data: unknown }>(`${apiBase}/auth/challenge`, {
-          address: walletAddress,
-        });
+        const challenge = await postJson<{ typed_data: unknown }>(
+          `${apiBase}/auth/challenge`,
+          {
+            address: walletAddress,
+          },
+        );
 
         // Step 2: wallet signs typed data challenge
         const signMessage = wallet.account?.signMessage;
@@ -129,7 +149,10 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
           const error = "Connected wallet does not support message signing";
           setSessionToken(null);
           setIsVerified(false);
-          return { success: false, error: getWalletErrorMessage(new Error(error)) };
+          return {
+            success: false,
+            error: getWalletErrorMessage(new Error(error)),
+          };
         }
 
         let sigRaw;
@@ -146,10 +169,13 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
         const signature = normalizeSignature(sigRaw);
 
         // Step 3: backend verifies signature and issues session token
-        const verify = await postJson<{ session_token: string }>(`${apiBase}/auth/verify`, {
-          address: walletAddress,
-          signature,
-        });
+        const verify = await postJson<{ session_token: string }>(
+          `${apiBase}/auth/verify`,
+          {
+            address: walletAddress,
+            signature,
+          },
+        );
 
         setSessionToken(verify.session_token);
         setIsVerified(true);
@@ -189,18 +215,21 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
       setIsVerifying(true);
       try {
         // Wait a bit for wallet extension to be ready
-        await new Promise(resolve => setTimeout(resolve, 500));
+        await new Promise((resolve) => setTimeout(resolve, 500));
 
         const starknet = await connect();
         if (!starknet) {
-          console.log("[wallet] No wallet extension found for auto-verification");
+          console.log(
+            "[wallet] No wallet extension found for auto-verification",
+          );
           setIsVerifying(false);
           setIsInitializing(false);
           return;
         }
 
         const wallet = starknet as unknown as WalletLike;
-        const currentAddress = wallet.selectedAddress ?? wallet.account?.address ?? savedAddress;
+        const currentAddress =
+          wallet.selectedAddress ?? wallet.account?.address ?? savedAddress;
 
         if (!currentAddress) {
           console.log("[wallet] Wallet connected but no address available");
@@ -209,8 +238,13 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
           return;
         }
 
-        if (savedAddress && currentAddress.toLowerCase() !== savedAddress.toLowerCase()) {
-          console.log("[wallet] Wallet address changed, skipping auto-verification");
+        if (
+          savedAddress &&
+          currentAddress.toLowerCase() !== savedAddress.toLowerCase()
+        ) {
+          console.log(
+            "[wallet] Wallet address changed, skipping auto-verification",
+          );
           setIsVerifying(false);
           setIsInitializing(false);
           return;
@@ -221,7 +255,9 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
         if (savedAddress) setAddress(savedAddress);
 
         const enablePromise =
-          typeof wallet.enable === "function" ? wallet.enable() : Promise.resolve();
+          typeof wallet.enable === "function"
+            ? wallet.enable()
+            : Promise.resolve();
         await Promise.resolve(enablePromise);
 
         const result = await performVerification(wallet, currentAddress);
@@ -253,7 +289,10 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
           setIsInitializing(false);
         })
         .catch((err) => {
-          console.log("[wallet] Session validation failed, attempting auto-verification:", err);
+          console.log(
+            "[wallet] Session validation failed, attempting auto-verification:",
+            err,
+          );
           // Session expired/invalid -> try to auto-reconnect if wallet is still connected
           localStorage.removeItem(STORAGE_KEY_SESSION);
           setSessionToken(null);
@@ -264,7 +303,9 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
         });
     } else if (savedAddress && !savedToken) {
       // We have an address but no session token -> check if wallet is still connected and auto-verify
-      console.log("[wallet] Address found but no session token, attempting auto-verification");
+      console.log(
+        "[wallet] Address found but no session token, attempting auto-verification",
+      );
       void attemptAutoVerification();
     } else {
       // No saved address or token - initialization complete
@@ -272,24 +313,66 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
     }
   }, [performVerification]);
 
-  const connectWallet = useCallback(async () => {
+  const connectWallet = useCallback(async (wallet?: Wallet, address?: string, network?: string) => {
     // Clear any previous errors when starting a new connection attempt
     setError(null);
     setIsConnecting(true);
     try {
+      // If address is provided (from wallet-modal connection), use it directly
+      if (address) {
+        console.log("[wallet] Connecting with provided address:", address);
+        walletRef.current = {}; // Store minimal wallet reference
+        setAddress(address);
+
+        const result = await performVerification({} as WalletLike, address);
+
+        if (!result.success && result.error) {
+          const errorMessage = result.error.toLowerCase();
+
+          // If user rejected signing, reset the address so they can try again
+          const isSigningRejection =
+            errorMessage.includes("sign") ||
+            errorMessage.includes("user_refused") ||
+            errorMessage.includes("user rejected") ||
+            errorMessage.includes("user cancelled") ||
+            errorMessage.includes("user canceled") ||
+            errorMessage.includes("rejected by user") ||
+            errorMessage.includes("user abort");
+
+          if (isSigningRejection) {
+            // Reset address so the modal shows "Connect Wallet" button again
+            setAddress(null);
+            walletRef.current = null;
+            if (typeof window !== "undefined") {
+              localStorage.removeItem(STORAGE_KEY_ADDRESS);
+              localStorage.removeItem(STORAGE_KEY_SESSION);
+            }
+          }
+
+          setError(result.error);
+          setIsVerified(false);
+          setSessionToken(null);
+        } else {
+          console.log("[wallet] Verification successful for address:", address);
+        }
+        return;
+      }
+
+      // Default behavior: connect to Starknet
       const starknet = await connect();
       if (!starknet) {
         setIsConnecting(false);
         return;
       }
 
-      const wallet = starknet as unknown as WalletLike;
-      if (typeof wallet.enable === "function") {
-        await wallet.enable();
+      const starknetWallet = starknet as unknown as WalletLike;
+      if (typeof starknetWallet.enable === "function") {
+        await starknetWallet.enable();
       }
 
-      walletRef.current = wallet;
-      const nextAddress = wallet.selectedAddress ?? wallet.account?.address ?? null;
+      walletRef.current = starknetWallet;
+      const nextAddress =
+        starknetWallet.selectedAddress ?? starknetWallet.account?.address ?? null;
       setAddress(nextAddress);
 
       if (!nextAddress) {
@@ -299,7 +382,7 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
         return;
       }
 
-      const result = await performVerification(wallet, nextAddress);
+      const result = await performVerification(starknetWallet, nextAddress);
 
       if (!result.success && result.error) {
         const errorMessage = result.error.toLowerCase();
@@ -389,12 +472,14 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
     if (typeof exec !== "function") {
       // Try to get account from wallet if not available
       if (!wallet.account) {
-        const error = "Wallet account not available. Please reconnect your wallet.";
+        const error =
+          "Wallet account not available. Please reconnect your wallet.";
         setError(getWalletErrorMessage(new Error(error)));
         setIsExecuting(false);
         return {};
       }
-      const error = "Connected wallet does not support execute(). Please use a compatible wallet.";
+      const error =
+        "Connected wallet does not support execute(). Please use a compatible wallet.";
       setError(getWalletErrorMessage(new Error(error)));
       setIsExecuting(false);
       return {};
@@ -419,13 +504,19 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
 
   const value = useMemo<WalletContextValue>(
     () => ({
-      address,
-      sessionToken,
-      isVerified,
-      isConnecting,
-      isExecuting,
-      isVerifying,
-      isInitializing,
+      connectedWallet:
+        address && !isConnecting && !isVerifying
+          ? {
+              wallet: { id: "starknet", name: "Starknet", icon: "", supportedNetworks: [] },
+              address,
+              network: "mainnet",
+              sessionToken: sessionToken ?? undefined,
+              isVerified,
+              isExecuting,
+              isConnecting,
+              isVerifying,
+            }
+          : null,
       error,
       connectWallet,
       disconnectWallet,
@@ -438,7 +529,6 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
       isConnecting,
       isExecuting,
       isVerifying,
-      isInitializing,
       error,
       connectWallet,
       disconnectWallet,
@@ -446,13 +536,17 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
     ],
   );
 
-  return <WalletContext.Provider value={value}>{children}</WalletContext.Provider>;
+  return (
+    <WalletContext.Provider value={value}>{children}</WalletContext.Provider>
+  );
 }
 
-export function useWallet() {
-  const ctx = useContext(WalletContext);
-  if (!ctx) throw new Error("useWallet must be used within a WalletProvider");
-  return ctx;
-}
+export const useWallet = () => {
+  const context = useContext(WalletContext);
+  if (!context) {
+    throw new Error("useWallet must be used within a WalletProvider");
+  }
+  return context;
+};
 
-
+export default useWallet;

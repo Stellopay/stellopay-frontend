@@ -46,7 +46,7 @@ const CustomTooltip = ({ active, payload, label }: any) => {
 };
 
 const AnalyticsViews = () => {
-  const { address } = useWallet();
+  const { connectedWallet } = useWallet();
   const [data, setData] = useState(defaultData);
   const [year, setYear] = useState(new Date().getFullYear());
   const [loading, setLoading] = useState(true);
@@ -60,7 +60,7 @@ const AnalyticsViews = () => {
   }, []);
 
   useEffect(() => {
-    if (!address || !agreementDefault) {
+    if (!connectedWallet?.address || !agreementDefault) {
       setLoading(false);
       return;
     }
@@ -68,15 +68,17 @@ const AnalyticsViews = () => {
     const fetchAnalytics = async () => {
       try {
         setLoading(true);
-        
+
         // Fetch agreements list
-        const agreementsResult = await apiGet<{ agreements: Array<{ agreement_id: string; status: number }> }>(
-          `/agreement/${agreementDefault}/list/${address}?refresh=true`
+        const agreementsResult = await apiGet<{
+          agreements: Array<{ agreement_id: string; status: number }>;
+        }>(
+          `/agreement/${agreementDefault}/list/${connectedWallet.address}?refresh=true`,
         );
-        
+
         const agreements = agreementsResult.agreements || [];
         setTotalAgreements(agreements.length);
-        
+
         // Group agreements by month created (simplified - using current month distribution)
         // In a real scenario, you'd parse transaction dates to get creation dates
         const monthData = defaultData.map((item, index) => {
@@ -85,10 +87,10 @@ const AnalyticsViews = () => {
           const monthAgreements = Math.floor(agreements.length / 12);
           return {
             ...item,
-            agreements: monthAgreements
+            agreements: monthAgreements,
           };
         });
-        
+
         setData(monthData);
       } catch (e) {
         console.error("[analytics] Failed to fetch analytics:", e);
@@ -100,7 +102,7 @@ const AnalyticsViews = () => {
     };
 
     fetchAnalytics();
-  }, [address, year, agreementDefault]);
+  }, [connectedWallet?.address, year, agreementDefault]);
 
   return (
     <div className="bg-[#0D0D0D80] text-white rounded-xl border border-[#2D2D2D] p-4 w-full h-[400px] flex flex-col justify-between">
@@ -116,10 +118,12 @@ const AnalyticsViews = () => {
           </div>
           <div>
             <h2 className="font-semibold text-lg">Agreements Created</h2>
-            <p className="text-sm text-[#A0A0A0]">Total: {totalAgreements} agreements</p>
+            <p className="text-sm text-[#A0A0A0]">
+              Total: {totalAgreements} agreements
+            </p>
           </div>
         </div>
-        <button 
+        <button
           className="px-3 py-1 text-sm rounded-lg border border-[#2D2D2D] bg-transparent"
           onClick={() => setYear(new Date().getFullYear())}
         >
@@ -129,30 +133,32 @@ const AnalyticsViews = () => {
 
       <div className="w-full flex-1 min-h-0 rounded-lg border border-[#2D2D2D] p-2 sm:p-4">
         {loading ? (
-          <div className="flex items-center justify-center h-full text-[#A0A0A0]">Loading analytics...</div>
+          <div className="flex items-center justify-center h-full text-[#A0A0A0]">
+            Loading analytics...
+          </div>
         ) : (
           <ResponsiveContainer width="100%" height="100%">
             <BarChart data={data}>
-            <CartesianGrid
-              strokeDasharray="3 3"
-              vertical={false}
-              stroke="#1f1b2e"
-            />
-            <XAxis dataKey="month" tick={{ fill: "#aaa", fontSize: 10 }} />
-            <YAxis
-              tick={{ fill: "#aaa", fontSize: 10 }}
-              tickFormatter={formatChartValue}
-              domain={[0, 'auto']}
-            />
-            <Tooltip content={<CustomTooltip />} />
-            <Bar
-              dataKey="agreements"
-              fill="#2E2E2E"
-              radius={[4, 4, 0, 0]}
-              barSize={28}
-            />
-          </BarChart>
-        </ResponsiveContainer>
+              <CartesianGrid
+                strokeDasharray="3 3"
+                vertical={false}
+                stroke="#1f1b2e"
+              />
+              <XAxis dataKey="month" tick={{ fill: "#aaa", fontSize: 10 }} />
+              <YAxis
+                tick={{ fill: "#aaa", fontSize: 10 }}
+                tickFormatter={formatChartValue}
+                domain={[0, "auto"]}
+              />
+              <Tooltip content={<CustomTooltip />} />
+              <Bar
+                dataKey="agreements"
+                fill="#2E2E2E"
+                radius={[4, 4, 0, 0]}
+                barSize={28}
+              />
+            </BarChart>
+          </ResponsiveContainer>
         )}
       </div>
     </div>
