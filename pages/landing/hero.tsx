@@ -2,22 +2,9 @@ import Image from "next/image";
 import Link from "next/link";
 import { HeroContent } from "@/types/landing";
 export default function Hero() {
-
-  // top-right -  background: linear-gradient(180deg, #512DA4 0%, #A818B6 100%); - width: 350.0000290454993; height: 935.0000775929766; angle: -56.9 deg; opacity: 0.1;
-
-  // top-left - background: linear-gradient(180deg, #512DA4 0%, #A818B6 100%); - width: 350.0000290454993; height: 935.0000775929766; angle: 56.9 deg; opacity: 0.1;
-
-  // bottom-left - background: #1B43F5; backdrop-filter: blur(224px); - width: 350.0000290454993; height: 935.0000775929766; angle: 130 deg; opacity: 0.1;
-
-  // bottom-right - background: #1B43F5; backdrop-filter: blur(224px); - width: 350.0000290454993; height: 935.0000775929766; angle: -123.9 deg; opacity: 0.1;
-
-
   return (
     <section className="relative flex flex-col items-center justify-center min-h-[100vh] bg-gradient-to-b from-[#080509] to-[#181028] text-white px-4 pt-32 md:pt-52 overflow-hidden">
-      {/* Background Glows */}
       <div className="absolute inset-0 pointer-events-none z-0">
-        {/* Top V Formation (V facing up) */}
-        {/* Top Right arm */}
         <div
           className="absolute top-1/2 left-1/2 opacity-[0.1] blur-[224px]"
           style={{
@@ -28,7 +15,6 @@ export default function Hero() {
             transform: 'translate(-50%, -100%) rotate(56.9deg)',
           }}
         />
-        {/* Top Left arm */}
         <div
           className="absolute top-1/2 left-1/2 opacity-[0.1] blur-[224px]"
           style={{
@@ -39,8 +25,6 @@ export default function Hero() {
             transform: 'translate(-50%, -100%) rotate(-56.9deg)',
           }}
         />
-
-        {/* Bottom V Formation (V facing down) */}
         <div
           className="absolute top-1/2 left-1/2 opacity-[0.1] blur-[224px]"
           style={{
@@ -51,8 +35,6 @@ export default function Hero() {
             transform: 'translate(-50%, 0%) rotate(32deg)',
           }}
         />
-
-        {/* Left arm */}
         <div
           className="absolute top-1/2 left-1/2 opacity-[0.1] blur-[224px]"
           style={{
