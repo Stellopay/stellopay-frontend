@@ -15,7 +15,14 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+  CardFooter,
+} from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Loader2, ChevronDown } from "lucide-react";
@@ -40,7 +47,9 @@ function formatUnitsShort(raw: string | null, decimals: number) {
       .padStart(decimals, "0")
       .slice(0, 2)
       .replace(/0+$/, "");
-    return fracStr.length ? `${whole.toLocaleString()}.${fracStr}` : whole.toLocaleString();
+    return fracStr.length
+      ? `${whole.toLocaleString()}.${fracStr}`
+      : whole.toLocaleString();
   } catch {
     return raw;
   }
@@ -55,11 +64,20 @@ function TokenSelector({
 }: {
   selectedTokenKey: string;
   onTokenChange: (key: string) => void;
-  supportedTokens: Array<{ key: string; label: string; icon: string; color: string; address: string; decimals: number }>;
+  supportedTokens: Array<{
+    key: string;
+    label: string;
+    icon: string;
+    color: string;
+    address: string;
+    decimals: number;
+  }>;
   balance: string | null;
   balanceError: string | null;
 }) {
-  const selectedToken = supportedTokens.find((t) => t.key === selectedTokenKey) ?? supportedTokens[0];
+  const selectedToken =
+    supportedTokens.find((t) => t.key === selectedTokenKey) ??
+    supportedTokens[0];
   const isLoading = !balanceError && balance === null;
   return (
     <div className="space-y-2">
@@ -101,7 +119,9 @@ function TokenSelector({
                 ) : (
                   <span
                     className="inline-flex h-6 w-6 items-center justify-center rounded-full"
-                    style={{ backgroundColor: selectedToken?.color ?? "#2D2D2D" }}
+                    style={{
+                      backgroundColor: selectedToken?.color ?? "#2D2D2D",
+                    }}
                   >
                     <span className="text-[10px] font-bold text-black">
                       {selectedToken?.key?.slice(0, 1) ?? "T"}
@@ -139,7 +159,9 @@ function TokenSelector({
                       />
                     )}
                     <div className="flex flex-col">
-                      <span className="text-sm text-white font-semibold">{t.key}</span>
+                      <span className="text-sm text-white font-semibold">
+                        {t.key}
+                      </span>
                       <span className="text-xs text-[#A0A0A0]">
                         {t.label}
                         {disabled ? " · Not configured" : ""}
@@ -167,17 +189,22 @@ export default function CreateAgreementModal({
   onClose,
   onSuccess,
 }: CreateAgreementModalProps) {
-  const { address, sessionToken, isExecuting, isVerified, executeCall } = useWallet();
+  const { connectedWallet, executeCall } = useWallet();
   const { showToast } = useToast();
-  
+
   const [agreementDefault, setAgreementDefault] = useState<string>("");
-  const [agreementInitialized, setAgreementInitialized] = useState<boolean | null>(null);
-  
+  const [agreementInitialized, setAgreementInitialized] = useState<
+    boolean | null
+  >(null);
+
   // Supported tokens
   const supportedTokens = useMemo(() => {
-    const DEFAULT_USDC = "0x053b40a647cedfca6ca84f542a0fe36736031905a9639a7f19a3c1e66bfd5080";
-    const DEFAULT_USDT = "0x02ab8758891e84b968ff11361789070c6b1af2df618d6d2f4a78b0757573c6eb";
-    const DEFAULT_STRK = "0x04718f5a0fc34cc1af16a1cdee98ffb20c31f5cd61d6ab07201858f4287c938d";
+    const DEFAULT_USDC =
+      "0x053b40a647cedfca6ca84f542a0fe36736031905a9639a7f19a3c1e66bfd5080";
+    const DEFAULT_USDT =
+      "0x02ab8758891e84b968ff11361789070c6b1af2df618d6d2f4a78b0757573c6eb";
+    const DEFAULT_STRK =
+      "0x04718f5a0fc34cc1af16a1cdee98ffb20c31f5cd61d6ab07201858f4287c938d";
 
     const usdc = (process.env.NEXT_PUBLIC_TOKEN_USDC ?? DEFAULT_USDC).trim();
     const usdt = (process.env.NEXT_PUBLIC_TOKEN_USDT ?? DEFAULT_USDT).trim();
@@ -212,19 +239,28 @@ export default function CreateAgreementModal({
 
   // Create Agreement state
   const [agreementMode, setAgreementMode] = useState<AgreementMode>("escrow");
-  const [escrowPaymentType, setEscrowPaymentType] = useState<EscrowPaymentType>("time");
+  const [escrowPaymentType, setEscrowPaymentType] =
+    useState<EscrowPaymentType>("time");
   const [agreementTokenKey, setAgreementTokenKey] = useState<string>("STRK");
-  const [agreementTokenBalance, setAgreementTokenBalance] = useState<string | null>(null);
-  const [agreementTokenBalanceError, setAgreementTokenBalanceError] = useState<string | null>(null);
+  const [agreementTokenBalance, setAgreementTokenBalance] = useState<
+    string | null
+  >(null);
+  const [agreementTokenBalanceError, setAgreementTokenBalanceError] = useState<
+    string | null
+  >(null);
   const [escrowContributor, setEscrowContributor] = useState("");
   const [amountPerPeriod, setAmountPerPeriod] = useState("");
   const [periodSeconds, setPeriodSeconds] = useState("2592000");
   const [numPeriods, setNumPeriods] = useState("1");
   const [payrollPeriodSeconds, setPayrollPeriodSeconds] = useState("2592000");
   const [payrollNumPeriods, setPayrollNumPeriods] = useState("1");
-  const [createAgreementError, setCreateAgreementError] = useState<string | null>(null);
-  const [createAgreementTx, setCreateAgreementTx] = useState<string | null>(null);
-  
+  const [createAgreementError, setCreateAgreementError] = useState<
+    string | null
+  >(null);
+  const [createAgreementTx, setCreateAgreementTx] = useState<string | null>(
+    null,
+  );
+
   // Form validation errors
   const [createFormErrors, setCreateFormErrors] = useState<{
     contributor?: string;
@@ -248,10 +284,12 @@ export default function CreateAgreementModal({
       return;
     }
     setAgreementInitialized(null);
-    
-    void apiGet<{ initialized: boolean; escrow: string | null; error?: string }>(
-      `/agreement/${agreementDefault}/is_initialized`,
-    )
+
+    void apiGet<{
+      initialized: boolean;
+      escrow: string | null;
+      error?: string;
+    }>(`/agreement/${agreementDefault}/is_initialized`)
       .then((d) => {
         setAgreementInitialized(d.initialized);
       })
@@ -262,7 +300,7 @@ export default function CreateAgreementModal({
 
   // Fetch token balance for agreement creation
   useEffect(() => {
-    if (!address || !isOpen) return;
+    if (!connectedWallet?.address || !isOpen) return;
     const token = supportedTokens.find((t) => t.key === agreementTokenKey);
     if (!token?.address) {
       setAgreementTokenBalance(null);
@@ -272,19 +310,24 @@ export default function CreateAgreementModal({
     // Clear balance immediately when token changes to show loading state
     setAgreementTokenBalance(null);
     setAgreementTokenBalanceError(null);
-    void apiGet<{ balance: string }>(`/token/${token.address}/balance/${address}`)
+    void apiGet<{ balance: string }>(
+      `/token/${token.address}/balance/${connectedWallet.address}`,
+    )
       .then((d) => setAgreementTokenBalance(d.balance))
       .catch(() => {
         setAgreementTokenBalance(null);
         setAgreementTokenBalanceError("Unable to fetch balance");
       });
-  }, [address, agreementTokenKey, supportedTokens, isOpen]);
+  }, [connectedWallet?.address, agreementTokenKey, supportedTokens, isOpen]);
 
   const requireAuth = () => {
-    if (!address || !sessionToken) {
+    if (!connectedWallet?.address || !connectedWallet.sessionToken) {
       throw new Error("Please connect & verify your wallet first.");
     }
-    return { address, sessionToken };
+    return {
+      address: connectedWallet.address,
+      sessionToken: connectedWallet.sessionToken,
+    };
   };
 
   // Validation helpers
@@ -301,7 +344,11 @@ export default function CreateAgreementModal({
     return undefined;
   };
 
-  const validateNumber = (value: string, fieldName: string, min?: number): string | undefined => {
+  const validateNumber = (
+    value: string,
+    fieldName: string,
+    min?: number,
+  ): string | undefined => {
     if (!value || value.trim() === "") {
       return `${fieldName} is required`;
     }
@@ -315,7 +362,10 @@ export default function CreateAgreementModal({
     return undefined;
   };
 
-  const validatePositiveInteger = (value: string, fieldName: string): string | undefined => {
+  const validatePositiveInteger = (
+    value: string,
+    fieldName: string,
+  ): string | undefined => {
     if (!value || value.trim() === "") {
       return `${fieldName} is required`;
     }
@@ -326,21 +376,29 @@ export default function CreateAgreementModal({
     return undefined;
   };
 
-  const executeAction = async (endpoint: string, body: any, setError: (e: string | null) => void, setTx: (t: string | null) => void): Promise<string | null> => {
+  const executeAction = async (
+    endpoint: string,
+    body: any,
+    setError: (e: string | null) => void,
+    setTx: (t: string | null) => void,
+  ): Promise<string | null> => {
     setError(null);
     setTx(null);
     try {
-      if (!isVerified || !sessionToken) {
-        throw new Error("Wallet is not verified. Please verify your wallet first by connecting it.");
+      if (!connectedWallet?.isVerified || !connectedWallet?.sessionToken) {
+        throw new Error(
+          "Wallet is not verified. Please verify your wallet first by connecting it.",
+        );
       }
-      
-      const { address: wallet_address, sessionToken: session_token } = requireAuth();
+
+      const { address: wallet_address, sessionToken: session_token } =
+        requireAuth();
       const prepared = await apiPost<{ call: any }>(endpoint, {
         wallet_address,
         session_token,
         ...body,
       });
-      
+
       if (!prepared?.call) {
         throw new Error("Backend did not return a call object");
       }
@@ -352,7 +410,9 @@ export default function CreateAgreementModal({
       }
       throw new Error("Transaction failed. Please try again.");
     } catch (e: any) {
-      const { getWalletErrorMessage } = await import("@/utils/wallet-error-handler");
+      const { getWalletErrorMessage } = await import(
+        "@/utils/wallet-error-handler"
+      );
       let errorMsg = getWalletErrorMessage(e);
       setError(errorMsg);
       return null;
@@ -364,11 +424,14 @@ export default function CreateAgreementModal({
       setCreateAgreementError(null);
       setCreateAgreementTx(null);
       setCreateFormErrors({});
-      
-      const { address: wallet_address, sessionToken: session_token } = requireAuth();
+
+      const { address: wallet_address, sessionToken: session_token } =
+        requireAuth();
       if (!agreementDefault) throw new Error("Agreement address not loaded.");
       if (agreementInitialized === false) {
-        throw new Error("Agreement contract must be initialized before creating agreements.");
+        throw new Error(
+          "Agreement contract must be initialized before creating agreements.",
+        );
       }
       const token = supportedTokens.find((t) => t.key === agreementTokenKey);
       if (!token?.address) throw new Error("Token not configured.");
@@ -378,8 +441,14 @@ export default function CreateAgreementModal({
       let hasErrors = false;
 
       if (agreementMode === "payroll") {
-        const periodError = validatePositiveInteger(payrollPeriodSeconds, "Period (seconds)");
-        const numPeriodsError = validatePositiveInteger(payrollNumPeriods, "Number of periods");
+        const periodError = validatePositiveInteger(
+          payrollPeriodSeconds,
+          "Period (seconds)",
+        );
+        const numPeriodsError = validatePositiveInteger(
+          payrollNumPeriods,
+          "Number of periods",
+        );
         if (periodError) {
           errors.payrollPeriodSeconds = periodError;
           hasErrors = true;
@@ -394,11 +463,21 @@ export default function CreateAgreementModal({
           errors.contributor = contributorError;
           hasErrors = true;
         }
-        
+
         if (escrowPaymentType === "time") {
-          const amountError = validateNumber(amountPerPeriod, "Amount per period", 1);
-          const periodError = validatePositiveInteger(periodSeconds, "Period (seconds)");
-          const numPeriodsError = validatePositiveInteger(numPeriods, "Number of periods");
+          const amountError = validateNumber(
+            amountPerPeriod,
+            "Amount per period",
+            1,
+          );
+          const periodError = validatePositiveInteger(
+            periodSeconds,
+            "Period (seconds)",
+          );
+          const numPeriodsError = validatePositiveInteger(
+            numPeriods,
+            "Number of periods",
+          );
           if (amountError) {
             errors.amountPerPeriod = amountError;
             hasErrors = true;
@@ -449,8 +528,13 @@ export default function CreateAgreementModal({
         };
       }
 
-      const txHash = await executeAction(endpoint, body, setCreateAgreementError, setCreateAgreementTx);
-      
+      const txHash = await executeAction(
+        endpoint,
+        body,
+        setCreateAgreementError,
+        setCreateAgreementTx,
+      );
+
       if (txHash) {
         // Clear form
         setEscrowContributor("");
@@ -459,8 +543,12 @@ export default function CreateAgreementModal({
         setNumPeriods("1");
         setPayrollPeriodSeconds("2592000");
         setPayrollNumPeriods("1");
-        
-        showToast("Agreement created", "Transaction completed successfully.", "success");
+
+        showToast(
+          "Agreement created",
+          "Transaction completed successfully.",
+          "success",
+        );
         onSuccess();
         onClose();
       }
@@ -474,7 +562,9 @@ export default function CreateAgreementModal({
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="bg-[#1a0c1d] border-[#2D2D2D] text-white max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle className="text-white text-2xl">Create New Agreement</DialogTitle>
+          <DialogTitle className="text-white text-2xl">
+            Create New Agreement
+          </DialogTitle>
           <DialogDescription className="text-[#A0A0A0]">
             Create a new payroll or escrow agreement
           </DialogDescription>
@@ -484,7 +574,9 @@ export default function CreateAgreementModal({
           {agreementInitialized === false && (
             <div className="p-3 rounded-md bg-yellow-900/20 border border-yellow-700/50">
               <div className="text-sm text-yellow-400">
-                <strong>⚠️ Agreement Not Initialized:</strong> The WorkAgreement contract needs to be initialized once before creating agreements.
+                <strong>⚠️ Agreement Not Initialized:</strong> The WorkAgreement
+                contract needs to be initialized once before creating
+                agreements.
               </div>
             </div>
           )}
@@ -537,16 +629,23 @@ export default function CreateAgreementModal({
                     onChange={(e) => {
                       setPayrollPeriodSeconds(e.target.value);
                       if (createFormErrors.payrollPeriodSeconds) {
-                        setCreateFormErrors(prev => ({ ...prev, payrollPeriodSeconds: undefined }));
+                        setCreateFormErrors((prev) => ({
+                          ...prev,
+                          payrollPeriodSeconds: undefined,
+                        }));
                       }
                     }}
                     placeholder="2592000"
                     className={`bg-transparent border-[#242428] text-white ${
-                      createFormErrors.payrollPeriodSeconds ? "border-red-500" : ""
+                      createFormErrors.payrollPeriodSeconds
+                        ? "border-red-500"
+                        : ""
                     }`}
                   />
                   {createFormErrors.payrollPeriodSeconds && (
-                    <p className="text-sm text-red-400">{createFormErrors.payrollPeriodSeconds}</p>
+                    <p className="text-sm text-red-400">
+                      {createFormErrors.payrollPeriodSeconds}
+                    </p>
                   )}
                 </div>
                 <div className="space-y-2">
@@ -558,7 +657,10 @@ export default function CreateAgreementModal({
                     onChange={(e) => {
                       setPayrollNumPeriods(e.target.value);
                       if (createFormErrors.payrollNumPeriods) {
-                        setCreateFormErrors(prev => ({ ...prev, payrollNumPeriods: undefined }));
+                        setCreateFormErrors((prev) => ({
+                          ...prev,
+                          payrollNumPeriods: undefined,
+                        }));
                       }
                     }}
                     placeholder="1"
@@ -567,7 +669,9 @@ export default function CreateAgreementModal({
                     }`}
                   />
                   {createFormErrors.payrollNumPeriods && (
-                    <p className="text-sm text-red-400">{createFormErrors.payrollNumPeriods}</p>
+                    <p className="text-sm text-red-400">
+                      {createFormErrors.payrollNumPeriods}
+                    </p>
                   )}
                 </div>
               </div>
@@ -611,7 +715,10 @@ export default function CreateAgreementModal({
                   onChange={(e) => {
                     setEscrowContributor(e.target.value);
                     if (createFormErrors.contributor) {
-                      setCreateFormErrors(prev => ({ ...prev, contributor: undefined }));
+                      setCreateFormErrors((prev) => ({
+                        ...prev,
+                        contributor: undefined,
+                      }));
                     }
                   }}
                   placeholder="0x..."
@@ -620,7 +727,9 @@ export default function CreateAgreementModal({
                   }`}
                 />
                 {createFormErrors.contributor && (
-                  <p className="text-sm text-red-400">{createFormErrors.contributor}</p>
+                  <p className="text-sm text-red-400">
+                    {createFormErrors.contributor}
+                  </p>
                 )}
               </div>
 
@@ -635,7 +744,10 @@ export default function CreateAgreementModal({
                       onChange={(e) => {
                         setAmountPerPeriod(e.target.value);
                         if (createFormErrors.amountPerPeriod) {
-                          setCreateFormErrors(prev => ({ ...prev, amountPerPeriod: undefined }));
+                          setCreateFormErrors((prev) => ({
+                            ...prev,
+                            amountPerPeriod: undefined,
+                          }));
                         }
                       }}
                       placeholder="1000000"
@@ -644,7 +756,9 @@ export default function CreateAgreementModal({
                       }`}
                     />
                     {createFormErrors.amountPerPeriod && (
-                      <p className="text-sm text-red-400">{createFormErrors.amountPerPeriod}</p>
+                      <p className="text-sm text-red-400">
+                        {createFormErrors.amountPerPeriod}
+                      </p>
                     )}
                   </div>
                   <div className="space-y-2">
@@ -656,7 +770,10 @@ export default function CreateAgreementModal({
                       onChange={(e) => {
                         setPeriodSeconds(e.target.value);
                         if (createFormErrors.periodSeconds) {
-                          setCreateFormErrors(prev => ({ ...prev, periodSeconds: undefined }));
+                          setCreateFormErrors((prev) => ({
+                            ...prev,
+                            periodSeconds: undefined,
+                          }));
                         }
                       }}
                       placeholder="2592000"
@@ -665,7 +782,9 @@ export default function CreateAgreementModal({
                       }`}
                     />
                     {createFormErrors.periodSeconds && (
-                      <p className="text-sm text-red-400">{createFormErrors.periodSeconds}</p>
+                      <p className="text-sm text-red-400">
+                        {createFormErrors.periodSeconds}
+                      </p>
                     )}
                   </div>
                   <div className="space-y-2">
@@ -677,7 +796,10 @@ export default function CreateAgreementModal({
                       onChange={(e) => {
                         setNumPeriods(e.target.value);
                         if (createFormErrors.numPeriods) {
-                          setCreateFormErrors(prev => ({ ...prev, numPeriods: undefined }));
+                          setCreateFormErrors((prev) => ({
+                            ...prev,
+                            numPeriods: undefined,
+                          }));
                         }
                       }}
                       placeholder="1"
@@ -686,7 +808,9 @@ export default function CreateAgreementModal({
                       }`}
                     />
                     {createFormErrors.numPeriods && (
-                      <p className="text-sm text-red-400">{createFormErrors.numPeriods}</p>
+                      <p className="text-sm text-red-400">
+                        {createFormErrors.numPeriods}
+                      </p>
                     )}
                   </div>
                 </div>
@@ -703,7 +827,10 @@ export default function CreateAgreementModal({
           {createAgreementTx && (
             <div className="text-sm text-[#A0A0A0]">
               <div>
-                Submitted: <span className="text-white break-all">{createAgreementTx}</span>
+                Submitted:{" "}
+                <span className="text-white break-all">
+                  {createAgreementTx}
+                </span>
               </div>
               <a
                 href={`https://sepolia.voyager.online/tx/${createAgreementTx}`}
@@ -727,11 +854,16 @@ export default function CreateAgreementModal({
           </button>
           <button
             type="button"
-            disabled={!address || !sessionToken || isExecuting || agreementInitialized === false}
+            disabled={
+              !connectedWallet?.address ||
+              !connectedWallet?.sessionToken ||
+              connectedWallet?.isExecuting ||
+              agreementInitialized === false
+            }
             onClick={handleCreateAgreement}
             className="px-4 py-2 rounded-md bg-white text-black border border-[#E5E5E5]/10 hover:bg-[#f3f3f3] disabled:opacity-60 disabled:cursor-not-allowed transition cursor-pointer flex items-center justify-center gap-2"
           >
-            {isExecuting ? (
+            {connectedWallet?.isExecuting ? (
               <>
                 <Loader2 className="w-4 h-4 animate-spin" />
                 Creating Agreement...
@@ -745,4 +877,3 @@ export default function CreateAgreementModal({
     </Dialog>
   );
 }
-

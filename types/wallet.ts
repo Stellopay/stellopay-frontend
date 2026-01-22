@@ -12,6 +12,11 @@ export interface ConnectedWallet {
   wallet: Wallet;
   address: string;
   network: string;
+  sessionToken?: string;
+  isVerified?: boolean;
+  isExecuting?: boolean;
+  isConnecting?: boolean;
+  isVerifying?: boolean;
 }
 
 export interface WalletModalProps {
@@ -21,14 +26,10 @@ export interface WalletModalProps {
 }
 export interface WalletContextProps {
   connectedWallet: ConnectedWallet | null;
-  connectWallet: (wallet: Wallet, address: string, network: string) => void;
+  connectWallet: (wallet?: Wallet, address?: string, network?: string) => void;
   disconnectWallet: () => void;
-}
-
-export interface WalletContextProps {
-  connectedWallet: ConnectedWallet | null;
-  connectWallet: (wallet: Wallet, address: string, network: string) => void;
-  disconnectWallet: () => void;
+  executeCall: (call: any) => Promise<any>;
+  error?: string;
 }
 
 export interface WalletProviderProps {

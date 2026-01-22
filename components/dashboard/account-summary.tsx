@@ -22,8 +22,14 @@ function formatUnits(raw: string | null, decimals: number | null) {
     const frac = v % base;
     if (decimals === 0) return whole.toLocaleString();
     // show up to 2 decimals (trim trailing zeros)
-    const fracStr = frac.toString().padStart(decimals, "0").slice(0, 2).replace(/0+$/, "");
-    return fracStr.length ? `${whole.toLocaleString()}.${fracStr}` : whole.toLocaleString();
+    const fracStr = frac
+      .toString()
+      .padStart(decimals, "0")
+      .slice(0, 2)
+      .replace(/0+$/, "");
+    return fracStr.length
+      ? `${whole.toLocaleString()}.${fracStr}`
+      : whole.toLocaleString();
   } catch {
     return raw;
   }
@@ -39,7 +45,7 @@ function formatAmount(raw: string | null) {
 }
 
 export default function AccountSummary() {
-  const { address, isVerified, sessionToken } = useWallet();
+  const { connectedWallet } = useWallet();
   const [copied, setCopied] = useState(false);
 
   const [agreementAddress, setAgreementAddress] = useState<string>("");
@@ -54,7 +60,11 @@ export default function AccountSummary() {
   useEffect(() => {
     let cancelled = false;
 
-    if (!address || !isVerified || !sessionToken) {
+    if (
+      !connectedWallet?.address ||
+      !connectedWallet?.isVerified ||
+      !connectedWallet?.sessionToken
+    ) {
       setAgreementAddress("");
       setEscrowAddress("");
       setWalletBalance(null);
@@ -87,17 +97,23 @@ export default function AccountSummary() {
         const token = String(agreementSummary.token);
         if (token && token !== "0x0") {
           const [metaSymbol, metaDecimals] = await Promise.all([
-            apiGet<{ symbol: string }>(`/token/${token}/symbol`).catch(() => ({ symbol: "USDC" })),
-            apiGet<{ decimals: number }>(`/token/${token}/decimals`).catch(() => ({ decimals: 6 })),
+            apiGet<{ symbol: string }>(`/token/${token}/symbol`).catch(() => ({
+              symbol: "USDC",
+            })),
+            apiGet<{ decimals: number }>(`/token/${token}/decimals`).catch(
+              () => ({ decimals: 6 }),
+            ),
           ]);
           if (cancelled) return;
           setTokenSymbol(metaSymbol.symbol || "USDC");
           setTokenDecimals(
-            typeof metaDecimals.decimals === "number" ? metaDecimals.decimals : 6,
+            typeof metaDecimals.decimals === "number"
+              ? metaDecimals.decimals
+              : 6,
           );
 
           const bal = await apiGet<{ balance: string }>(
-            `/token/${token}/balance/${address}`,
+            `/token/${token}/balance/${connectedWallet?.address}`,
           );
           if (cancelled) return;
           setWalletBalance(bal.balance);
@@ -110,7 +126,11 @@ export default function AccountSummary() {
     return () => {
       cancelled = true;
     };
-  }, [address, isVerified, sessionToken]);
+  }, [
+    connectedWallet?.address,
+    connectedWallet?.isVerified,
+    connectedWallet?.sessionToken,
+  ]);
 
   const toBePaid = useMemo(() => {
     try {
@@ -129,8 +149,8 @@ export default function AccountSummary() {
         amount: `$ ${formatUnits(walletBalance, tokenDecimals)} ${tokenSymbol}`,
         image: "/copy-01.png",
         item: "Copy Address",
-        address: shortHex(address ?? ""),
-        copyValue: address ?? "",
+        address: shortHex(connectedWallet?.address ?? ""),
+        copyValue: connectedWallet?.address ?? "",
         accountImage: "/piggy-bank.png",
       },
       {
@@ -149,7 +169,7 @@ export default function AccountSummary() {
       },
     ],
     [
-      address,
+      connectedWallet?.address,
       agreementAddress,
       escrowAddress,
       paidAmount,
@@ -234,5 +254,3 @@ export default function AccountSummary() {
     </div>
   );
 }
-
-

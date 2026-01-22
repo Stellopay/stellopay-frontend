@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState, useRef } from "react";
+import { useEffect, useMemo, useState, useRef, use } from "react";
 import {
   ChevronDown,
   Coins,
@@ -203,7 +203,8 @@ function TokenSelector({
 }
 
 function useAuthHint() {
-  const { address, sessionToken, isVerified, isConnecting, isVerifying } = useWallet();
+  const { connectedWallet } = useWallet();
+  const { address, sessionToken, isVerified, isConnecting, isVerifying } = connectedWallet || {};
   return useMemo(() => {
     if (isConnecting) return "Connecting wallet…";
     if (isVerifying) return "Verifying wallet with backend…";
@@ -232,7 +233,8 @@ interface AgreementDetails {
 }
 
 export default function ContractSetupCard() {
-  const { address, sessionToken, isExecuting, isVerified, executeCall } = useWallet();
+  const { connectedWallet, executeCall } = useWallet();
+  const {address, sessionToken, isExecuting, isVerified } = connectedWallet || {};
   const authHint = useAuthHint();
   const { showToast } = useToast();
   

@@ -40,7 +40,14 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@/components/ui/card";
+import {
+  Card,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+  CardContent,
+  CardFooter,
+} from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
@@ -67,7 +74,9 @@ function formatUnitsShort(raw: string | null, decimals: number) {
       .padStart(decimals, "0")
       .slice(0, 2)
       .replace(/0+$/, "");
-    return fracStr.length ? `${whole.toLocaleString()}.${fracStr}` : whole.toLocaleString();
+    return fracStr.length
+      ? `${whole.toLocaleString()}.${fracStr}`
+      : whole.toLocaleString();
   } catch {
     return raw;
   }
@@ -101,11 +110,20 @@ function TokenSelector({
 }: {
   selectedTokenKey: string;
   onTokenChange: (key: string) => void;
-  supportedTokens: Array<{ key: string; label: string; icon: string; color: string; address: string; decimals: number }>;
+  supportedTokens: Array<{
+    key: string;
+    label: string;
+    icon: string;
+    color: string;
+    address: string;
+    decimals: number;
+  }>;
   balance: string | null;
   balanceError: string | null;
 }) {
-  const selectedToken = supportedTokens.find((t) => t.key === selectedTokenKey) ?? supportedTokens[0];
+  const selectedToken =
+    supportedTokens.find((t) => t.key === selectedTokenKey) ??
+    supportedTokens[0];
   const isLoading = !balanceError && balance === null;
   return (
     <div className="space-y-2">
@@ -147,7 +165,9 @@ function TokenSelector({
                 ) : (
                   <span
                     className="inline-flex h-6 w-6 items-center justify-center rounded-full"
-                    style={{ backgroundColor: selectedToken?.color ?? "#2D2D2D" }}
+                    style={{
+                      backgroundColor: selectedToken?.color ?? "#2D2D2D",
+                    }}
                   >
                     <span className="text-[10px] font-bold text-black">
                       {selectedToken?.key?.slice(0, 1) ?? "T"}
@@ -185,7 +205,9 @@ function TokenSelector({
                       />
                     )}
                     <div className="flex flex-col">
-                      <span className="text-sm text-white font-semibold">{t.key}</span>
+                      <span className="text-sm text-white font-semibold">
+                        {t.key}
+                      </span>
                       <span className="text-xs text-[#A0A0A0]">
                         {t.label}
                         {disabled ? " · Not configured" : ""}
@@ -203,13 +225,19 @@ function TokenSelector({
 }
 
 function useAuthHint() {
-  const { address, sessionToken, isVerified, isConnecting } = useWallet();
+  const { connectedWallet } = useWallet();
   return useMemo(() => {
-    if (isConnecting) return "Connecting wallet…";
-    if (!address) return "Connect a wallet to continue.";
-    if (!isVerified || !sessionToken) return "Wallet connected, but not verified with backend.";
+    if (connectedWallet?.isConnecting) return "Connecting wallet…";
+    if (!connectedWallet?.address) return "Connect a wallet to continue.";
+    if (!connectedWallet?.isVerified || !connectedWallet?.sessionToken)
+      return "Wallet connected, but not verified with backend.";
     return null;
-  }, [address, isConnecting, isVerified, sessionToken]);
+  }, [
+    connectedWallet?.address,
+    connectedWallet?.isConnecting,
+    connectedWallet?.isVerified,
+    connectedWallet?.sessionToken,
+  ]);
 }
 
 type AgreementMode = "payroll" | "escrow";
@@ -231,21 +259,26 @@ interface AgreementDetails {
 }
 
 export default function ContractSetupCard() {
-  const { address, sessionToken, isExecuting, executeCall } = useWallet();
+  const { connectedWallet, executeCall } = useWallet();
   const authHint = useAuthHint();
   const [escrowCopied, setEscrowCopied] = useState(false);
   const [agreementCopied, setAgreementCopied] = useState(false);
 
   const [escrowDefault, setEscrowDefault] = useState("");
   const [agreementDefault, setAgreementDefault] = useState("");
-  const [escrowInitialized, setEscrowInitialized] = useState<boolean | null>(null);
+  const [escrowInitialized, setEscrowInitialized] = useState<boolean | null>(
+    null,
+  );
   const [escrowToken, setEscrowToken] = useState<string | null>(null);
 
   // Supported tokens
   const supportedTokens = useMemo(() => {
-    const DEFAULT_USDC = "0x053b40a647cedfca6ca84f542a0fe36736031905a9639a7f19a3c1e66bfd5080";
-    const DEFAULT_USDT = "0x02ab8758891e84b968ff11361789070c6b1af2df618d6d2f4a78b0757573c6eb";
-    const DEFAULT_STRK = "0x04718f5a0fc34cc1af16a1cdee98ffb20c31f5cd61d6ab07201858f4287c938d";
+    const DEFAULT_USDC =
+      "0x053b40a647cedfca6ca84f542a0fe36736031905a9639a7f19a3c1e66bfd5080";
+    const DEFAULT_USDT =
+      "0x02ab8758891e84b968ff11361789070c6b1af2df618d6d2f4a78b0757573c6eb";
+    const DEFAULT_STRK =
+      "0x04718f5a0fc34cc1af16a1cdee98ffb20c31f5cd61d6ab07201858f4287c938d";
 
     const usdc = (process.env.NEXT_PUBLIC_TOKEN_USDC ?? DEFAULT_USDC).trim();
     const usdt = (process.env.NEXT_PUBLIC_TOKEN_USDT ?? DEFAULT_USDT).trim();
@@ -280,7 +313,8 @@ export default function ContractSetupCard() {
 
   // Agreement details view
   const [viewAgreementId, setViewAgreementId] = useState("");
-  const [agreementDetails, setAgreementDetails] = useState<AgreementDetails | null>(null);
+  const [agreementDetails, setAgreementDetails] =
+    useState<AgreementDetails | null>(null);
   const [loadingDetails, setLoadingDetails] = useState(false);
   const [detailsError, setDetailsError] = useState<string | null>(null);
 
@@ -288,28 +322,43 @@ export default function ContractSetupCard() {
   const [initEscrowOpen, setInitEscrowOpen] = useState(false);
   const [selectedTokenKey, setSelectedTokenKey] = useState<string>("STRK");
   const selectedToken = useMemo(
-    () => supportedTokens.find((t) => t.key === selectedTokenKey) ?? supportedTokens[0],
+    () =>
+      supportedTokens.find((t) => t.key === selectedTokenKey) ??
+      supportedTokens[0],
     [supportedTokens, selectedTokenKey],
   );
-  const [selectedTokenBalance, setSelectedTokenBalance] = useState<string | null>(null);
-  const [selectedTokenBalanceError, setSelectedTokenBalanceError] = useState<string | null>(null);
+  const [selectedTokenBalance, setSelectedTokenBalance] = useState<
+    string | null
+  >(null);
+  const [selectedTokenBalanceError, setSelectedTokenBalanceError] = useState<
+    string | null
+  >(null);
   const [initEscrowError, setInitEscrowError] = useState<string | null>(null);
   const [initEscrowTx, setInitEscrowTx] = useState<string | null>(null);
 
   // Create Agreement
   const [agreementMode, setAgreementMode] = useState<AgreementMode>("escrow");
-  const [escrowPaymentType, setEscrowPaymentType] = useState<EscrowPaymentType>("time");
+  const [escrowPaymentType, setEscrowPaymentType] =
+    useState<EscrowPaymentType>("time");
   const [agreementTokenKey, setAgreementTokenKey] = useState<string>("STRK");
-  const [agreementTokenBalance, setAgreementTokenBalance] = useState<string | null>(null);
-  const [agreementTokenBalanceError, setAgreementTokenBalanceError] = useState<string | null>(null);
+  const [agreementTokenBalance, setAgreementTokenBalance] = useState<
+    string | null
+  >(null);
+  const [agreementTokenBalanceError, setAgreementTokenBalanceError] = useState<
+    string | null
+  >(null);
   const [escrowContributor, setEscrowContributor] = useState("");
   const [amountPerPeriod, setAmountPerPeriod] = useState("");
   const [periodSeconds, setPeriodSeconds] = useState("2592000");
   const [numPeriods, setNumPeriods] = useState("1");
   const [payrollPeriodSeconds, setPayrollPeriodSeconds] = useState("2592000");
   const [payrollNumPeriods, setPayrollNumPeriods] = useState("1");
-  const [createAgreementError, setCreateAgreementError] = useState<string | null>(null);
-  const [createAgreementTx, setCreateAgreementTx] = useState<string | null>(null);
+  const [createAgreementError, setCreateAgreementError] = useState<
+    string | null
+  >(null);
+  const [createAgreementTx, setCreateAgreementTx] = useState<string | null>(
+    null,
+  );
 
   // Fund Agreement
   const [fundAgreementId, setFundAgreementId] = useState("");
@@ -319,7 +368,9 @@ export default function ContractSetupCard() {
 
   // Manage Agreement (pause, resume, cancel, etc.)
   const [manageAgreementId, setManageAgreementId] = useState("");
-  const [manageAction, setManageAction] = useState<"pause" | "resume" | "cancel" | "finalize_grace_period">("pause");
+  const [manageAction, setManageAction] = useState<
+    "pause" | "resume" | "cancel" | "finalize_grace_period"
+  >("pause");
   const [manageError, setManageError] = useState<string | null>(null);
   const [manageTx, setManageTx] = useState<string | null>(null);
 
@@ -333,14 +384,21 @@ export default function ContractSetupCard() {
   // Add Milestone
   const [addMilestoneAgreementId, setAddMilestoneAgreementId] = useState("");
   const [addMilestoneAmount, setAddMilestoneAmount] = useState("");
-  const [addMilestoneError, setAddMilestoneError] = useState<string | null>(null);
+  const [addMilestoneError, setAddMilestoneError] = useState<string | null>(
+    null,
+  );
   const [addMilestoneTx, setAddMilestoneTx] = useState<string | null>(null);
 
   // Approve Milestone
-  const [approveMilestoneAgreementId, setApproveMilestoneAgreementId] = useState("");
+  const [approveMilestoneAgreementId, setApproveMilestoneAgreementId] =
+    useState("");
   const [approveMilestoneId, setApproveMilestoneId] = useState("");
-  const [approveMilestoneError, setApproveMilestoneError] = useState<string | null>(null);
-  const [approveMilestoneTx, setApproveMilestoneTx] = useState<string | null>(null);
+  const [approveMilestoneError, setApproveMilestoneError] = useState<
+    string | null
+  >(null);
+  const [approveMilestoneTx, setApproveMilestoneTx] = useState<string | null>(
+    null,
+  );
 
   // Activate
   const [activateAgreementId, setActivateAgreementId] = useState("");
@@ -349,7 +407,9 @@ export default function ContractSetupCard() {
 
   // Dispute
   const [disputeAgreementId, setDisputeAgreementId] = useState("");
-  const [disputeAction, setDisputeAction] = useState<"raise" | "resolve">("raise");
+  const [disputeAction, setDisputeAction] = useState<"raise" | "resolve">(
+    "raise",
+  );
   const [disputePayContributor, setDisputePayContributor] = useState("");
   const [disputeRefundEmployer, setDisputeRefundEmployer] = useState("");
   const [disputeError, setDisputeError] = useState<string | null>(null);
@@ -357,7 +417,9 @@ export default function ContractSetupCard() {
 
   useEffect(() => {
     void Promise.all([
-      apiGet<{ address: string }>("/escrow/defaults").then((d) => setEscrowDefault(d.address)),
+      apiGet<{ address: string }>("/escrow/defaults").then((d) =>
+        setEscrowDefault(d.address),
+      ),
       apiGet<{ address: string }>("/agreement/defaults").then((d) =>
         setAgreementDefault(d.address),
       ),
@@ -373,7 +435,7 @@ export default function ContractSetupCard() {
     }
     setEscrowInitialized(null);
     setEscrowToken(null);
-    
+
     void apiGet<{ initialized: boolean; token: string | null; error?: string }>(
       `/escrow/${escrowDefault}/is_initialized`,
     )
@@ -388,10 +450,13 @@ export default function ContractSetupCard() {
   }, [escrowDefault]);
 
   const requireAuth = () => {
-    if (!address || !sessionToken) {
+    if (!connectedWallet?.address || !connectedWallet?.sessionToken) {
       throw new Error("Please connect & verify your wallet first.");
     }
-    return { address, sessionToken };
+    return {
+      address: connectedWallet.address,
+      sessionToken: connectedWallet.sessionToken,
+    };
   };
 
   const loadAgreementDetails = async () => {
@@ -400,16 +465,44 @@ export default function ContractSetupCard() {
     setDetailsError(null);
     try {
       const id = BigInt(viewAgreementId);
-      const [employer, contributor, token, escrow, total, paid, status, mode, dispute_status] = await Promise.all([
-        apiGet<{ employer: string }>(`/agreement/${agreementDefault}/get_employer/${id}`).catch(() => ({ employer: "" })),
-        apiGet<{ contributor: string }>(`/agreement/${agreementDefault}/get_contributor/${id}`).catch(() => ({ contributor: "" })),
-        apiGet<{ token: string }>(`/agreement/${agreementDefault}/get_token/${id}`).catch(() => ({ token: "" })),
-        apiGet<{ escrow: string }>(`/agreement/${agreementDefault}/get_escrow`).catch(() => ({ escrow: "" })),
-        apiGet<{ total_amount: string }>(`/agreement/${agreementDefault}/get_total_amount/${id}`).catch(() => ({ total_amount: "0" })),
-        apiGet<{ paid_amount: string }>(`/agreement/${agreementDefault}/get_paid_amount/${id}`).catch(() => ({ paid_amount: "0" })),
-        apiGet<{ status: number }>(`/agreement/${agreementDefault}/get_status/${id}`).catch(() => ({ status: 0 })),
-        apiGet<{ mode: number }>(`/agreement/${agreementDefault}/get_agreement_mode/${id}`).catch(() => ({ mode: 0 })),
-        apiGet<{ dispute_status: number }>(`/agreement/${agreementDefault}/get_dispute_status/${id}`).catch(() => ({ dispute_status: 0 })),
+      const [
+        employer,
+        contributor,
+        token,
+        escrow,
+        total,
+        paid,
+        status,
+        mode,
+        dispute_status,
+      ] = await Promise.all([
+        apiGet<{ employer: string }>(
+          `/agreement/${agreementDefault}/get_employer/${id}`,
+        ).catch(() => ({ employer: "" })),
+        apiGet<{ contributor: string }>(
+          `/agreement/${agreementDefault}/get_contributor/${id}`,
+        ).catch(() => ({ contributor: "" })),
+        apiGet<{ token: string }>(
+          `/agreement/${agreementDefault}/get_token/${id}`,
+        ).catch(() => ({ token: "" })),
+        apiGet<{ escrow: string }>(
+          `/agreement/${agreementDefault}/get_escrow`,
+        ).catch(() => ({ escrow: "" })),
+        apiGet<{ total_amount: string }>(
+          `/agreement/${agreementDefault}/get_total_amount/${id}`,
+        ).catch(() => ({ total_amount: "0" })),
+        apiGet<{ paid_amount: string }>(
+          `/agreement/${agreementDefault}/get_paid_amount/${id}`,
+        ).catch(() => ({ paid_amount: "0" })),
+        apiGet<{ status: number }>(
+          `/agreement/${agreementDefault}/get_status/${id}`,
+        ).catch(() => ({ status: 0 })),
+        apiGet<{ mode: number }>(
+          `/agreement/${agreementDefault}/get_agreement_mode/${id}`,
+        ).catch(() => ({ mode: 0 })),
+        apiGet<{ dispute_status: number }>(
+          `/agreement/${agreementDefault}/get_dispute_status/${id}`,
+        ).catch(() => ({ dispute_status: 0 })),
       ]);
 
       const details: AgreementDetails = {
@@ -429,7 +522,7 @@ export default function ContractSetupCard() {
       if (mode.mode === 1) {
         try {
           const employeeCount = await apiGet<{ employee_count: number }>(
-            `/agreement/${agreementDefault}/get_employee_count/${id}`
+            `/agreement/${agreementDefault}/get_employee_count/${id}`,
           );
           details.employee_count = employeeCount.employee_count;
         } catch {}
@@ -438,7 +531,7 @@ export default function ContractSetupCard() {
       // Load grace period status
       try {
         const gracePeriod = await apiGet<{ is_grace_period_active: boolean }>(
-          `/agreement/${agreementDefault}/is_grace_period_active/${id}`
+          `/agreement/${agreementDefault}/is_grace_period_active/${id}`,
         );
         details.is_grace_period_active = gracePeriod.is_grace_period_active;
       } catch {}
@@ -451,10 +544,16 @@ export default function ContractSetupCard() {
     }
   };
 
-  const executeAction = async (endpoint: string, body: any, setError: (e: string | null) => void, setTx: (t: string | null) => void) => {
+  const executeAction = async (
+    endpoint: string,
+    body: any,
+    setError: (e: string | null) => void,
+    setTx: (t: string | null) => void,
+  ) => {
     setError(null);
     setTx(null);
-    const { address: wallet_address, sessionToken: session_token } = requireAuth();
+    const { address: wallet_address, sessionToken: session_token } =
+      requireAuth();
     const prepared = await apiPost<{ call: any }>(endpoint, {
       wallet_address,
       session_token,
@@ -504,7 +603,11 @@ export default function ContractSetupCard() {
               <button
                 type="button"
                 onClick={() =>
-                  copyToClipboardWithTimeout(escrowDefault, setEscrowCopied, 1200)
+                  copyToClipboardWithTimeout(
+                    escrowDefault,
+                    setEscrowCopied,
+                    1200,
+                  )
                 }
                 className="cursor-pointer inline-flex items-center justify-center rounded-md border border-[#2E2E2E] bg-[#121212] p-1 hover:bg-[#1A1A1A]"
               >
@@ -525,7 +628,11 @@ export default function ContractSetupCard() {
               <button
                 type="button"
                 onClick={() =>
-                  copyToClipboardWithTimeout(agreementDefault, setAgreementCopied, 1200)
+                  copyToClipboardWithTimeout(
+                    agreementDefault,
+                    setAgreementCopied,
+                    1200,
+                  )
                 }
                 className="cursor-pointer inline-flex items-center justify-center rounded-md border border-[#2E2E2E] bg-[#121212] p-1 hover:bg-[#1A1A1A]"
               >
@@ -542,7 +649,8 @@ export default function ContractSetupCard() {
       {escrowInitialized === false ? (
         <div className="mb-4 p-3 rounded-md bg-yellow-900/20 border border-yellow-700/50">
           <div className="text-sm text-yellow-400">
-            <strong>⚠️ Escrow Not Initialized:</strong> The escrow contract needs to be initialized once before creating agreements.
+            <strong>⚠️ Escrow Not Initialized:</strong> The escrow contract
+            needs to be initialized once before creating agreements.
           </div>
         </div>
       ) : escrowInitialized === true ? (
@@ -551,7 +659,10 @@ export default function ContractSetupCard() {
             <strong>✓ Escrow Initialized:</strong> The escrow is ready to use.
             {escrowToken ? (
               <span className="text-[#A0A0A0] ml-2">
-                Token: <span className="text-white font-mono">{shortHex(escrowToken)}</span>
+                Token:{" "}
+                <span className="text-white font-mono">
+                  {shortHex(escrowToken)}
+                </span>
               </span>
             ) : null}
           </div>
@@ -580,7 +691,9 @@ export default function ContractSetupCard() {
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              {authHint ? <div className="text-sm text-[#EB6945]">{authHint}</div> : null}
+              {authHint ? (
+                <div className="text-sm text-[#EB6945]">{authHint}</div>
+              ) : null}
 
               <div className="space-y-2">
                 <Label className="text-white">Agreement Mode</Label>
@@ -625,7 +738,9 @@ export default function ContractSetupCard() {
                       <Label className="text-white">Period (seconds)</Label>
                       <Input
                         value={payrollPeriodSeconds}
-                        onChange={(e) => setPayrollPeriodSeconds(e.target.value)}
+                        onChange={(e) =>
+                          setPayrollPeriodSeconds(e.target.value)
+                        }
                         placeholder="2592000"
                         className="bg-transparent border-[#242428] text-white"
                       />
@@ -716,21 +831,34 @@ export default function ContractSetupCard() {
               )}
 
               {createAgreementError ? (
-                <div className="text-sm text-red-400">{createAgreementError}</div>
+                <div className="text-sm text-red-400">
+                  {createAgreementError}
+                </div>
               ) : null}
               {createAgreementTx ? <TxRow txHash={createAgreementTx} /> : null}
             </CardContent>
             <CardFooter>
               <Button
-                disabled={!address || !sessionToken || isExecuting}
+                disabled={
+                  !connectedWallet?.address ||
+                  !connectedWallet?.sessionToken ||
+                  connectedWallet.isExecuting
+                }
                 onClick={async () => {
                   try {
                     setCreateAgreementError(null);
                     setCreateAgreementTx(null);
-                    const { address: wallet_address, sessionToken: session_token } = requireAuth();
-                    if (!agreementDefault) throw new Error("Agreement address not loaded.");
-                    const token = supportedTokens.find((t) => t.key === agreementTokenKey);
-                    if (!token?.address) throw new Error("Token not configured.");
+                    const {
+                      address: wallet_address,
+                      sessionToken: session_token,
+                    } = requireAuth();
+                    if (!agreementDefault)
+                      throw new Error("Agreement address not loaded.");
+                    const token = supportedTokens.find(
+                      (t) => t.key === agreementTokenKey,
+                    );
+                    if (!token?.address)
+                      throw new Error("Token not configured.");
 
                     let endpoint: string;
                     let body: any;
@@ -744,7 +872,8 @@ export default function ContractSetupCard() {
                         num_periods: parseInt(payrollNumPeriods),
                       };
                     } else if (escrowPaymentType === "time") {
-                      if (!escrowContributor.startsWith("0x")) throw new Error("Invalid contributor address.");
+                      if (!escrowContributor.startsWith("0x"))
+                        throw new Error("Invalid contributor address.");
                       endpoint = `/prepare/agreement/${agreementDefault}/create_time_based_agreement`;
                       body = {
                         employer: wallet_address,
@@ -755,7 +884,8 @@ export default function ContractSetupCard() {
                         num_periods: parseInt(numPeriods),
                       };
                     } else {
-                      if (!escrowContributor.startsWith("0x")) throw new Error("Invalid contributor address.");
+                      if (!escrowContributor.startsWith("0x"))
+                        throw new Error("Invalid contributor address.");
                       endpoint = `/prepare/agreement/${agreementDefault}/create_milestone_agreement`;
                       body = {
                         employer: wallet_address,
@@ -764,14 +894,23 @@ export default function ContractSetupCard() {
                       };
                     }
 
-                    await executeAction(endpoint, body, setCreateAgreementError, setCreateAgreementTx);
+                    await executeAction(
+                      endpoint,
+                      body,
+                      setCreateAgreementError,
+                      setCreateAgreementTx,
+                    );
                   } catch (e: any) {
-                    setCreateAgreementError(e?.message || "Failed to create agreement");
+                    setCreateAgreementError(
+                      e?.message || "Failed to create agreement",
+                    );
                   }
                 }}
                 className="w-full"
               >
-                {isExecuting ? "Creating..." : "Create Agreement"}
+                {connectedWallet?.isExecuting
+                  ? "Creating..."
+                  : "Create Agreement"}
               </Button>
             </CardFooter>
           </Card>
@@ -781,7 +920,9 @@ export default function ContractSetupCard() {
         <TabsContent value="view" className="space-y-4">
           <Card className="bg-[#1a0c1d] border-[#2D2D2D]">
             <CardHeader>
-              <CardTitle className="text-white">View Agreement Details</CardTitle>
+              <CardTitle className="text-white">
+                View Agreement Details
+              </CardTitle>
               <CardDescription className="text-[#A0A0A0]">
                 Enter an agreement ID to view its details
               </CardDescription>
@@ -800,7 +941,11 @@ export default function ContractSetupCard() {
                     onClick={loadAgreementDetails}
                     disabled={!viewAgreementId || loadingDetails}
                   >
-                    {loadingDetails ? <Loader2 className="animate-spin" /> : <Eye />}
+                    {loadingDetails ? (
+                      <Loader2 className="animate-spin" />
+                    ) : (
+                      <Eye />
+                    )}
                   </Button>
                 </div>
               </div>
@@ -814,38 +959,58 @@ export default function ContractSetupCard() {
                   <div className="grid grid-cols-2 gap-4 text-sm">
                     <div>
                       <span className="text-[#A0A0A0]">Status:</span>
-                      <span className="text-white ml-2">{statusLabels[agreementDetails.status || 0]}</span>
+                      <span className="text-white ml-2">
+                        {statusLabels[agreementDetails.status || 0]}
+                      </span>
                     </div>
                     <div>
                       <span className="text-[#A0A0A0]">Mode:</span>
-                      <span className="text-white ml-2">{modeLabels[agreementDetails.mode || 0]}</span>
+                      <span className="text-white ml-2">
+                        {modeLabels[agreementDetails.mode || 0]}
+                      </span>
                     </div>
                     <div>
                       <span className="text-[#A0A0A0]">Employer:</span>
-                      <span className="text-white ml-2 font-mono">{shortHex(agreementDetails.employer || "")}</span>
+                      <span className="text-white ml-2 font-mono">
+                        {shortHex(agreementDetails.employer || "")}
+                      </span>
                     </div>
                     {agreementDetails.contributor && (
                       <div>
                         <span className="text-[#A0A0A0]">Contributor:</span>
-                        <span className="text-white ml-2 font-mono">{shortHex(agreementDetails.contributor)}</span>
+                        <span className="text-white ml-2 font-mono">
+                          {shortHex(agreementDetails.contributor)}
+                        </span>
                       </div>
                     )}
                     <div>
                       <span className="text-[#A0A0A0]">Total Amount:</span>
-                      <span className="text-white ml-2">{agreementDetails.total_amount || "0"}</span>
+                      <span className="text-white ml-2">
+                        {agreementDetails.total_amount || "0"}
+                      </span>
                     </div>
                     <div>
                       <span className="text-[#A0A0A0]">Paid Amount:</span>
-                      <span className="text-white ml-2">{agreementDetails.paid_amount || "0"}</span>
+                      <span className="text-white ml-2">
+                        {agreementDetails.paid_amount || "0"}
+                      </span>
                     </div>
                     <div>
                       <span className="text-[#A0A0A0]">Dispute Status:</span>
-                      <span className="text-white ml-2">{disputeStatusLabels[agreementDetails.dispute_status || 0]}</span>
+                      <span className="text-white ml-2">
+                        {
+                          disputeStatusLabels[
+                            agreementDetails.dispute_status || 0
+                          ]
+                        }
+                      </span>
                     </div>
                     {agreementDetails.employee_count !== undefined && (
                       <div>
                         <span className="text-[#A0A0A0]">Employees:</span>
-                        <span className="text-white ml-2">{agreementDetails.employee_count}</span>
+                        <span className="text-white ml-2">
+                          {agreementDetails.employee_count}
+                        </span>
                       </div>
                     )}
                   </div>
@@ -865,7 +1030,9 @@ export default function ContractSetupCard() {
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              {authHint ? <div className="text-sm text-[#EB6945]">{authHint}</div> : null}
+              {authHint ? (
+                <div className="text-sm text-[#EB6945]">{authHint}</div>
+              ) : null}
 
               <div className="space-y-2">
                 <Label className="text-white">Agreement ID</Label>
@@ -931,19 +1098,26 @@ export default function ContractSetupCard() {
                 </div>
               </div>
 
-              {manageError ? <div className="text-sm text-red-400">{manageError}</div> : null}
+              {manageError ? (
+                <div className="text-sm text-red-400">{manageError}</div>
+              ) : null}
               {manageTx ? <TxRow txHash={manageTx} /> : null}
             </CardContent>
             <CardFooter>
               <Button
-                disabled={!address || !sessionToken || isExecuting || !manageAgreementId}
+                disabled={
+                  !connectedWallet?.address ||
+                  !connectedWallet?.sessionToken ||
+                  connectedWallet.isExecuting ||
+                  !manageAgreementId
+                }
                 onClick={async () => {
                   try {
                     await executeAction(
                       `/prepare/agreement/${agreementDefault}/${manageAction}`,
                       { agreement_id: manageAgreementId },
                       setManageError,
-                      setManageTx
+                      setManageTx,
                     );
                   } catch (e: any) {
                     setManageError(e?.message || "Failed to execute action");
@@ -951,7 +1125,9 @@ export default function ContractSetupCard() {
                 }}
                 className="w-full"
               >
-                {isExecuting ? "Executing..." : `Execute ${manageAction.replace("_", " ")}`}
+                {connectedWallet?.isExecuting
+                  ? "Executing..."
+                  : `Execute ${manageAction.replace("_", " ")}`}
               </Button>
             </CardFooter>
           </Card>
@@ -967,7 +1143,9 @@ export default function ContractSetupCard() {
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              {authHint ? <div className="text-sm text-[#EB6945]">{authHint}</div> : null}
+              {authHint ? (
+                <div className="text-sm text-[#EB6945]">{authHint}</div>
+              ) : null}
 
               <div className="space-y-2">
                 <Label className="text-white">Agreement ID</Label>
@@ -988,23 +1166,32 @@ export default function ContractSetupCard() {
                   className="bg-transparent border-[#242428] text-white font-mono"
                 />
                 <p className="text-xs text-[#A0A0A0]">
-                  Enter amount in raw token units (e.g., 1000000 for 1 USDC with 6 decimals)
+                  Enter amount in raw token units (e.g., 1000000 for 1 USDC with
+                  6 decimals)
                 </p>
               </div>
 
-              {fundError ? <div className="text-sm text-red-400">{fundError}</div> : null}
+              {fundError ? (
+                <div className="text-sm text-red-400">{fundError}</div>
+              ) : null}
               {fundTx ? <TxRow txHash={fundTx} /> : null}
             </CardContent>
             <CardFooter>
               <Button
-                disabled={!address || !sessionToken || isExecuting || !fundAgreementId || !fundAmount}
+                disabled={
+                  !connectedWallet?.address ||
+                  !connectedWallet?.sessionToken ||
+                  connectedWallet.isExecuting ||
+                  !fundAgreementId ||
+                  !fundAmount
+                }
                 onClick={async () => {
                   try {
                     await executeAction(
                       `/prepare/agreement/${agreementDefault}/fund_agreement`,
                       { agreement_id: fundAgreementId, amount: fundAmount },
                       setFundError,
-                      setFundTx
+                      setFundTx,
                     );
                   } catch (e: any) {
                     setFundError(e?.message || "Failed to fund agreement");
@@ -1012,7 +1199,7 @@ export default function ContractSetupCard() {
                 }}
                 className="w-full"
               >
-                {isExecuting ? "Funding..." : "Fund Agreement"}
+                {connectedWallet?.isExecuting ? "Funding..." : "Fund Agreement"}
               </Button>
             </CardFooter>
           </Card>
@@ -1022,13 +1209,17 @@ export default function ContractSetupCard() {
         <TabsContent value="employees" className="space-y-4">
           <Card className="bg-[#1a0c1d] border-[#2D2D2D]">
             <CardHeader>
-              <CardTitle className="text-white">Add Employee to Payroll</CardTitle>
+              <CardTitle className="text-white">
+                Add Employee to Payroll
+              </CardTitle>
               <CardDescription className="text-[#A0A0A0]">
                 Add an employee to a payroll agreement
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              {authHint ? <div className="text-sm text-[#EB6945]">{authHint}</div> : null}
+              {authHint ? (
+                <div className="text-sm text-[#EB6945]">{authHint}</div>
+              ) : null}
 
               <div className="space-y-2">
                 <Label className="text-white">Agreement ID</Label>
@@ -1060,12 +1251,21 @@ export default function ContractSetupCard() {
                 />
               </div>
 
-              {addEmployeeError ? <div className="text-sm text-red-400">{addEmployeeError}</div> : null}
+              {addEmployeeError ? (
+                <div className="text-sm text-red-400">{addEmployeeError}</div>
+              ) : null}
               {addEmployeeTx ? <TxRow txHash={addEmployeeTx} /> : null}
             </CardContent>
             <CardFooter>
               <Button
-                disabled={!address || !sessionToken || isExecuting || !addEmployeeAgreementId || !addEmployeeAddress || !addEmployeeSalary}
+                disabled={
+                  !connectedWallet?.address ||
+                  !connectedWallet?.sessionToken ||
+                  connectedWallet.isExecuting ||
+                  !addEmployeeAgreementId ||
+                  !addEmployeeAddress ||
+                  !addEmployeeSalary
+                }
                 onClick={async () => {
                   try {
                     await executeAction(
@@ -1076,7 +1276,7 @@ export default function ContractSetupCard() {
                         salary_per_period: addEmployeeSalary,
                       },
                       setAddEmployeeError,
-                      setAddEmployeeTx
+                      setAddEmployeeTx,
                     );
                   } catch (e: any) {
                     setAddEmployeeError(e?.message || "Failed to add employee");
@@ -1084,7 +1284,7 @@ export default function ContractSetupCard() {
                 }}
                 className="w-full"
               >
-                {isExecuting ? "Adding..." : "Add Employee"}
+                {connectedWallet?.isExecuting ? "Adding..." : "Add Employee"}
               </Button>
             </CardFooter>
           </Card>
@@ -1100,7 +1300,9 @@ export default function ContractSetupCard() {
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
-              {authHint ? <div className="text-sm text-[#EB6945]">{authHint}</div> : null}
+              {authHint ? (
+                <div className="text-sm text-[#EB6945]">{authHint}</div>
+              ) : null}
 
               {/* Add Milestone */}
               <div className="space-y-4 p-4 rounded-md bg-[#0D0D0D] border border-[#242428]">
@@ -1123,25 +1325,40 @@ export default function ContractSetupCard() {
                     className="bg-transparent border-[#242428] text-white font-mono"
                   />
                 </div>
-                {addMilestoneError ? <div className="text-sm text-red-400">{addMilestoneError}</div> : null}
+                {addMilestoneError ? (
+                  <div className="text-sm text-red-400">
+                    {addMilestoneError}
+                  </div>
+                ) : null}
                 {addMilestoneTx ? <TxRow txHash={addMilestoneTx} /> : null}
                 <Button
-                  disabled={!address || !sessionToken || isExecuting || !addMilestoneAgreementId || !addMilestoneAmount}
+                  disabled={
+                    !connectedWallet?.address ||
+                    !connectedWallet?.sessionToken ||
+                    connectedWallet.isExecuting ||
+                    !addMilestoneAgreementId ||
+                    !addMilestoneAmount
+                  }
                   onClick={async () => {
                     try {
                       await executeAction(
                         `/prepare/agreement/${agreementDefault}/add_milestone`,
-                        { agreement_id: addMilestoneAgreementId, amount: addMilestoneAmount },
+                        {
+                          agreement_id: addMilestoneAgreementId,
+                          amount: addMilestoneAmount,
+                        },
                         setAddMilestoneError,
-                        setAddMilestoneTx
+                        setAddMilestoneTx,
                       );
                     } catch (e: any) {
-                      setAddMilestoneError(e?.message || "Failed to add milestone");
+                      setAddMilestoneError(
+                        e?.message || "Failed to add milestone",
+                      );
                     }
                   }}
                   className="w-full"
                 >
-                  {isExecuting ? "Adding..." : "Add Milestone"}
+                  {connectedWallet?.isExecuting ? "Adding..." : "Add Milestone"}
                 </Button>
               </div>
 
@@ -1152,7 +1369,9 @@ export default function ContractSetupCard() {
                   <Label className="text-white">Agreement ID</Label>
                   <Input
                     value={approveMilestoneAgreementId}
-                    onChange={(e) => setApproveMilestoneAgreementId(e.target.value)}
+                    onChange={(e) =>
+                      setApproveMilestoneAgreementId(e.target.value)
+                    }
                     placeholder="e.g. 1"
                     className="bg-transparent border-[#242428] text-white"
                   />
@@ -1166,10 +1385,22 @@ export default function ContractSetupCard() {
                     className="bg-transparent border-[#242428] text-white"
                   />
                 </div>
-                {approveMilestoneError ? <div className="text-sm text-red-400">{approveMilestoneError}</div> : null}
-                {approveMilestoneTx ? <TxRow txHash={approveMilestoneTx} /> : null}
+                {approveMilestoneError ? (
+                  <div className="text-sm text-red-400">
+                    {approveMilestoneError}
+                  </div>
+                ) : null}
+                {approveMilestoneTx ? (
+                  <TxRow txHash={approveMilestoneTx} />
+                ) : null}
                 <Button
-                  disabled={!address || !sessionToken || isExecuting || !approveMilestoneAgreementId || !approveMilestoneId}
+                  disabled={
+                    !connectedWallet?.address ||
+                    !connectedWallet?.sessionToken ||
+                    connectedWallet.isExecuting ||
+                    !approveMilestoneAgreementId ||
+                    !approveMilestoneId
+                  }
                   onClick={async () => {
                     try {
                       await executeAction(
@@ -1179,15 +1410,19 @@ export default function ContractSetupCard() {
                           milestone_id: parseInt(approveMilestoneId),
                         },
                         setApproveMilestoneError,
-                        setApproveMilestoneTx
+                        setApproveMilestoneTx,
                       );
                     } catch (e: any) {
-                      setApproveMilestoneError(e?.message || "Failed to approve milestone");
+                      setApproveMilestoneError(
+                        e?.message || "Failed to approve milestone",
+                      );
                     }
                   }}
                   className="w-full"
                 >
-                  {isExecuting ? "Approving..." : "Approve Milestone"}
+                  {connectedWallet?.isExecuting
+                    ? "Approving..."
+                    : "Approve Milestone"}
                 </Button>
               </div>
             </CardContent>
@@ -1200,11 +1435,14 @@ export default function ContractSetupCard() {
             <CardHeader>
               <CardTitle className="text-white">Activate Agreement</CardTitle>
               <CardDescription className="text-[#A0A0A0]">
-                Activate an agreement so contributors/employees can claim payments
+                Activate an agreement so contributors/employees can claim
+                payments
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              {authHint ? <div className="text-sm text-[#EB6945]">{authHint}</div> : null}
+              {authHint ? (
+                <div className="text-sm text-[#EB6945]">{authHint}</div>
+              ) : null}
 
               <div className="space-y-2">
                 <Label className="text-white">Agreement ID</Label>
@@ -1216,27 +1454,38 @@ export default function ContractSetupCard() {
                 />
               </div>
 
-              {activateError ? <div className="text-sm text-red-400">{activateError}</div> : null}
+              {activateError ? (
+                <div className="text-sm text-red-400">{activateError}</div>
+              ) : null}
               {activateTx ? <TxRow txHash={activateTx} /> : null}
             </CardContent>
             <CardFooter>
               <Button
-                disabled={!address || !sessionToken || isExecuting || !activateAgreementId}
+                disabled={
+                  !connectedWallet?.address ||
+                  !connectedWallet?.sessionToken ||
+                  connectedWallet.isExecuting ||
+                  !activateAgreementId
+                }
                 onClick={async () => {
                   try {
                     await executeAction(
                       `/prepare/agreement/${agreementDefault}/activate`,
                       { agreement_id: activateAgreementId },
                       setActivateError,
-                      setActivateTx
+                      setActivateTx,
                     );
                   } catch (e: any) {
-                    setActivateError(e?.message || "Failed to activate agreement");
+                    setActivateError(
+                      e?.message || "Failed to activate agreement",
+                    );
                   }
                 }}
                 className="w-full"
               >
-                {isExecuting ? "Activating..." : "Activate Agreement"}
+                {connectedWallet?.isExecuting
+                  ? "Activating..."
+                  : "Activate Agreement"}
               </Button>
             </CardFooter>
           </Card>
@@ -1252,7 +1501,9 @@ export default function ContractSetupCard() {
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
-              {authHint ? <div className="text-sm text-[#EB6945]">{authHint}</div> : null}
+              {authHint ? (
+                <div className="text-sm text-[#EB6945]">{authHint}</div>
+              ) : null}
 
               <div className="space-y-2">
                 <Label className="text-white">Agreement ID</Label>
@@ -1317,17 +1568,20 @@ export default function ContractSetupCard() {
                 </>
               )}
 
-              {disputeError ? <div className="text-sm text-red-400">{disputeError}</div> : null}
+              {disputeError ? (
+                <div className="text-sm text-red-400">{disputeError}</div>
+              ) : null}
               {disputeTx ? <TxRow txHash={disputeTx} /> : null}
             </CardContent>
             <CardFooter>
               <Button
                 disabled={
-                  !address ||
-                  !sessionToken ||
-                  isExecuting ||
+                  !connectedWallet?.address ||
+                  !connectedWallet?.sessionToken ||
+                  connectedWallet.isExecuting ||
                   !disputeAgreementId ||
-                  (disputeAction === "resolve" && (!disputePayContributor || !disputeRefundEmployer))
+                  (disputeAction === "resolve" &&
+                    (!disputePayContributor || !disputeRefundEmployer))
                 }
                 onClick={async () => {
                   try {
@@ -1336,7 +1590,7 @@ export default function ContractSetupCard() {
                         `/prepare/agreement/${agreementDefault}/raise_dispute`,
                         { agreement_id: disputeAgreementId },
                         setDisputeError,
-                        setDisputeTx
+                        setDisputeTx,
                       );
                     } else {
                       await executeAction(
@@ -1347,7 +1601,7 @@ export default function ContractSetupCard() {
                           refund_employer: disputeRefundEmployer,
                         },
                         setDisputeError,
-                        setDisputeTx
+                        setDisputeTx,
                       );
                     }
                   } catch (e: any) {
@@ -1356,7 +1610,7 @@ export default function ContractSetupCard() {
                 }}
                 className="w-full"
               >
-                {isExecuting
+                {connectedWallet?.isExecuting
                   ? disputeAction === "raise"
                     ? "Raising..."
                     : "Resolving..."
@@ -1381,7 +1635,8 @@ export default function ContractSetupCard() {
           <DialogHeader>
             <DialogTitle>Initialize Escrow</DialogTitle>
             <DialogDescription className="text-[#A0A0A0]">
-              Initialize the Payroll Escrow contract with token and manager (WorkAgreement contract).
+              Initialize the Payroll Escrow contract with token and manager
+              (WorkAgreement contract).
               <br />
               <span className="text-yellow-400 font-semibold">
                 ⚠️ This is a one-time operation.
@@ -1389,7 +1644,9 @@ export default function ContractSetupCard() {
             </DialogDescription>
           </DialogHeader>
 
-          {authHint ? <div className="text-sm text-[#EB6945]">{authHint}</div> : null}
+          {authHint ? (
+            <div className="text-sm text-[#EB6945]">{authHint}</div>
+          ) : null}
 
           {escrowInitialized === true ? (
             <div className="p-4 rounded-md bg-yellow-900/20 border border-yellow-700/50">
@@ -1397,17 +1654,24 @@ export default function ContractSetupCard() {
                 Escrow Already Initialized
               </div>
               <div className="text-sm text-[#A0A0A0]">
-                This escrow contract has already been initialized. You cannot initialize it again.
+                This escrow contract has already been initialized. You cannot
+                initialize it again.
               </div>
             </div>
           ) : null}
 
           <div className="space-y-4">
             <div className="text-sm text-[#A0A0A0]">
-              Escrow: <span className="text-white font-mono">{shortHex(escrowDefault)}</span>
+              Escrow:{" "}
+              <span className="text-white font-mono">
+                {shortHex(escrowDefault)}
+              </span>
             </div>
             <div className="text-sm text-[#A0A0A0]">
-              Manager: <span className="text-white font-mono">{shortHex(agreementDefault)}</span>
+              Manager:{" "}
+              <span className="text-white font-mono">
+                {shortHex(agreementDefault)}
+              </span>
             </div>
 
             <TokenSelector
@@ -1419,23 +1683,30 @@ export default function ContractSetupCard() {
             />
           </div>
 
-          {initEscrowError ? <div className="text-sm text-red-400">{initEscrowError}</div> : null}
+          {initEscrowError ? (
+            <div className="text-sm text-red-400">{initEscrowError}</div>
+          ) : null}
           {initEscrowTx ? <TxRow txHash={initEscrowTx} /> : null}
 
           <DialogFooter>
-            <Button
-              variant="outline"
-              onClick={() => setInitEscrowOpen(false)}
-            >
+            <Button variant="outline" onClick={() => setInitEscrowOpen(false)}>
               Close
             </Button>
             <Button
-              disabled={!address || !sessionToken || isExecuting || escrowInitialized === true}
+              disabled={
+                !connectedWallet?.address ||
+                !connectedWallet?.sessionToken ||
+                connectedWallet.isExecuting ||
+                escrowInitialized === true
+              }
               onClick={async () => {
                 try {
                   setInitEscrowError(null);
                   setInitEscrowTx(null);
-                  const { address: wallet_address, sessionToken: session_token } = requireAuth();
+                  const {
+                    address: wallet_address,
+                    sessionToken: session_token,
+                  } = requireAuth();
                   if (!escrowDefault || !agreementDefault) {
                     throw new Error("Escrow or Agreement address not loaded.");
                   }
@@ -1446,14 +1717,16 @@ export default function ContractSetupCard() {
                     `/prepare/escrow/${escrowDefault}/initialize`,
                     { token: selectedToken.address, manager: agreementDefault },
                     setInitEscrowError,
-                    setInitEscrowTx
+                    setInitEscrowTx,
                   );
                 } catch (e: any) {
-                  setInitEscrowError(e?.message || "Failed to initialize escrow");
+                  setInitEscrowError(
+                    e?.message || "Failed to initialize escrow",
+                  );
                 }
               }}
             >
-              {isExecuting ? "Initializing..." : "Initialize"}
+              {connectedWallet?.isExecuting ? "Initializing..." : "Initialize"}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -1461,4 +1734,3 @@ export default function ContractSetupCard() {
     </div>
   );
 }
-
