@@ -1,21 +1,10 @@
 "use client";
-import React, { useState } from "react";
 import Link from "next/link";
-import { FaEthereum } from "react-icons/fa";
+import React, { useState } from "react";
 import { HiChevronDown } from "react-icons/hi";
-
-const navLinks = [
-  { name: "Home", href: "/" },
-  { name: "Features", href: "/features" },
-  { name: "How it works", href: "/how-it-works" },
-  { name: "Pricing", href: "/pricing" },
-  { name: "Support", href: "/support" },
-];
 
 export default function LandingPageNavBar() {
   const [menuOpen, setMenuOpen] = useState(false);
-  const router = useRouter();
-  const pathname = usePathname();
 
   const navLinks = [
     { name: "Home", href: "/" },
