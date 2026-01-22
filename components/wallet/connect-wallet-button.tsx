@@ -46,7 +46,7 @@ export default function ConnectWalletButton({
   const { address, isConnecting } = connectedWallet || {};
   // Use ToastContext directly to handle cases where ToastProvider might not be available (e.g., static generation)
   const toastContext = useContext(ToastContext);
-  const prevErrorRef = useRef<string | null>(null);
+  const prevErrorRef = useRef<string | undefined>(undefined);
 
   // Show toast when error occurs (only once per unique error across all instances)
   useEffect(() => {
