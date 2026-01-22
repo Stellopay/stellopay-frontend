@@ -131,7 +131,7 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
           setIsVerified(false);
           return { success: false, error: getWalletErrorMessage(new Error(error)) };
         }
-        
+
         let sigRaw;
         try {
           sigRaw = await signMessage(challenge.typed_data);
@@ -142,7 +142,7 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
           setIsVerified(false);
           return { success: false, error: friendlyError };
         }
-        
+
         const signature = normalizeSignature(sigRaw);
 
         // Step 3: backend verifies signature and issues session token
@@ -158,7 +158,7 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
           localStorage.setItem(STORAGE_KEY_ADDRESS, walletAddress);
           localStorage.setItem(STORAGE_KEY_SESSION, verify.session_token);
         }
-        
+
         return { success: true };
       } catch (e) {
         console.error("[wallet] Verification failed:", e);
@@ -190,7 +190,7 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
       try {
         // Wait a bit for wallet extension to be ready
         await new Promise(resolve => setTimeout(resolve, 500));
-        
+
         const starknet = await connect();
         if (!starknet) {
           console.log("[wallet] No wallet extension found for auto-verification");
@@ -198,32 +198,32 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
           setIsInitializing(false);
           return;
         }
-        
+
         const wallet = starknet as unknown as WalletLike;
         const currentAddress = wallet.selectedAddress ?? wallet.account?.address ?? savedAddress;
-        
+
         if (!currentAddress) {
           console.log("[wallet] Wallet connected but no address available");
           setIsVerifying(false);
           setIsInitializing(false);
           return;
         }
-        
+
         if (savedAddress && currentAddress.toLowerCase() !== savedAddress.toLowerCase()) {
           console.log("[wallet] Wallet address changed, skipping auto-verification");
           setIsVerifying(false);
           setIsInitializing(false);
           return;
         }
-        
+
         // Wallet is connected with the same address -> auto-verify
         walletRef.current = wallet;
         if (savedAddress) setAddress(savedAddress);
-        
+
         const enablePromise =
           typeof wallet.enable === "function" ? wallet.enable() : Promise.resolve();
         await Promise.resolve(enablePromise);
-        
+
         const result = await performVerification(wallet, currentAddress);
         if (result.success) {
           console.log("[wallet] Auto-verification successful");
@@ -300,12 +300,12 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
       }
 
       const result = await performVerification(wallet, nextAddress);
-      
+
       if (!result.success && result.error) {
         const errorMessage = result.error.toLowerCase();
-        
+
         // If user rejected signing, reset the address so they can try again
-        const isSigningRejection = 
+        const isSigningRejection =
           errorMessage.includes("sign") ||
           errorMessage.includes("user_refused") ||
           errorMessage.includes("user rejected") ||
@@ -313,7 +313,7 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
           errorMessage.includes("user canceled") ||
           errorMessage.includes("rejected by user") ||
           errorMessage.includes("user abort");
-        
+
         if (isSigningRejection) {
           // Reset address so the modal shows "Connect Wallet" button again
           setAddress(null);
@@ -323,7 +323,7 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
             localStorage.removeItem(STORAGE_KEY_SESSION);
           }
         }
-        
+
         setError(result.error);
         setIsVerified(false);
         setSessionToken(null);
@@ -377,14 +377,14 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
         console.error("[executeCall] Failed to reconnect wallet:", e);
       }
     }
-    
+
     if (!wallet) {
       const error = "Wallet not connected. Please connect your wallet first.";
       setError(getWalletErrorMessage(new Error(error)));
       setIsExecuting(false);
       return {};
     }
-    
+
     const exec = wallet.account?.execute;
     if (typeof exec !== "function") {
       // Try to get account from wallet if not available
@@ -399,7 +399,7 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
       setIsExecuting(false);
       return {};
     }
-    
+
     setError(null);
     setIsExecuting(true);
     try {
