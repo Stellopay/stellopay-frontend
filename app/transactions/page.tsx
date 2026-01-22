@@ -14,7 +14,7 @@ import { useWallet } from "@/context/wallet-context";
 import type { TransactionProps } from "@/types/transaction";
 
 const Transactions = () => {
-  const { address } = useWallet();
+  const { connectedWallet } = useWallet();
   const [allTransactions, setAllTransactions] = useState<TransactionProps[]>([]);
   const [loading, setLoading] = useState(true);
   const [currentPage, setCurrentPage] = useState(1);
@@ -26,7 +26,7 @@ const Transactions = () => {
 
   // Fetch transactions
   useEffect(() => {
-    if (!address) {
+    if (!connectedWallet?.address) {
       setLoading(false);
       return;
     }
@@ -36,7 +36,7 @@ const Transactions = () => {
         setLoading(true);
         const eventTypesParam = selectedTypes.length > 0 ? `&eventTypes=${selectedTypes.join(',')}` : '';
         const result = await apiGet<{ transactions: TransactionProps[] }>(
-          `/transactions/${address}?limit=100${eventTypesParam}`
+          `/transactions/${connectedWallet.address}?limit=100${eventTypesParam}`
         );
         setAllTransactions(result.transactions || []);
       } catch (e) {
@@ -48,7 +48,7 @@ const Transactions = () => {
     };
 
     fetchTransactions();
-  }, [address, selectedTypes]);
+  }, [connectedWallet?.address, selectedTypes]);
 
   // Search functionality
   const searchFilteredTransactions = allTransactions.filter((transaction) =>
