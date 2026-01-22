@@ -402,6 +402,11 @@ export default function CreateAgreementModal({
       if (!prepared?.call) {
         throw new Error("Backend did not return a call object");
       }
+      if (!executeCall) {
+        throw new Error(
+          "Wallet execution is not available. Please reconnect your wallet.",
+        );
+      }
       const tx = await executeCall(prepared.call);
       if (tx?.transaction_hash) {
         setTx(tx.transaction_hash);

@@ -26,11 +26,13 @@ export const WalletProvider: FC<WalletProviderProps> = ({ children }) => {
       return null;
     });
 
-  const connectWallet = (wallet: Wallet, address: string, network: string) => {
-    const walletData: ConnectedWallet = { wallet, address, network };
-    setConnectedWallet(walletData);
-    if (typeof window !== "undefined") {
-      localStorage.setItem("connectedWallet", JSON.stringify(walletData));
+  const connectWallet = (wallet?: Wallet, address?: string, network?: string) => {
+    if (wallet && address && network) {
+      const walletData: ConnectedWallet = { wallet, address, network };
+      setConnectedWallet(walletData);
+      if (typeof window !== "undefined") {
+        localStorage.setItem("connectedWallet", JSON.stringify(walletData));
+      }
     }
   };
 

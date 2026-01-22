@@ -118,7 +118,9 @@ export default function DashboardHeader({
         amount: releaseAmount,
       },
     );
-
+    if (!executeCall) {
+      throw new Error("Wallet is not ready to execute transactions.");
+    }
     const tx = await executeCall(prepared.call);
     if (tx?.transaction_hash) {
       setSendTx(tx.transaction_hash);
@@ -179,6 +181,9 @@ export default function DashboardHeader({
     }
 
     const prepared = await apiPost<{ call: any }>(path, body);
+    if (!executeCall) {
+      throw new Error("Wallet is not ready to execute transactions.");
+    }
     const tx = await executeCall(prepared.call);
     if (tx?.transaction_hash) {
       setRequestTx(tx.transaction_hash);

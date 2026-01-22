@@ -40,7 +40,14 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@/components/ui/card";
+import {
+  Card,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+  CardContent,
+  CardFooter,
+} from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { apiGet, apiPost, processTransactionEvents } from "@/lib/backend";
@@ -67,7 +74,9 @@ function formatUnitsShort(raw: string | null, decimals: number) {
       .padStart(decimals, "0")
       .slice(0, 2)
       .replace(/0+$/, "");
-    return fracStr.length ? `${whole.toLocaleString()}.${fracStr}` : whole.toLocaleString();
+    return fracStr.length
+      ? `${whole.toLocaleString()}.${fracStr}`
+      : whole.toLocaleString();
   } catch {
     return raw;
   }
@@ -101,115 +110,130 @@ function TokenSelector({
 }: {
   selectedTokenKey: string;
   onTokenChange: (key: string) => void;
-  supportedTokens: Array<{ key: string; label: string; icon: string; color: string; address: string; decimals: number }>;
+  supportedTokens: Array<{
+    key: string;
+    label: string;
+    icon: string;
+    color: string;
+    address: string;
+    decimals: number;
+  }>;
   balance: string | null;
   balanceError: string | null;
 }) {
-  const selectedToken = supportedTokens.find((t) => t.key === selectedTokenKey) ?? supportedTokens[0];
+  const selectedToken =
+    supportedTokens.find((t) => t.key === selectedTokenKey) ??
+    supportedTokens[0];
   const isLoading = !balanceError && balance === null;
   return (
     <div className="space-y-2">
       <Label>Token</Label>
-    <div className="rounded-xl border border-[#242428] bg-black/30 px-4 py-3 flex items-center justify-between gap-4">
-      <div className="flex items-center gap-2 text-sm">
-        <span className="text-[#A0A0A0]">Balance:</span>
-        {isLoading ? (
-          <Loader2 className="h-3.5 w-3.5 animate-spin text-[#A0A0A0]" />
-        ) : (
-          <span className="text-white">
-            {balanceError
-              ? "—"
-              : `${formatUnitsShort(balance, selectedToken?.decimals ?? 6)} ${
-                  selectedToken?.key ?? ""
-                }`}
-          </span>
-        )}
-        {balanceError ? (
-          <span className="text-xs text-[#EB6945] ml-2">{balanceError}</span>
-        ) : null}
-      </div>
+      <div className="rounded-xl border border-[#242428] bg-black/30 px-4 py-3 flex items-center justify-between gap-4">
+        <div className="flex items-center gap-2 text-sm">
+          <span className="text-[#A0A0A0]">Balance:</span>
+          {isLoading ? (
+            <Loader2 className="h-3.5 w-3.5 animate-spin text-[#A0A0A0]" />
+          ) : (
+            <span className="text-white">
+              {balanceError
+                ? "—"
+                : `${formatUnitsShort(balance, selectedToken?.decimals ?? 6)} ${
+                    selectedToken?.key ?? ""
+                  }`}
+            </span>
+          )}
+          {balanceError ? (
+            <span className="text-xs text-[#EB6945] ml-2">{balanceError}</span>
+          ) : null}
+        </div>
 
-      <div className="flex items-center justify-end">
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <button
-              type="button"
-              className="cursor-pointer inline-flex items-center gap-2 rounded-xl border border-[#2C2C2C] bg-[#121212] px-3 py-2 hover:bg-[#1A1A1A] transition"
-            >
-              {selectedToken?.icon ? (
-                <Image
-                  src={selectedToken.icon}
-                  alt={selectedToken.key}
-                  width={24}
-                  height={24}
-                  className="rounded-full"
-                />
-              ) : (
-                <span
-                  className="inline-flex h-6 w-6 items-center justify-center rounded-full"
-                  style={{ backgroundColor: selectedToken?.color ?? "#2D2D2D" }}
-                >
-                  <span className="text-[10px] font-bold text-black">
-                    {selectedToken?.key?.slice(0, 1) ?? "T"}
-                  </span>
-                </span>
-              )}
-              <span className="text-white text-sm font-semibold">
-                {selectedToken?.key ?? "Token"}
-              </span>
-              <ChevronDown className="h-4 w-4 text-[#A0A0A0]" />
-            </button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent className="bg-[#0D0D0D] border border-[#2D2D2D] text-white min-w-[240px]">
-            {supportedTokens.map((t) => {
-              const disabled = !t.address;
-              return (
-                <DropdownMenuItem
-                  key={t.key}
-                  disabled={disabled}
-                  onSelect={() => onTokenChange(t.key)}
-                  className="cursor-pointer focus:bg-[#111] focus:text-white data-[disabled]:opacity-50"
-                >
-                  {t.icon ? (
-                    <Image
-                      src={t.icon}
-                      alt={t.key}
-                      width={24}
-                      height={24}
-                      className="rounded-full"
-                    />
-                  ) : (
-                    <span
-                      className="inline-flex h-6 w-6 items-center justify-center rounded-full"
-                      style={{ backgroundColor: t.color }}
-                    />
-                  )}
-                  <div className="flex flex-col">
-                    <span className="text-sm text-white font-semibold">{t.key}</span>
-                    <span className="text-xs text-[#A0A0A0]">
-                      {t.label}
-                      {disabled ? " · Not configured" : ""}
+        <div className="flex items-center justify-end">
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button
+                type="button"
+                className="cursor-pointer inline-flex items-center gap-2 rounded-xl border border-[#2C2C2C] bg-[#121212] px-3 py-2 hover:bg-[#1A1A1A] transition"
+              >
+                {selectedToken?.icon ? (
+                  <Image
+                    src={selectedToken.icon}
+                    alt={selectedToken.key}
+                    width={24}
+                    height={24}
+                    className="rounded-full"
+                  />
+                ) : (
+                  <span
+                    className="inline-flex h-6 w-6 items-center justify-center rounded-full"
+                    style={{
+                      backgroundColor: selectedToken?.color ?? "#2D2D2D",
+                    }}
+                  >
+                    <span className="text-[10px] font-bold text-black">
+                      {selectedToken?.key?.slice(0, 1) ?? "T"}
                     </span>
-                  </div>
-                </DropdownMenuItem>
-              );
-            })}
-          </DropdownMenuContent>
-        </DropdownMenu>
+                  </span>
+                )}
+                <span className="text-white text-sm font-semibold">
+                  {selectedToken?.key ?? "Token"}
+                </span>
+                <ChevronDown className="h-4 w-4 text-[#A0A0A0]" />
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent className="bg-[#0D0D0D] border border-[#2D2D2D] text-white min-w-[240px]">
+              {supportedTokens.map((t) => {
+                const disabled = !t.address;
+                return (
+                  <DropdownMenuItem
+                    key={t.key}
+                    disabled={disabled}
+                    onSelect={() => onTokenChange(t.key)}
+                    className="cursor-pointer focus:bg-[#111] focus:text-white data-[disabled]:opacity-50"
+                  >
+                    {t.icon ? (
+                      <Image
+                        src={t.icon}
+                        alt={t.key}
+                        width={24}
+                        height={24}
+                        className="rounded-full"
+                      />
+                    ) : (
+                      <span
+                        className="inline-flex h-6 w-6 items-center justify-center rounded-full"
+                        style={{ backgroundColor: t.color }}
+                      />
+                    )}
+                    <div className="flex flex-col">
+                      <span className="text-sm text-white font-semibold">
+                        {t.key}
+                      </span>
+                      <span className="text-xs text-[#A0A0A0]">
+                        {t.label}
+                        {disabled ? " · Not configured" : ""}
+                      </span>
+                    </div>
+                  </DropdownMenuItem>
+                );
+              })}
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
       </div>
-    </div>
     </div>
   );
 }
 
 function useAuthHint() {
   const { connectedWallet } = useWallet();
-  const { address, sessionToken, isVerified, isConnecting, isVerifying } = connectedWallet || {};
+  const { address, sessionToken, isVerified, isConnecting, isVerifying } =
+    connectedWallet || {};
   return useMemo(() => {
     if (isConnecting) return "Connecting wallet…";
     if (isVerifying) return "Verifying wallet with backend…";
     if (!address) return "Connect a wallet to continue.";
-    if (!isVerified || !sessionToken) return "Wallet connected, but not verified with backend.";
+    if (!isVerified || !sessionToken)
+      return "Wallet connected, but not verified with backend.";
     return null;
   }, [address, isConnecting, isVerifying, isVerified, sessionToken]);
 }
@@ -234,10 +258,11 @@ interface AgreementDetails {
 
 export default function ContractSetupCard() {
   const { connectedWallet, executeCall } = useWallet();
-  const {address, sessionToken, isExecuting, isVerified } = connectedWallet || {};
+  const { address, sessionToken, isExecuting, isVerified } =
+    connectedWallet || {};
   const authHint = useAuthHint();
   const { showToast } = useToast();
-  
+
   // Don't show toast for wallet errors here - let connect-wallet-button handle it
   // This component only shows toasts for its own specific errors
   const [escrowCopied, setEscrowCopied] = useState(false);
@@ -245,31 +270,40 @@ export default function ContractSetupCard() {
 
   const [escrowDefault, setEscrowDefault] = useState("");
   const [agreementDefault, setAgreementDefault] = useState("");
-  const [escrowInitialized, setEscrowInitialized] = useState<boolean | null>(null);
+  const [escrowInitialized, setEscrowInitialized] = useState<boolean | null>(
+    null,
+  );
   const [escrowToken, setEscrowToken] = useState<string | null>(null);
-  const [agreementInitialized, setAgreementInitialized] = useState<boolean | null>(null);
+  const [agreementInitialized, setAgreementInitialized] = useState<
+    boolean | null
+  >(null);
   const [agreementEscrow, setAgreementEscrow] = useState<string | null>(null);
-  
+
   // Initialize Agreement
   const [initAgreementOpen, setInitAgreementOpen] = useState(false);
   const [initAgreementEscrow, setInitAgreementEscrow] = useState("");
   const [initAgreementArbiter, setInitAgreementArbiter] = useState("");
-  const [initAgreementError, setInitAgreementError] = useState<string | null>(null);
+  const [initAgreementError, setInitAgreementError] = useState<string | null>(
+    null,
+  );
   const [initAgreementTx, setInitAgreementTx] = useState<string | null>(null);
   const [initAgreementFormErrors, setInitAgreementFormErrors] = useState<{
     escrow?: string;
     arbiter?: string;
   }>({});
-  
+
   const [initEscrowFormErrors, setInitEscrowFormErrors] = useState<{
     token?: string;
   }>({});
 
   // Supported tokens
   const supportedTokens = useMemo(() => {
-    const DEFAULT_USDC = "0x053b40a647cedfca6ca84f542a0fe36736031905a9639a7f19a3c1e66bfd5080";
-    const DEFAULT_USDT = "0x02ab8758891e84b968ff11361789070c6b1af2df618d6d2f4a78b0757573c6eb";
-    const DEFAULT_STRK = "0x04718f5a0fc34cc1af16a1cdee98ffb20c31f5cd61d6ab07201858f4287c938d";
+    const DEFAULT_USDC =
+      "0x053b40a647cedfca6ca84f542a0fe36736031905a9639a7f19a3c1e66bfd5080";
+    const DEFAULT_USDT =
+      "0x02ab8758891e84b968ff11361789070c6b1af2df618d6d2f4a78b0757573c6eb";
+    const DEFAULT_STRK =
+      "0x04718f5a0fc34cc1af16a1cdee98ffb20c31f5cd61d6ab07201858f4287c938d";
 
     const usdc = (process.env.NEXT_PUBLIC_TOKEN_USDC ?? DEFAULT_USDC).trim();
     const usdt = (process.env.NEXT_PUBLIC_TOKEN_USDT ?? DEFAULT_USDT).trim();
@@ -302,34 +336,48 @@ export default function ContractSetupCard() {
     ];
   }, []);
 
-
   // Initialize escrow
   const [initEscrowOpen, setInitEscrowOpen] = useState(false);
   const [selectedTokenKey, setSelectedTokenKey] = useState<string>("STRK");
   const selectedToken = useMemo(
-    () => supportedTokens.find((t) => t.key === selectedTokenKey) ?? supportedTokens[0],
+    () =>
+      supportedTokens.find((t) => t.key === selectedTokenKey) ??
+      supportedTokens[0],
     [supportedTokens, selectedTokenKey],
   );
-  const [selectedTokenBalance, setSelectedTokenBalance] = useState<string | null>(null);
-  const [selectedTokenBalanceError, setSelectedTokenBalanceError] = useState<string | null>(null);
+  const [selectedTokenBalance, setSelectedTokenBalance] = useState<
+    string | null
+  >(null);
+  const [selectedTokenBalanceError, setSelectedTokenBalanceError] = useState<
+    string | null
+  >(null);
   const [initEscrowError, setInitEscrowError] = useState<string | null>(null);
   const [initEscrowTx, setInitEscrowTx] = useState<string | null>(null);
 
   // Create Agreement
   const [agreementMode, setAgreementMode] = useState<AgreementMode>("escrow");
-  const [escrowPaymentType, setEscrowPaymentType] = useState<EscrowPaymentType>("time");
+  const [escrowPaymentType, setEscrowPaymentType] =
+    useState<EscrowPaymentType>("time");
   const [agreementTokenKey, setAgreementTokenKey] = useState<string>("STRK");
-  const [agreementTokenBalance, setAgreementTokenBalance] = useState<string | null>(null);
-  const [agreementTokenBalanceError, setAgreementTokenBalanceError] = useState<string | null>(null);
+  const [agreementTokenBalance, setAgreementTokenBalance] = useState<
+    string | null
+  >(null);
+  const [agreementTokenBalanceError, setAgreementTokenBalanceError] = useState<
+    string | null
+  >(null);
   const [escrowContributor, setEscrowContributor] = useState("");
   const [amountPerPeriod, setAmountPerPeriod] = useState("");
   const [periodSeconds, setPeriodSeconds] = useState("2592000");
   const [numPeriods, setNumPeriods] = useState("1");
   const [payrollPeriodSeconds, setPayrollPeriodSeconds] = useState("2592000");
   const [payrollNumPeriods, setPayrollNumPeriods] = useState("1");
-  const [createAgreementError, setCreateAgreementError] = useState<string | null>(null);
-  const [createAgreementTx, setCreateAgreementTx] = useState<string | null>(null);
-  
+  const [createAgreementError, setCreateAgreementError] = useState<
+    string | null
+  >(null);
+  const [createAgreementTx, setCreateAgreementTx] = useState<string | null>(
+    null,
+  );
+
   // Form validation errors
   const [createFormErrors, setCreateFormErrors] = useState<{
     contributor?: string;
@@ -352,7 +400,9 @@ export default function ContractSetupCard() {
 
   // Manage Agreement (pause, resume, cancel, etc.)
   const [manageAgreementId, setManageAgreementId] = useState("");
-  const [manageAction, setManageAction] = useState<"pause" | "resume" | "cancel" | "finalize_grace_period">("pause");
+  const [manageAction, setManageAction] = useState<
+    "pause" | "resume" | "cancel" | "finalize_grace_period"
+  >("pause");
   const [manageError, setManageError] = useState<string | null>(null);
   const [manageTx, setManageTx] = useState<string | null>(null);
   const [manageFormErrors, setManageFormErrors] = useState<{
@@ -374,7 +424,9 @@ export default function ContractSetupCard() {
   // Add Milestone
   const [addMilestoneAgreementId, setAddMilestoneAgreementId] = useState("");
   const [addMilestoneAmount, setAddMilestoneAmount] = useState("");
-  const [addMilestoneError, setAddMilestoneError] = useState<string | null>(null);
+  const [addMilestoneError, setAddMilestoneError] = useState<string | null>(
+    null,
+  );
   const [addMilestoneTx, setAddMilestoneTx] = useState<string | null>(null);
   const [addMilestoneFormErrors, setAddMilestoneFormErrors] = useState<{
     agreementId?: string;
@@ -382,10 +434,15 @@ export default function ContractSetupCard() {
   }>({});
 
   // Approve Milestone
-  const [approveMilestoneAgreementId, setApproveMilestoneAgreementId] = useState("");
+  const [approveMilestoneAgreementId, setApproveMilestoneAgreementId] =
+    useState("");
   const [approveMilestoneId, setApproveMilestoneId] = useState("");
-  const [approveMilestoneError, setApproveMilestoneError] = useState<string | null>(null);
-  const [approveMilestoneTx, setApproveMilestoneTx] = useState<string | null>(null);
+  const [approveMilestoneError, setApproveMilestoneError] = useState<
+    string | null
+  >(null);
+  const [approveMilestoneTx, setApproveMilestoneTx] = useState<string | null>(
+    null,
+  );
   const [approveMilestoneFormErrors, setApproveMilestoneFormErrors] = useState<{
     agreementId?: string;
     milestoneId?: string;
@@ -401,7 +458,9 @@ export default function ContractSetupCard() {
 
   // Dispute
   const [disputeAgreementId, setDisputeAgreementId] = useState("");
-  const [disputeAction, setDisputeAction] = useState<"raise" | "resolve">("raise");
+  const [disputeAction, setDisputeAction] = useState<"raise" | "resolve">(
+    "raise",
+  );
   const [disputePayContributor, setDisputePayContributor] = useState("");
   const [disputeRefundEmployer, setDisputeRefundEmployer] = useState("");
   const [disputeError, setDisputeError] = useState<string | null>(null);
@@ -416,7 +475,9 @@ export default function ContractSetupCard() {
 
   useEffect(() => {
     void Promise.all([
-      apiGet<{ address: string }>("/escrow/defaults").then((d) => setEscrowDefault(d.address)),
+      apiGet<{ address: string }>("/escrow/defaults").then((d) =>
+        setEscrowDefault(d.address),
+      ),
       apiGet<{ address: string }>("/agreement/defaults").then((d) =>
         setAgreementDefault(d.address),
       ),
@@ -427,12 +488,14 @@ export default function ContractSetupCard() {
   useEffect(() => {
     if (!initEscrowOpen || !address) return;
     if (!selectedToken?.address) {
-    setSelectedTokenBalance(null);
+      setSelectedTokenBalance(null);
       setSelectedTokenBalanceError("Token not configured");
       return;
     }
     setSelectedTokenBalanceError(null);
-    void apiGet<{ balance: string }>(`/token/${selectedToken.address}/balance/${address}`)
+    void apiGet<{ balance: string }>(
+      `/token/${selectedToken.address}/balance/${address}`,
+    )
       .then((d) => setSelectedTokenBalance(d.balance))
       .catch(() => {
         setSelectedTokenBalance(null);
@@ -450,7 +513,9 @@ export default function ContractSetupCard() {
       return;
     }
     setAgreementTokenBalanceError(null);
-    void apiGet<{ balance: string }>(`/token/${token.address}/balance/${address}`)
+    void apiGet<{ balance: string }>(
+      `/token/${token.address}/balance/${address}`,
+    )
       .then((d) => setAgreementTokenBalance(d.balance))
       .catch(() => {
         setAgreementTokenBalance(null);
@@ -467,7 +532,7 @@ export default function ContractSetupCard() {
     }
     setEscrowInitialized(null);
     setEscrowToken(null);
-    
+
     void apiGet<{ initialized: boolean; token: string | null; error?: string }>(
       `/escrow/${escrowDefault}/is_initialized`,
     )
@@ -490,10 +555,12 @@ export default function ContractSetupCard() {
     }
     setAgreementInitialized(null);
     setAgreementEscrow(null);
-    
-    void apiGet<{ initialized: boolean; escrow: string | null; error?: string }>(
-      `/agreement/${agreementDefault}/is_initialized`,
-    )
+
+    void apiGet<{
+      initialized: boolean;
+      escrow: string | null;
+      error?: string;
+    }>(`/agreement/${agreementDefault}/is_initialized`)
       .then((d) => {
         setAgreementInitialized(d.initialized);
         setAgreementEscrow(d.escrow);
@@ -534,7 +601,11 @@ export default function ContractSetupCard() {
     return undefined;
   };
 
-  const validateNumber = (value: string, fieldName: string, min?: number): string | undefined => {
+  const validateNumber = (
+    value: string,
+    fieldName: string,
+    min?: number,
+  ): string | undefined => {
     if (!value || value.trim() === "") {
       return `${fieldName} is required`;
     }
@@ -548,7 +619,10 @@ export default function ContractSetupCard() {
     return undefined;
   };
 
-  const validatePositiveInteger = (value: string, fieldName: string): string | undefined => {
+  const validatePositiveInteger = (
+    value: string,
+    fieldName: string,
+  ): string | undefined => {
     if (!value || value.trim() === "") {
       return `${fieldName} is required`;
     }
@@ -559,33 +633,45 @@ export default function ContractSetupCard() {
     return undefined;
   };
 
-
-  const executeAction = async (endpoint: string, body: any, setError: (e: string | null) => void, setTx: (t: string | null) => void): Promise<string | null> => {
+  const executeAction = async (
+    endpoint: string,
+    body: any,
+    setError: (e: string | null) => void,
+    setTx: (t: string | null) => void,
+  ): Promise<string | null> => {
     setError(null);
     setTx(null);
     try {
       // Check if wallet is verified before making the request
       if (!isVerified || !sessionToken) {
-        throw new Error("Wallet is not verified. Please verify your wallet first by connecting it.");
+        throw new Error(
+          "Wallet is not verified. Please verify your wallet first by connecting it.",
+        );
       }
-      
-    const { address: wallet_address, sessionToken: session_token } = requireAuth();
+
+      const { address: wallet_address, sessionToken: session_token } =
+        requireAuth();
       const prepared = await apiPost<{ call: any }>(endpoint, {
         wallet_address,
         session_token,
         ...body,
       });
-      
+
       // Check for "Invalid session" error in response
-      if (prepared && typeof prepared === 'object' && 'error' in prepared) {
+      if (prepared && typeof prepared === "object" && "error" in prepared) {
         const errorResponse = prepared as { error?: string };
-        if (errorResponse.error?.toLowerCase().includes('invalid session')) {
-          throw new Error("Session expired. Please reconnect and verify your wallet.");
+        if (errorResponse.error?.toLowerCase().includes("invalid session")) {
+          throw new Error(
+            "Session expired. Please reconnect and verify your wallet.",
+          );
         }
       }
-      
+
       if (!prepared?.call) {
         throw new Error("Backend did not return a call object");
+      }
+      if (!executeCall) {
+        throw new Error("Wallet is not ready to execute transactions.");
       }
       const tx = await executeCall(prepared.call);
       if (tx?.transaction_hash) {
@@ -603,9 +689,11 @@ export default function ContractSetupCard() {
       return null;
     } catch (e: any) {
       // Catch any other errors (like API errors)
-      const { getWalletErrorMessage } = await import("@/utils/wallet-error-handler");
+      const { getWalletErrorMessage } = await import(
+        "@/utils/wallet-error-handler"
+      );
       let errorMsg = getWalletErrorMessage(e);
-      
+
       setError(errorMsg);
       showToast("Action failed", errorMsg, "error");
       console.error("[executeAction] Error:", e);
@@ -653,7 +741,11 @@ export default function ContractSetupCard() {
               <button
                 type="button"
                 onClick={() =>
-                  copyToClipboardWithTimeout(escrowDefault, setEscrowCopied, 1200)
+                  copyToClipboardWithTimeout(
+                    escrowDefault,
+                    setEscrowCopied,
+                    1200,
+                  )
                 }
                 className="cursor-pointer inline-flex items-center justify-center rounded-md border border-[#2E2E2E] bg-[#121212] p-1 hover:bg-[#1A1A1A]"
               >
@@ -674,7 +766,11 @@ export default function ContractSetupCard() {
               <button
                 type="button"
                 onClick={() =>
-                  copyToClipboardWithTimeout(agreementDefault, setAgreementCopied, 1200)
+                  copyToClipboardWithTimeout(
+                    agreementDefault,
+                    setAgreementCopied,
+                    1200,
+                  )
                 }
                 className="cursor-pointer inline-flex items-center justify-center rounded-md border border-[#2E2E2E] bg-[#121212] p-1 hover:bg-[#1A1A1A]"
               >
@@ -692,15 +788,17 @@ export default function ContractSetupCard() {
         {escrowInitialized === false && (
           <div className="p-3 rounded-md bg-yellow-900/20 border border-yellow-700/50">
             <div className="text-sm text-yellow-400">
-              <strong>⚠️ Escrow Not Initialized:</strong> The escrow contract needs to be initialized once before creating agreements.
+              <strong>⚠️ Escrow Not Initialized:</strong> The escrow contract
+              needs to be initialized once before creating agreements.
             </div>
           </div>
         )}
-        
+
         {agreementInitialized === false && (
           <div className="p-3 rounded-md bg-yellow-900/20 border border-yellow-700/50">
             <div className="text-sm text-yellow-400">
-              <strong>⚠️ Agreement Not Initialized:</strong> The WorkAgreement contract needs to be initialized once before creating agreements.
+              <strong>⚠️ Agreement Not Initialized:</strong> The WorkAgreement
+              contract needs to be initialized once before creating agreements.
             </div>
           </div>
         )}
@@ -708,37 +806,37 @@ export default function ContractSetupCard() {
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
         <TabsList className="grid w-full grid-cols-6 mb-4 bg-[#0D0D0D] border border-[#2D2D2D] p-1 rounded-md h-auto">
-          <TabsTrigger 
+          <TabsTrigger
             value="fund"
             className="data-[state=active]:bg-[#1a0c1d] data-[state=active]:text-white data-[state=active]:border-white text-[#A0A0A0] border border-transparent px-3 py-2 text-sm font-medium transition-colors hover:text-white cursor-pointer"
           >
             Fund
           </TabsTrigger>
-          <TabsTrigger 
+          <TabsTrigger
             value="activate"
             className="data-[state=active]:bg-[#1a0c1d] data-[state=active]:text-white data-[state=active]:border-white text-[#A0A0A0] border border-transparent px-3 py-2 text-sm font-medium transition-colors hover:text-white cursor-pointer"
           >
             Activate
           </TabsTrigger>
-          <TabsTrigger 
+          <TabsTrigger
             value="manage"
             className="data-[state=active]:bg-[#1a0c1d] data-[state=active]:text-white data-[state=active]:border-white text-[#A0A0A0] border border-transparent px-3 py-2 text-sm font-medium transition-colors hover:text-white cursor-pointer"
           >
             Manage
           </TabsTrigger>
-          <TabsTrigger 
+          <TabsTrigger
             value="employees"
             className="data-[state=active]:bg-[#1a0c1d] data-[state=active]:text-white data-[state=active]:border-white text-[#A0A0A0] border border-transparent px-3 py-2 text-sm font-medium transition-colors hover:text-white cursor-pointer"
           >
             Employees
           </TabsTrigger>
-          <TabsTrigger 
+          <TabsTrigger
             value="milestones"
             className="data-[state=active]:bg-[#1a0c1d] data-[state=active]:text-white data-[state=active]:border-white text-[#A0A0A0] border border-transparent px-3 py-2 text-sm font-medium transition-colors hover:text-white cursor-pointer"
           >
             Milestones
           </TabsTrigger>
-          <TabsTrigger 
+          <TabsTrigger
             value="disputes"
             className="data-[state=active]:bg-[#1a0c1d] data-[state=active]:text-white data-[state=active]:border-white text-[#A0A0A0] border border-transparent px-3 py-2 text-sm font-medium transition-colors hover:text-white cursor-pointer"
           >
@@ -756,7 +854,9 @@ export default function ContractSetupCard() {
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-            {authHint ? <div className="text-sm text-[#EB6945]">{authHint}</div> : null}
+              {authHint ? (
+                <div className="text-sm text-[#EB6945]">{authHint}</div>
+              ) : null}
 
               <div className="space-y-2">
                 <Label className="text-white">
@@ -767,7 +867,10 @@ export default function ContractSetupCard() {
                   onChange={(e) => {
                     setManageAgreementId(e.target.value);
                     if (manageFormErrors.agreementId) {
-                      setManageFormErrors(prev => ({ ...prev, agreementId: undefined }));
+                      setManageFormErrors((prev) => ({
+                        ...prev,
+                        agreementId: undefined,
+                      }));
                     }
                   }}
                   placeholder="e.g. 1"
@@ -776,15 +879,17 @@ export default function ContractSetupCard() {
                   }`}
                 />
                 {manageFormErrors.agreementId && (
-                  <p className="text-sm text-red-400">{manageFormErrors.agreementId}</p>
+                  <p className="text-sm text-red-400">
+                    {manageFormErrors.agreementId}
+                  </p>
                 )}
               </div>
 
               <div className="space-y-2">
                 <Label className="text-white">Action</Label>
                 <div className="grid grid-cols-2 gap-2">
-              <button
-                type="button"
+                  <button
+                    type="button"
                     onClick={() => setManageAction("pause")}
                     className={`px-4 py-2 rounded-md border cursor-pointer transition ${
                       manageAction === "pause"
@@ -794,9 +899,9 @@ export default function ContractSetupCard() {
                   >
                     <Pause className="w-4 h-4 inline mr-2" />
                     Pause
-              </button>
-              <button
-                type="button"
+                  </button>
+                  <button
+                    type="button"
                     onClick={() => setManageAction("resume")}
                     className={`px-4 py-2 rounded-md border cursor-pointer transition ${
                       manageAction === "resume"
@@ -806,7 +911,7 @@ export default function ContractSetupCard() {
                   >
                     <Play className="w-4 h-4 inline mr-2" />
                     Resume
-              </button>
+                  </button>
                   <button
                     type="button"
                     onClick={() => setManageAction("cancel")}
@@ -831,46 +936,57 @@ export default function ContractSetupCard() {
                     <Clock className="w-4 h-4 inline mr-2" />
                     Finalize Grace
                   </button>
+                </div>
               </div>
-            </div>
 
-              {manageError ? <div className="text-sm text-red-400">{manageError}</div> : null}
+              {manageError ? (
+                <div className="text-sm text-red-400">{manageError}</div>
+              ) : null}
               {manageTx ? <TxRow txHash={manageTx} /> : null}
             </CardContent>
             <CardFooter>
               <button
                 type="button"
-                disabled={!address || !sessionToken || isExecuting || !manageAgreementId}
+                disabled={
+                  !address || !sessionToken || isExecuting || !manageAgreementId
+                }
                 onClick={async () => {
                   try {
                     setManageError(null);
                     setManageFormErrors({});
-                    
+
                     // Validate
-                    const agreementIdError = validatePositiveInteger(manageAgreementId, "Agreement ID");
+                    const agreementIdError = validatePositiveInteger(
+                      manageAgreementId,
+                      "Agreement ID",
+                    );
                     if (agreementIdError) {
                       setManageFormErrors({ agreementId: agreementIdError });
                       return;
                     }
-                    
+
                     const actionName = manageAction.replace("_", " ");
                     const txHash = await executeAction(
                       `/prepare/agreement/${agreementDefault}/${manageAction}`,
                       { agreement_id: manageAgreementId },
                       setManageError,
-                      setManageTx
+                      setManageTx,
                     );
                     if (txHash) {
                       setManageAgreementId("");
                       showToast(
                         "Action successful",
                         `Transaction completed successfully.`,
-                        "success"
+                        "success",
                       );
                     }
                   } catch (e: any) {
                     setManageError(e?.message || "Failed to execute action");
-                    showToast("Action failed", e?.message || "Please try again.", "error");
+                    showToast(
+                      "Action failed",
+                      e?.message || "Please try again.",
+                      "error",
+                    );
                   }
                 }}
                 className="w-full px-4 py-2 rounded-md bg-white text-black border border-[#E5E5E5]/10 hover:bg-[#f3f3f3] disabled:opacity-60 disabled:cursor-not-allowed transition cursor-pointer flex items-center justify-center gap-2"
@@ -894,11 +1010,14 @@ export default function ContractSetupCard() {
             <CardHeader>
               <CardTitle className="text-white">Fund Agreement</CardTitle>
               <CardDescription className="text-[#A0A0A0]">
-                Deposit tokens to an agreement. First-time funding requires token approval - see instructions below.
+                Deposit tokens to an agreement. First-time funding requires
+                token approval - see instructions below.
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-            {authHint ? <div className="text-sm text-[#EB6945]">{authHint}</div> : null}
+              {authHint ? (
+                <div className="text-sm text-[#EB6945]">{authHint}</div>
+              ) : null}
 
               <div className="space-y-2">
                 <Label className="text-white">
@@ -909,7 +1028,10 @@ export default function ContractSetupCard() {
                   onChange={(e) => {
                     setFundAgreementId(e.target.value);
                     if (fundFormErrors.agreementId) {
-                      setFundFormErrors(prev => ({ ...prev, agreementId: undefined }));
+                      setFundFormErrors((prev) => ({
+                        ...prev,
+                        agreementId: undefined,
+                      }));
                     }
                   }}
                   placeholder="e.g. 1"
@@ -918,20 +1040,26 @@ export default function ContractSetupCard() {
                   }`}
                 />
                 {fundFormErrors.agreementId && (
-                  <p className="text-sm text-red-400">{fundFormErrors.agreementId}</p>
+                  <p className="text-sm text-red-400">
+                    {fundFormErrors.agreementId}
+                  </p>
                 )}
               </div>
 
               <div className="space-y-2">
                 <Label className="text-white">
-                  Amount (raw token units) <span className="text-red-400">*</span>
+                  Amount (raw token units){" "}
+                  <span className="text-red-400">*</span>
                 </Label>
                 <Input
                   value={fundAmount}
                   onChange={(e) => {
                     setFundAmount(e.target.value);
                     if (fundFormErrors.amount) {
-                      setFundFormErrors(prev => ({ ...prev, amount: undefined }));
+                      setFundFormErrors((prev) => ({
+                        ...prev,
+                        amount: undefined,
+                      }));
                     }
                   }}
                   placeholder="e.g. 1000000"
@@ -940,87 +1068,124 @@ export default function ContractSetupCard() {
                   }`}
                 />
                 <p className="text-xs text-[#A0A0A0]">
-                  Enter amount in raw token units (e.g., 1000000 for 1 USDC with 6 decimals)
+                  Enter amount in raw token units (e.g., 1000000 for 1 USDC with
+                  6 decimals)
                 </p>
                 {fundFormErrors.amount && (
-                  <p className="text-sm text-red-400">{fundFormErrors.amount}</p>
+                  <p className="text-sm text-red-400">
+                    {fundFormErrors.amount}
+                  </p>
                 )}
-            </div>
+              </div>
 
-              {fundError ? <div className="text-sm text-red-400">{fundError}</div> : null}
+              {fundError ? (
+                <div className="text-sm text-red-400">{fundError}</div>
+              ) : null}
               {fundTx ? <TxRow txHash={fundTx} /> : null}
-              
+
               <div className="text-xs text-[#A0A0A0] bg-[#1a0c1d] p-3 rounded border border-[#2D2D2D]">
-                <p className="font-semibold mb-1 text-yellow-400">⚠️ Wallet Approval Notice:</p>
-                <p className="mb-2">If your wallet shows a "High risk" warning when approving tokens:</p>
+                <p className="font-semibold mb-1 text-yellow-400">
+                  ⚠️ Wallet Approval Notice:
+                </p>
+                <p className="mb-2">
+                  If your wallet shows a "High risk" warning when approving
+                  tokens:
+                </p>
                 <ol className="list-decimal list-inside space-y-1 ml-2">
-                  <li>Click the <strong className="text-white">"Review"</strong> button next to the warning banner</li>
-                  <li>Review the approval details (amount and spender address)</li>
-                  <li>The <strong className="text-white">"Confirm"</strong> button will then become enabled</li>
+                  <li>
+                    Click the <strong className="text-white">"Review"</strong>{" "}
+                    button next to the warning banner
+                  </li>
+                  <li>
+                    Review the approval details (amount and spender address)
+                  </li>
+                  <li>
+                    The <strong className="text-white">"Confirm"</strong> button
+                    will then become enabled
+                  </li>
                 </ol>
-                <p className="mt-2 text-[#888]">This is a normal security check by your wallet to protect your funds.</p>
+                <p className="mt-2 text-[#888]">
+                  This is a normal security check by your wallet to protect your
+                  funds.
+                </p>
               </div>
             </CardContent>
             <CardFooter>
               <button
                 type="button"
-                disabled={!address || !sessionToken || isExecuting || !fundAgreementId || !fundAmount}
+                disabled={
+                  !address ||
+                  !sessionToken ||
+                  isExecuting ||
+                  !fundAgreementId ||
+                  !fundAmount
+                }
                 onClick={async () => {
                   try {
                     setFundError(null);
                     setFundFormErrors({});
-                    
+
                     // Validate
                     const errors: typeof fundFormErrors = {};
-                    const agreementIdError = validatePositiveInteger(fundAgreementId, "Agreement ID");
+                    const agreementIdError = validatePositiveInteger(
+                      fundAgreementId,
+                      "Agreement ID",
+                    );
                     const amountError = validateNumber(fundAmount, "Amount", 1);
-                    
+
                     if (agreementIdError) {
                       errors.agreementId = agreementIdError;
                     }
                     if (amountError) {
                       errors.amount = amountError;
                     }
-                    
+
                     if (Object.keys(errors).length > 0) {
                       setFundFormErrors(errors);
                       return;
                     }
-                    
+
                     const agreementId = fundAgreementId;
-                    
+
                     // Step 1: Get token and escrow addresses for the agreement
                     const [tokenData, escrowData] = await Promise.all([
-                      apiGet<{ token: string }>(`/agreement/${agreementDefault}/get_token/${agreementId}`),
-                      apiGet<{ escrow: string }>(`/agreement/${agreementDefault}/get_escrow`),
+                      apiGet<{ token: string }>(
+                        `/agreement/${agreementDefault}/get_token/${agreementId}`,
+                      ),
+                      apiGet<{ escrow: string }>(
+                        `/agreement/${agreementDefault}/get_escrow`,
+                      ),
                     ]);
-                    
+
                     const tokenAddress = tokenData.token;
                     const escrowAddress = escrowData.escrow;
-                    
+
                     // Step 2: Check current allowance
                     let allowance: bigint;
                     try {
                       const allowanceData = await apiGet<{ allowance: string }>(
-                        `/token/${tokenAddress}/allowance/${address}/${escrowAddress}`
+                        `/token/${tokenAddress}/allowance/${address}/${escrowAddress}`,
                       );
                       allowance = BigInt(allowanceData.allowance);
                     } catch (e) {
                       allowance = BigInt(0);
                     }
-                    
+
                     const amountBigInt = BigInt(fundAmount);
-                    
+
                     // Step 3: Approve if needed
                     if (allowance < amountBigInt) {
                       showToast(
-                        "Approval required", 
+                        "Approval required",
                         "Please confirm the transaction in your wallet.",
-                        "info"
+                        "info",
                       );
-                      
+
                       // Approve exactly the amount needed (or a small buffer of 10% to avoid frequent approvals)
-                      const approveAmount = (amountBigInt + (amountBigInt * BigInt(10) / BigInt(100))).toString();
+                      const approveAmount = (
+                        amountBigInt +
+                        (amountBigInt * BigInt(10)) / BigInt(100)
+                      ).toString();
                       const approvePrepared = await apiPost<{ call: any }>(
                         `/prepare/token/${tokenAddress}/approve`,
                         {
@@ -1028,31 +1193,42 @@ export default function ContractSetupCard() {
                           session_token: sessionToken,
                           spender: escrowAddress,
                           amount: approveAmount,
-                        }
+                        },
                       );
-                      
+                      if (!executeCall) {
+                        throw new Error(
+                          "Wallet is not ready to execute transactions.",
+                        );
+                      }
                       const approveTx = await executeCall(approvePrepared.call);
                       if (!approveTx?.transaction_hash) {
                         // Error toast is shown by connect-wallet-button component
-                        const errorMsg = "Token approval failed. Please make sure to review the warning and click 'Review' if the Confirm button is disabled.";
+                        const errorMsg =
+                          "Token approval failed. Please make sure to review the warning and click 'Review' if the Confirm button is disabled.";
                         throw new Error(errorMsg);
                       }
-                      
-                      showToast("Token approved", `Transaction completed successfully.`, "success");
-                      
+
+                      showToast(
+                        "Token approved",
+                        `Transaction completed successfully.`,
+                        "success",
+                      );
+
                       // Process events in the background
-                      processTransactionEvents(approveTx.transaction_hash).catch(() => {});
-                      
+                      processTransactionEvents(
+                        approveTx.transaction_hash,
+                      ).catch(() => {});
+
                       // Wait a moment for the approval to be processed
-                      await new Promise(resolve => setTimeout(resolve, 2000));
+                      await new Promise((resolve) => setTimeout(resolve, 2000));
                     }
-                    
+
                     // Step 4: Fund the agreement
                     const txHash = await executeAction(
                       `/prepare/agreement/${agreementDefault}/fund_agreement`,
                       { agreement_id: agreementId, amount: fundAmount },
                       setFundError,
-                      setFundTx
+                      setFundTx,
                     );
                     if (txHash) {
                       setFundAgreementId("");
@@ -1060,14 +1236,18 @@ export default function ContractSetupCard() {
                       showToast(
                         "Agreement funded",
                         `Transaction completed successfully.`,
-                        "success"
+                        "success",
                       );
                       // Process events (also done in executeAction, but ensure it happens)
                       processTransactionEvents(txHash).catch(() => {});
                     }
                   } catch (e: any) {
                     setFundError(e?.message || "Failed to fund agreement");
-                    showToast("Funding failed", e?.message || "Please try again.", "error");
+                    showToast(
+                      "Funding failed",
+                      e?.message || "Please try again.",
+                      "error",
+                    );
                   }
                 }}
                 className="w-full px-4 py-2 rounded-md bg-white text-black border border-[#E5E5E5]/10 hover:bg-[#f3f3f3] disabled:opacity-60 disabled:cursor-not-allowed transition cursor-pointer flex items-center justify-center gap-2"
@@ -1089,13 +1269,17 @@ export default function ContractSetupCard() {
         <TabsContent value="employees" className="space-y-4">
           <Card className="bg-[#1a0c1d] border-[#2D2D2D]">
             <CardHeader>
-              <CardTitle className="text-white">Add Employee to Payroll</CardTitle>
+              <CardTitle className="text-white">
+                Add Employee to Payroll
+              </CardTitle>
               <CardDescription className="text-[#A0A0A0]">
                 Add an employee to a payroll agreement
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-            {authHint ? <div className="text-sm text-[#EB6945]">{authHint}</div> : null}
+              {authHint ? (
+                <div className="text-sm text-[#EB6945]">{authHint}</div>
+              ) : null}
 
               <div className="space-y-2">
                 <Label className="text-white">
@@ -1106,7 +1290,10 @@ export default function ContractSetupCard() {
                   onChange={(e) => {
                     setAddEmployeeAgreementId(e.target.value);
                     if (addEmployeeFormErrors.agreementId) {
-                      setAddEmployeeFormErrors(prev => ({ ...prev, agreementId: undefined }));
+                      setAddEmployeeFormErrors((prev) => ({
+                        ...prev,
+                        agreementId: undefined,
+                      }));
                     }
                   }}
                   placeholder="e.g. 1"
@@ -1115,7 +1302,9 @@ export default function ContractSetupCard() {
                   }`}
                 />
                 {addEmployeeFormErrors.agreementId && (
-                  <p className="text-sm text-red-400">{addEmployeeFormErrors.agreementId}</p>
+                  <p className="text-sm text-red-400">
+                    {addEmployeeFormErrors.agreementId}
+                  </p>
                 )}
               </div>
 
@@ -1128,7 +1317,10 @@ export default function ContractSetupCard() {
                   onChange={(e) => {
                     setAddEmployeeAddress(e.target.value);
                     if (addEmployeeFormErrors.address) {
-                      setAddEmployeeFormErrors(prev => ({ ...prev, address: undefined }));
+                      setAddEmployeeFormErrors((prev) => ({
+                        ...prev,
+                        address: undefined,
+                      }));
                     }
                   }}
                   placeholder="0x..."
@@ -1137,9 +1329,11 @@ export default function ContractSetupCard() {
                   }`}
                 />
                 {addEmployeeFormErrors.address && (
-                  <p className="text-sm text-red-400">{addEmployeeFormErrors.address}</p>
+                  <p className="text-sm text-red-400">
+                    {addEmployeeFormErrors.address}
+                  </p>
                 )}
-            </div>
+              </div>
 
               <div className="space-y-2">
                 <Label className="text-white">
@@ -1150,7 +1344,10 @@ export default function ContractSetupCard() {
                   onChange={(e) => {
                     setAddEmployeeSalary(e.target.value);
                     if (addEmployeeFormErrors.salary) {
-                      setAddEmployeeFormErrors(prev => ({ ...prev, salary: undefined }));
+                      setAddEmployeeFormErrors((prev) => ({
+                        ...prev,
+                        salary: undefined,
+                      }));
                     }
                   }}
                   placeholder="e.g. 1000000"
@@ -1159,37 +1356,55 @@ export default function ContractSetupCard() {
                   }`}
                 />
                 {addEmployeeFormErrors.salary && (
-                  <p className="text-sm text-red-400">{addEmployeeFormErrors.salary}</p>
+                  <p className="text-sm text-red-400">
+                    {addEmployeeFormErrors.salary}
+                  </p>
                 )}
-                </div>
+              </div>
 
-              {addEmployeeError ? <div className="text-sm text-red-400">{addEmployeeError}</div> : null}
+              {addEmployeeError ? (
+                <div className="text-sm text-red-400">{addEmployeeError}</div>
+              ) : null}
               {addEmployeeTx ? <TxRow txHash={addEmployeeTx} /> : null}
             </CardContent>
             <CardFooter>
               <button
                 type="button"
-                disabled={!address || !sessionToken || isExecuting || !addEmployeeAgreementId || !addEmployeeAddress || !addEmployeeSalary}
+                disabled={
+                  !address ||
+                  !sessionToken ||
+                  isExecuting ||
+                  !addEmployeeAgreementId ||
+                  !addEmployeeAddress ||
+                  !addEmployeeSalary
+                }
                 onClick={async () => {
                   try {
                     setAddEmployeeError(null);
                     setAddEmployeeFormErrors({});
-                    
+
                     // Validate
                     const errors: typeof addEmployeeFormErrors = {};
-                    const agreementIdError = validatePositiveInteger(addEmployeeAgreementId, "Agreement ID");
+                    const agreementIdError = validatePositiveInteger(
+                      addEmployeeAgreementId,
+                      "Agreement ID",
+                    );
                     const addressError = validateAddress(addEmployeeAddress);
-                    const salaryError = validateNumber(addEmployeeSalary, "Salary per Period", 1);
-                    
+                    const salaryError = validateNumber(
+                      addEmployeeSalary,
+                      "Salary per Period",
+                      1,
+                    );
+
                     if (agreementIdError) errors.agreementId = agreementIdError;
                     if (addressError) errors.address = addressError;
                     if (salaryError) errors.salary = salaryError;
-                    
+
                     if (Object.keys(errors).length > 0) {
                       setAddEmployeeFormErrors(errors);
                       return;
                     }
-                    
+
                     const agreementId = addEmployeeAgreementId;
                     const txHash = await executeAction(
                       `/prepare/agreement/${agreementDefault}/add_employee`,
@@ -1199,7 +1414,7 @@ export default function ContractSetupCard() {
                         salary_per_period: addEmployeeSalary,
                       },
                       setAddEmployeeError,
-                      setAddEmployeeTx
+                      setAddEmployeeTx,
                     );
                     if (txHash) {
                       setAddEmployeeAgreementId("");
@@ -1208,12 +1423,16 @@ export default function ContractSetupCard() {
                       showToast(
                         "Employee added",
                         `Transaction completed successfully.`,
-                        "success"
+                        "success",
                       );
                     }
                   } catch (e: any) {
                     setAddEmployeeError(e?.message || "Failed to add employee");
-                    showToast("Addition failed", "error", e?.message || "Please try again.");
+                    showToast(
+                      "Addition failed",
+                      "error",
+                      e?.message || "Please try again.",
+                    );
                   }
                 }}
                 className="w-full px-4 py-2 rounded-md bg-white text-black border border-[#E5E5E5]/10 hover:bg-[#f3f3f3] disabled:opacity-60 disabled:cursor-not-allowed transition cursor-pointer flex items-center justify-center gap-2"
@@ -1241,7 +1460,9 @@ export default function ContractSetupCard() {
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
-            {authHint ? <div className="text-sm text-[#EB6945]">{authHint}</div> : null}
+              {authHint ? (
+                <div className="text-sm text-[#EB6945]">{authHint}</div>
+              ) : null}
 
               {/* Add Milestone */}
               <div className="space-y-4 p-4 rounded-md bg-[#0D0D0D] border border-[#242428]">
@@ -1255,7 +1476,10 @@ export default function ContractSetupCard() {
                     onChange={(e) => {
                       setAddMilestoneAgreementId(e.target.value);
                       if (addMilestoneFormErrors.agreementId) {
-                        setAddMilestoneFormErrors(prev => ({ ...prev, agreementId: undefined }));
+                        setAddMilestoneFormErrors((prev) => ({
+                          ...prev,
+                          agreementId: undefined,
+                        }));
                       }
                     }}
                     placeholder="e.g. 1"
@@ -1264,9 +1488,11 @@ export default function ContractSetupCard() {
                     }`}
                   />
                   {addMilestoneFormErrors.agreementId && (
-                    <p className="text-sm text-red-400">{addMilestoneFormErrors.agreementId}</p>
+                    <p className="text-sm text-red-400">
+                      {addMilestoneFormErrors.agreementId}
+                    </p>
                   )}
-              </div>
+                </div>
                 <div className="space-y-2">
                   <Label className="text-white">
                     Milestone Amount <span className="text-red-400">*</span>
@@ -1276,47 +1502,73 @@ export default function ContractSetupCard() {
                     onChange={(e) => {
                       setAddMilestoneAmount(e.target.value);
                       if (addMilestoneFormErrors.amount) {
-                        setAddMilestoneFormErrors(prev => ({ ...prev, amount: undefined }));
+                        setAddMilestoneFormErrors((prev) => ({
+                          ...prev,
+                          amount: undefined,
+                        }));
                       }
                     }}
-                  placeholder="e.g. 1000000"
+                    placeholder="e.g. 1000000"
                     className={`bg-transparent border-[#242428] text-white font-mono ${
                       addMilestoneFormErrors.amount ? "border-red-500" : ""
                     }`}
-                />
-                {addMilestoneFormErrors.amount && (
-                  <p className="text-sm text-red-400">{addMilestoneFormErrors.amount}</p>
-                )}
+                  />
+                  {addMilestoneFormErrors.amount && (
+                    <p className="text-sm text-red-400">
+                      {addMilestoneFormErrors.amount}
+                    </p>
+                  )}
                 </div>
-                {addMilestoneError ? <div className="text-sm text-red-400">{addMilestoneError}</div> : null}
+                {addMilestoneError ? (
+                  <div className="text-sm text-red-400">
+                    {addMilestoneError}
+                  </div>
+                ) : null}
                 {addMilestoneTx ? <TxRow txHash={addMilestoneTx} /> : null}
-              <button
-                type="button"
-                  disabled={!address || !sessionToken || isExecuting || !addMilestoneAgreementId || !addMilestoneAmount}
+                <button
+                  type="button"
+                  disabled={
+                    !address ||
+                    !sessionToken ||
+                    isExecuting ||
+                    !addMilestoneAgreementId ||
+                    !addMilestoneAmount
+                  }
                   onClick={async () => {
                     try {
                       setAddMilestoneError(null);
                       setAddMilestoneFormErrors({});
-                      
+
                       // Validate
                       const errors: typeof addMilestoneFormErrors = {};
-                      const agreementIdError = validatePositiveInteger(addMilestoneAgreementId, "Agreement ID");
-                      const amountError = validateNumber(addMilestoneAmount, "Milestone Amount", 1);
-                      
-                      if (agreementIdError) errors.agreementId = agreementIdError;
+                      const agreementIdError = validatePositiveInteger(
+                        addMilestoneAgreementId,
+                        "Agreement ID",
+                      );
+                      const amountError = validateNumber(
+                        addMilestoneAmount,
+                        "Milestone Amount",
+                        1,
+                      );
+
+                      if (agreementIdError)
+                        errors.agreementId = agreementIdError;
                       if (amountError) errors.amount = amountError;
-                      
+
                       if (Object.keys(errors).length > 0) {
                         setAddMilestoneFormErrors(errors);
                         return;
                       }
-                      
+
                       const agreementId = addMilestoneAgreementId;
                       const txHash = await executeAction(
                         `/prepare/agreement/${agreementDefault}/add_milestone`,
-                        { agreement_id: agreementId, amount: addMilestoneAmount },
+                        {
+                          agreement_id: agreementId,
+                          amount: addMilestoneAmount,
+                        },
                         setAddMilestoneError,
-                        setAddMilestoneTx
+                        setAddMilestoneTx,
                       );
                       if (txHash) {
                         setAddMilestoneAgreementId("");
@@ -1324,12 +1576,18 @@ export default function ContractSetupCard() {
                         showToast(
                           "Milestone added",
                           `Transaction completed successfully.`,
-                          "success"
+                          "success",
                         );
                       }
                     } catch (e: any) {
-                      setAddMilestoneError(e?.message || "Failed to add milestone");
-                      showToast("Addition failed", e?.message || "Please try again.", "error");
+                      setAddMilestoneError(
+                        e?.message || "Failed to add milestone",
+                      );
+                      showToast(
+                        "Addition failed",
+                        e?.message || "Please try again.",
+                        "error",
+                      );
                     }
                   }}
                   className="w-full px-4 py-2 rounded-md bg-white text-black border border-[#E5E5E5]/10 hover:bg-[#f3f3f3] disabled:opacity-60 disabled:cursor-not-allowed transition cursor-pointer flex items-center justify-center gap-2"
@@ -1342,7 +1600,7 @@ export default function ContractSetupCard() {
                   ) : (
                     "Add Milestone"
                   )}
-              </button>
+                </button>
               </div>
 
               {/* Approve Milestone */}
@@ -1357,18 +1615,25 @@ export default function ContractSetupCard() {
                     onChange={(e) => {
                       setApproveMilestoneAgreementId(e.target.value);
                       if (approveMilestoneFormErrors.agreementId) {
-                        setApproveMilestoneFormErrors(prev => ({ ...prev, agreementId: undefined }));
+                        setApproveMilestoneFormErrors((prev) => ({
+                          ...prev,
+                          agreementId: undefined,
+                        }));
                       }
                     }}
                     placeholder="e.g. 1"
                     className={`bg-transparent border-[#242428] text-white ${
-                      approveMilestoneFormErrors.agreementId ? "border-red-500" : ""
+                      approveMilestoneFormErrors.agreementId
+                        ? "border-red-500"
+                        : ""
                     }`}
                   />
                   {approveMilestoneFormErrors.agreementId && (
-                    <p className="text-sm text-red-400">{approveMilestoneFormErrors.agreementId}</p>
+                    <p className="text-sm text-red-400">
+                      {approveMilestoneFormErrors.agreementId}
+                    </p>
                   )}
-            </div>
+                </div>
                 <div className="space-y-2">
                   <Label className="text-white">
                     Milestone ID <span className="text-red-400">*</span>
@@ -1378,41 +1643,68 @@ export default function ContractSetupCard() {
                     onChange={(e) => {
                       setApproveMilestoneId(e.target.value);
                       if (approveMilestoneFormErrors.milestoneId) {
-                        setApproveMilestoneFormErrors(prev => ({ ...prev, milestoneId: undefined }));
+                        setApproveMilestoneFormErrors((prev) => ({
+                          ...prev,
+                          milestoneId: undefined,
+                        }));
                       }
                     }}
                     placeholder="e.g. 0"
                     className={`bg-transparent border-[#242428] text-white ${
-                      approveMilestoneFormErrors.milestoneId ? "border-red-500" : ""
+                      approveMilestoneFormErrors.milestoneId
+                        ? "border-red-500"
+                        : ""
                     }`}
                   />
                   {approveMilestoneFormErrors.milestoneId && (
-                    <p className="text-sm text-red-400">{approveMilestoneFormErrors.milestoneId}</p>
+                    <p className="text-sm text-red-400">
+                      {approveMilestoneFormErrors.milestoneId}
+                    </p>
                   )}
                 </div>
-                {approveMilestoneError ? <div className="text-sm text-red-400">{approveMilestoneError}</div> : null}
-                {approveMilestoneTx ? <TxRow txHash={approveMilestoneTx} /> : null}
+                {approveMilestoneError ? (
+                  <div className="text-sm text-red-400">
+                    {approveMilestoneError}
+                  </div>
+                ) : null}
+                {approveMilestoneTx ? (
+                  <TxRow txHash={approveMilestoneTx} />
+                ) : null}
                 <button
                   type="button"
-                  disabled={!address || !sessionToken || isExecuting || !approveMilestoneAgreementId || !approveMilestoneId}
+                  disabled={
+                    !address ||
+                    !sessionToken ||
+                    isExecuting ||
+                    !approveMilestoneAgreementId ||
+                    !approveMilestoneId
+                  }
                   onClick={async () => {
                     try {
                       setApproveMilestoneError(null);
                       setApproveMilestoneFormErrors({});
-                      
+
                       // Validate
                       const errors: typeof approveMilestoneFormErrors = {};
-                      const agreementIdError = validatePositiveInteger(approveMilestoneAgreementId, "Agreement ID");
-                      const milestoneIdError = validatePositiveInteger(approveMilestoneId, "Milestone ID");
-                      
-                      if (agreementIdError) errors.agreementId = agreementIdError;
-                      if (milestoneIdError) errors.milestoneId = milestoneIdError;
-                      
+                      const agreementIdError = validatePositiveInteger(
+                        approveMilestoneAgreementId,
+                        "Agreement ID",
+                      );
+                      const milestoneIdError = validatePositiveInteger(
+                        approveMilestoneId,
+                        "Milestone ID",
+                      );
+
+                      if (agreementIdError)
+                        errors.agreementId = agreementIdError;
+                      if (milestoneIdError)
+                        errors.milestoneId = milestoneIdError;
+
                       if (Object.keys(errors).length > 0) {
                         setApproveMilestoneFormErrors(errors);
                         return;
                       }
-                      
+
                       const agreementId = approveMilestoneAgreementId;
                       const milestoneId = approveMilestoneId;
                       const txHash = await executeAction(
@@ -1422,7 +1714,7 @@ export default function ContractSetupCard() {
                           milestone_id: parseInt(milestoneId),
                         },
                         setApproveMilestoneError,
-                        setApproveMilestoneTx
+                        setApproveMilestoneTx,
                       );
                       if (txHash) {
                         setApproveMilestoneAgreementId("");
@@ -1430,12 +1722,18 @@ export default function ContractSetupCard() {
                         showToast(
                           "Milestone approved",
                           `Transaction completed successfully.`,
-                          "success"
+                          "success",
                         );
                       }
                     } catch (e: any) {
-                      setApproveMilestoneError(e?.message || "Failed to approve milestone");
-                      showToast("Approval failed", e?.message || "Please try again.", "error");
+                      setApproveMilestoneError(
+                        e?.message || "Failed to approve milestone",
+                      );
+                      showToast(
+                        "Approval failed",
+                        e?.message || "Please try again.",
+                        "error",
+                      );
                     }
                   }}
                   className="w-full px-4 py-2 rounded-md bg-white text-black border border-[#E5E5E5]/10 hover:bg-[#f3f3f3] disabled:opacity-60 disabled:cursor-not-allowed transition cursor-pointer flex items-center justify-center gap-2"
@@ -1460,11 +1758,14 @@ export default function ContractSetupCard() {
             <CardHeader>
               <CardTitle className="text-white">Activate Agreement</CardTitle>
               <CardDescription className="text-[#A0A0A0]">
-                Activate an agreement so contributors/employees can claim payments
+                Activate an agreement so contributors/employees can claim
+                payments
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-            {authHint ? <div className="text-sm text-[#EB6945]">{authHint}</div> : null}
+              {authHint ? (
+                <div className="text-sm text-[#EB6945]">{authHint}</div>
+              ) : null}
 
               <div className="space-y-2">
                 <Label className="text-white">
@@ -1475,7 +1776,10 @@ export default function ContractSetupCard() {
                   onChange={(e) => {
                     setActivateAgreementId(e.target.value);
                     if (activateFormErrors.agreementId) {
-                      setActivateFormErrors(prev => ({ ...prev, agreementId: undefined }));
+                      setActivateFormErrors((prev) => ({
+                        ...prev,
+                        agreementId: undefined,
+                      }));
                     }
                   }}
                   placeholder="e.g. 1"
@@ -1484,47 +1788,65 @@ export default function ContractSetupCard() {
                   }`}
                 />
                 {activateFormErrors.agreementId && (
-                  <p className="text-sm text-red-400">{activateFormErrors.agreementId}</p>
+                  <p className="text-sm text-red-400">
+                    {activateFormErrors.agreementId}
+                  </p>
                 )}
-            </div>
+              </div>
 
-              {activateError ? <div className="text-sm text-red-400">{activateError}</div> : null}
+              {activateError ? (
+                <div className="text-sm text-red-400">{activateError}</div>
+              ) : null}
               {activateTx ? <TxRow txHash={activateTx} /> : null}
             </CardContent>
             <CardFooter>
               <button
                 type="button"
-                disabled={!address || !sessionToken || isExecuting || !activateAgreementId}
+                disabled={
+                  !address ||
+                  !sessionToken ||
+                  isExecuting ||
+                  !activateAgreementId
+                }
                 onClick={async () => {
                   try {
                     setActivateError(null);
                     setActivateFormErrors({});
-                    
+
                     // Validate
-                    const agreementIdError = validatePositiveInteger(activateAgreementId, "Agreement ID");
+                    const agreementIdError = validatePositiveInteger(
+                      activateAgreementId,
+                      "Agreement ID",
+                    );
                     if (agreementIdError) {
                       setActivateFormErrors({ agreementId: agreementIdError });
                       return;
                     }
-                    
+
                     const agreementId = activateAgreementId;
                     const txHash = await executeAction(
                       `/prepare/agreement/${agreementDefault}/activate`,
                       { agreement_id: agreementId },
                       setActivateError,
-                      setActivateTx
+                      setActivateTx,
                     );
                     if (txHash) {
                       setActivateAgreementId("");
                       showToast(
                         "Agreement activated",
                         `Transaction completed successfully.`,
-                        "success"
+                        "success",
                       );
                     }
                   } catch (e: any) {
-                    setActivateError(e?.message || "Failed to activate agreement");
-                    showToast("Activation failed", e?.message || "Please try again.", "error");
+                    setActivateError(
+                      e?.message || "Failed to activate agreement",
+                    );
+                    showToast(
+                      "Activation failed",
+                      e?.message || "Please try again.",
+                      "error",
+                    );
                   }
                 }}
                 className="w-full px-4 py-2 rounded-md bg-white text-black border border-[#E5E5E5]/10 hover:bg-[#f3f3f3] disabled:opacity-60 disabled:cursor-not-allowed transition cursor-pointer flex items-center justify-center gap-2"
@@ -1552,7 +1874,9 @@ export default function ContractSetupCard() {
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
-              {authHint ? <div className="text-sm text-[#EB6945]">{authHint}</div> : null}
+              {authHint ? (
+                <div className="text-sm text-[#EB6945]">{authHint}</div>
+              ) : null}
 
               <div className="space-y-2">
                 <Label className="text-white">Agreement ID</Label>
@@ -1567,8 +1891,8 @@ export default function ContractSetupCard() {
               <div className="space-y-2">
                 <Label className="text-white">Action</Label>
                 <div className="flex gap-3">
-              <button
-                type="button"
+                  <button
+                    type="button"
                     onClick={() => setDisputeAction("raise")}
                     className={`px-4 py-2 rounded-md border transition cursor-pointer ${
                       disputeAction === "raise"
@@ -1578,9 +1902,9 @@ export default function ContractSetupCard() {
                   >
                     <AlertCircle className="w-4 h-4 inline mr-2" />
                     Raise Dispute
-              </button>
-              <button
-                type="button"
+                  </button>
+                  <button
+                    type="button"
                     onClick={() => setDisputeAction("resolve")}
                     className={`px-4 py-2 rounded-md border transition cursor-pointer ${
                       disputeAction === "resolve"
@@ -1590,7 +1914,7 @@ export default function ContractSetupCard() {
                   >
                     <Gavel className="w-4 h-4 inline mr-2" />
                     Resolve Dispute
-              </button>
+                  </button>
                 </div>
               </div>
 
@@ -1598,14 +1922,18 @@ export default function ContractSetupCard() {
                 <>
                   <div className="space-y-2">
                     <Label className="text-white">
-                      Pay Contributor Amount <span className="text-red-400">*</span>
+                      Pay Contributor Amount{" "}
+                      <span className="text-red-400">*</span>
                     </Label>
                     <Input
                       value={disputePayContributor}
                       onChange={(e) => {
                         setDisputePayContributor(e.target.value);
                         if (disputeFormErrors.payContributor) {
-                          setDisputeFormErrors(prev => ({ ...prev, payContributor: undefined }));
+                          setDisputeFormErrors((prev) => ({
+                            ...prev,
+                            payContributor: undefined,
+                          }));
                         }
                       }}
                       placeholder="e.g. 1000000"
@@ -1614,19 +1942,25 @@ export default function ContractSetupCard() {
                       }`}
                     />
                     {disputeFormErrors.payContributor && (
-                      <p className="text-sm text-red-400">{disputeFormErrors.payContributor}</p>
+                      <p className="text-sm text-red-400">
+                        {disputeFormErrors.payContributor}
+                      </p>
                     )}
                   </div>
                   <div className="space-y-2">
                     <Label className="text-white">
-                      Refund Employer Amount <span className="text-red-400">*</span>
+                      Refund Employer Amount{" "}
+                      <span className="text-red-400">*</span>
                     </Label>
                     <Input
                       value={disputeRefundEmployer}
                       onChange={(e) => {
                         setDisputeRefundEmployer(e.target.value);
                         if (disputeFormErrors.refundEmployer) {
-                          setDisputeFormErrors(prev => ({ ...prev, refundEmployer: undefined }));
+                          setDisputeFormErrors((prev) => ({
+                            ...prev,
+                            refundEmployer: undefined,
+                          }));
                         }
                       }}
                       placeholder="e.g. 500000"
@@ -1635,13 +1969,17 @@ export default function ContractSetupCard() {
                       }`}
                     />
                     {disputeFormErrors.refundEmployer && (
-                      <p className="text-sm text-red-400">{disputeFormErrors.refundEmployer}</p>
+                      <p className="text-sm text-red-400">
+                        {disputeFormErrors.refundEmployer}
+                      </p>
                     )}
                   </div>
                 </>
               )}
 
-              {disputeError ? <div className="text-sm text-red-400">{disputeError}</div> : null}
+              {disputeError ? (
+                <div className="text-sm text-red-400">{disputeError}</div>
+              ) : null}
               {disputeTx ? <TxRow txHash={disputeTx} /> : null}
             </CardContent>
             <CardFooter>
@@ -1652,32 +1990,46 @@ export default function ContractSetupCard() {
                   !sessionToken ||
                   isExecuting ||
                   !disputeAgreementId ||
-                  (disputeAction === "resolve" && (!disputePayContributor || !disputeRefundEmployer))
+                  (disputeAction === "resolve" &&
+                    (!disputePayContributor || !disputeRefundEmployer))
                 }
                 onClick={async () => {
                   try {
                     setDisputeError(null);
                     setDisputeFormErrors({});
-                    
+
                     // Validate
                     const errors: typeof disputeFormErrors = {};
-                    const agreementIdError = validatePositiveInteger(disputeAgreementId, "Agreement ID");
+                    const agreementIdError = validatePositiveInteger(
+                      disputeAgreementId,
+                      "Agreement ID",
+                    );
                     if (agreementIdError) {
                       errors.agreementId = agreementIdError;
                     }
-                    
+
                     if (disputeAction === "resolve") {
-                      const payContributorError = validateNumber(disputePayContributor, "Pay Contributor Amount", 0);
-                      const refundEmployerError = validateNumber(disputeRefundEmployer, "Refund Employer Amount", 0);
-                      if (payContributorError) errors.payContributor = payContributorError;
-                      if (refundEmployerError) errors.refundEmployer = refundEmployerError;
+                      const payContributorError = validateNumber(
+                        disputePayContributor,
+                        "Pay Contributor Amount",
+                        0,
+                      );
+                      const refundEmployerError = validateNumber(
+                        disputeRefundEmployer,
+                        "Refund Employer Amount",
+                        0,
+                      );
+                      if (payContributorError)
+                        errors.payContributor = payContributorError;
+                      if (refundEmployerError)
+                        errors.refundEmployer = refundEmployerError;
                     }
-                    
+
                     if (Object.keys(errors).length > 0) {
                       setDisputeFormErrors(errors);
                       return;
                     }
-                    
+
                     const agreementId = disputeAgreementId;
                     let txHash: string | null = null;
                     if (disputeAction === "raise") {
@@ -1685,14 +2037,14 @@ export default function ContractSetupCard() {
                         `/prepare/agreement/${agreementDefault}/raise_dispute`,
                         { agreement_id: agreementId },
                         setDisputeError,
-                        setDisputeTx
+                        setDisputeTx,
                       );
                       if (txHash) {
                         setDisputeAgreementId("");
                         showToast(
                           "Dispute raised",
                           `Transaction completed successfully.`,
-                          "success"
+                          "success",
                         );
                       }
                     } else {
@@ -1704,7 +2056,7 @@ export default function ContractSetupCard() {
                           refund_employer: disputeRefundEmployer,
                         },
                         setDisputeError,
-                        setDisputeTx
+                        setDisputeTx,
                       );
                       if (txHash) {
                         setDisputeAgreementId("");
@@ -1713,13 +2065,17 @@ export default function ContractSetupCard() {
                         showToast(
                           "Dispute resolved",
                           `Transaction completed successfully.`,
-                          "success"
+                          "success",
                         );
                       }
                     }
                   } catch (e: any) {
                     setDisputeError(e?.message || "Failed to process dispute");
-                    showToast("Processing failed", e?.message || "Please try again.", "error");
+                    showToast(
+                      "Processing failed",
+                      e?.message || "Please try again.",
+                      "error",
+                    );
                   }
                 }}
                 className="w-full px-4 py-2 rounded-md bg-white text-black border border-[#E5E5E5]/10 hover:bg-[#f3f3f3] disabled:opacity-60 disabled:cursor-not-allowed transition cursor-pointer flex items-center justify-center gap-2"
@@ -1729,14 +2085,15 @@ export default function ContractSetupCard() {
                     <Loader2 className="w-4 h-4 animate-spin" />
                     {disputeAction === "raise" ? "Raising..." : "Resolving..."}
                   </>
+                ) : disputeAction === "raise" ? (
+                  "Raise Dispute"
                 ) : (
-                  disputeAction === "raise" ? "Raise Dispute" : "Resolve Dispute"
+                  "Resolve Dispute"
                 )}
               </button>
             </CardFooter>
           </Card>
         </TabsContent>
-
       </Tabs>
 
       {/* Initialize Contracts */}
@@ -1751,102 +2108,133 @@ export default function ContractSetupCard() {
               Initialize Escrow
             </button>
           </DialogTrigger>
-        <DialogContent className="bg-[#1a0c1d] border-[#2D2D2D] text-white max-h-[85vh] overflow-y-auto">
+          <DialogContent className="bg-[#1a0c1d] border-[#2D2D2D] text-white max-h-[85vh] overflow-y-auto">
             <DialogHeader>
-            <DialogTitle>Initialize Escrow</DialogTitle>
+              <DialogTitle>Initialize Escrow</DialogTitle>
               <DialogDescription className="text-[#A0A0A0]">
-              Initialize the Payroll Escrow contract with token and manager (WorkAgreement contract).
-              <br />
-              <span className="text-yellow-400 font-semibold">
-                ⚠️ This is a one-time operation.
-              </span>
+                Initialize the Payroll Escrow contract with token and manager
+                (WorkAgreement contract).
+                <br />
+                <span className="text-yellow-400 font-semibold">
+                  ⚠️ This is a one-time operation.
+                </span>
               </DialogDescription>
             </DialogHeader>
 
-            {authHint ? <div className="text-sm text-[#EB6945]">{authHint}</div> : null}
+            {authHint ? (
+              <div className="text-sm text-[#EB6945]">{authHint}</div>
+            ) : null}
 
-          {escrowInitialized === true ? (
-            <div className="p-4 rounded-md bg-yellow-900/20 border border-yellow-700/50">
-              <div className="text-sm text-yellow-400 font-semibold mb-2">
-                Escrow Already Initialized
+            {escrowInitialized === true ? (
+              <div className="p-4 rounded-md bg-yellow-900/20 border border-yellow-700/50">
+                <div className="text-sm text-yellow-400 font-semibold mb-2">
+                  Escrow Already Initialized
+                </div>
+                <div className="text-sm text-[#A0A0A0]">
+                  This escrow contract has already been initialized. You cannot
+                  initialize it again.
+                </div>
               </div>
-              <div className="text-sm text-[#A0A0A0]">
-                This escrow contract has already been initialized. You cannot initialize it again.
-              </div>
-            </div>
-          ) : null}
+            ) : null}
 
             <div className="space-y-4">
               <div className="text-sm text-[#A0A0A0]">
-              Escrow: <span className="text-white font-mono">{shortHex(escrowDefault)}</span>
-                </div>
-            <div className="text-sm text-[#A0A0A0]">
-              Manager: <span className="text-white font-mono">{shortHex(agreementDefault)}</span>
+                Escrow:{" "}
+                <span className="text-white font-mono">
+                  {shortHex(escrowDefault)}
+                </span>
+              </div>
+              <div className="text-sm text-[#A0A0A0]">
+                Manager:{" "}
+                <span className="text-white font-mono">
+                  {shortHex(agreementDefault)}
+                </span>
               </div>
 
-            <TokenSelector
-              selectedTokenKey={selectedTokenKey}
-              onTokenChange={setSelectedTokenKey}
-              supportedTokens={supportedTokens}
-              balance={selectedTokenBalance}
-              balanceError={selectedTokenBalanceError}
-            />
+              <TokenSelector
+                selectedTokenKey={selectedTokenKey}
+                onTokenChange={setSelectedTokenKey}
+                supportedTokens={supportedTokens}
+                balance={selectedTokenBalance}
+                balanceError={selectedTokenBalanceError}
+              />
             </div>
 
-          {initEscrowError ? <div className="text-sm text-red-400">{initEscrowError}</div> : null}
-          {initEscrowTx ? <TxRow txHash={initEscrowTx} /> : null}
+            {initEscrowError ? (
+              <div className="text-sm text-red-400">{initEscrowError}</div>
+            ) : null}
+            {initEscrowTx ? <TxRow txHash={initEscrowTx} /> : null}
 
             <DialogFooter>
               <button
                 type="button"
-              onClick={() => setInitEscrowOpen(false)}
-              className="px-4 py-2 rounded-md border border-[#2C2C2C] bg-transparent text-white hover:bg-[#111] transition cursor-pointer"
+                onClick={() => setInitEscrowOpen(false)}
+                className="px-4 py-2 rounded-md border border-[#2C2C2C] bg-transparent text-white hover:bg-[#111] transition cursor-pointer"
               >
                 Close
               </button>
               <button
                 type="button"
-              disabled={!address || !sessionToken || isExecuting || escrowInitialized === true}
-              onClick={async () => {
-                try {
-                  setInitEscrowError(null);
-                  setInitEscrowTx(null);
-                  const { address: wallet_address, sessionToken: session_token } = requireAuth();
-                  if (!escrowDefault || !agreementDefault) {
-                    throw new Error("Escrow or Agreement address not loaded.");
-                  }
-                  if (!selectedToken?.address) {
-                    throw new Error("Selected token is not configured.");
-                  }
-                  const txHash = await executeAction(
-                    `/prepare/escrow/${escrowDefault}/initialize`,
-                    { token: selectedToken.address, manager: agreementDefault },
-                    setInitEscrowError,
-                    setInitEscrowTx
-                  );
-                  if (txHash) {
-                    setInitEscrowOpen(false);
+                disabled={
+                  !address ||
+                  !sessionToken ||
+                  isExecuting ||
+                  escrowInitialized === true
+                }
+                onClick={async () => {
+                  try {
+                    setInitEscrowError(null);
+                    setInitEscrowTx(null);
+                    const {
+                      address: wallet_address,
+                      sessionToken: session_token,
+                    } = requireAuth();
+                    if (!escrowDefault || !agreementDefault) {
+                      throw new Error(
+                        "Escrow or Agreement address not loaded.",
+                      );
+                    }
+                    if (!selectedToken?.address) {
+                      throw new Error("Selected token is not configured.");
+                    }
+                    const txHash = await executeAction(
+                      `/prepare/escrow/${escrowDefault}/initialize`,
+                      {
+                        token: selectedToken.address,
+                        manager: agreementDefault,
+                      },
+                      setInitEscrowError,
+                      setInitEscrowTx,
+                    );
+                    if (txHash) {
+                      setInitEscrowOpen(false);
+                      showToast(
+                        "Escrow initialized",
+                        `Transaction completed successfully.`,
+                        "success",
+                      );
+                    }
+                  } catch (e: any) {
+                    setInitEscrowError(
+                      e?.message || "Failed to initialize escrow",
+                    );
                     showToast(
-                      "Escrow initialized",
-                      `Transaction completed successfully.`,
-                      "success"
+                      "Initialization failed",
+                      e?.message || "Please try again.",
+                      "error",
                     );
                   }
-                } catch (e: any) {
-                  setInitEscrowError(e?.message || "Failed to initialize escrow");
-                  showToast("Initialization failed", e?.message || "Please try again.", "error");
-                }
-              }}
-              className="px-4 py-2 rounded-md bg-white text-black border border-[#E5E5E5]/10 hover:bg-[#f3f3f3] disabled:opacity-60 disabled:cursor-not-allowed transition cursor-pointer flex items-center justify-center gap-2"
-            >
-              {isExecuting ? (
-                <>
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                  Initializing...
-                </>
-              ) : (
-                "Initialize"
-              )}
+                }}
+                className="px-4 py-2 rounded-md bg-white text-black border border-[#E5E5E5]/10 hover:bg-[#f3f3f3] disabled:opacity-60 disabled:cursor-not-allowed transition cursor-pointer flex items-center justify-center gap-2"
+              >
+                {isExecuting ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    Initializing...
+                  </>
+                ) : (
+                  "Initialize"
+                )}
               </button>
             </DialogFooter>
           </DialogContent>
@@ -1866,7 +2254,8 @@ export default function ContractSetupCard() {
             <DialogHeader>
               <DialogTitle>Initialize WorkAgreement</DialogTitle>
               <DialogDescription className="text-[#A0A0A0]">
-                Initialize the WorkAgreement contract with escrow and arbiter addresses.
+                Initialize the WorkAgreement contract with escrow and arbiter
+                addresses.
                 <br />
                 <span className="text-yellow-400 font-semibold">
                   ⚠️ This is a one-time operation.
@@ -1874,7 +2263,9 @@ export default function ContractSetupCard() {
               </DialogDescription>
             </DialogHeader>
 
-            {authHint ? <div className="text-sm text-[#EB6945]">{authHint}</div> : null}
+            {authHint ? (
+              <div className="text-sm text-[#EB6945]">{authHint}</div>
+            ) : null}
 
             {agreementInitialized === true ? (
               <div className="p-4 rounded-md bg-yellow-900/20 border border-yellow-700/50">
@@ -1882,16 +2273,20 @@ export default function ContractSetupCard() {
                   Agreement Already Initialized
                 </div>
                 <div className="text-sm text-[#A0A0A0]">
-                  This agreement contract has already been initialized. You cannot initialize it again.
+                  This agreement contract has already been initialized. You
+                  cannot initialize it again.
                 </div>
               </div>
             ) : null}
 
             <div className="space-y-4">
               <div className="text-sm text-[#A0A0A0]">
-                Agreement: <span className="text-white font-mono">{shortHex(agreementDefault)}</span>
+                Agreement:{" "}
+                <span className="text-white font-mono">
+                  {shortHex(agreementDefault)}
+                </span>
               </div>
-              
+
               <div className="space-y-2">
                 <Label className="text-white">
                   Escrow Address <span className="text-red-400">*</span>
@@ -1901,7 +2296,10 @@ export default function ContractSetupCard() {
                   onChange={(e) => {
                     setInitAgreementEscrow(e.target.value);
                     if (initAgreementFormErrors.escrow) {
-                      setInitAgreementFormErrors(prev => ({ ...prev, escrow: undefined }));
+                      setInitAgreementFormErrors((prev) => ({
+                        ...prev,
+                        escrow: undefined,
+                      }));
                     }
                   }}
                   placeholder="0x..."
@@ -1910,9 +2308,11 @@ export default function ContractSetupCard() {
                   }`}
                 />
                 {initAgreementFormErrors.escrow && (
-                  <p className="text-sm text-red-400">{initAgreementFormErrors.escrow}</p>
+                  <p className="text-sm text-red-400">
+                    {initAgreementFormErrors.escrow}
+                  </p>
                 )}
-            </div>
+              </div>
 
               <div className="space-y-2">
                 <Label className="text-white">
@@ -1923,7 +2323,10 @@ export default function ContractSetupCard() {
                   onChange={(e) => {
                     setInitAgreementArbiter(e.target.value);
                     if (initAgreementFormErrors.arbiter) {
-                      setInitAgreementFormErrors(prev => ({ ...prev, arbiter: undefined }));
+                      setInitAgreementFormErrors((prev) => ({
+                        ...prev,
+                        arbiter: undefined,
+                      }));
                     }
                   }}
                   placeholder="0x..."
@@ -1932,15 +2335,20 @@ export default function ContractSetupCard() {
                   }`}
                 />
                 <p className="text-xs text-[#A0A0A0]">
-                  The arbiter address that will resolve disputes. Can be the same as escrow or a separate address.
+                  The arbiter address that will resolve disputes. Can be the
+                  same as escrow or a separate address.
                 </p>
                 {initAgreementFormErrors.arbiter && (
-                  <p className="text-sm text-red-400">{initAgreementFormErrors.arbiter}</p>
+                  <p className="text-sm text-red-400">
+                    {initAgreementFormErrors.arbiter}
+                  </p>
                 )}
               </div>
             </div>
 
-            {initAgreementError ? <div className="text-sm text-red-400">{initAgreementError}</div> : null}
+            {initAgreementError ? (
+              <div className="text-sm text-red-400">{initAgreementError}</div>
+            ) : null}
             {initAgreementTx ? <TxRow txHash={initAgreementTx} /> : null}
 
             <DialogFooter>
@@ -1953,53 +2361,74 @@ export default function ContractSetupCard() {
               </button>
               <button
                 type="button"
-                disabled={!address || !sessionToken || isExecuting || agreementInitialized === true || !initAgreementEscrow || !initAgreementArbiter || !isVerified}
+                disabled={
+                  !address ||
+                  !sessionToken ||
+                  isExecuting ||
+                  agreementInitialized === true ||
+                  !initAgreementEscrow ||
+                  !initAgreementArbiter ||
+                  !isVerified
+                }
                 onClick={async () => {
                   try {
                     setInitAgreementError(null);
                     setInitAgreementTx(null);
                     setInitAgreementFormErrors({});
-                    
-                    const { address: wallet_address, sessionToken: session_token } = requireAuth();
+
+                    const {
+                      address: wallet_address,
+                      sessionToken: session_token,
+                    } = requireAuth();
                     if (!agreementDefault) {
                       throw new Error("Agreement address not loaded.");
                     }
                     if (!isVerified) {
-                      throw new Error("Wallet is not verified. Please verify your wallet first.");
+                      throw new Error(
+                        "Wallet is not verified. Please verify your wallet first.",
+                      );
                     }
-                    
+
                     // Validate
                     const errors: typeof initAgreementFormErrors = {};
                     const escrowError = validateAddress(initAgreementEscrow);
                     const arbiterError = validateAddress(initAgreementArbiter);
-                    
+
                     if (escrowError) errors.escrow = escrowError;
                     if (arbiterError) errors.arbiter = arbiterError;
-                    
+
                     if (Object.keys(errors).length > 0) {
                       setInitAgreementFormErrors(errors);
                       return;
                     }
-                    
+
                     const txHash = await executeAction(
                       `/prepare/agreement/${agreementDefault}/initialize`,
-                      { escrow: initAgreementEscrow, arbiter: initAgreementArbiter },
+                      {
+                        escrow: initAgreementEscrow,
+                        arbiter: initAgreementArbiter,
+                      },
                       setInitAgreementError,
-                      setInitAgreementTx
+                      setInitAgreementTx,
                     );
                     if (txHash) {
                       setInitAgreementOpen(false);
                       showToast(
                         "Agreement initialized",
                         `Transaction completed successfully.`,
-                        "success"
+                        "success",
                       );
                     }
                   } catch (e: any) {
-                    const errorMsg = e?.message || "Failed to initialize agreement";
+                    const errorMsg =
+                      e?.message || "Failed to initialize agreement";
                     setInitAgreementError(errorMsg);
                     console.error("[Initialize Agreement] Error:", e);
-                    showToast("Initialization failed", errorMsg || "Please try again.", "error");
+                    showToast(
+                      "Initialization failed",
+                      errorMsg || "Please try again.",
+                      "error",
+                    );
                   }
                 }}
                 className="px-4 py-2 rounded-md bg-white text-black border border-[#E5E5E5]/10 hover:bg-[#f3f3f3] disabled:opacity-60 disabled:cursor-not-allowed transition cursor-pointer flex items-center justify-center gap-2"
@@ -2020,4 +2449,3 @@ export default function ContractSetupCard() {
     </div>
   );
 }
-

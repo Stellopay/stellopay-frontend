@@ -559,6 +559,9 @@ export default function ContractSetupCard() {
       session_token,
       ...body,
     });
+    if (!executeCall) {
+      throw new Error("Wallet is not ready to execute transactions.");
+    }
     const tx = await executeCall(prepared.call);
     if (tx?.transaction_hash) setTx(tx.transaction_hash);
   };

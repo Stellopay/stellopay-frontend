@@ -28,7 +28,7 @@ export interface WalletContextProps {
   connectedWallet: ConnectedWallet | null;
   connectWallet: (wallet?: Wallet, address?: string, network?: string) => void;
   disconnectWallet: () => void;
-  executeCall: (call: any) => Promise<any>;
+  executeCall?: (call: any) => Promise<any>;
   error?: string;
 }
 

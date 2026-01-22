@@ -582,6 +582,9 @@ export default function ContractSetupCard() {
         manager: agreementDefault,
       },
     );
+    if (!executeCall) {
+      throw new Error("Wallet not ready: executeCall is undefined.");
+    }
     const tx = await executeCall(prepared.call);
     if (tx?.transaction_hash) setInitEscrowTx(tx.transaction_hash);
   };
@@ -658,6 +661,9 @@ export default function ContractSetupCard() {
       }
     }
 
+    if (!executeCall) {
+      throw new Error("Wallet not ready: executeCall is undefined.");
+    }
     const tx = await executeCall(prepared.call);
     if (tx?.transaction_hash) {
       setCreateAgreementTx(tx.transaction_hash);
@@ -689,6 +695,9 @@ export default function ContractSetupCard() {
         amount: fundAmount,
       },
     );
+    if (!executeCall) {
+      throw new Error("Wallet not ready: executeCall is undefined.");
+    }
     const tx = await executeCall(prepared.call);
     if (tx?.transaction_hash) setFundTx(tx.transaction_hash);
   };
@@ -720,6 +729,9 @@ export default function ContractSetupCard() {
         salary_per_period: addEmployeeSalary,
       },
     );
+    if (!executeCall) {
+      throw new Error("Wallet not ready: executeCall is undefined.");
+    }
     const tx = await executeCall(prepared.call);
     if (tx?.transaction_hash) setAddEmployeeTx(tx.transaction_hash);
   };
@@ -747,6 +759,9 @@ export default function ContractSetupCard() {
         amount: addMilestoneAmount,
       },
     );
+    if (!executeCall) {
+      throw new Error("Wallet not ready: executeCall is undefined.");
+    }
     const tx = await executeCall(prepared.call);
     if (tx?.transaction_hash) setAddMilestoneTx(tx.transaction_hash);
   };
@@ -770,6 +785,9 @@ export default function ContractSetupCard() {
         agreement_id: activateAgreementId,
       },
     );
+    if (!executeCall) {
+      throw new Error("Wallet not ready: executeCall is undefined.");
+    }
     const tx = await executeCall(prepared.call);
     if (tx?.transaction_hash) setActivateTx(tx.transaction_hash);
   };
