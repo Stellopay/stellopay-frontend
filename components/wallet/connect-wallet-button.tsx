@@ -46,7 +46,7 @@ export default function ConnectWalletButton({
   const { address, isConnecting } = connectedWallet || {};
   // Use ToastContext directly to handle cases where ToastProvider might not be available (e.g., static generation)
   const toastContext = useContext(ToastContext);
-  const prevErrorRef = useRef<string | undefined>(undefined);
+  const prevErrorRef = useRef<string | null>(undefined);
 
   // Show toast when error occurs (only once per unique error across all instances)
   useEffect(() => {
@@ -93,7 +93,7 @@ export default function ConnectWalletButton({
 
   const label = useMemo(() => {
     if (isConnecting) return "Connecting…";
-    if (address) return formatAddress(address);
+    if (address) return address;
     return "Connect Wallet";
   }, [address, isConnecting]);
 
@@ -140,7 +140,7 @@ export default function ConnectWalletButton({
           aria-label="Wallet menu"
         >
           <WalletIcon className="w-5 h-5 text-[#EEF4FF]" />
-          <span>{formatAddress(address)}</span>
+          <span>{address}</span>
         </button>
       );
     }

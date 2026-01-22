@@ -98,16 +98,18 @@ export default function Navbar() {
             </div>
 
             <NetworkSwitcher />
-            {connectedWallet ? (
+            {connectedWallet && connectedWallet.address ? (
               <div className="flex items-center gap-2">
                 <div className="bg-[#0D0D0D] px-3 py-2 rounded-lg flex items-center gap-2">
-                  <img
-                    src={connectedWallet.wallet?.icon}
-                    className="w-5 h-5"
-                    alt=""
-                  />
+                  {connectedWallet.wallet?.icon && (
+                    <img
+                      src={connectedWallet.wallet.icon}
+                      className="w-5 h-5"
+                      alt={connectedWallet.wallet.name || "Wallet"}
+                    />
+                  )}
                   <span className="text-white font-medium text-sm">
-                    {formatAddress(connectedWallet?.address)}
+                    {formatAddress(connectedWallet.address)}
                   </span>
                 </div>
                 <Button
@@ -123,7 +125,7 @@ export default function Navbar() {
                 onClick={() => setIsWalletModalOpen(true)}
                 className="bg-[#0D0D0D] cursor-pointer text-white flex items-center gap-2"
               >
-                <img src="/wallet.svg" className="w-5 h-5" alt="" />
+                <img src="/wallet.svg" className="w-5 h-5" alt="Wallet" />
                 <span className="hidden sm:inline font-medium text-sm">
                   Connect Wallet
                 </span>
