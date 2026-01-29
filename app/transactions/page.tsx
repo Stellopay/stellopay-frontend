@@ -5,7 +5,9 @@ import Navbar from "@/components/common/navbar";
 import React, { useEffect, useMemo, useState } from "react";
 import { SideBar } from "@/components/common/side-bar";
 import { TransactionsTable } from "@/components/transactions/transactions-table";
+import { TransactionsTableSkeleton } from "@/components/transactions/transactions-table-skeleton";
 import { Pagination } from "@/components/transactions/pagination";
+import { PaginationSkeleton } from "@/components/transactions/pagination-skeleton";
 import TableSearchbar from "@/components/transactions/table-searchbar";
 import {
   TransactionTypeFilter,
@@ -87,8 +89,6 @@ const Transactions = () => {
     setCurrentPage(1);
   }, [searchParams, startDate, endDate]);
 
-  console.log(transactionsToShow, transactions, dateFilteredTransactions);
-
   return (
     <>
       <main className="">
@@ -156,9 +156,7 @@ const Transactions = () => {
               </div>
             </div>
             {loading ? (
-              <div className="py-8 text-center text-[#A0A0A0]">
-                Loading transactions...
-              </div>
+              <TransactionsTableSkeleton rows={6} />
             ) : transactions.length === 0 ? (
               <div className="py-4 text-center text-gray-400">
                 No Transactions Found
@@ -168,13 +166,17 @@ const Transactions = () => {
             )}
           </div>
         </div>
-        {dateFilteredTransactions.length > 0 && (
-          <Pagination
-            currentPage={currentPage}
-            totalPages={totalPages}
-            onPageChange={setCurrentPage}
-            totalItems={transactionsToShow?.length}
-          />
+        {loading ? (
+          <PaginationSkeleton />
+        ) : (
+          dateFilteredTransactions.length > 0 && (
+            <Pagination
+              currentPage={currentPage}
+              totalPages={totalPages}
+              onPageChange={setCurrentPage}
+              totalItems={transactionsToShow?.length}
+            />
+          )
         )}
       </main>
     </>

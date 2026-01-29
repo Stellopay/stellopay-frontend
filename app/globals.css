@@ -119,6 +119,48 @@ html {
   --sidebar-ring: oklch(0.556 0 0);
 }
 
+/* Skeleton shimmer animation */
+@keyframes skeleton-shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+.skeleton-shimmer {
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.08) 20%,
+    rgba(255, 255, 255, 0.12) 50%,
+    rgba(255, 255, 255, 0.08) 80%,
+    transparent 100%
+  );
+  background-size: 200% 100%;
+  animation: skeleton-shimmer 2s linear infinite;
+  position: relative;
+}
+
+.skeleton-shimmer::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: inherit;
+  border-radius: inherit;
+}
+
+/* Light shade skeleton */
+.skeleton-light {
+  background-color: #3a3a3a;
+}
+
+/* Dark shade skeleton */
+.skeleton-dark {
+  background-color: #2d2d2d;
+}
+
 @layer base {
   * {
     @apply border-border outline-ring/50;
