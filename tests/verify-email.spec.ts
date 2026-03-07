@@ -95,6 +95,71 @@ test.describe("Verify email — code input", () => {
     await input.fill("12-34$");
     await expect(input).toHaveValue("1234");
   });
+
+  test("input has accessible id and name attributes", async ({ page }) => {
+    await page.goto(VERIFY_EMAIL_URL);
+    const input = page.getByLabel("Verification code");
+    await expect(input).toHaveId("verify-code");
+    await expect(input).toHaveAttribute("name", "verify-code");
+  });
+
+  test("input is reachable via its associated label", async ({ page }) => {
+    await page.goto(VERIFY_EMAIL_URL);
+    const input = page.getByLabel("Verification code");
+    await expect(input).toBeVisible();
+    await expect(input).toHaveAttribute("id", "verify-code");
+  });
+
+  test("shows inline validation error for short code", async ({ page }) => {
+    await page.goto(VERIFY_EMAIL_URL);
+    const input = page.getByLabel("Verification code");
+    await input.fill("12");
+    await expect(page.getByRole("alert")).toContainText(
+      /code must be 6 characters/i,
+    );
+  });
+
+  test("input has aria-invalid when inline error is present", async ({
+    page,
+  }) => {
+    await page.goto(VERIFY_EMAIL_URL);
+    const input = page.getByLabel("Verification code");
+    await input.fill("12");
+    await expect(input).toHaveAttribute("aria-invalid", "true");
+  });
+
+  test("clears inline validation when 6 characters entered", async ({
+    page,
+  }) => {
+    await page.goto(VERIFY_EMAIL_URL);
+    const input = page.getByLabel("Verification code");
+    await input.fill("123");
+    await expect(page.getByRole("alert")).toContainText(
+      /code must be 6 characters/i,
+    );
+    await input.fill("123456");
+    await expect(page.getByRole("alert")).not.toBeVisible();
+  });
+
+  test("shows feedback when pasted code is truncated to 6 characters", async ({
+    page,
+  }) => {
+    await page.goto(VERIFY_EMAIL_URL);
+    const input = page.getByLabel("Verification code");
+    // Simulate a paste that bypasses maxLength
+    await input.evaluate((el) => {
+      const nativeInputValueSetter = Object.getOwnPropertyDescriptor(
+        window.HTMLInputElement.prototype,
+        "value",
+      )?.set;
+      nativeInputValueSetter?.call(el, "ABCDEFG");
+      el.dispatchEvent(new Event("input", { bubbles: true }));
+    });
+    await expect(input).toHaveValue("ABCDEF");
+    await expect(
+      page.getByText("Code truncated to 6 characters."),
+    ).toBeVisible();
+  });
 });
 
 test.describe("Verify email — resend action", () => {

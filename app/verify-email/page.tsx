@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { X, Loader2 } from "lucide-react";
+import { Input } from "@/components/ui/input";
 
 type StatusType = "idle" | "loading" | "success" | "error";
 
@@ -12,10 +13,28 @@ export default function VerifyEmail() {
   const [status, setStatus] = useState<StatusType>("idle");
   const [message, setMessage] = useState("");
   const [resendStatus, setResendStatus] = useState<StatusType>("idle");
+  const [fieldError, setFieldError] = useState("");
+  const [truncated, setTruncated] = useState(false);
+
+  const codeDescId = "verify-code-desc";
+  const codeErrorId = "verify-code-error";
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.value.replace(/[^0-9a-zA-Z]/g, "");
-    if (value.length <= 6) setCode(value);
+    const raw = e.target.value;
+    const sanitized = raw.replace(/[^0-9a-zA-Z]/g, "");
+    if (sanitized.length > 6) {
+      setCode(sanitized.slice(0, 6));
+      setTruncated(true);
+      setTimeout(() => setTruncated(false), 3000);
+    } else {
+      setCode(sanitized);
+      setTruncated(false);
+    }
+    if (sanitized.length > 0 && sanitized.length < 6) {
+      setFieldError("Code must be 6 characters.");
+    } else {
+      setFieldError("");
+    }
   };
 
   const handleResend = async () => {
@@ -92,17 +111,40 @@ export default function VerifyEmail() {
           </button>
         </p>
 
-        {/* Input */}
-        <input
-          type="text"
-          inputMode="numeric"
-          maxLength={6}
-          value={code}
-          onChange={handleInputChange}
-          aria-label="Verification code"
-          className="w-full text-left py-3 px-4 rounded-[8px] border border-[#2D2D2D] bg-transparent text-white mb-4 outline-none mt-5"
-          placeholder="- - - - - - - -"
-        />
+        {/* Code input */}
+        <div className="text-left mt-5 mb-4">
+          <label htmlFor="verify-code" className="sr-only">
+            Verification code
+          </label>
+          <p id={codeDescId} className="text-xs text-[#ACB4B5] mb-2">
+            Enter the 6-character code sent to your email.
+          </p>
+          <Input
+            id="verify-code"
+            name="verify-code"
+            type="text"
+            inputMode="numeric"
+            maxLength={6}
+            value={code}
+            onChange={handleInputChange}
+            aria-label="Verification code"
+            placeholder="- - - - - - - -"
+            className="w-full text-left py-3 px-4 rounded-[8px] border border-[#2D2D2D] bg-transparent text-white outline-none"
+            error={!!fieldError}
+            descriptionId={codeDescId}
+            errorId={codeErrorId}
+          />
+          {fieldError && (
+            <p id={codeErrorId} role="alert" className="text-xs text-red-300 mt-1">
+              {fieldError}
+            </p>
+          )}
+          {truncated && (
+            <p role="status" aria-live="polite" className="text-xs text-yellow-300 mt-1">
+              Code truncated to 6 characters.
+            </p>
+          )}
+        </div>
 
         {/* Status Messages */}
         {message && (
