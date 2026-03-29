@@ -3,9 +3,9 @@ import { SidebarProvider } from "@/context/sidebar-context";
 import { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Stellopay | Settings/Preferences",
+  title: "Stellopay | Settings",
   description:
-    "Stellopay Settings/Preferences - Manage your account settings and preferences",
+    "Stellopay Settings - Manage your account, alerts, security, and wallet preferences",
 };
 
 export default function SettingsPreferencesLayout({
