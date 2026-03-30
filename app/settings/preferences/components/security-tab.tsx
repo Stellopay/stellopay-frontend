@@ -1,192 +1,291 @@
 "use client";
 
 import { useState } from "react";
-import { Eye, EyeOff, ShieldCheck, Lock } from "lucide-react";
+import {
+  CheckCircle2,
+  KeyRound,
+  Monitor,
+  ShieldCheck,
+  Smartphone,
+} from "lucide-react";
+import ToggleCard from "@/components/common/toggle-card";
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
+import { checkPasswordRequirements } from "@/utils/authUtils";
+import DestructiveActionDialog from "./destructive-action-dialog";
+
+const sessions = [
+  {
+    name: "Chrome on Windows",
+    location: "Lagos, Nigeria",
+    status: "Current session",
+    icon: Monitor,
+  },
+  {
+    name: "iPhone 15 Pro",
+    location: "Mobile app",
+    status: "Last active 2 hours ago",
+    icon: Smartphone,
+  },
+];
 
 export default function SecurityTab() {
-  const [showPassword, setShowPassword] = useState(false);
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-  const [twoFactorEnabled, setTwoFactorEnabled] = useState(true);
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [twoFactorEnabled, setTwoFactorEnabled] = useState(true);
+  const [loginApprovalEnabled, setLoginApprovalEnabled] = useState(true);
+  const [transferApprovalEnabled, setTransferApprovalEnabled] = useState(true);
+  const [statusMessage, setStatusMessage] = useState("");
 
-  const togglePasswordVisibility = () => {
-    setShowPassword(!showPassword);
-  };
-
-  const toggleConfirmPasswordVisibility = () => {
-    setShowConfirmPassword(!showConfirmPassword);
-  };
-
-  const handleToggle2FA = () => {
-    setTwoFactorEnabled(!twoFactorEnabled);
-  };
+  const passwordRequirements = checkPasswordRequirements(password);
+  const isPasswordReady =
+    Object.values(passwordRequirements).every(Boolean) &&
+    password.length > 0 &&
+    password === confirmPassword;
 
   const handleSaveChanges = () => {
-    // Handle save changes logic here
-    console.log("Saving password changes");
+    if (!isPasswordReady) {
+      return;
+    }
+
+    setStatusMessage(
+      "Password policy satisfied. Changes are ready for backend wiring.",
+    );
+    setPassword("");
+    setConfirmPassword("");
   };
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
-      {/* Password Update Section */}
-      <div className="bg-[#0D0D0D80] p-6 border border-[#2d2d2d] rounded-lg">
-        <div className="flex items-center mb-6">
-          <div className="mr-2 bg-[#2d2d2d] p-2 rounded-lg">
-            <svg
-              width="24"
-              height="24"
-              viewBox="0 0 24 24"
-              fill="none"
-              xmlns="http://www.w3.org/2000/svg"
-            >
-              <path
-                d="M4.26781 18.8447C4.49269 20.515 5.87613 21.8235 7.55966 21.9009C8.97627 21.966 10.4153 22 12 22C13.5847 22 15.0237 21.966 16.4403 21.9009C18.1239 21.8235 19.5073 20.515 19.7322 18.8447C19.879 17.7547 20 16.6376 20 15.5C20 14.3624 19.879 13.2453 19.7322 12.1553C19.5073 10.485 18.1239 9.17649 16.4403 9.09909C15.0237 9.03397 13.5847 9 12 9C10.4153 9 8.97627 9.03397 7.55966 9.09909C5.87613 9.17649 4.49269 10.485 4.26781 12.1553C4.12105 13.2453 4 14.3624 4 15.5C4 16.6376 4.12105 17.7547 4.26781 18.8447Z"
-                stroke="#E5E5E5"
-                strokeWidth="1.5"
-              />
-              <path
-                d="M7.5 9V6.5C7.5 4.01472 9.51472 2 12 2C14.4853 2 16.5 4.01472 16.5 6.5V9"
-                stroke="#E5E5E5"
-                strokeWidth="1.5"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
-              <path
-                d="M16 15.49V15.5"
-                stroke="#E5E5E5"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
-              <path
-                d="M12 15.49V15.5"
-                stroke="#E5E5E5"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
-              <path
-                d="M8 15.49V15.5"
-                stroke="#E5E5E5"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
-            </svg>
+    <div className="grid gap-6 xl:grid-cols-[minmax(0,1.2fr)_minmax(320px,0.8fr)]">
+      <Card className="border-zinc-200 bg-white/90 shadow-sm dark:border-white/10 dark:bg-white/5">
+        <CardHeader className="border-b border-zinc-200/80 dark:border-white/10">
+          <div className="flex items-center gap-3">
+            <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-zinc-900 text-white dark:bg-white dark:text-zinc-900">
+              <KeyRound className="size-5" />
+            </span>
+            <div className="space-y-1">
+              <CardTitle className="font-general text-xl text-zinc-950 dark:text-white">
+                Password and recovery
+              </CardTitle>
+              <CardDescription className="text-zinc-600 dark:text-zinc-400">
+                Keep password work scoped to one card and show validation before
+                save.
+              </CardDescription>
+            </div>
           </div>
-          <h2 className="text-xl font-medium">Update Account Password</h2>
-        </div>
-
-        <div className="border-t border-[#2d2d2d] pt-4">
-          <div className="mb-4">
-            <label className="block mb-2 text-gray-300">New Password</label>
-            <div className="relative">
-              <input
-                type={showPassword ? "text" : "password"}
+        </CardHeader>
+        <CardContent className="space-y-6 pt-6">
+          <div className="grid gap-4 md:grid-cols-2">
+            <div className="space-y-2">
+              <label
+                htmlFor="new-password"
+                className="text-sm font-medium text-zinc-900 dark:text-white"
+              >
+                New password
+              </label>
+              <Input
+                id="new-password"
+                type="password"
                 value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="*****************************"
-                className="w-full p-3 pr-10 border border-[#2d2d2d] rounded-lg bg-[#0D0D0D] text-white"
+                onChange={(event) => setPassword(event.target.value)}
+                placeholder="Use a strong password"
+                className="border-zinc-200 bg-white dark:border-white/10 dark:bg-white/5"
               />
-              <button
-                className="absolute right-3 top-3 text-gray-400"
-                onClick={togglePasswordVisibility}
-              >
-                {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
-              </button>
             </div>
-          </div>
 
-          <div className="mb-6">
-            <label className="block mb-2 text-gray-300">
-              Re-Enter Password
-            </label>
-            <div className="relative">
-              <input
-                type={showConfirmPassword ? "text" : "password"}
+            <div className="space-y-2">
+              <label
+                htmlFor="confirm-password"
+                className="text-sm font-medium text-zinc-900 dark:text-white"
+              >
+                Confirm password
+              </label>
+              <Input
+                id="confirm-password"
+                type="password"
                 value={confirmPassword}
-                onChange={(e) => setConfirmPassword(e.target.value)}
-                placeholder="*****************************"
-                className="w-full p-3 pr-10 border border-[#2d2d2d] rounded-lg bg-[#0D0D0D] text-white"
+                onChange={(event) => setConfirmPassword(event.target.value)}
+                placeholder="Repeat the new password"
+                className="border-zinc-200 bg-white dark:border-white/10 dark:bg-white/5"
               />
-              <button
-                className="absolute right-3 top-3 text-gray-400"
-                onClick={toggleConfirmPasswordVisibility}
+            </div>
+          </div>
+
+          <div className="grid gap-3 sm:grid-cols-2">
+            <RequirementItem
+              label="At least 8 characters"
+              met={passwordRequirements.minLength}
+            />
+            <RequirementItem
+              label="One uppercase letter"
+              met={passwordRequirements.uppercase}
+            />
+            <RequirementItem
+              label="One special character"
+              met={passwordRequirements.specialChar}
+            />
+            <RequirementItem
+              label="Passwords match"
+              met={password.length > 0 && password === confirmPassword}
+            />
+          </div>
+
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <p className="text-sm text-zinc-500 dark:text-zinc-400">
+              Recovery methods stay hidden until needed to keep the primary path
+              calm.
+            </p>
+            <Button disabled={!isPasswordReady} onClick={handleSaveChanges}>
+              Update password
+            </Button>
+          </div>
+
+          {statusMessage ? (
+            <p className="rounded-2xl border border-emerald-500/20 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-700 dark:text-emerald-300">
+              {statusMessage}
+            </p>
+          ) : null}
+
+          <details className="group rounded-2xl border border-zinc-200 bg-zinc-50 p-4 dark:border-white/10 dark:bg-white/5">
+            <summary className="cursor-pointer list-none text-sm font-medium text-zinc-900 dark:text-white">
+              Show recovery methods
+            </summary>
+            <div className="mt-4 grid gap-3 text-sm text-zinc-600 dark:text-zinc-400">
+              <p>Primary email: maya.sullivan@stellopay.app</p>
+              <p>Recovery codes: generated and stored offline</p>
+              <p>Backup contact: +234 801 234 5678</p>
+            </div>
+          </details>
+        </CardContent>
+      </Card>
+
+      <div className="space-y-6">
+        <Card className="border-zinc-200 bg-white/90 shadow-sm dark:border-white/10 dark:bg-white/5">
+          <CardHeader className="border-b border-zinc-200/80 dark:border-white/10">
+            <div className="flex items-center gap-3">
+              <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-sky-500/10 text-sky-600 dark:text-sky-300">
+                <ShieldCheck className="size-5" />
+              </span>
+              <div className="space-y-1">
+                <CardTitle className="font-general text-xl text-zinc-950 dark:text-white">
+                  Verification controls
+                </CardTitle>
+                <CardDescription className="text-zinc-600 dark:text-zinc-400">
+                  Security-sensitive toggles stay grouped with supporting
+                  guidance.
+                </CardDescription>
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent className="space-y-4 pt-6">
+            <ToggleCard
+              title="Authenticator app verification"
+              description="Require a second factor for password resets and critical profile changes."
+              badge="Recommended"
+              enabled={twoFactorEnabled}
+              onToggle={setTwoFactorEnabled}
+            />
+            <ToggleCard
+              title="New device approval"
+              description="Challenge sign-ins from browsers or devices you have not approved yet."
+              enabled={loginApprovalEnabled}
+              onToggle={setLoginApprovalEnabled}
+            />
+            <ToggleCard
+              title="Large transfer approval"
+              description="Hold transfers over your threshold for a second confirmation."
+              enabled={transferApprovalEnabled}
+              onToggle={setTransferApprovalEnabled}
+            />
+          </CardContent>
+        </Card>
+
+        <Card className="border-zinc-200 bg-white/90 shadow-sm dark:border-white/10 dark:bg-white/5">
+          <CardHeader className="border-b border-zinc-200/80 dark:border-white/10">
+            <div className="flex items-center justify-between gap-3">
+              <div className="space-y-1">
+                <CardTitle className="font-general text-xl text-zinc-950 dark:text-white">
+                  Active sessions
+                </CardTitle>
+                <CardDescription className="text-zinc-600 dark:text-zinc-400">
+                  Review current access before forcing sign-out everywhere.
+                </CardDescription>
+              </div>
+              <Badge
+                variant="outline"
+                className="border-zinc-200 bg-zinc-100 text-zinc-600 dark:border-white/10 dark:bg-white/5 dark:text-zinc-400"
               >
-                {showConfirmPassword ? <EyeOff size={20} /> : <Eye size={20} />}
-              </button>
+                {sessions.length} devices
+              </Badge>
             </div>
-          </div>
+          </CardHeader>
+          <CardContent className="space-y-4 pt-6">
+            {sessions.map((session) => {
+              const SessionIcon = session.icon;
 
-          <button
-            onClick={handleSaveChanges}
-            className="w-full py-3 bg-white text-black rounded-lg font-medium hover:bg-gray-100 transition"
-          >
-            Save Changes
-          </button>
-        </div>
+              return (
+                <div
+                  key={session.name}
+                  className="flex items-start gap-3 rounded-2xl border border-zinc-200 bg-zinc-50 p-4 dark:border-white/10 dark:bg-white/5"
+                >
+                  <span className="mt-0.5 flex h-10 w-10 items-center justify-center rounded-2xl bg-zinc-900 text-white dark:bg-white dark:text-zinc-900">
+                    <SessionIcon className="size-4" />
+                  </span>
+                  <div className="space-y-1">
+                    <p className="font-medium text-zinc-900 dark:text-white">
+                      {session.name}
+                    </p>
+                    <p className="text-sm text-zinc-500 dark:text-zinc-400">
+                      {session.location}
+                    </p>
+                    <p className="text-xs text-zinc-400 dark:text-zinc-500">
+                      {session.status}
+                    </p>
+                  </div>
+                </div>
+              );
+            })}
+
+            <DestructiveActionDialog
+              triggerLabel="Sign out all sessions"
+              title="Sign out every other session"
+              description="This will invalidate every session except the current browser."
+              impactItems={[
+                "Every signed-in mobile or web session will need to log in again.",
+                "Pending high-risk actions will be interrupted until re-authentication.",
+                "This action should only be used if you suspect account access issues.",
+              ]}
+              confirmationToken="LOGOUT"
+              confirmationLabel='Type "LOGOUT" to continue'
+              confirmLabel="Force sign-out"
+              onConfirm={() =>
+                setStatusMessage(
+                  "Session reset requested. All other devices would be signed out.",
+                )
+              }
+            />
+          </CardContent>
+        </Card>
       </div>
+    </div>
+  );
+}
 
-      {/* 2-Step Verification Section */}
-      <div className="bg-[#0D0D0D80] px-6 pt-6 pb-4 border border-[#2d2d2d] rounded-lg">
-        <div className="flex items-center mb-6">
-          <div className="mr-2 bg-[#2d2d2d] p-2 rounded-lg">
-            <svg
-              width="24"
-              height="24"
-              viewBox="0 0 24 24"
-              fill="none"
-              xmlns="http://www.w3.org/2000/svg"
-            >
-              <path
-                d="M10.5582 14.5613C9.96836 15.1511 9.02509 15.1432 8.4425 14.5607C7.85991 13.9781 7.84704 13.0298 8.43687 12.44C9.02671 11.8502 9.98123 11.8567 10.5638 12.4393C11.1464 13.0219 11.148 13.9715 10.5582 14.5613Z"
-                stroke="#E5E5E5"
-                strokeWidth="1.5"
-              />
-              <path
-                d="M11 12L13 10M13 10L15 8L17 10M13 10L14.5 11.5"
-                stroke="#E5E5E5"
-                strokeWidth="1.5"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
-              <path
-                d="M21 11.1833V8.28029C21 6.64029 21 5.82028 20.5959 5.28529C20.1918 4.75029 19.2781 4.49056 17.4507 3.9711C16.2022 3.6162 15.1016 3.18863 14.2223 2.79829C13.0234 2.2661 12.424 2 12 2C11.576 2 10.9766 2.2661 9.77771 2.79829C8.89839 3.18863 7.79784 3.61619 6.54933 3.9711C4.72193 4.49056 3.80822 4.75029 3.40411 5.28529C3 5.82028 3 6.64029 3 8.28029V11.1833C3 16.8085 8.06277 20.1835 10.594 21.5194C11.2011 21.8398 11.5046 22 12 22C12.4954 22 12.7989 21.8398 13.406 21.5194C15.9372 20.1835 21 16.8085 21 11.1833Z"
-                stroke="#E5E5E5"
-                strokeWidth="1.5"
-                strokeLinecap="round"
-              />
-            </svg>
-          </div>
-          <h2 className="text-xl font-medium">Set 2-Step verification</h2>
-        </div>
-
-        <div className="border-t border-[#2d2d2d] pt-4">
-          <div className="flex items-center justify-between p-4 bg-[#0D0D0D80] border border-[#2d2d2d] rounded-lg text-white">
-            <div>
-              <span className="block text-base font-medium">
-                2-Step verification
-              </span>
-              <span className="block text-sm text-gray-400">
-                Enable 2-step authentication
-              </span>
-            </div>
-            <button
-              onClick={handleToggle2FA}
-              className={`w-12 h-7 flex items-center rounded-full p-1 cursor-pointer transition-colors ${
-                twoFactorEnabled ? "bg-purple-600" : "bg-gray-600"
-              }`}
-            >
-              <span
-                className={`block w-5 h-5 rounded-full bg-white shadow-md transform transition-transform ${
-                  twoFactorEnabled ? "translate-x-5" : "translate-x-0"
-                }`}
-              ></span>
-            </button>
-          </div>
-        </div>
-      </div>
+function RequirementItem({ label, met }: { label: string; met: boolean }) {
+  return (
+    <div className="flex items-center gap-2 rounded-2xl border border-zinc-200 bg-zinc-50 px-4 py-3 text-sm text-zinc-600 dark:border-white/10 dark:bg-white/5 dark:text-zinc-400">
+      <CheckCircle2
+        className={`size-4 ${met ? "text-emerald-500" : "text-zinc-300 dark:text-zinc-600"}`}
+      />
+      <span>{label}</span>
     </div>
   );
 }

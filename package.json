@@ -7,7 +7,9 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "prettier": "prettier --write ."
+    "prettier": "prettier --write .",
+    "test:e2e": "playwright test",
+    "test:e2e:settings": "playwright test tests/settings.spec.ts"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.1.1",
@@ -41,6 +43,7 @@
     "zod": "^3.25.74"
   },
   "devDependencies": {
+    "@playwright/test": "^1.55.0",
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
     "@types/react": "^19",
