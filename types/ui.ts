@@ -49,6 +49,11 @@ export interface SupportTabsProps {
 
 export interface ToggleCardProps {
   title: string;
+  description?: string;
+  badge?: string;
+  enabled: boolean;
+  disabled?: boolean;
+  onToggle: (enabled: boolean) => void;
 }
 
 export interface NotificationProps {
