@@ -2,7 +2,7 @@
 
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
-import { useState } from "react";
+import React, { useState } from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import {
@@ -10,8 +10,10 @@ import {
   FormControl,
   FormField,
   FormItem,
+  FormLabel,
   FormMessage,
 } from "@/components/ui/form";
+import { FormFieldInput, FormFieldCheckbox } from "@/components/ui/form-field";
 import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
 import { Eye, EyeOff, Mail, User, Check, X } from "lucide-react";
@@ -99,57 +101,45 @@ export function SignUpForm() {
           onSubmit={form.handleSubmit(onSubmit)}
           className="flex flex-col gap-4"
         >
-          <FormField
+          <FormFieldInput
             control={form.control}
             name="fullName"
-            render={({ field }) => (
-              <FormItem>
-                <FormControl>
-                  <div className="relative">
-                    <Input
-                      type="text"
-                      placeholder="Full Name"
-                      className="pr-10 py-4 border-muted-foreground"
-                      {...field}
-                    />
-                    <User className={iconsClassName} />
-                  </div>
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
+            type="text"
+            label="Full Name"
+            placeholder="Enter your full name"
+            required
+            autoComplete="name"
           />
-          <FormField
+          <FormFieldInput
             control={form.control}
             name="email"
-            render={({ field }) => (
-              <FormItem>
-                <FormControl>
-                  <div className="relative">
-                    <Input
-                      type="email"
-                      placeholder="Email Address"
-                      className="pr-10 py-4 border-muted-foreground"
-                      {...field}
-                    />
-                    <Mail className={iconsClassName} />
-                  </div>
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
+            type="email"
+            label="Email Address"
+            placeholder="Enter your email"
+            required
+            autoComplete="email"
           />
           <FormField
             control={form.control}
             name="password"
             render={({ field }) => (
               <FormItem>
+                <FormLabel>
+                  Password{" "}
+                  <span
+                    className="text-destructive"
+                    aria-label="required field"
+                  >
+                    *
+                  </span>
+                </FormLabel>
                 <FormControl>
                   <div className="relative">
                     <Input
                       type={showPassword ? "text" : "password"}
-                      placeholder="Password"
-                      className="pr-10 py-4 border-muted-foreground"
+                      placeholder="Create a password"
+                      className="pr-10 py-4"
+                      autoComplete="new-password"
                       {...field}
                       onChange={(e) => {
                         field.onChange(e);
@@ -166,11 +156,13 @@ export function SignUpForm() {
                       <EyeOff
                         className={`${iconsClassName} cursor-pointer`}
                         onClick={() => setShowPassword(false)}
+                        aria-label="Hide password"
                       />
                     ) : (
                       <Eye
                         className={`${iconsClassName} cursor-pointer`}
                         onClick={() => setShowPassword(true)}
+                        aria-label="Show password"
                       />
                     )}
                   </div>
@@ -181,16 +173,31 @@ export function SignUpForm() {
           />
           {/* Password Requirements */}
           {showPasswordRequirements && (
-            <div className="mt-2 p-3 bg-gray-800/50 rounded-md">
+            <div
+              className="mt-2 p-3 bg-gray-800/50 rounded-md"
+              role="region"
+              aria-label="Password requirements"
+            >
               <p className="text-gray-300 text-sm mb-2">
                 Password must contain:
               </p>
-              <ul className="space-y-1">
+              <ul
+                className="space-y-1"
+                aria-label="Password requirements checklist"
+              >
                 <li className="flex items-center text-sm">
                   {passwordRequirements.minLength ? (
-                    <Check size={16} className="text-green-400 mr-2" />
+                    <Check
+                      size={16}
+                      className="text-green-400 mr-2"
+                      aria-hidden="true"
+                    />
                   ) : (
-                    <X size={16} className="text-red-400 mr-2" />
+                    <X
+                      size={16}
+                      className="text-red-400 mr-2"
+                      aria-hidden="true"
+                    />
                   )}
                   <span
                     className={
@@ -204,9 +211,17 @@ export function SignUpForm() {
                 </li>
                 <li className="flex items-center text-sm">
                   {passwordRequirements.uppercase ? (
-                    <Check size={16} className="text-green-400 mr-2" />
+                    <Check
+                      size={16}
+                      className="text-green-400 mr-2"
+                      aria-hidden="true"
+                    />
                   ) : (
-                    <X size={16} className="text-red-400 mr-2" />
+                    <X
+                      size={16}
+                      className="text-red-400 mr-2"
+                      aria-hidden="true"
+                    />
                   )}
                   <span
                     className={
@@ -220,9 +235,17 @@ export function SignUpForm() {
                 </li>
                 <li className="flex items-center text-sm">
                   {passwordRequirements.specialChar ? (
-                    <Check size={16} className="text-green-400 mr-2" />
+                    <Check
+                      size={16}
+                      className="text-green-400 mr-2"
+                      aria-hidden="true"
+                    />
                   ) : (
-                    <X size={16} className="text-red-400 mr-2" />
+                    <X
+                      size={16}
+                      className="text-red-400 mr-2"
+                      aria-hidden="true"
+                    />
                   )}
                   <span
                     className={
@@ -236,7 +259,10 @@ export function SignUpForm() {
                 </li>
               </ul>
               {isPasswordStrong && (
-                <p className="text-green-400 text-sm mt-2 font-medium">
+                <p
+                  className="text-green-400 text-sm mt-2 font-medium"
+                  role="status"
+                >
                   Password is strong and secure.
                 </p>
               )}
@@ -247,23 +273,35 @@ export function SignUpForm() {
             name="confirmPassword"
             render={({ field }) => (
               <FormItem>
+                <FormLabel>
+                  Confirm Password{" "}
+                  <span
+                    className="text-destructive"
+                    aria-label="required field"
+                  >
+                    *
+                  </span>
+                </FormLabel>
                 <FormControl>
                   <div className="relative">
                     <Input
                       type={showPassword ? "text" : "password"}
-                      placeholder="Confirm Password"
-                      className="pr-10 py-4 border-muted-foreground"
+                      placeholder="Confirm your password"
+                      className="pr-10 py-4"
+                      autoComplete="new-password"
                       {...field}
                     />
                     {showConfirmPassword ? (
                       <EyeOff
                         className={`${iconsClassName} cursor-pointer`}
                         onClick={() => setShowConfirmPassword(false)}
+                        aria-label="Hide password"
                       />
                     ) : (
                       <Eye
                         className={`${iconsClassName} cursor-pointer`}
                         onClick={() => setShowConfirmPassword(true)}
+                        aria-label="Show password"
                       />
                     )}
                   </div>
@@ -275,36 +313,52 @@ export function SignUpForm() {
           <FormField
             control={form.control}
             name="agreeToTerms"
-            render={({ field }) => (
-              <FormItem>
-                <div className="flex items-start space-x-2 pt-2">
-                  <FormControl>
-                    <Checkbox
-                      checked={field.value}
-                      onCheckedChange={field.onChange}
-                      className="border-[#2D2D2D] data-[state=checked]:bg-[#201322] data-[state=checked]:border-[#2D2D2D] mt-0.5"
-                    />
-                  </FormControl>
-                  <div className="text-[#E5E5E5] text-xs leading-relaxed">
-                    By selecting Agree and continue, I agree to Stellopay's{" "}
-                    <Link
-                      href={"/terms"}
-                      className="text-[#92569D] underline underline-offset-4"
-                    >
-                      Terms of Service,
-                    </Link>{" "}
-                    and acknowledge the{" "}
-                    <Link
-                      href={"/terms"}
-                      className="text-[#92569D] underline underline-offset-4"
-                    >
-                      Privacy Policy.
-                    </Link>
+            render={({ field }) => {
+              const fieldId = React.useId();
+              return (
+                <FormItem>
+                  <div className="flex items-start space-x-2 pt-2">
+                    <FormControl>
+                      <input
+                        type="checkbox"
+                        id={fieldId}
+                        checked={field.value}
+                        onChange={(e) => field.onChange(e.target.checked)}
+                        className="h-4 w-4 rounded border border-input text-primary focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+                      />
+                    </FormControl>
+                    <div className="text-xs leading-relaxed">
+                      <label
+                        htmlFor={fieldId}
+                        className="text-[#E5E5E5] cursor-pointer"
+                      >
+                        By selecting Agree and continue, I agree to Stellopay's{" "}
+                        <Link
+                          href={"/terms"}
+                          className="text-[#92569D] underline underline-offset-4"
+                        >
+                          Terms of Service,
+                        </Link>{" "}
+                        and acknowledge the{" "}
+                        <Link
+                          href={"/terms"}
+                          className="text-[#92569D] underline underline-offset-4"
+                        >
+                          Privacy Policy.
+                        </Link>
+                        <span
+                          className="text-destructive ml-1"
+                          aria-label="required field"
+                        >
+                          *
+                        </span>
+                      </label>
+                    </div>
                   </div>
-                </div>
-                <FormMessage />
-              </FormItem>
-            )}
+                  <FormMessage />
+                </FormItem>
+              );
+            }}
           />
           <Button type="submit" variant={"secondary"} className="">
             Create Account

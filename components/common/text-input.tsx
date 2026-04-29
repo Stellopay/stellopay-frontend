@@ -1,14 +1,33 @@
 import React, { ChangeEvent, ReactNode } from "react";
 import { TextInputProps } from "@/types/ui";
+import { Label } from "@/components/ui/label";
+import { cn } from "@/utils/commonUtils";
 
-const TextInput: React.FC<TextInputProps> = ({
+interface EnhancedTextInputProps extends TextInputProps {
+  error?: boolean;
+  helperText?: string;
+  required?: boolean;
+  disabled?: boolean;
+  className?: string;
+}
+
+const TextInput: React.FC<EnhancedTextInputProps> = ({
   label,
   value,
   icon,
   placeholder,
   onChange,
   type = "text",
+  error = false,
+  helperText,
+  required = false,
+  disabled = false,
+  className,
 }) => {
+  const fieldId = React.useId();
+  const descriptionId = helperText ? `${fieldId}-description` : undefined;
+  const errorId = error ? `${fieldId}-error` : undefined;
+
   const handleChange = (event: ChangeEvent<HTMLInputElement>) => {
     const inputValue = event.target.value;
 
@@ -20,26 +39,52 @@ const TextInput: React.FC<TextInputProps> = ({
     }
   };
 
+  const describedBy = React.useMemo(() => {
+    const ids = [];
+    if (descriptionId) ids.push(descriptionId);
+    if (errorId) ids.push(errorId);
+    return ids.length > 0 ? ids.join(" ") : undefined;
+  }, [descriptionId, errorId]);
+
   return (
-    <div className="w-full group">
-      <label
-        htmlFor="textinput"
-        className="text-[0.875rem] font-medium block mb-1"
-      >
-        {label ? label : "Input"}
-      </label>
+    <div className={cn("w-full space-y-2", className)}>
+      {label && (
+        <Label
+          required={required}
+          error={error}
+          descriptionId={descriptionId}
+          className="text-sm font-medium"
+        >
+          {label}
+        </Label>
+      )}
       <div
-        className={`flex items-center border border-[#2D2D2D] rounded-[0.375rem]  h-[48px] md:h-[52px] overflow-hidden`}
+        className={cn(
+          "flex items-center border rounded-md h-12 overflow-hidden transition-colors",
+          error ? "border-destructive ring-destructive/20" : "border-input",
+          disabled && "opacity-50 cursor-not-allowed",
+        )}
       >
-        {icon && <span className="pl-[20px] ">{icon}</span>}
+        {icon && (
+          <span className="pl-4 text-muted-foreground" aria-hidden="true">
+            {icon}
+          </span>
+        )}
         <input
           type={type}
-          id="textinput"
-          name="textinput"
+          id={fieldId}
+          name={fieldId}
           placeholder={placeholder}
           value={value}
           onChange={handleChange}
-          className="px-3 w-full focus:outline-none text-[#ffffff]"
+          disabled={disabled}
+          className={cn(
+            "px-3 w-full bg-transparent focus:outline-none text-foreground",
+            icon && "pl-0",
+          )}
+          aria-invalid={error ? "true" : "false"}
+          aria-describedby={describedBy}
+          aria-required={required}
           // Disable number input spinner (this works for most modern browsers)
           inputMode={type === "number" ? "numeric" : "text"}
           pattern={type === "number" ? "[0-9]*" : undefined}
@@ -48,10 +93,24 @@ const TextInput: React.FC<TextInputProps> = ({
             WebkitAppearance: "none",
             MozAppearance: "textfield",
             fontSize: "14px",
-            paddingRight: "10px",
           }}
         />
       </div>
+      {helperText && !error && (
+        <p id={descriptionId} className="text-xs text-muted-foreground">
+          {helperText}
+        </p>
+      )}
+      {error && (
+        <p
+          id={errorId}
+          className="text-xs text-destructive"
+          role="alert"
+          aria-live="polite"
+        >
+          {helperText}
+        </p>
+      )}
     </div>
   );
 };

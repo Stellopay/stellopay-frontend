@@ -10,8 +10,10 @@ import {
   FormControl,
   FormField,
   FormItem,
+  FormLabel,
   FormMessage,
 } from "@/components/ui/form";
+import { FormFieldInput, FormFieldCheckbox } from "@/components/ui/form-field";
 import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
 import { Eye, EyeOff, Mail, Loader2 } from "lucide-react";
@@ -88,26 +90,15 @@ export function LoginForm() {
           onSubmit={form.handleSubmit(onSubmit)}
           className="flex flex-col gap-4"
         >
-          <FormField
+          <FormFieldInput
             control={form.control}
             name="email"
-            render={({ field }) => (
-              <FormItem>
-                <FormControl>
-                  <div className="relative">
-                    <Input
-                      type="email"
-                      placeholder="Email Address"
-                      className="pr-10 py-4 border-muted-foreground"
-                      disabled={isLoading}
-                      {...field}
-                    />
-                    <Mail className={iconsClassName} />
-                  </div>
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
+            type="email"
+            label="Email Address"
+            placeholder="Enter your email"
+            disabled={isLoading}
+            required
+            autoComplete="email"
           />
 
           <FormField
@@ -115,24 +106,36 @@ export function LoginForm() {
             name="password"
             render={({ field }) => (
               <FormItem>
+                <FormLabel>
+                  Password{" "}
+                  <span
+                    className="text-destructive"
+                    aria-label="required field"
+                  >
+                    *
+                  </span>
+                </FormLabel>
                 <FormControl>
                   <div className="relative">
                     <Input
                       type={showPassword ? "text" : "password"}
-                      placeholder="Password"
-                      className="pr-10 py-4 border-muted-foreground"
+                      placeholder="Enter your password"
+                      className="pr-10 py-4"
                       disabled={isLoading}
+                      autoComplete="current-password"
                       {...field}
                     />
                     {showPassword ? (
                       <EyeOff
                         className={`${iconsClassName} cursor-pointer`}
                         onClick={() => setShowPassword(false)}
+                        aria-label="Hide password"
                       />
                     ) : (
                       <Eye
                         className={`${iconsClassName} cursor-pointer`}
                         onClick={() => setShowPassword(true)}
+                        aria-label="Show password"
                       />
                     )}
                   </div>
@@ -144,26 +147,11 @@ export function LoginForm() {
 
           {/* Remember Me and Forgot Password */}
           <div className="flex items-center justify-between">
-            <FormField
+            <FormFieldCheckbox
               control={form.control}
               name="rememberMe"
-              render={({ field }) => (
-                <FormItem>
-                  <div className="flex items-center space-x-2">
-                    <FormControl>
-                      <Checkbox
-                        checked={field.value}
-                        onCheckedChange={field.onChange}
-                        disabled={isLoading}
-                        className="border-[#2D2D2D] data-[state=checked]:bg-[#201322] data-[state=checked]:border-[#2D2D2D]"
-                      />
-                    </FormControl>
-                    <label className="text-[#E5E5E5] text-sm">
-                      Remember me
-                    </label>
-                  </div>
-                </FormItem>
-              )}
+              label="Remember me"
+              disabled={isLoading}
             />
             <Link
               href="/auth/forgot-password"
