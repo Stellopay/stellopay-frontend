@@ -65,18 +65,27 @@ export interface AppLayoutProps {
   children: React.ReactNode;
 }
 
-export interface PaginationProps {
-  currentPage: number;
-  totalPages: number;
-  totalItems: number;
-  onPageChange: (page: number) => void;
-}
-
+/**
+ * Canonical pagination props used by TransactionsPagination.
+ * itemsPerPage defaults to 10; onPageChange is optional (read-only mode).
+ */
 export interface TransactionsPaginationProps {
   totalItems: number;
   currentPage?: number;
   itemsPerPage?: number;
   onPageChange?: (page: number) => void;
+}
+
+/**
+ * @deprecated Use TransactionsPaginationProps instead.
+ * Kept for backward compatibility; consumers should migrate to
+ * TransactionsPagination from components/transactions/transactions-pagination.
+ */
+export interface PaginationProps {
+  currentPage: number;
+  totalPages: number;
+  totalItems: number;
+  onPageChange: (page: number) => void;
 }
 
 // UI library component types

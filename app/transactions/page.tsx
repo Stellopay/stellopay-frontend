@@ -5,7 +5,7 @@ import Navbar from "@/components/common/navbar";
 import React, { useEffect, useMemo, useState } from "react";
 import { SideBar } from "@/components/common/side-bar";
 import { TransactionsTable } from "@/components/transactions/transactions-table";
-import { Pagination } from "@/components/transactions/pagination";
+import TransactionsPagination from "@/components/transactions/transactions-pagination";
 import { transactions as allTransactions } from "@/public/data/mock-data";
 import TableSearchbar from "@/components/transactions/table-searchbar";
 import Filter from "@/components/transactions/filter";
@@ -42,7 +42,6 @@ const Transactions = () => {
   const startIndex = (currentPage - 1) * itemsPerPage;
   const endIndex = startIndex + itemsPerPage;
   const transactions = dateFilteredTransactions.slice(startIndex, endIndex);
-  const totalPages = Math.ceil(dateFilteredTransactions.length / itemsPerPage);
 
   useEffect(() => {
     setCurrentPage(1);
@@ -120,11 +119,11 @@ const Transactions = () => {
           </div>
         </div>
         {dateFilteredTransactions.length > 0 && (
-          <Pagination
+          <TransactionsPagination
+            totalItems={dateFilteredTransactions.length}
             currentPage={currentPage}
-            totalPages={totalPages}
+            itemsPerPage={itemsPerPage}
             onPageChange={setCurrentPage}
-            totalItems={transactionsToShow?.length}
           />
         )}
       </main>
