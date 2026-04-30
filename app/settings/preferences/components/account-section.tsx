@@ -13,6 +13,8 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { cn } from "@/utils/commonUtils";
 import DestructiveActionDialog from "./destructive-action-dialog";
 
 interface ProfileState {
@@ -281,21 +283,26 @@ function Field({
   type?: string;
   disabled?: boolean;
 }) {
+  const fieldId = id;
+  const descriptionId = `${fieldId}-description`;
+
   return (
     <div className="space-y-2">
-      <label
-        htmlFor={id}
+      <Label
+        htmlFor={fieldId}
         className="text-sm font-medium text-zinc-900 dark:text-white"
       >
         {label}
-      </label>
+      </Label>
       <Input
-        id={id}
+        id={fieldId}
         type={type}
         value={value}
         disabled={disabled}
         onChange={(event) => onChange(event.target.value)}
         className="border-zinc-200 bg-white dark:border-white/10 dark:bg-white/5"
+        labelId={`${fieldId}-label`}
+        descriptionId={descriptionId}
       />
     </div>
   );
@@ -314,19 +321,23 @@ function SelectField({
   options: string[];
   onChange: (value: string) => void;
 }) {
+  const fieldId = id;
+  const descriptionId = `${fieldId}-description`;
+
   return (
     <div className="space-y-2">
-      <label
-        htmlFor={id}
+      <Label
+        htmlFor={fieldId}
         className="text-sm font-medium text-zinc-900 dark:text-white"
       >
         {label}
-      </label>
+      </Label>
       <select
-        id={id}
+        id={fieldId}
         value={value}
         onChange={(event) => onChange(event.target.value)}
         className="h-10 w-full rounded-md border border-zinc-200 bg-white px-3 text-sm text-zinc-900 outline-none transition focus:border-zinc-900 focus:ring-2 focus:ring-zinc-900/10 dark:border-white/10 dark:bg-white/5 dark:text-white dark:focus:border-white"
+        aria-describedby={descriptionId}
       >
         {options.map((option) => (
           <option key={option} value={option}>
