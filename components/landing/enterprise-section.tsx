@@ -63,7 +63,7 @@ const EnterpriseSolutionSection = () => {
         </div>
         <div className="w-full lg:w-[458.5px]">
           <p className="text-[#52525B] dark:text-[#A1A1AA] text-start font-normal text-xl leading-[32.5px]">
-            StelloPay is built for scale. Whether you're a startup or an
+            StelloPay is built for scale. Whether you&apos;re a startup or an
             enterprise, our platform grows with your business needs.
           </p>
         </div>

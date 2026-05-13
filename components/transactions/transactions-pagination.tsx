@@ -86,9 +86,11 @@ export default function TransactionsPagination({
 
   return (
     <nav
+      role="navigation"
       aria-label="Pagination"
       aria-labelledby={navId}
-      className="flex flex-col items-center justify-center mt-6 gap-4 lg:flex-row"
+      tabIndex={0}
+      className="flex flex-col items-center justify-center mt-6 gap-4 lg:flex-row focus:outline-none"
       onKeyDown={handleKeyDown}
     >
       {/* Screen-reader-only label */}

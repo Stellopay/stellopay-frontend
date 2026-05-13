@@ -2,17 +2,14 @@
 
 import * as React from "react";
 import {
-  Controller,
   ControllerProps,
   FieldPath,
   FieldValues,
 } from "react-hook-form";
 
 import { cn } from "@/utils/commonUtils";
-import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import {
-  Form,
   FormControl,
   FormDescription,
   FormField,
@@ -55,14 +52,15 @@ export function FormFieldInput<
   autoComplete,
   ...controllerProps
 }: FormFieldInputProps<TFieldValues, TName>) {
+  const fieldId = React.useId();
+  const descriptionId = `${fieldId}-description`;
+  const errorId = `${fieldId}-error`;
+
   return (
     <FormField
       control={controllerProps.control}
       name={controllerProps.name}
       render={({ field, fieldState }) => {
-        const fieldId = React.useId();
-        const descriptionId = `${fieldId}-description`;
-        const errorId = `${fieldId}-error`;
 
         return (
           <FormItem className={cn("space-y-2", className)}>
@@ -128,14 +126,15 @@ export function FormFieldTextarea<
   resize = false,
   ...controllerProps
 }: FormFieldTextareaProps<TFieldValues, TName>) {
+  const fieldId = React.useId();
+  const descriptionId = `${fieldId}-description`;
+  const errorId = `${fieldId}-error`;
+
   return (
     <FormField
       control={controllerProps.control}
       name={controllerProps.name}
       render={({ field, fieldState }) => {
-        const fieldId = React.useId();
-        const descriptionId = `${fieldId}-description`;
-        const errorId = `${fieldId}-error`;
 
         return (
           <FormItem className={cn("space-y-2", className)}>
@@ -205,14 +204,15 @@ export function FormFieldCheckbox<
   indeterminate,
   ...controllerProps
 }: FormFieldCheckboxProps<TFieldValues, TName>) {
+  const fieldId = React.useId();
+  const descriptionId = `${fieldId}-description`;
+  const errorId = `${fieldId}-error`;
+
   return (
     <FormField
       control={controllerProps.control}
       name={controllerProps.name}
       render={({ field, fieldState }) => {
-        const fieldId = React.useId();
-        const descriptionId = `${fieldId}-description`;
-        const errorId = `${fieldId}-error`;
 
         return (
           <FormItem className={cn("space-y-2", className)}>
@@ -222,7 +222,7 @@ export function FormFieldCheckbox<
                   type="checkbox"
                   id={fieldId}
                   checked={field.value}
-                  onCheckedChange={field.onChange}
+                  onChange={(e) => field.onChange(e.target.checked)}
                   disabled={disabled}
                   className={cn(
                     "h-4 w-4 rounded border border-primary text-primary focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50",

@@ -1,6 +1,5 @@
 'use client'
 import Link from "next/link";
-import Image from "next/image";
 import { HiMiniMagnifyingGlass } from "react-icons/hi2";
 
 export default function SideBar() {

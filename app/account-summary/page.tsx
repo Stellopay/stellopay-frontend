@@ -8,7 +8,7 @@ import Piggy from "@/public/piggy-bank.png";
 import { copyToClipboardWithTimeout } from "@/utils/clipboardUtils";
 
 
-function AccountSummaryView({ isLoading = false }: { isLoading?: boolean }) {
+function AccountSummaryView({ isLoading: _isLoading = false }: { isLoading?: boolean }) {
   const [copied, setCopied] = useState(false);
   const address = "0x8dE1243U45...67800UZ";
 

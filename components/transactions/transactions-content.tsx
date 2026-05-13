@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useCallback } from "react";
 import type {
   SortField,
   TransactionFilters,
@@ -13,7 +13,7 @@ import TransactionsHeader from "./transactions-header";
 import TransactionsFilters from "./transactions-filters";
 import { TransactionsTable } from "./transactions-table";
 import TransactionsPagination from "./transactions-pagination";
-import { getPageItems, getTotalPages } from "@/utils/paginationUtils";
+import { getPageItems } from "@/utils/paginationUtils";
 
 export default function TransactionsContent() {
   const [filters, setFilters] = useState<TransactionFilters>({
@@ -66,22 +66,23 @@ export default function TransactionsContent() {
   };
 
   // Helper function to transform Transaction to TransactionProps
-  const transformTransaction = (
-    transaction: Transaction,
-  ): TransactionProps => ({
-    id: transaction.id,
-    type: transaction.type,
-    address: transaction.address,
-    date: transaction.date,
-    time: transaction.time,
-    token: transaction.token,
-    amount:
-      transaction.amount >= 0
-        ? `+$${transaction.amount.toFixed(2)}`
-        : `-$${Math.abs(transaction.amount).toFixed(2)}`,
-    status: transaction.status as "Completed" | "Pending" | "Failed",
-    tokenIcon: getTokenIcon(transaction.token),
-  });
+  const transformTransaction = useCallback(
+    (transaction: Transaction): TransactionProps => ({
+      id: transaction.id,
+      type: transaction.type,
+      address: transaction.address,
+      date: transaction.date,
+      time: transaction.time,
+      token: transaction.token,
+      amount:
+        transaction.amount >= 0
+          ? `+$${transaction.amount.toFixed(2)}`
+          : `-$${Math.abs(transaction.amount).toFixed(2)}`,
+      status: transaction.status as "Completed" | "Pending" | "Failed",
+      tokenIcon: getTokenIcon(transaction.token),
+    }),
+    [],
+  );
 
   // Convert mock data to Transaction format for processing
   const convertedTransactions = useMemo(() => {
@@ -106,7 +107,7 @@ export default function TransactionsContent() {
 
     // Transform back to TransactionProps format for display
     return sorted.map(transformTransaction);
-  }, [convertedTransactions, filters]);
+  }, [convertedTransactions, filters, transformTransaction]);
 
   // Get paginated transactions
   const paginatedTransactions = useMemo(() => {
@@ -114,7 +115,10 @@ export default function TransactionsContent() {
   }, [processedTransactions, currentPage, itemsPerPage]);
 
   // Reset to first page when filters change
-  const updateFilter = (key: keyof TransactionFilters, value: any) => {
+  const updateFilter = <K extends keyof TransactionFilters>(
+    key: K,
+    value: TransactionFilters[K],
+  ) => {
     setFilters((prev) => ({ ...prev, [key]: value }));
     setCurrentPage(1); // Reset to first page when filters change
   };

@@ -16,8 +16,7 @@ import {
 import { FormFieldInput, FormFieldCheckbox } from "@/components/ui/form-field";
 import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
-import { Eye, EyeOff, Mail, Loader2 } from "lucide-react";
-import { Checkbox } from "@/components/ui/checkbox";
+import { Eye, EyeOff, Loader2 } from "lucide-react";
 import { AuthSocialButtons } from "../auth-social-buttons";
 import { loginSchema, LoginFormValues } from "@/types/auth";
 
@@ -62,7 +61,7 @@ export function LoginForm() {
           </h1>
           <div>
             <p className="text-muted-foreground text-sm text-center md:text-left">
-              Don't have an account?{" "}
+              Don&apos;t have an account?{" "}
               <Link
                 href={"/auth/sign-up"}
                 className="underline underline-offset-4 text-white"

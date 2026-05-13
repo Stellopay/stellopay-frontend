@@ -1,4 +1,3 @@
-import { TransactionIcon } from "@/public/svg/svg";
 import { Shield, CreditCard, HeadphonesIcon } from "lucide-react";
 
 const benefits = [

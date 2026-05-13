@@ -5,12 +5,9 @@ import DashboardNavbar from '@/components/dashboard/dashboard-navbar';
 import AccountOverview from '@/components/dashboard/account-overview';
 import { QuickActions } from '@/components/dashboard/quick-actions';
 import { AnalyticsInsights } from '@/components/dashboard/analytics-insights';
-import AnalyticsView from '@/components/dashboard/analytics-view';
-import TransactionHistory from './transaction-history';
-import ClientAnalyticsView from '../analytics/client-analytics-view';
 
 export default function Dashboard() {
-  const [isLoading, setIsLoading] = useState(true);
+  const [, setIsLoading] = useState(true);
 
   // Simulate loading for demo purposes
   useEffect(() => {

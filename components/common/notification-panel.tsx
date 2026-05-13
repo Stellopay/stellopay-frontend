@@ -1,8 +1,7 @@
 import React from "react";
-import { BellIcon, ChevronRight, ChevronRightIcon } from "lucide-react";
+import { BellIcon, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { IconBell } from "@/components/icons/bell-fill-icon";
-import { NotificationItem } from "@/types/notification-item";
 import { NotificationProps } from "@/types/ui";
 import { Skeleton } from "@/components/ui/skeleton";
 
@@ -10,7 +9,7 @@ interface NotificationPanelProps extends NotificationProps {
   isLoading?: boolean;
 }
 
-const NotificationPanel = ({ className, notifications, isLoading = false }: NotificationPanelProps) => {
+const NotificationPanel = ({ className: _className, notifications, isLoading = false }: NotificationPanelProps) => {
   if (isLoading) {
     return (
       <div className="bg-[#0D0D0D80] bg-opacity-50 border border-[#2D2D2D] max-w-[400px] rounded-xl p-4 text-[#E5E5E5]">

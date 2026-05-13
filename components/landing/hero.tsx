@@ -3,7 +3,6 @@ import React from 'react'
 import { ArrowRight, CircleCheck, Shield, Sparkles, Wallet, Zap } from 'lucide-react'
 import stellar from '../../public/stellar.png'
 import skartnet from '../../public/StarknetIcon.png'
-import { useTheme } from '@material-tailwind/react'
 
 
 interface Info {

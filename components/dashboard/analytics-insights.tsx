@@ -11,7 +11,6 @@ import {
   ArrowRight,
   type LucideIcon,
 } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import { cn } from "@/utils/commonUtils";
 
 export interface KPICardItem {

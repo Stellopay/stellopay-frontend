@@ -1,6 +1,4 @@
-import { ArrowDownToLine, Send } from "lucide-react";
-
-export default function DashboardHeader({ pageTitle }: { pageTitle: string }) {
+export default function DashboardHeader(_props: { pageTitle: string }) {
   return null;
   /*
   return (

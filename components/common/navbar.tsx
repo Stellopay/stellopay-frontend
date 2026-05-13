@@ -1,17 +1,13 @@
 // components/Navbar.tsx
 "use client";
 
-import { Bell, Settings, HelpCircle } from "lucide-react";
-import NetworkSwitcher from "./network-switcher";
-import { Skeleton } from "@/components/ui/skeleton";
-
 interface NavbarProps {
   walletAddress?: string;
   isLoadingWallet?: boolean;
   isLoadingNetwork?: boolean;
 }
 
-export default function Navbar({ walletAddress, isLoadingWallet = false, isLoadingNetwork = false }: NavbarProps) {
+export default function Navbar(_props: NavbarProps) {
   return null;
   /*
   return (

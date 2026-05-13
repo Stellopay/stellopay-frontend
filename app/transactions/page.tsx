@@ -1,9 +1,7 @@
 "use client";
 
 import TransactionHeader from "@/components/dashboard/transaction-header";
-import Navbar from "@/components/common/navbar";
 import React, { useEffect, useMemo, useState } from "react";
-import { SideBar } from "@/components/common/side-bar";
 import { TransactionsTable } from "@/components/transactions/transactions-table";
 import TransactionsPagination from "@/components/transactions/transactions-pagination";
 import { transactions as allTransactions } from "@/public/data/mock-data";

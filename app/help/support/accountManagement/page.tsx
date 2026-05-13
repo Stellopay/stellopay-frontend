@@ -100,7 +100,7 @@ export default function AccountManagement() {
                             How to Reset Your Stellopay Password
                           </p>
                           <p className="text-white text-sm leading-relaxed">
-                            If you've forgotten your password or need to change
+                            If you&apos;ve forgotten your password or need to change
                             it for security reasons, follow these simple steps
                             to reset it.
                           </p>
@@ -114,15 +114,15 @@ export default function AccountManagement() {
                             <li className="flex items-start">
                               <span className="font-semibold mr-2">1.</span>
                               <span>
-                                Open the Stellopay App and tap on "Forgot
-                                Password?" on the login screen.
+                                Open the Stellopay App and tap on &quot;Forgot
+                                Password?&quot; on the login screen.
                               </span>
                             </li>
                             <li className="flex items-start">
                               <span className="font-semibold mr-2">2.</span>
                               <span>
                                 Enter your registered email or phone number and
-                                tap "Send Reset Link."
+                                tap &quot;Send Reset Link.&quot;
                               </span>
                             </li>
                             <li className="flex items-start">
@@ -164,7 +164,7 @@ export default function AccountManagement() {
                               <span className="font-semibold mr-2">2.</span>
                               <span>
                                 Enter your registered email or phone number and
-                                click "Request Reset."
+                                click &quot;Request Reset.&quot;
                               </span>
                             </li>
                             <li className="flex items-start">
@@ -211,7 +211,7 @@ export default function AccountManagement() {
                             Still Need Help?
                           </h3>
                           <p className="text-[#E5E5E5] text-sm leading-relaxed mb-2">
-                            If you don't receive the reset email or face any
+                            If you don&apos;t receive the reset email or face any
                             issues, contact Stellopay Support at
                             support@stellopay.com or call +XXX XXXX XXX XXXX.
                           </p>

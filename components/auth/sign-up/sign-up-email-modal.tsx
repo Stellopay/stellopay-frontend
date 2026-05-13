@@ -37,11 +37,11 @@ export function SignUpEmailModal({
 
         <div className="text-center space-y-4">
           <p className="text-gray-300 text-sm">
-            We've sent a verification code to
+            We&apos;ve sent a verification code to
           </p>
           {email && <p className="text-white text-sm font-medium">{email}</p>}
           <p className="text-gray-400 text-sm">
-            Didn't get code?{" "}
+            Didn&apos;t get code?{" "}
             <button
               onClick={handleResend}
               disabled={isResending}

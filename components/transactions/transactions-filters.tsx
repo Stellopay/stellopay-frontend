@@ -15,11 +15,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import type {
-  SortField,
-  SortDirection,
-  TransactionsFiltersProps,
-} from "@/types/transaction";
+import type { TransactionsFiltersProps } from "@/types/transaction";
 
 export default function TransactionsFilters({
   searchQuery,

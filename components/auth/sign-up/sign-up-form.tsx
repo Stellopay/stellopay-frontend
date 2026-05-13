@@ -13,11 +13,10 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
-import { FormFieldInput, FormFieldCheckbox } from "@/components/ui/form-field";
+import { FormFieldInput } from "@/components/ui/form-field";
 import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
-import { Eye, EyeOff, Mail, User, Check, X } from "lucide-react";
-import { Checkbox } from "@/components/ui/checkbox";
+import { Eye, EyeOff, Check, X } from "lucide-react";
 import { SignUpEmailModal } from "./sign-up-email-modal";
 import { AuthSocialButtons } from "../auth-social-buttons";
 import { signUpSchema, SignUpFormValues } from "@/types/auth";
@@ -36,6 +35,7 @@ export function SignUpForm() {
   const [isPasswordStrong, setIsPasswordStrong] = useState(false);
   const [showEmailModal, setShowEmailModal] = useState(false);
   const [submittedEmail, setSubmittedEmail] = useState("");
+  const agreeToTermsId = React.useId();
 
   const handlePasswordCheck = (password: string) => {
     const requirements = checkPasswordRequirements(password);
@@ -314,14 +314,13 @@ export function SignUpForm() {
             control={form.control}
             name="agreeToTerms"
             render={({ field }) => {
-              const fieldId = React.useId();
               return (
                 <FormItem>
                   <div className="flex items-start space-x-2 pt-2">
                     <FormControl>
                       <input
                         type="checkbox"
-                        id={fieldId}
+                        id={agreeToTermsId}
                         checked={field.value}
                         onChange={(e) => field.onChange(e.target.checked)}
                         className="h-4 w-4 rounded border border-input text-primary focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
@@ -329,10 +328,10 @@ export function SignUpForm() {
                     </FormControl>
                     <div className="text-xs leading-relaxed">
                       <label
-                        htmlFor={fieldId}
+                        htmlFor={agreeToTermsId}
                         className="text-[#E5E5E5] cursor-pointer"
                       >
-                        By selecting Agree and continue, I agree to Stellopay's{" "}
+                        By selecting Agree and continue, I agree to Stellopay&apos;s{" "}
                         <Link
                           href={"/terms"}
                           className="text-[#92569D] underline underline-offset-4"
