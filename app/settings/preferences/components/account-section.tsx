@@ -14,6 +14,7 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { FormMessage } from "@/components/ui/form";
 import DestructiveActionDialog from "./destructive-action-dialog";
 
 interface ProfileState {
@@ -162,9 +163,11 @@ export default function AccountSection() {
           </div>
 
           {statusMessage ? (
-            <p className="rounded-2xl border border-emerald-500/20 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-700 dark:text-emerald-300">
-              {statusMessage}
-            </p>
+            <div className="rounded-2xl border border-success/20 bg-success/10 px-4 py-3">
+              <FormMessage variant="success" className="text-success">
+                {statusMessage}
+              </FormMessage>
+            </div>
           ) : null}
 
           <details className="rounded-2xl border border-zinc-200 bg-zinc-50 p-4 dark:border-white/10 dark:bg-white/5">

@@ -15,15 +15,29 @@ import type {
 const SidebarContext = createContext<SidebarContextProps | null>(null);
 
 export const SidebarProvider: FC<SidebarProviderProps> = ({ children }) => {
-  // Initialize with localStorage value if available, default to true otherwise
-  const [isSidebarOpen, setIsSidebarOpenState] = useState<boolean>(() => {
-    // Only run in browser
-    if (typeof window !== "undefined") {
-      const savedState = localStorage.getItem("sidebarOpen");
-      return savedState !== null ? savedState === "true" : true;
+  // Initialize with a default; hydrate from localStorage on the client.
+  const [isSidebarOpen, setIsSidebarOpenState] = useState<boolean>(true);
+
+  // Hydrate sidebar open state from localStorage on the client.
+  useEffect(() => {
+    if (typeof window === "undefined") {
+      return;
     }
-    return true;
-  });
+
+    const storage = window.localStorage;
+    if (!storage || typeof storage.getItem !== "function") {
+      return;
+    }
+
+    try {
+      const savedState = storage.getItem("sidebarOpen");
+      if (savedState !== null) {
+        setIsSidebarOpenState(savedState === "true");
+      }
+    } catch (e) {
+      // ignore invalid localStorage implementations
+    }
+  }, []);
 
   // Screen size tracking
   const [screenSize, setScreenSize] = useState<number | undefined>(undefined);

@@ -13,18 +13,20 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
-import { FormFieldInput } from "@/components/ui/form-field";
+import {
+  FormFieldInput,
+  FormFieldPassword,
+  FormFieldCheckbox,
+} from "@/components/ui/form-field";
 import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
-import { Eye, EyeOff, Check, X } from "lucide-react";
+import { Check, X } from "lucide-react";
 import { SignUpEmailModal } from "./sign-up-email-modal";
 import { AuthSocialButtons } from "../auth-social-buttons";
 import { signUpSchema, SignUpFormValues } from "@/types/auth";
 import { checkPasswordRequirements } from "@/utils/authUtils";
 
 export function SignUpForm() {
-  const [showPassword, setShowPassword] = useState(false);
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [passwordRequirements, setPasswordRequirements] = useState({
     minLength: false,
     uppercase: false,
@@ -57,13 +59,10 @@ export function SignUpForm() {
   });
 
   function onSubmit(data: SignUpFormValues) {
-    console.log("Form submitted:", data);
+    // No sensitive data logging
     setSubmittedEmail(data.email);
     setShowEmailModal(true);
   }
-
-  const iconsClassName =
-    "absolute right-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground";
 
   return (
     <section className="w-full order-1 lg:order-1">
@@ -119,57 +118,22 @@ export function SignUpForm() {
             required
             autoComplete="email"
           />
-          <FormField
+          <FormFieldPassword
             control={form.control}
             name="password"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>
-                  Password{" "}
-                  <span
-                    className="text-destructive"
-                    aria-label="required field"
-                  >
-                    *
-                  </span>
-                </FormLabel>
-                <FormControl>
-                  <div className="relative">
-                    <Input
-                      type={showPassword ? "text" : "password"}
-                      placeholder="Create a password"
-                      className="pr-10 py-4"
-                      autoComplete="new-password"
-                      {...field}
-                      onChange={(e) => {
-                        field.onChange(e);
-                        const value = e.target.value;
-                        if (value.length > 0) {
-                          setShowPasswordRequirements(true);
-                          handlePasswordCheck(value);
-                        } else {
-                          setShowPasswordRequirements(false);
-                        }
-                      }}
-                    />
-                    {showPassword ? (
-                      <EyeOff
-                        className={`${iconsClassName} cursor-pointer`}
-                        onClick={() => setShowPassword(false)}
-                        aria-label="Hide password"
-                      />
-                    ) : (
-                      <Eye
-                        className={`${iconsClassName} cursor-pointer`}
-                        onClick={() => setShowPassword(true)}
-                        aria-label="Show password"
-                      />
-                    )}
-                  </div>
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
+            label="Password"
+            placeholder="Create a password"
+            required
+            autoComplete="new-password"
+            onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+              const value = e.target.value;
+              if (value.length > 0) {
+                setShowPasswordRequirements(true);
+                handlePasswordCheck(value);
+              } else {
+                setShowPasswordRequirements(false);
+              }
+            }}
           />
           {/* Password Requirements */}
           {showPasswordRequirements && (
@@ -268,96 +232,41 @@ export function SignUpForm() {
               )}
             </div>
           )}
-          <FormField
+          <FormFieldPassword
             control={form.control}
             name="confirmPassword"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>
-                  Confirm Password{" "}
-                  <span
-                    className="text-destructive"
-                    aria-label="required field"
-                  >
-                    *
-                  </span>
-                </FormLabel>
-                <FormControl>
-                  <div className="relative">
-                    <Input
-                      type={showPassword ? "text" : "password"}
-                      placeholder="Confirm your password"
-                      className="pr-10 py-4"
-                      autoComplete="new-password"
-                      {...field}
-                    />
-                    {showConfirmPassword ? (
-                      <EyeOff
-                        className={`${iconsClassName} cursor-pointer`}
-                        onClick={() => setShowConfirmPassword(false)}
-                        aria-label="Hide password"
-                      />
-                    ) : (
-                      <Eye
-                        className={`${iconsClassName} cursor-pointer`}
-                        onClick={() => setShowConfirmPassword(true)}
-                        aria-label="Show password"
-                      />
-                    )}
-                  </div>
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
+            label="Confirm Password"
+            placeholder="Confirm your password"
+            required
+            autoComplete="new-password"
           />
-          <FormField
+          <FormFieldCheckbox
             control={form.control}
             name="agreeToTerms"
-            render={({ field }) => {
-              return (
-                <FormItem>
-                  <div className="flex items-start space-x-2 pt-2">
-                    <FormControl>
-                      <input
-                        type="checkbox"
-                        id={agreeToTermsId}
-                        checked={field.value}
-                        onChange={(e) => field.onChange(e.target.checked)}
-                        className="h-4 w-4 rounded border border-input text-primary focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
-                      />
-                    </FormControl>
-                    <div className="text-xs leading-relaxed">
-                      <label
-                        htmlFor={agreeToTermsId}
-                        className="text-[#E5E5E5] cursor-pointer"
-                      >
-                        By selecting Agree and continue, I agree to Stellopay&apos;s{" "}
-                        <Link
-                          href={"/terms"}
-                          className="text-[#92569D] underline underline-offset-4"
-                        >
-                          Terms of Service,
-                        </Link>{" "}
-                        and acknowledge the{" "}
-                        <Link
-                          href={"/terms"}
-                          className="text-[#92569D] underline underline-offset-4"
-                        >
-                          Privacy Policy.
-                        </Link>
-                        <span
-                          className="text-destructive ml-1"
-                          aria-label="required field"
-                        >
-                          *
-                        </span>
-                      </label>
-                    </div>
-                  </div>
-                  <FormMessage />
-                </FormItem>
-              );
-            }}
+            label={
+              <span className="text-[#E5E5E5] cursor-pointer text-xs leading-relaxed">
+                By selecting Agree and continue, I agree to Stellopay&apos;s{" "}
+                <Link
+                  href={"/terms"}
+                  className="text-[#92569D] underline underline-offset-4"
+                >
+                  Terms of Service,
+                </Link>{" "}
+                and acknowledge the{" "}
+                <Link
+                  href={"/terms"}
+                  className="text-[#92569D] underline underline-offset-4"
+                >
+                  Privacy Policy.
+                </Link>
+                <span
+                  className="text-destructive ml-1"
+                  aria-label="required field"
+                >
+                  *
+                </span>
+              </span>
+            }
           />
           <Button type="submit" variant={"secondary"} className="">
             Create Account

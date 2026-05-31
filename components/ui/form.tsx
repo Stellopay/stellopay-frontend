@@ -87,6 +87,8 @@ function FormItem({ className, ...props }: React.ComponentProps<"div">) {
 function FormLabel({
   className,
   error: errorProp,
+  success: successProp,
+  warning: warningProp,
   ...props
 }: React.ComponentProps<typeof Label>) {
   const { error, formItemId } = useFormField();
@@ -96,8 +98,17 @@ function FormLabel({
     <Label
       data-slot="form-label"
       data-error={hasError}
+      data-success={successProp}
+      data-warning={warningProp}
       error={hasError}
-      className={cn("data-[error=true]:text-destructive", className)}
+      success={successProp}
+      warning={warningProp}
+      className={cn(
+        "data-[error=true]:text-destructive",
+        "data-[success=true]:text-success",
+        "data-[warning=true]:text-warning",
+        className,
+      )}
       htmlFor={formItemId}
       {...props}
     />
@@ -136,7 +147,13 @@ function FormDescription({ className, ...props }: React.ComponentProps<"p">) {
   );
 }
 
-function FormMessage({ className, ...props }: React.ComponentProps<"p">) {
+function FormMessage({
+  className,
+  variant = "error",
+  ...props
+}: React.ComponentProps<"p"> & {
+  variant?: "error" | "success" | "warning";
+}) {
   const { error, formMessageId } = useFormField();
   const body = error ? String(error?.message ?? "") : props.children;
 
@@ -148,9 +165,15 @@ function FormMessage({ className, ...props }: React.ComponentProps<"p">) {
     <p
       data-slot="form-message"
       id={formMessageId}
-      role={error ? "alert" : undefined}
-      aria-live={error ? "polite" : undefined}
-      className={cn("text-destructive text-sm", className)}
+      role={error || variant !== "error" ? "alert" : undefined}
+      aria-live={error || variant !== "error" ? "polite" : undefined}
+      className={cn(
+        "text-sm",
+        (error || variant === "error") && "text-destructive",
+        variant === "success" && !error && "text-success",
+        variant === "warning" && !error && "text-warning",
+        className,
+      )}
       {...props}
     >
       {body}
