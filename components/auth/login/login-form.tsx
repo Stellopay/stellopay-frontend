@@ -124,19 +124,19 @@ export function LoginForm() {
                       autoComplete="current-password"
                       {...field}
                     />
-                    {showPassword ? (
-                      <EyeOff
-                        className={`${iconsClassName} cursor-pointer`}
-                        onClick={() => setShowPassword(false)}
-                        aria-label="Hide password"
-                      />
-                    ) : (
-                      <Eye
-                        className={`${iconsClassName} cursor-pointer`}
-                        onClick={() => setShowPassword(true)}
-                        aria-label="Show password"
-                      />
-                    )}
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword((v) => !v)}
+                      aria-label={showPassword ? "Hide password" : "Show password"}
+                      aria-pressed={showPassword}
+                      className={`${iconsClassName} cursor-pointer bg-transparent border-0 p-0 focus:outline-none focus:ring-2 focus:ring-ring rounded`}
+                    >
+                      {showPassword ? (
+                        <EyeOff aria-hidden="true" />
+                      ) : (
+                        <Eye aria-hidden="true" />
+                      )}
+                    </button>
                   </div>
                 </FormControl>
                 <FormMessage />
