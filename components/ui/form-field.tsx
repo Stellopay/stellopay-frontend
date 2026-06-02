@@ -1,14 +1,12 @@
 "use client";
 
 import * as React from "react";
-import {
-  ControllerProps,
-  FieldPath,
-  FieldValues,
-} from "react-hook-form";
+import { ControllerProps, FieldPath, FieldValues } from "react-hook-form";
 
 import { cn } from "@/utils/commonUtils";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   FormControl,
   FormDescription,
@@ -19,23 +17,27 @@ import {
 } from "@/components/ui/form";
 
 interface FormFieldBaseProps {
-  label?: string;
+  label?: React.ReactNode;
   description?: string;
   required?: boolean;
   placeholder?: string;
   disabled?: boolean;
   className?: string;
+  success?: boolean;
+  warning?: boolean;
+  loading?: boolean;
+  successMessage?: string;
+  warningMessage?: string;
 }
 
 interface FormFieldInputProps<
   TFieldValues extends FieldValues = FieldValues,
   TName extends FieldPath<TFieldValues> = FieldPath<TFieldValues>,
->
-  extends
-    FormFieldBaseProps,
+> extends FormFieldBaseProps,
     Omit<ControllerProps<TFieldValues, TName>, "render"> {
   type?: "text" | "email" | "password" | "number" | "tel" | "url";
   autoComplete?: string;
+  onChange?: (e: React.ChangeEvent<HTMLInputElement>) => void;
 }
 
 export function FormFieldInput<
@@ -48,6 +50,11 @@ export function FormFieldInput<
   placeholder,
   disabled,
   className,
+  success,
+  warning,
+  loading,
+  successMessage,
+  warningMessage,
   type = "text",
   autoComplete,
   ...controllerProps
@@ -61,7 +68,6 @@ export function FormFieldInput<
       control={controllerProps.control}
       name={controllerProps.name}
       render={({ field, fieldState }) => {
-
         return (
           <FormItem className={cn("space-y-2", className)}>
             {label && (
@@ -69,6 +75,8 @@ export function FormFieldInput<
                 htmlFor={fieldId}
                 required={required}
                 error={!!fieldState.error}
+                success={success}
+                warning={warning}
                 descriptionId={description ? descriptionId : undefined}
               >
                 {label}
@@ -82,9 +90,16 @@ export function FormFieldInput<
                 disabled={disabled}
                 autoComplete={autoComplete}
                 error={!!fieldState.error}
+                success={success}
+                warning={warning}
+                loading={loading}
                 labelId={label ? `${fieldId}-label` : undefined}
                 descriptionId={description ? descriptionId : undefined}
-                errorId={fieldState.error ? errorId : undefined}
+                errorId={
+                  fieldState.error || successMessage || warningMessage
+                    ? errorId
+                    : undefined
+                }
                 {...field}
               />
             </FormControl>
@@ -94,6 +109,12 @@ export function FormFieldInput<
               </FormDescription>
             )}
             <FormMessage />
+            {success && successMessage && !fieldState.error && (
+              <FormMessage variant="success">{successMessage}</FormMessage>
+            )}
+            {warning && warningMessage && !fieldState.error && (
+              <FormMessage variant="warning">{warningMessage}</FormMessage>
+            )}
           </FormItem>
         );
       }}
@@ -104,9 +125,7 @@ export function FormFieldInput<
 interface FormFieldTextareaProps<
   TFieldValues extends FieldValues = FieldValues,
   TName extends FieldPath<TFieldValues> = FieldPath<TFieldValues>,
->
-  extends
-    FormFieldBaseProps,
+> extends FormFieldBaseProps,
     Omit<ControllerProps<TFieldValues, TName>, "render"> {
   rows?: number;
   resize?: boolean;
@@ -122,6 +141,10 @@ export function FormFieldTextarea<
   placeholder,
   disabled,
   className,
+  success,
+  warning,
+  successMessage,
+  warningMessage,
   rows = 4,
   resize = false,
   ...controllerProps
@@ -135,7 +158,6 @@ export function FormFieldTextarea<
       control={controllerProps.control}
       name={controllerProps.name}
       render={({ field, fieldState }) => {
-
         return (
           <FormItem className={cn("space-y-2", className)}>
             {label && (
@@ -143,26 +165,28 @@ export function FormFieldTextarea<
                 htmlFor={fieldId}
                 required={required}
                 error={!!fieldState.error}
+                success={success}
+                warning={warning}
                 descriptionId={description ? descriptionId : undefined}
               >
                 {label}
               </FormLabel>
             )}
             <FormControl>
-              <textarea
+              <Textarea
                 id={fieldId}
                 placeholder={placeholder}
                 disabled={disabled}
                 rows={rows}
-                className={cn(
-                  "flex min-h-[60px] w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50",
-                  fieldState.error && "border-destructive ring-destructive/20",
-                  !resize && "resize-none",
-                  className,
-                )}
-                aria-invalid={fieldState.error ? "true" : "false"}
+                error={!!fieldState.error}
+                success={success}
+                warning={warning}
+                className={cn(!resize && "resize-none", className)}
                 aria-describedby={
-                  description || fieldState.error
+                  description ||
+                  fieldState.error ||
+                  successMessage ||
+                  warningMessage
                     ? [description, errorId].filter(Boolean).join(" ")
                     : undefined
                 }
@@ -175,6 +199,12 @@ export function FormFieldTextarea<
               </FormDescription>
             )}
             <FormMessage />
+            {success && successMessage && !fieldState.error && (
+              <FormMessage variant="success">{successMessage}</FormMessage>
+            )}
+            {warning && warningMessage && !fieldState.error && (
+              <FormMessage variant="warning">{warningMessage}</FormMessage>
+            )}
           </FormItem>
         );
       }}
@@ -185,9 +215,7 @@ export function FormFieldTextarea<
 interface FormFieldCheckboxProps<
   TFieldValues extends FieldValues = FieldValues,
   TName extends FieldPath<TFieldValues> = FieldPath<TFieldValues>,
->
-  extends
-    FormFieldBaseProps,
+> extends FormFieldBaseProps,
     Omit<ControllerProps<TFieldValues, TName>, "render"> {
   indeterminate?: boolean;
 }
@@ -201,6 +229,10 @@ export function FormFieldCheckbox<
   required,
   disabled,
   className,
+  success,
+  warning,
+  successMessage,
+  warningMessage,
   indeterminate,
   ...controllerProps
 }: FormFieldCheckboxProps<TFieldValues, TName>) {
@@ -213,32 +245,25 @@ export function FormFieldCheckbox<
       control={controllerProps.control}
       name={controllerProps.name}
       render={({ field, fieldState }) => {
-
         return (
           <FormItem className={cn("space-y-2", className)}>
             <div className="flex items-start space-x-2">
               <FormControl>
-                <input
-                  type="checkbox"
+                <Checkbox
                   id={fieldId}
                   checked={field.value}
-                  onChange={(e) => field.onChange(e.target.checked)}
+                  onCheckedChange={field.onChange}
                   disabled={disabled}
-                  className={cn(
-                    "h-4 w-4 rounded border border-primary text-primary focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50",
-                    fieldState.error && "border-destructive",
-                  )}
+                  className={cn(fieldState.error && "border-destructive")}
                   aria-invalid={fieldState.error ? "true" : "false"}
                   aria-describedby={
-                    description || fieldState.error
+                    description ||
+                    fieldState.error ||
+                    successMessage ||
+                    warningMessage
                       ? [description, errorId].filter(Boolean).join(" ")
                       : undefined
                   }
-                  ref={(element) => {
-                    if (element && indeterminate) {
-                      element.indeterminate = true;
-                    }
-                  }}
                 />
               </FormControl>
               <div className="grid gap-1.5 leading-none">
@@ -247,6 +272,8 @@ export function FormFieldCheckbox<
                     htmlFor={fieldId}
                     required={required}
                     error={!!fieldState.error}
+                    success={success}
+                    warning={warning}
                     descriptionId={description ? descriptionId : undefined}
                     className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
                   >
@@ -261,6 +288,119 @@ export function FormFieldCheckbox<
               </div>
             </div>
             <FormMessage />
+            {success && successMessage && !fieldState.error && (
+              <FormMessage variant="success">{successMessage}</FormMessage>
+            )}
+            {warning && warningMessage && !fieldState.error && (
+              <FormMessage variant="warning">{warningMessage}</FormMessage>
+            )}
+          </FormItem>
+        );
+      }}
+    />
+  );
+}
+
+import { Eye, EyeOff } from "lucide-react";
+
+export function FormFieldPassword<
+  TFieldValues extends FieldValues = FieldValues,
+  TName extends FieldPath<TFieldValues> = FieldPath<TFieldValues>,
+>({
+  label,
+  description,
+  required,
+  placeholder,
+  disabled,
+  className,
+  success,
+  warning,
+  loading,
+  successMessage,
+  warningMessage,
+  autoComplete,
+  ...controllerProps
+}: FormFieldInputProps<TFieldValues, TName>) {
+  const [showPassword, setShowPassword] = React.useState(false);
+  const fieldId = React.useId();
+  const descriptionId = `${fieldId}-description`;
+  const errorId = `${fieldId}-error`;
+
+  return (
+    <FormField
+      control={controllerProps.control}
+      name={controllerProps.name}
+      render={({ field, fieldState }) => {
+        return (
+          <FormItem className={cn("space-y-2", className)}>
+            {label && (
+              <FormLabel
+                htmlFor={fieldId}
+                required={required}
+                error={!!fieldState.error}
+                success={success}
+                warning={warning}
+                descriptionId={description ? descriptionId : undefined}
+              >
+                {label}
+              </FormLabel>
+            )}
+            <FormControl>
+              <div className="relative">
+                <Input
+                  id={fieldId}
+                  type={showPassword ? "text" : "password"}
+                  placeholder={placeholder}
+                  disabled={disabled}
+                  autoComplete={autoComplete}
+                  error={!!fieldState.error}
+                  success={success}
+                  warning={warning}
+                  loading={loading}
+                  labelId={label ? `${fieldId}-label` : undefined}
+                  descriptionId={description ? descriptionId : undefined}
+                  errorId={
+                    fieldState.error || successMessage || warningMessage
+                      ? errorId
+                      : undefined
+                  }
+                  className="pr-10"
+                  {...field}
+                  onChange={(e) => {
+                    field.onChange(e);
+                    // Pass to custom onChange if provided in controllerProps
+                    if ((controllerProps as any).onChange) {
+                      (controllerProps as any).onChange(e);
+                    }
+                  }}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  disabled={disabled}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground focus:outline-none"
+                  aria-label={showPassword ? "Hide password" : "Show password"}
+                >
+                  {showPassword ? (
+                    <EyeOff className="h-4 w-4" />
+                  ) : (
+                    <Eye className="h-4 w-4" />
+                  )}
+                </button>
+              </div>
+            </FormControl>
+            {description && (
+              <FormDescription id={descriptionId}>
+                {description}
+              </FormDescription>
+            )}
+            <FormMessage />
+            {success && successMessage && !fieldState.error && (
+              <FormMessage variant="success">{successMessage}</FormMessage>
+            )}
+            {warning && warningMessage && !fieldState.error && (
+              <FormMessage variant="warning">{warningMessage}</FormMessage>
+            )}
           </FormItem>
         );
       }}

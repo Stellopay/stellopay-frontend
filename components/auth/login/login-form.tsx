@@ -13,15 +13,18 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
-import { FormFieldInput, FormFieldCheckbox } from "@/components/ui/form-field";
+import {
+  FormFieldInput,
+  FormFieldCheckbox,
+  FormFieldPassword,
+} from "@/components/ui/form-field";
 import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
-import { Eye, EyeOff, Loader2 } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import { AuthSocialButtons } from "../auth-social-buttons";
 import { loginSchema, LoginFormValues } from "@/types/auth";
 
 export function LoginForm() {
-  const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
   const form = useForm<LoginFormValues>({
@@ -36,7 +39,6 @@ export function LoginForm() {
   async function onSubmit(data: LoginFormValues) {
     setIsLoading(true);
     try {
-      console.log("Login form submitted:", data);
       // Simulate API call
       await new Promise((resolve) => setTimeout(resolve, 2000));
       // Handle login logic here
@@ -46,9 +48,6 @@ export function LoginForm() {
       setIsLoading(false);
     }
   }
-
-  const iconsClassName =
-    "absolute right-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground";
 
   return (
     <section className="w-full order-1 lg:order-2">
@@ -95,12 +94,12 @@ export function LoginForm() {
             type="email"
             label="Email Address"
             placeholder="Enter your email"
-            disabled={isLoading}
+            loading={isLoading}
             required
             autoComplete="email"
           />
 
-          <FormField
+          <FormFieldPassword
             control={form.control}
             name="password"
             render={({ field }) => (

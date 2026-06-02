@@ -3,6 +3,7 @@
 import { useState } from "react";
 import ToggleCard from "@/components/common/toggle-card";
 import { Button } from "@/components/ui/button";
+import { FormMessage } from "@/components/ui/form";
 import {
   Card,
   CardContent,
@@ -148,9 +149,11 @@ export default function NotificationsSection() {
             Save notification settings
           </Button>
           {statusMessage ? (
-            <p className="rounded-2xl border border-emerald-500/20 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-700 dark:text-emerald-300">
-              {statusMessage}
-            </p>
+            <div className="rounded-2xl border border-success/20 bg-success/10 px-4 py-3">
+              <FormMessage variant="success" className="text-success">
+                {statusMessage}
+              </FormMessage>
+            </div>
           ) : null}
         </CardContent>
       </Card>

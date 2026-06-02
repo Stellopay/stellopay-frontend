@@ -8,6 +8,8 @@ import { cn } from "@/utils/commonUtils";
 interface LabelProps extends React.ComponentProps<typeof LabelPrimitive.Root> {
   required?: boolean;
   error?: boolean;
+  success?: boolean;
+  warning?: boolean;
   descriptionId?: string;
 }
 
@@ -15,6 +17,8 @@ function Label({
   className,
   required,
   error = false,
+  success = false,
+  warning = false,
   descriptionId,
   children,
   ...props
@@ -28,7 +32,9 @@ function Label({
         "peer-disabled:cursor-not-allowed peer-disabled:opacity-50",
         "transition-colors duration-200",
         error && "text-destructive",
-        !error && "text-foreground",
+        success && "text-success",
+        warning && "text-warning",
+        !error && !success && !warning && "text-foreground",
         className,
       )}
       aria-required={required}

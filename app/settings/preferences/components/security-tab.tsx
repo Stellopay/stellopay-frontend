@@ -21,6 +21,8 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { checkPasswordRequirements } from "@/utils/authUtils";
 import DestructiveActionDialog from "./destructive-action-dialog";
+import { Label } from "@/components/ui/label";
+import { FormMessage } from "@/components/ui/form";
 
 const sessions = [
   {
@@ -85,12 +87,12 @@ export default function SecurityTab() {
         <CardContent className="space-y-6 pt-6">
           <div className="grid gap-4 md:grid-cols-2">
             <div className="space-y-2">
-              <label
+              <Label
                 htmlFor="new-password"
-                className="text-sm font-medium text-zinc-900 dark:text-white"
+                className="text-zinc-900 dark:text-white"
               >
                 New password
-              </label>
+              </Label>
               <Input
                 id="new-password"
                 type="password"
@@ -102,12 +104,12 @@ export default function SecurityTab() {
             </div>
 
             <div className="space-y-2">
-              <label
+              <Label
                 htmlFor="confirm-password"
-                className="text-sm font-medium text-zinc-900 dark:text-white"
+                className="text-zinc-900 dark:text-white"
               >
                 Confirm password
-              </label>
+              </Label>
               <Input
                 id="confirm-password"
                 type="password"
@@ -149,9 +151,11 @@ export default function SecurityTab() {
           </div>
 
           {statusMessage ? (
-            <p className="rounded-2xl border border-emerald-500/20 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-700 dark:text-emerald-300">
-              {statusMessage}
-            </p>
+            <div className="rounded-2xl border border-success/20 bg-success/10 px-4 py-3">
+              <FormMessage variant="success" className="text-success">
+                {statusMessage}
+              </FormMessage>
+            </div>
           ) : null}
 
           <details className="group rounded-2xl border border-zinc-200 bg-zinc-50 p-4 dark:border-white/10 dark:bg-white/5">
