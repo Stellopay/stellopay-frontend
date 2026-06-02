@@ -140,6 +140,7 @@ export function SignUpForm() {
                       placeholder="Create a password"
                       className="pr-10 py-4"
                       autoComplete="new-password"
+                      aria-describedby={showPasswordRequirements ? "password-requirements" : undefined}
                       {...field}
                       onChange={(e) => {
                         field.onChange(e);
@@ -152,19 +153,19 @@ export function SignUpForm() {
                         }
                       }}
                     />
-                    {showPassword ? (
-                      <EyeOff
-                        className={`${iconsClassName} cursor-pointer`}
-                        onClick={() => setShowPassword(false)}
-                        aria-label="Hide password"
-                      />
-                    ) : (
-                      <Eye
-                        className={`${iconsClassName} cursor-pointer`}
-                        onClick={() => setShowPassword(true)}
-                        aria-label="Show password"
-                      />
-                    )}
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword((v) => !v)}
+                      aria-label={showPassword ? "Hide password" : "Show password"}
+                      aria-pressed={showPassword}
+                      className={`${iconsClassName} cursor-pointer bg-transparent border-0 p-0 focus:outline-none focus:ring-2 focus:ring-ring rounded`}
+                    >
+                      {showPassword ? (
+                        <EyeOff aria-hidden="true" />
+                      ) : (
+                        <Eye aria-hidden="true" />
+                      )}
+                    </button>
                   </div>
                 </FormControl>
                 <FormMessage />
@@ -174,9 +175,11 @@ export function SignUpForm() {
           {/* Password Requirements */}
           {showPasswordRequirements && (
             <div
+              id="password-requirements"
               className="mt-2 p-3 bg-gray-800/50 rounded-md"
               role="region"
               aria-label="Password requirements"
+              aria-live="polite"
             >
               <p className="text-gray-300 text-sm mb-2">
                 Password must contain:
@@ -285,25 +288,25 @@ export function SignUpForm() {
                 <FormControl>
                   <div className="relative">
                     <Input
-                      type={showPassword ? "text" : "password"}
+                      type={showConfirmPassword ? "text" : "password"}
                       placeholder="Confirm your password"
                       className="pr-10 py-4"
                       autoComplete="new-password"
                       {...field}
                     />
-                    {showConfirmPassword ? (
-                      <EyeOff
-                        className={`${iconsClassName} cursor-pointer`}
-                        onClick={() => setShowConfirmPassword(false)}
-                        aria-label="Hide password"
-                      />
-                    ) : (
-                      <Eye
-                        className={`${iconsClassName} cursor-pointer`}
-                        onClick={() => setShowConfirmPassword(true)}
-                        aria-label="Show password"
-                      />
-                    )}
+                    <button
+                      type="button"
+                      onClick={() => setShowConfirmPassword((v) => !v)}
+                      aria-label={showConfirmPassword ? "Hide confirm password" : "Show confirm password"}
+                      aria-pressed={showConfirmPassword}
+                      className={`${iconsClassName} cursor-pointer bg-transparent border-0 p-0 focus:outline-none focus:ring-2 focus:ring-ring rounded`}
+                    >
+                      {showConfirmPassword ? (
+                        <EyeOff aria-hidden="true" />
+                      ) : (
+                        <Eye aria-hidden="true" />
+                      )}
+                    </button>
                   </div>
                 </FormControl>
                 <FormMessage />

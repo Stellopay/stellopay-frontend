@@ -11,6 +11,7 @@ export const SideBar = () => {
 
   return (
     <motion.aside
+      aria-label="Application sidebar"
       className={`bg-white dark:bg-[#101010] h-full border-r border-zinc-200 dark:border-[#1A1A1A] transition-colors duration-200 overflow-y-auto overflow-x-hidden scrollbar-hide ${isMobile ? "w-full relative z-50" : ""}`}
       initial={false}
       animate={{
@@ -29,18 +30,21 @@ export const SideBar = () => {
 
             <button
               onClick={() => setSidebarOpen(!isSidebarOpen)}
-              className="text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white cursor-pointer transition-colors"
+              aria-label={isSidebarOpen ? "Collapse sidebar" : "Expand sidebar"}
+              aria-expanded={isSidebarOpen}
+              className="text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white cursor-pointer transition-colors focus:outline-none focus:ring-2 focus:ring-zinc-400 rounded"
             >
-              <Sidebar size={20} />
+              <Sidebar size={20} aria-hidden="true" />
             </button>
           </div>
 
           {isMobile && (
             <button
               onClick={() => setSidebarOpen(false)}
-              className="text-zinc-500 dark:text-zinc-400 p-2"
+              aria-label="Close sidebar"
+              className="text-zinc-500 dark:text-zinc-400 p-2 focus:outline-none focus:ring-2 focus:ring-zinc-400 rounded"
             >
-              <X size={24} />
+              <X size={24} aria-hidden="true" />
             </button>
           )}
         </div>

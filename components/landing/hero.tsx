@@ -52,11 +52,12 @@ const InfoCard = ({children} : {children: React.ReactNode}) => {
   )
 }
 
-const hero = () => {
-
-
+const Hero = () => {
   return (
-    <section className='w-full min-h-screen text-[#09090B] dark:text-[#FAFAFA] flex items-center justify-center bg-white dark:bg-black relative'>
+    <section
+      aria-label="Hero — The Future of Payroll on Blockchain"
+      className='w-full min-h-screen text-[#09090B] dark:text-[#FAFAFA] flex items-center justify-center bg-white dark:bg-black relative'
+    >
 
       <div className='absolute z-3 bg-gradient-to-br from-[#10B981] to-[#00000000] w-64.5 h-64.5 lg:w-99 lg:h-99 rounded-full opacity-20 lg:opacity-10 blur-3xl top-[80%] lg:top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2'></div>
 
@@ -103,18 +104,20 @@ const hero = () => {
           </div>
           {/* buttons */}
           <div className='flex w-full lg:w-auto flex-col lg:flex-row gap-2 lg:gap-3'>
-            <button className='bg-[#09090B] dark:bg-[#FAFAFA] rounded-[16px] lg:w-47 h-11 lg:h-12.5 p-3 text-[#FFFFFF] dark:text-[#09090B] font-semibold text-sm flex items-center justify-center gap-2 cursor-pointer'>
-              <Wallet className='w-4 h-4'/>
-              <span>
-                Connect Wallet
-              </span>
+            <button
+              type="button"
+              className='bg-[#09090B] dark:bg-[#FAFAFA] rounded-[16px] lg:w-47 h-11 lg:h-12.5 p-3 text-[#FFFFFF] dark:text-[#09090B] font-semibold text-sm flex items-center justify-center gap-2 cursor-pointer'
+            >
+              <Wallet className='w-4 h-4' aria-hidden="true" />
+              <span>Connect Wallet</span>
             </button>
 
-            <button className='border-[0.74px] border-[#e4e4e7] dark:border-[#27272A] rounded-[16px] lg:w-38.5 h-11.5 lg:h-12.5 p-3 text-[#09090B] dark:text-[#FAFAFA] font-semibold text-sm flex items-center justify-center gap-2 cursor-pointer'>
-              <span>
-                Read Docs
-              </span>
-              <ArrowRight className='w-4 h-4'/>
+            <button
+              type="button"
+              className='border-[0.74px] border-[#e4e4e7] dark:border-[#27272A] rounded-[16px] lg:w-38.5 h-11.5 lg:h-12.5 p-3 text-[#09090B] dark:text-[#FAFAFA] font-semibold text-sm flex items-center justify-center gap-2 cursor-pointer'
+            >
+              <span>Read Docs</span>
+              <ArrowRight className='w-4 h-4' aria-hidden="true" />
             </button>
           </div>
         </div>
@@ -186,7 +189,7 @@ const hero = () => {
             <a href="#" className='rounded-[16px] border-[#e4e4e7] dark:border-[#27272A] border-[1.34px] p-4 w-full h-33.5 flex flex-col justify-between lg:border-2'>
               <div className='flex justify-between items-center w-full'>
                 <div className='bg-[#FFFFFF] dark:bg-[#18181B] w-10 h-10 rounded-[12px] flex justify-center items-center' style={{boxShadow: '0px 4px 20px 0px rgba(139, 92, 246, 0.25)'}}>
-                  <img src={stellar.src} alt="" className='w-6 h-5'/>
+                  <img src={stellar.src} alt="Stellar network" className='w-6 h-5'/>
                 </div>
                 <ArrowRight className='text-[#52525B] dark:text-[#A1A1AA] w-[13.99px] h-[13.99px]'/>
               </div>
@@ -203,7 +206,7 @@ const hero = () => {
             <a href="#" className='rounded-[16px] border-[#e4e4e7] dark:border-[#27272A] border-[1.34px] p-4 w-full h-33.5 flex flex-col justify-between lg:border-2'>
               <div className='flex justify-between items-center w-full'>
                 <div className='bg-[#FFFFFF] dark:bg-[#18181B] w-10 h-10 rounded-[12px] flex justify-center items-center' style={{boxShadow: '0px 4px 20px 0px rgba(139, 92, 246, 0.25)'}}>
-                  <img src={skartnet.src} alt="" className='w-6 h-5'/>
+                  <img src={skartnet.src} alt="Starknet network" className='w-6 h-5'/>
                 </div>
                 <ArrowRight className='text-[#52525B] dark:text-[#A1A1AA] w-[13.99px] h-[13.99px]'/>
               </div>
@@ -235,4 +238,4 @@ const hero = () => {
   )
 }
 
-export default hero
+export default Hero
