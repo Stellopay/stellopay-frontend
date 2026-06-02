@@ -53,6 +53,7 @@ export default function Navbar() {
                   <Link
                     key={l.href}
                     href={l.href}
+                    aria-current={active ? "page" : undefined}
                     className={`text-sm md:text-base font-medium transition-colors px-2 py-1 ${
                       active
                         ? "text-[#0f172a] dark:text-white"
@@ -96,7 +97,9 @@ export default function Navbar() {
 
               <button
                 className="md:hidden p-2 rounded-md hover:bg-gray-100 dark:hover:bg-white/5"
-                aria-label="Open menu"
+                aria-label={mobileOpen ? "Close menu" : "Open menu"}
+                aria-expanded={mobileOpen}
+                aria-controls="mobile-nav"
                 onClick={() => setMobileOpen((s) => !s)}
               >
                 {mobileOpen ? (
@@ -116,7 +119,7 @@ export default function Navbar() {
 
       {/* Mobile drawer */}
       {mobileOpen && (
-        <div className="md:hidden fixed left-0 right-0 top-24 z-40">
+        <div id="mobile-nav" className="md:hidden fixed left-0 right-0 top-24 z-40" role="dialog" aria-label="Mobile navigation menu" aria-modal="false">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="bg-white dark:bg-[#0b0b0b] border-b border-[#E4E4E7] dark:border-[#27272A] rounded-b-2xl py-4 space-y-2 px-4">
               {navLinks.map((l) => (

@@ -102,11 +102,45 @@ export function LoginForm() {
           <FormFieldPassword
             control={form.control}
             name="password"
-            label="Password"
-            placeholder="Enter your password"
-            disabled={isLoading}
-            required
-            autoComplete="current-password"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>
+                  Password{" "}
+                  <span
+                    className="text-destructive"
+                    aria-label="required field"
+                  >
+                    *
+                  </span>
+                </FormLabel>
+                <FormControl>
+                  <div className="relative">
+                    <Input
+                      type={showPassword ? "text" : "password"}
+                      placeholder="Enter your password"
+                      className="pr-10 py-4"
+                      disabled={isLoading}
+                      autoComplete="current-password"
+                      {...field}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword((v) => !v)}
+                      aria-label={showPassword ? "Hide password" : "Show password"}
+                      aria-pressed={showPassword}
+                      className={`${iconsClassName} cursor-pointer bg-transparent border-0 p-0 focus:outline-none focus:ring-2 focus:ring-ring rounded`}
+                    >
+                      {showPassword ? (
+                        <EyeOff aria-hidden="true" />
+                      ) : (
+                        <Eye aria-hidden="true" />
+                      )}
+                    </button>
+                  </div>
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
           />
 
           {/* Remember Me and Forgot Password */}

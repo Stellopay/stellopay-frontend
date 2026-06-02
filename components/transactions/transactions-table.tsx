@@ -23,24 +23,26 @@ export function TransactionsTable({ transactions, isLoading = false }: Transacti
       {/* Desktop Table */}
       <div className="hidden md:block w-full rounded-[12px] overflow-auto border border-[#2D2D2D]">
         <Table>
+          {/* caption is visually hidden but announced by screen readers */}
+          <caption className="sr-only">Transaction history</caption>
           <TableHeader>
             <TableRow className="bg-[#191919]">
-              <TableHead className="text-white font-bold border-[#2D2D2D] border-y-2 border-t-0 py-4 px-6">
+              <TableHead scope="col" className="text-white font-bold border-[#2D2D2D] border-y-2 border-t-0 py-4 px-6">
                 Transaction Type
               </TableHead>
-              <TableHead className="text-white font-bold border-[#2D2D2D] border-y-2 border-t-0 py-4 px-6">
+              <TableHead scope="col" className="text-white font-bold border-[#2D2D2D] border-y-2 border-t-0 py-4 px-6">
                 Address
               </TableHead>
-              <TableHead className="text-white font-bold border-[#2D2D2D] border-y-2 border-t-0 py-4 px-6">
+              <TableHead scope="col" className="text-white font-bold border-[#2D2D2D] border-y-2 border-t-0 py-4 px-6">
                 Date
               </TableHead>
-              <TableHead className="text-white font-bold border-[#2D2D2D] border-y-2 border-t-0 py-4 px-6">
+              <TableHead scope="col" className="text-white font-bold border-[#2D2D2D] border-y-2 border-t-0 py-4 px-6">
                 Token
               </TableHead>
-              <TableHead className="text-white font-bold border-[#2D2D2D] border-y-2 border-t-0 py-4 px-6">
+              <TableHead scope="col" className="text-white font-bold border-[#2D2D2D] border-y-2 border-t-0 py-4 px-6">
                 Amount
               </TableHead>
-              <TableHead className="text-white font-bold border-[#2D2D2D] border-y-2 border-t-0 py-4 px-6">
+              <TableHead scope="col" className="text-white font-bold border-[#2D2D2D] border-y-2 border-t-0 py-4 px-6">
                 Status
               </TableHead>
             </TableRow>
@@ -73,21 +75,23 @@ export function TransactionsTable({ transactions, isLoading = false }: Transacti
               ))
             ) : (
               transactions.map((transaction, index) => (
-              <TableRow key={index} className="border border-[#2D2D2D]">
+              <TableRow key={transaction.id ?? index} className="border border-[#2D2D2D]">
                 <TableCell className="font-medium border border-[#2D2D2D] py-4 px-6">
-                  <h6 className="text-[#D7E0EF]"> {transaction.type} </h6>
+                  <span className="text-[#D7E0EF]">{transaction.type}</span>
                   <p>#{transaction.id}</p>
                 </TableCell>
                 <TableCell className="border border-[#2D2D2D] py-4 px-6">
                   {transaction.address}
                 </TableCell>
                 <TableCell className="border border-[#2D2D2D] py-4 px-6">
-                  {transaction.date} {transaction.time}
+                  <time dateTime={transaction.date}>
+                    {transaction.date} {transaction.time}
+                  </time>
                 </TableCell>
                 <TableCell className="flex place-items-center space-x-2 py-8 px-6">
                   <Image
                     src={transaction.tokenIcon}
-                    alt={transaction.token}
+                    alt={`${transaction.token} token icon`}
                     width={20}
                     height={20}
                   />
@@ -98,6 +102,7 @@ export function TransactionsTable({ transactions, isLoading = false }: Transacti
                 </TableCell>
                 <TableCell className="py-4 px-6">
                   <Badge
+                    aria-label={`Status: ${transaction.status}`}
                     className={`${transaction.status === "Completed" ? "bg-[#102B19] text-[#04842E]" : transaction.status === "Pending" ? "bg-[#191919] text-[#9F6603]" : "bg-[#1A1A1A] text-[#B70B05]"}`}
                   >
                     <span className="text-sm">{transaction.status}</span>

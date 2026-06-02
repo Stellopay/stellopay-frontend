@@ -48,8 +48,7 @@ const Transactions = () => {
   console.log(transactionsToShow, transactions, dateFilteredTransactions);
 
   return (
-    <>
-      <main className="">
+    <main id="main-content">
         <TransactionHeader
           pageTitle="Transaction"
           startDate={startDate}
@@ -61,14 +60,16 @@ const Transactions = () => {
           <div className="bg-foreground border rounded-[1.5rem] border-[#2D2D2D] p-2">
             {" "}
             <div className="grid items-center justify-between pb-2 md:pb-0 md:flex">
-              <h6 className="flex items-center gap-1 p-2 mb-4 text-xl font-medium">
-                <div className=" bg-[#121212] rounded-lg border border-[#2E2E2E] p-1">
+              <h1 className="flex items-center gap-1 p-2 mb-4 text-xl font-medium">
+                <div className=" bg-[#121212] rounded-lg border border-[#2E2E2E] p-1" aria-hidden="true">
                   <svg
                     width="24"
                     height="24"
                     viewBox="0 0 24 24"
                     fill="none"
                     xmlns="http://www.w3.org/2000/svg"
+                    aria-hidden="true"
+                    focusable="false"
                   >
                     <path
                       d="M18.9999 10.5V9.99995C18.9999 6.22876 18.9998 4.34311 17.8283 3.17154C16.6567 2 14.7711 2 10.9999 2C7.22883 2 5.3432 2.00006 4.17163 3.17159C3.00009 4.34315 3.00007 6.22872 3.00004 9.99988L3 14.5C2.99997 17.7874 2.99996 19.4312 3.90788 20.5375C4.07412 20.7401 4.25986 20.9258 4.46243 21.0921C5.56877 22 7.21249 22 10.4999 22"
@@ -99,7 +100,7 @@ const Transactions = () => {
                     ({dateFilteredTransactions.length} filtered)
                   </span>
                 )}
-              </h6>
+              </h1>
               
               <div className="flex items-center gap-2">
                 <TableSearchbar onSearch={setSearchParams} />
@@ -110,7 +111,11 @@ const Transactions = () => {
             </div>          
             <TransactionsTable transactions={transactions} />
             {(searchParams || startDate || endDate) && transactions.length === 0 && (
-              <div className="py-4 text-center text-gray-400">
+              <div
+                role="status"
+                aria-live="polite"
+                className="py-4 text-center text-gray-400"
+              >
                 No Transactions Found
               </div>
             )}
@@ -124,8 +129,7 @@ const Transactions = () => {
             onPageChange={setCurrentPage}
           />
         )}
-      </main>
-    </>
+    </main>
   );
 };
 
