@@ -12,21 +12,9 @@ import {
 } from "@/components/ui/card";
 import ToggleCard from "@/components/common/toggle-card";
 import DestructiveActionDialog from "./destructive-action-dialog";
+import { DEMO_WALLETS } from "@/lib/demo-data";
 
-const connectedWallets = [
-  {
-    name: "Primary Treasury",
-    network: "Stellar Mainnet",
-    address: "GBSL...4KQ2",
-    status: "Default settlement wallet",
-  },
-  {
-    name: "Operations Wallet",
-    network: "Starknet",
-    address: "0x47f...12ce",
-    status: "Approvals required for outbound transfers",
-  },
-];
+const connectedWallets = DEMO_WALLETS;
 
 interface WalletSettingsState {
   transferApprovals: boolean;
@@ -34,6 +22,11 @@ interface WalletSettingsState {
   travelRuleChecks: boolean;
 }
 
+/**
+ * WalletsSection component.
+ * Renders connected wallet configurations, region settings, and outbound transfer safeguards.
+ * Uses placeholder demo data pending full backend API integration.
+ */
 export default function WalletsSection() {
   const [settings, setSettings] = useState<WalletSettingsState>({
     transferApprovals: true,
@@ -53,8 +46,11 @@ export default function WalletsSection() {
     <div className="grid gap-6 xl:grid-cols-[minmax(0,1.1fr)_minmax(320px,0.9fr)]">
       <Card className="border-zinc-200 bg-white/90 shadow-sm dark:border-white/10 dark:bg-white/5">
         <CardHeader className="border-b border-zinc-200/80 dark:border-white/10">
-          <CardTitle className="font-general text-2xl text-zinc-950 dark:text-white">
+          <CardTitle className="font-general text-2xl text-zinc-950 dark:text-white flex flex-wrap items-center gap-2">
             Connected wallets
+            <span className="inline-flex items-center gap-1 rounded-full bg-amber-50 px-2 py-0.5 text-xs font-medium text-amber-800 ring-1 ring-inset ring-amber-600/20 dark:bg-amber-400/10 dark:text-amber-500 dark:ring-amber-400/20">
+              Demo Data
+            </span>
           </CardTitle>
           <CardDescription className="text-zinc-600 dark:text-zinc-400">
             Wallet identity and transfer controls stay on the same surface so

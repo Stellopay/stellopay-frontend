@@ -23,6 +23,7 @@ import { checkPasswordRequirements } from "@/utils/authUtils";
 import DestructiveActionDialog from "./destructive-action-dialog";
 import { Label } from "@/components/ui/label";
 import { FormMessage } from "@/components/ui/form";
+import { DEMO_SECURITY } from "@/lib/demo-data";
 
 const sessions = [
   {
@@ -39,6 +40,11 @@ const sessions = [
   },
 ];
 
+/**
+ * SecurityTab component.
+ * Renders security-sensitive forms (password updates, two-factor authentication, active sessions).
+ * Uses placeholder demo data pending full backend API integration.
+ */
 export default function SecurityTab() {
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -74,8 +80,11 @@ export default function SecurityTab() {
               <KeyRound className="size-5" />
             </span>
             <div className="space-y-1">
-              <CardTitle className="font-general text-xl text-zinc-950 dark:text-white">
+              <CardTitle className="font-general text-xl text-zinc-950 dark:text-white flex flex-wrap items-center gap-2">
                 Password and recovery
+                <span className="inline-flex items-center gap-1 rounded-full bg-amber-50 px-2 py-0.5 text-xs font-medium text-amber-800 ring-1 ring-inset ring-amber-600/20 dark:bg-amber-400/10 dark:text-amber-500 dark:ring-amber-400/20">
+                  Demo Data
+                </span>
               </CardTitle>
               <CardDescription className="text-zinc-600 dark:text-zinc-400">
                 Keep password work scoped to one card and show validation before
@@ -163,9 +172,9 @@ export default function SecurityTab() {
               Show recovery methods
             </summary>
             <div className="mt-4 grid gap-3 text-sm text-zinc-600 dark:text-zinc-400">
-              <p>Primary email: maya.sullivan@stellopay.app</p>
-              <p>Recovery codes: generated and stored offline</p>
-              <p>Backup contact: +234 801 234 5678</p>
+              <p>Primary email: {DEMO_SECURITY.primaryEmail}</p>
+              <p>Recovery codes: {DEMO_SECURITY.recoveryCodesStatus}</p>
+              <p>Backup contact: {DEMO_SECURITY.backupContact}</p>
             </div>
           </details>
         </CardContent>

@@ -16,6 +16,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { FormMessage } from "@/components/ui/form";
 import DestructiveActionDialog from "./destructive-action-dialog";
+import { DEMO_PROFILE } from "@/lib/demo-data";
 
 interface ProfileState {
   firstName: string;
@@ -49,14 +50,19 @@ const sectionMap = [
   },
 ];
 
+/**
+ * AccountSection component.
+ * Renders user profile information, identity details, and regional settings.
+ * Uses placeholder demo data pending full backend API integration.
+ */
 export default function AccountSection() {
   const [profile, setProfile] = useState<ProfileState>({
-    firstName: "Maya",
-    lastName: "Sullivan",
-    displayName: "Maya Sullivan",
-    email: "maya.sullivan@stellopay.app",
-    timezone: "Africa/Lagos",
-    currency: "USD",
+    firstName: DEMO_PROFILE.firstName,
+    lastName: DEMO_PROFILE.lastName,
+    displayName: DEMO_PROFILE.displayName,
+    email: DEMO_PROFILE.email,
+    timezone: DEMO_PROFILE.timezone,
+    currency: DEMO_PROFILE.currency,
   });
   const [statusMessage, setStatusMessage] = useState("");
 
@@ -85,8 +91,11 @@ export default function AccountSection() {
                 <span className="absolute -bottom-1 -right-1 h-5 w-5 rounded-full border-2 border-white bg-emerald-500 dark:border-[#09090B]" />
               </div>
               <div className="space-y-1">
-                <CardTitle className="font-general text-2xl text-zinc-950 dark:text-white">
+                <CardTitle className="font-general text-2xl text-zinc-950 dark:text-white flex flex-wrap items-center gap-2">
                   Account identity
+                  <span className="inline-flex items-center gap-1 rounded-full bg-amber-50 px-2 py-0.5 text-xs font-medium text-amber-800 ring-1 ring-inset ring-amber-600/20 dark:bg-amber-400/10 dark:text-amber-500 dark:ring-amber-400/20">
+                    Demo Data
+                  </span>
                 </CardTitle>
                 <CardDescription className="max-w-lg text-zinc-600 dark:text-zinc-400">
                   High-frequency profile fields are visible immediately, while
@@ -178,14 +187,14 @@ export default function AccountSection() {
               <Field
                 id="legal-name"
                 label="Legal entity"
-                value="Stellopay Labs"
+                value={DEMO_PROFILE.legalEntity}
                 onChange={() => undefined}
                 disabled
               />
               <Field
                 id="billing-country"
                 label="Billing country"
-                value="Nigeria"
+                value={DEMO_PROFILE.billingCountry}
                 onChange={() => undefined}
                 disabled
               />
