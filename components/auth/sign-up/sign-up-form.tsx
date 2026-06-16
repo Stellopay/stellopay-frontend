@@ -20,7 +20,7 @@ import {
 } from "@/components/ui/form-field";
 import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
-import { Check, X } from "lucide-react";
+import { Check, X, Eye, EyeOff } from "lucide-react";
 import { SignUpEmailModal } from "./sign-up-email-modal";
 import { AuthSocialButtons } from "../auth-social-buttons";
 import { signUpSchema, SignUpFormValues } from "@/types/auth";
@@ -35,8 +35,13 @@ export function SignUpForm() {
   const [showPasswordRequirements, setShowPasswordRequirements] =
     useState(false);
   const [isPasswordStrong, setIsPasswordStrong] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [showEmailModal, setShowEmailModal] = useState(false);
   const [submittedEmail, setSubmittedEmail] = useState("");
+
+  /** Tailwind classes for positioning the password-visibility toggle icon. */
+  const iconsClassName = "absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground";
   const agreeToTermsId = React.useId();
 
   const handlePasswordCheck = (password: string) => {
