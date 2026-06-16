@@ -233,7 +233,7 @@ export function FormFieldCheckbox<
   warning,
   successMessage,
   warningMessage,
-  indeterminate,
+  indeterminate: _indeterminate,
   ...controllerProps
 }: FormFieldCheckboxProps<TFieldValues, TName>) {
   const fieldId = React.useId();
@@ -369,8 +369,9 @@ export function FormFieldPassword<
                   onChange={(e) => {
                     field.onChange(e);
                     // Pass to custom onChange if provided in controllerProps
-                    if ((controllerProps as any).onChange) {
-                      (controllerProps as any).onChange(e);
+                    const props = controllerProps as { onChange?: (e: React.ChangeEvent<HTMLInputElement>) => void };
+                    if (props.onChange) {
+                      props.onChange(e);
                     }
                   }}
                 />

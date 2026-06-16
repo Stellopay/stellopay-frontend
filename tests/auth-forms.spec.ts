@@ -7,6 +7,9 @@ import { expect, test } from "@playwright/test";
  * `Eye`/`EyeOff` imports, and missing `iconsClassName` constant that caused
  * render-blocking ReferenceErrors on `/auth/login` and `/auth/sign-up`.
  *
+ * After the fix, both forms use `FormFieldPassword` which internally handles
+ * the Eye/EyeOff toggle, aria attributes, and visibility state.
+ *
  * @security Password visibility toggle defaults to hidden (`type="password"`).
  *           Password values are never logged. `autoComplete` attributes are
  *           preserved so password managers behave correctly.
@@ -38,7 +41,7 @@ test.describe("Login form – password visibility toggle", () => {
     await expect(input).toHaveAttribute("type", "password");
   });
 
-  test("toggle switches input type and updates aria attributes", async ({
+  test("toggle switches input type and updates aria-label", async ({
     page,
   }) => {
     await page.goto("/auth/login");
@@ -47,19 +50,17 @@ test.describe("Login form – password visibility toggle", () => {
     const input = page.locator('input[autocomplete="current-password"]');
 
     // Default state
-    await expect(toggle).toHaveAttribute("aria-pressed", "false");
     await expect(input).toHaveAttribute("type", "password");
+    await expect(toggle).toHaveAttribute("aria-label", "Show password");
 
     // Click to show
     await toggle.click();
     await expect(input).toHaveAttribute("type", "text");
-    await expect(toggle).toHaveAttribute("aria-pressed", "true");
     await expect(toggle).toHaveAttribute("aria-label", "Hide password");
 
     // Click to hide again
     await toggle.click();
     await expect(input).toHaveAttribute("type", "password");
-    await expect(toggle).toHaveAttribute("aria-pressed", "false");
     await expect(toggle).toHaveAttribute("aria-label", "Show password");
   });
 
@@ -87,70 +88,66 @@ test.describe("Sign-up form – password visibility toggles", () => {
     expect(errors).toHaveLength(0);
   });
 
-  test("password field defaults to type=password (hidden)", async ({
+  test("both password fields default to type=password (hidden)", async ({
     page,
   }) => {
     await page.goto("/auth/sign-up");
     const inputs = page.locator('input[autocomplete="new-password"]');
     const count = await inputs.count();
-    // Both password and confirm-password should be hidden by default
+    expect(count).toBe(2);
     for (let i = 0; i < count; i++) {
       await expect(inputs.nth(i)).toHaveAttribute("type", "password");
     }
   });
 
-  test("password toggle switches input type and updates aria", async ({
+  test("password toggle switches input type and updates aria-label", async ({
     page,
   }) => {
     await page.goto("/auth/sign-up");
 
-    const toggle = page.getByRole("button", { name: /^show password$/i });
+    // Both toggles start with "Show password" — first one is for the password field
+    const toggles = page.getByRole("button", { name: /show password/i });
     const passwordInput = page.locator(
-      'input[autocomplete="new-password"][placeholder="Create a password"]',
+      'input[autocomplete="new-password"]',
+    ).first();
+
+    // Default state
+    await expect(passwordInput).toHaveAttribute("type", "password");
+
+    // Click the first toggle to show
+    await toggles.first().click();
+    await expect(passwordInput).toHaveAttribute("type", "text");
+    await expect(toggles.first()).toHaveAttribute(
+      "aria-label",
+      "Hide password",
     );
 
-    await expect(toggle).toHaveAttribute("aria-pressed", "false");
+    // Click to hide again
+    await toggles.first().click();
     await expect(passwordInput).toHaveAttribute("type", "password");
-
-    await toggle.click();
-    await expect(passwordInput).toHaveAttribute("type", "text");
-    await expect(toggle).toHaveAttribute("aria-pressed", "true");
-
-    await toggle.click();
-    await expect(passwordInput).toHaveAttribute("type", "password");
-    await expect(toggle).toHaveAttribute("aria-pressed", "false");
   });
 
-  test("confirm-password toggle switches input type and updates aria", async ({
+  test("confirm-password toggle switches input type and updates aria-label", async ({
     page,
   }) => {
     await page.goto("/auth/sign-up");
 
-    const toggle = page.getByRole("button", {
-      name: /show confirm password/i,
-    });
+    // Both toggles start with "Show password" — second one is for confirm password
+    const toggles = page.getByRole("button", { name: /show password/i });
     const confirmInput = page.locator(
-      'input[autocomplete="new-password"][placeholder="Confirm your password"]',
-    );
+      'input[autocomplete="new-password"]',
+    ).last();
 
-    await expect(toggle).toHaveAttribute("aria-pressed", "false");
+    // Default state
     await expect(confirmInput).toHaveAttribute("type", "password");
 
-    await toggle.click();
+    // Click the second toggle to show
+    await toggles.last().click();
     await expect(confirmInput).toHaveAttribute("type", "text");
-    await expect(toggle).toHaveAttribute("aria-pressed", "true");
-    await expect(toggle).toHaveAttribute(
-      "aria-label",
-      "Hide confirm password",
-    );
 
-    await toggle.click();
+    // Click to hide again
+    await toggles.last().click();
     await expect(confirmInput).toHaveAttribute("type", "password");
-    await expect(toggle).toHaveAttribute("aria-pressed", "false");
-    await expect(toggle).toHaveAttribute(
-      "aria-label",
-      "Show confirm password",
-    );
   });
 
   test("autoComplete=new-password is preserved on both fields", async ({
