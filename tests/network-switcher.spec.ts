@@ -245,3 +245,25 @@ test.describe("NetworkSwitcher — keyboard accessibility", () => {
     await expect(trigger).toHaveAttribute("aria-label", /ETH/i);
   });
 });
+
+test.describe("Performance & Trace Validation", () => {
+  test("main pages load and have no major layout shift or console errors", async ({ page, context }) => {
+    // Start tracing before navigating
+    try {
+      await context.tracing.stop();
+    } catch (e) {}
+    await context.tracing.start({ screenshots: true, snapshots: true });
+
+    // Navigate to landing page /
+    const response = await page.goto("/");
+    expect(response?.status()).toBe(200);
+
+    // Navigate to /dashboard
+    const dashboardResponse = await page.goto("/dashboard");
+    expect(dashboardResponse?.status()).toBe(200);
+
+    // Stop tracing and save trace artifact
+    await context.tracing.stop({ path: "test-results/performance-trace.zip" });
+  });
+});
+

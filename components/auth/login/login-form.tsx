@@ -20,12 +20,14 @@ import {
 } from "@/components/ui/form-field";
 import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
-import { Loader2 } from "lucide-react";
+import { Loader2, Eye, EyeOff } from "lucide-react";
 import { AuthSocialButtons } from "../auth-social-buttons";
 import { loginSchema, LoginFormValues } from "@/types/auth";
 
 export function LoginForm() {
   const [isLoading, setIsLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const iconsClassName = "absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground";
 
   const form = useForm<LoginFormValues>({
     resolver: zodResolver(loginSchema),
@@ -99,7 +101,7 @@ export function LoginForm() {
             autoComplete="email"
           />
 
-          <FormFieldPassword
+          <FormField
             control={form.control}
             name="password"
             render={({ field }) => (

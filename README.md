@@ -96,3 +96,21 @@ stellopay-frontend
    └─ NotificationItem.tsx
 
 ```
+
+## ⚡ Performance Optimization & Code-Splitting
+
+We implemented target performance optimizations across the landing page and dashboard to improve First Paint, LCP (Largest Contentful Paint), and TBT (Total Blocking Time).
+
+### Key Changes
+1. **Below-the-Fold Dynamic Imports**: Code-split `HowItWorks`, `EnterpriseSolutionSection`, and `FAQSection` on the landing page ([pages/landing/index.tsx](file:///home/henry/projects/open-source/stellopay-frontend/pages/landing/index.tsx)) using `next/dynamic` to keep the initial HTML payload lightweight.
+2. **Chart & Insights Code-Splitting**: Dynamically loaded the recharts-heavy component ([AnalyticsViews](file:///home/henry/projects/open-source/stellopay-frontend/components/analytics/client-analytics-view.tsx)) and KPI metrics ([AnalyticsInsights](file:///home/henry/projects/open-source/stellopay-frontend/components/dashboard/dashboard-page.tsx)) with structural skeleton fallbacks equipped with accessibility attributes (`aria-busy="true"` and `aria-live="polite"`).
+3. **Optimized Layout Animations**: Replaced `framer-motion` JS-driven layout width transitions on the sidebar container ([components/common/side-bar.tsx](file:///home/henry/projects/open-source/stellopay-frontend/components/common/side-bar.tsx)) with pure CSS grid animations to prevent layout thrashing and lower Total Blocking Time (TBT).
+4. **Hero Image Optimization**: Upgraded native `img` tags for the network logo assets inside the above-the-fold Hero component ([components/landing/hero.tsx](file:///home/henry/projects/open-source/stellopay-frontend/components/landing/hero.tsx)) to Next.js `Image` components with explicit dimensions.
+
+### Bundle Size Impact (`next build` Route JS)
+
+| Route | Metric | Before | After | Change |
+|-------|--------|--------|-------|--------|
+| `/landing` (Pages Router) | Route Size | 64.1 kB | 26.1 kB | **-38.0 kB (-59.3%)** |
+| `/landing` (Pages Router) | First Load JS | 165 kB | 127 kB | **-38.0 kB (-23.0%)** |
+
