@@ -96,3 +96,21 @@ stellopay-frontend
    └─ NotificationItem.tsx
 
 ```
+
+## CI Pipeline
+
+Every pull request and push to `main` runs the following jobs via `.github/workflows/ci.yml`:
+
+| Step | Command | Purpose |
+|------|---------|---------|
+| Install | `npm ci` | Reproducible install from lockfile |
+| Lint | `npm run lint` | ESLint via `next lint` |
+| Type-check | `npm run type-check` | `tsc --noEmit` — catches type errors |
+| Build | `npm run build` | Full Next.js production build |
+| E2E | `npm run test:e2e` | Playwright tests against the built app |
+
+On failure, the Playwright HTML report is uploaded as a workflow artifact (retained 7 days).
+
+**Node version:** 20 LTS (matches `@types/node ^20`).
+
+**Security:** workflow permissions are `contents: read`; actions are pinned to major version tags; `pull_request` trigger is used (not `pull_request_target`) so fork PRs cannot access repository secrets.

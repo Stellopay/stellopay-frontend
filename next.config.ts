@@ -12,10 +12,8 @@ if (typeof globalThis.localStorage === "undefined" || typeof (globalThis.localSt
 }
 
 const nextConfig: NextConfig = {
-  eslint: {
-    // CI/build environments shouldn't fail just because eslint isn't installed.
-    ignoreDuringBuilds: true,
-  },
+  // ESLint now runs during `next build` so lint errors surface in CI.
+  // Remove ignoreDuringBuilds so the build gate is meaningful.
 };
 
 export default nextConfig;
