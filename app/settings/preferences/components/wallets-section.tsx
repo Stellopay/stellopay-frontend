@@ -13,6 +13,8 @@ import {
 import ToggleCard from "@/components/common/toggle-card";
 import DestructiveActionDialog from "./destructive-action-dialog";
 import { DEMO_WALLETS } from "@/lib/demo-data";
+import { Loader2 } from "lucide-react";
+import { FormMessage } from "@/components/ui/form";
 
 const connectedWallets = DEMO_WALLETS;
 
@@ -20,6 +22,11 @@ interface WalletSettingsState {
   transferApprovals: boolean;
   addressBookLock: boolean;
   travelRuleChecks: boolean;
+}
+
+interface StatusState {
+  message: string;
+  type: "success" | "error" | null;
 }
 
 /**
@@ -33,13 +40,40 @@ export default function WalletsSection() {
     addressBookLock: true,
     travelRuleChecks: true,
   });
-  const [statusMessage, setStatusMessage] = useState("");
+  const [status, setStatus] = useState<StatusState>({ message: "", type: null });
+  const [isSaving, setIsSaving] = useState(false);
 
   const updateSetting = (field: keyof WalletSettingsState, value: boolean) => {
     setSettings((currentSettings) => ({
       ...currentSettings,
       [field]: value,
-    }));
+    });
+  };
+
+  const handleSave = async () => {
+    setIsSaving(true);
+    setStatus({ message: "", type: null });
+    try {
+      await new Promise((resolve, reject) => setTimeout(() => {
+        if (Math.random() > 0.8) {
+          reject(new Error("Failed to save"));
+        } else {
+          resolve(null);
+        }
+      }, 1500));
+      setStatus({
+        message: "Wallet safeguards updated. Transfer review controls remain enabled by default.",
+        type: "success",
+      });
+    } catch {
+      setStatus({
+        message: "Failed to save changes. Please try again.",
+        type: "error",
+      });
+    } finally {
+      setIsSaving(false);
+      setTimeout(() => setStatus({ message: "", type: null }), 5000);
+    }
   };
 
   return (
@@ -133,20 +167,37 @@ export default function WalletsSection() {
               enabled={settings.travelRuleChecks}
               onToggle={(value) => updateSetting("travelRuleChecks", value)}
             />
-            <Button
-              onClick={() =>
-                setStatusMessage(
-                  "Wallet safeguards updated. Transfer review controls remain enabled by default.",
-                )
-              }
-            >
-              Save wallet settings
+            <Button onClick={handleSave} disabled={isSaving}>
+              {isSaving ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Saving...
+                </>
+              ) : (
+                "Save wallet settings"
+              )}
             </Button>
-            {statusMessage ? (
-              <p className="rounded-2xl border border-emerald-500/20 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-700 dark:text-emerald-300">
-                {statusMessage}
-              </p>
-            ) : null}
+            {status.message && (
+              <div
+                role="status"
+                aria-live="polite"
+                className={`rounded-2xl border px-4 py-3 ${
+                  status.type === "success"
+                    ? "border-emerald-500/20 bg-emerald-500/10"
+                    : "border-destructive/20 bg-destructive/10"
+                }`}
+              >
+                <p
+                  className={`text-sm ${
+                    status.type === "success"
+                      ? "text-emerald-700 dark:text-emerald-300"
+                      : "text-destructive"
+                  }`}
+                >
+                  {status.message}
+                </p>
+              </div>
+            )}
           </CardContent>
         </Card>
 
@@ -174,9 +225,10 @@ export default function WalletsSection() {
               confirmationLabel='Type "REMOVE" to confirm'
               confirmLabel="Remove wallet"
               onConfirm={() =>
-                setStatusMessage(
-                  "Wallet removal request captured. A replacement wallet should be selected before execution.",
-                )
+                setStatus({
+                  message: "Wallet removal request captured. A replacement wallet should be selected before execution.",
+                  type: "success",
+                })
               }
             />
           </CardContent>

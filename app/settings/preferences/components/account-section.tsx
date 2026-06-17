@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Image from "next/image";
-import { Camera } from "lucide-react";
+import { Camera, Loader2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -25,6 +25,11 @@ interface ProfileState {
   email: string;
   timezone: string;
   currency: string;
+}
+
+interface StatusState {
+  message: string;
+  type: "success" | "error" | null;
 }
 
 const sectionMap = [
@@ -64,13 +69,42 @@ export default function AccountSection() {
     timezone: DEMO_PROFILE.timezone,
     currency: DEMO_PROFILE.currency,
   });
-  const [statusMessage, setStatusMessage] = useState("");
+  const [status, setStatus] = useState<StatusState>({ message: "", type: null });
+  const [isSaving, setIsSaving] = useState(false);
 
   const updateProfileField = (field: keyof ProfileState, value: string) => {
     setProfile((currentProfile) => ({
       ...currentProfile,
       [field]: value,
     }));
+  };
+
+  const handleSave = async () => {
+    setIsSaving(true);
+    setStatus({ message: "", type: null });
+    try {
+      // Simulate async API call
+      await new Promise((resolve, reject) => setTimeout(() => {
+        // Simulate occasional failure for testing
+        if (Math.random() > 0.8) {
+          reject(new Error("Failed to save"));
+        } else {
+          resolve(null);
+        }
+      }, 1500));
+      setStatus({
+        message: "Account profile changes are staged and ready for backend save.",
+        type: "success",
+      });
+    } catch {
+      setStatus({
+        message: "Failed to save changes. Please try again.",
+        type: "error",
+      });
+    } finally {
+      setIsSaving(false);
+      setTimeout(() => setStatus({ message: "", type: null }), 5000);
+    }
   };
 
   return (
@@ -116,18 +150,21 @@ export default function AccountSection() {
               label="First name"
               value={profile.firstName}
               onChange={(value) => updateProfileField("firstName", value)}
+              disabled={isSaving}
             />
             <Field
               id="last-name"
               label="Last name"
               value={profile.lastName}
               onChange={(value) => updateProfileField("lastName", value)}
+              disabled={isSaving}
             />
             <Field
               id="display-name"
               label="Display name"
               value={profile.displayName}
               onChange={(value) => updateProfileField("displayName", value)}
+              disabled={isSaving}
             />
             <Field
               id="email-address"
@@ -135,6 +172,7 @@ export default function AccountSection() {
               type="email"
               value={profile.email}
               onChange={(value) => updateProfileField("email", value)}
+              disabled={isSaving}
             />
           </div>
 
@@ -145,6 +183,7 @@ export default function AccountSection() {
               value={profile.timezone}
               options={["Africa/Lagos", "Europe/London", "UTC"]}
               onChange={(value) => updateProfileField("timezone", value)}
+              disabled={isSaving}
             />
             <SelectField
               id="currency"
@@ -152,6 +191,7 @@ export default function AccountSection() {
               value={profile.currency}
               options={["USD", "NGN", "EUR"]}
               onChange={(value) => updateProfileField("currency", value)}
+              disabled={isSaving}
             />
           </div>
 
@@ -160,24 +200,36 @@ export default function AccountSection() {
               Core account edits stay on one card so users do not bounce between
               routes.
             </p>
-            <Button
-              onClick={() =>
-                setStatusMessage(
-                  "Account profile changes are staged and ready for backend save.",
-                )
-              }
-            >
-              Save account changes
+            <Button onClick={handleSave} disabled={isSaving}>
+              {isSaving ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Saving...
+                </>
+              ) : (
+                "Save account changes"
+              )}
             </Button>
           </div>
 
-          {statusMessage ? (
-            <div className="rounded-2xl border border-success/20 bg-success/10 px-4 py-3">
-              <FormMessage variant="success" className="text-success">
-                {statusMessage}
+          {status.message && (
+            <div
+              role="status"
+              aria-live="polite"
+              className={`rounded-2xl border px-4 py-3 ${
+                status.type === "success"
+                  ? "border-success/20 bg-success/10"
+                  : "border-destructive/20 bg-destructive/10"
+              }`}
+            >
+              <FormMessage
+                variant={status.type === "success" ? "success" : "error"}
+                className={status.type === "success" ? "text-success" : "text-destructive"}
+              >
+                {status.message}
               </FormMessage>
             </div>
-          ) : null}
+          )}
 
           <details className="rounded-2xl border border-zinc-200 bg-zinc-50 p-4 dark:border-white/10 dark:bg-white/5">
             <summary className="cursor-pointer list-none text-sm font-medium text-zinc-900 dark:text-white">
@@ -267,9 +319,10 @@ export default function AccountSection() {
               confirmationLabel='Type "DEACTIVATE" to confirm'
               confirmLabel="Confirm deactivation"
               onConfirm={() =>
-                setStatusMessage(
-                  "Deactivation request captured. Keep this action gated until backend approval exists.",
-                )
+                setStatus({
+                  message: "Deactivation request captured. Keep this action gated until backend approval exists.",
+                  type: "success",
+                })
               }
             />
           </CardContent>
@@ -325,12 +378,14 @@ function SelectField({
   value,
   options,
   onChange,
+  disabled = false,
 }: {
   id: string;
   label: string;
   value: string;
   options: string[];
   onChange: (value: string) => void;
+  disabled?: boolean;
 }) {
   const fieldId = id;
   const descriptionId = `${fieldId}-description`;
@@ -347,7 +402,8 @@ function SelectField({
         id={fieldId}
         value={value}
         onChange={(event) => onChange(event.target.value)}
-        className="h-10 w-full rounded-md border border-zinc-200 bg-white px-3 text-sm text-zinc-900 outline-none transition focus:border-zinc-900 focus:ring-2 focus:ring-zinc-900/10 dark:border-white/10 dark:bg-white/5 dark:text-white dark:focus:border-white"
+        disabled={disabled}
+        className="h-10 w-full rounded-md border border-zinc-200 bg-white px-3 text-sm text-zinc-900 outline-none transition focus:border-zinc-900 focus:ring-2 focus:ring-zinc-900/10 dark:border-white/10 dark:bg-white/5 dark:text-white dark:focus:border-white disabled:opacity-50"
         aria-describedby={descriptionId}
       >
         {options.map((option) => (

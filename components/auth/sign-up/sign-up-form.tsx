@@ -5,20 +5,12 @@ import { useForm } from "react-hook-form";
 import React, { useState } from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from "@/components/ui/form";
+import { Form } from "@/components/ui/form";
 import {
   FormFieldInput,
   FormFieldPassword,
   FormFieldCheckbox,
 } from "@/components/ui/form-field";
-import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
 import { Check, X } from "lucide-react";
 import { SignUpEmailModal } from "./sign-up-email-modal";
@@ -26,6 +18,17 @@ import { AuthSocialButtons } from "../auth-social-buttons";
 import { signUpSchema, SignUpFormValues } from "@/types/auth";
 import { checkPasswordRequirements } from "@/utils/authUtils";
 
+/**
+ * SignUpForm – renders the `/auth/sign-up` page form.
+ *
+ * Uses `FormFieldPassword` for both the password and confirm-password fields.
+ * `FormFieldPassword` internally handles the Eye/EyeOff visibility toggle,
+ * aria attributes, and autoComplete.
+ *
+ * @security Password visibility defaults to hidden (`type="password"`).
+ *           Password values are never logged. `autoComplete="new-password"`
+ *           is preserved for password-manager compatibility.
+ */
 export function SignUpForm() {
   const [passwordRequirements, setPasswordRequirements] = useState({
     minLength: false,
@@ -37,7 +40,6 @@ export function SignUpForm() {
   const [isPasswordStrong, setIsPasswordStrong] = useState(false);
   const [showEmailModal, setShowEmailModal] = useState(false);
   const [submittedEmail, setSubmittedEmail] = useState("");
-  const agreeToTermsId = React.useId();
 
   const handlePasswordCheck = (password: string) => {
     const requirements = checkPasswordRequirements(password);
@@ -121,55 +123,19 @@ export function SignUpForm() {
           <FormFieldPassword
             control={form.control}
             name="password"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>
-                  Password{" "}
-                  <span
-                    className="text-destructive"
-                    aria-label="required field"
-                  >
-                    *
-                  </span>
-                </FormLabel>
-                <FormControl>
-                  <div className="relative">
-                    <Input
-                      type={showPassword ? "text" : "password"}
-                      placeholder="Create a password"
-                      className="pr-10 py-4"
-                      autoComplete="new-password"
-                      aria-describedby={showPasswordRequirements ? "password-requirements" : undefined}
-                      {...field}
-                      onChange={(e) => {
-                        field.onChange(e);
-                        const value = e.target.value;
-                        if (value.length > 0) {
-                          setShowPasswordRequirements(true);
-                          handlePasswordCheck(value);
-                        } else {
-                          setShowPasswordRequirements(false);
-                        }
-                      }}
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowPassword((v) => !v)}
-                      aria-label={showPassword ? "Hide password" : "Show password"}
-                      aria-pressed={showPassword}
-                      className={`${iconsClassName} cursor-pointer bg-transparent border-0 p-0 focus:outline-none focus:ring-2 focus:ring-ring rounded`}
-                    >
-                      {showPassword ? (
-                        <EyeOff aria-hidden="true" />
-                      ) : (
-                        <Eye aria-hidden="true" />
-                      )}
-                    </button>
-                  </div>
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
+            label="Password"
+            placeholder="Create a password"
+            required
+            autoComplete="new-password"
+            onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+              const value = e.target.value;
+              if (value.length > 0) {
+                setShowPasswordRequirements(true);
+                handlePasswordCheck(value);
+              } else {
+                setShowPasswordRequirements(false);
+              }
+            }}
           />
           {/* Password Requirements */}
           {showPasswordRequirements && (
@@ -273,44 +239,10 @@ export function SignUpForm() {
           <FormFieldPassword
             control={form.control}
             name="confirmPassword"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>
-                  Confirm Password{" "}
-                  <span
-                    className="text-destructive"
-                    aria-label="required field"
-                  >
-                    *
-                  </span>
-                </FormLabel>
-                <FormControl>
-                  <div className="relative">
-                    <Input
-                      type={showConfirmPassword ? "text" : "password"}
-                      placeholder="Confirm your password"
-                      className="pr-10 py-4"
-                      autoComplete="new-password"
-                      {...field}
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowConfirmPassword((v) => !v)}
-                      aria-label={showConfirmPassword ? "Hide confirm password" : "Show confirm password"}
-                      aria-pressed={showConfirmPassword}
-                      className={`${iconsClassName} cursor-pointer bg-transparent border-0 p-0 focus:outline-none focus:ring-2 focus:ring-ring rounded`}
-                    >
-                      {showConfirmPassword ? (
-                        <EyeOff aria-hidden="true" />
-                      ) : (
-                        <Eye aria-hidden="true" />
-                      )}
-                    </button>
-                  </div>
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
+            label="Confirm Password"
+            placeholder="Confirm your password"
+            required
+            autoComplete="new-password"
           />
           <FormFieldCheckbox
             control={form.control}
