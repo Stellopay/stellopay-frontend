@@ -38,6 +38,16 @@ function issueFor(
   );
 }
 
+function withoutField<T extends object>(
+  payload: T,
+  field: keyof T,
+): Partial<T> {
+  const payloadWithoutField: Partial<T> = { ...payload };
+  delete payloadWithoutField[field];
+
+  return payloadWithoutField;
+}
+
 describe("signUpSchema", () => {
   it("accepts a valid signup with matching passwords and accepted terms", () => {
     expect(signUpSchema.safeParse(validSignUp).success).toBe(true);
@@ -142,12 +152,7 @@ describe("signUpSchema", () => {
     {
       name: "missing fullName",
       path: "fullName",
-      payload: {
-        email: validSignUp.email,
-        password: validSignUp.password,
-        confirmPassword: validSignUp.confirmPassword,
-        agreeToTerms: validSignUp.agreeToTerms,
-      },
+      payload: withoutField(validSignUp, "fullName"),
     },
     {
       name: "non-string fullName",
@@ -157,12 +162,7 @@ describe("signUpSchema", () => {
     {
       name: "missing email",
       path: "email",
-      payload: {
-        fullName: validSignUp.fullName,
-        password: validSignUp.password,
-        confirmPassword: validSignUp.confirmPassword,
-        agreeToTerms: validSignUp.agreeToTerms,
-      },
+      payload: withoutField(validSignUp, "email"),
     },
     {
       name: "non-string email",
@@ -172,12 +172,7 @@ describe("signUpSchema", () => {
     {
       name: "missing password",
       path: "password",
-      payload: {
-        fullName: validSignUp.fullName,
-        email: validSignUp.email,
-        confirmPassword: validSignUp.confirmPassword,
-        agreeToTerms: validSignUp.agreeToTerms,
-      },
+      payload: withoutField(validSignUp, "password"),
     },
     {
       name: "non-string password",
@@ -187,12 +182,7 @@ describe("signUpSchema", () => {
     {
       name: "missing confirmPassword",
       path: "confirmPassword",
-      payload: {
-        fullName: validSignUp.fullName,
-        email: validSignUp.email,
-        password: validSignUp.password,
-        agreeToTerms: validSignUp.agreeToTerms,
-      },
+      payload: withoutField(validSignUp, "confirmPassword"),
     },
     {
       name: "non-string confirmPassword",
@@ -202,12 +192,7 @@ describe("signUpSchema", () => {
     {
       name: "missing agreeToTerms",
       path: "agreeToTerms",
-      payload: {
-        fullName: validSignUp.fullName,
-        email: validSignUp.email,
-        password: validSignUp.password,
-        confirmPassword: validSignUp.confirmPassword,
-      },
+      payload: withoutField(validSignUp, "agreeToTerms"),
     },
     {
       name: "non-boolean agreeToTerms",
@@ -266,7 +251,7 @@ describe("loginSchema", () => {
     {
       name: "missing email",
       path: "email",
-      payload: { password: validLogin.password, rememberMe: true },
+      payload: { ...withoutField(validLogin, "email"), rememberMe: true },
     },
     {
       name: "non-string email",
@@ -276,7 +261,7 @@ describe("loginSchema", () => {
     {
       name: "missing password",
       path: "password",
-      payload: { email: validLogin.email, rememberMe: true },
+      payload: { ...withoutField(validLogin, "password"), rememberMe: true },
     },
     {
       name: "non-string password",
