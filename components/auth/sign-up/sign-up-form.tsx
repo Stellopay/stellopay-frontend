@@ -15,7 +15,6 @@ import {
 } from "@/components/ui/form";
 import {
   FormFieldInput,
-  FormFieldPassword,
   FormFieldCheckbox,
 } from "@/components/ui/form-field";
 import { Input } from "@/components/ui/input";
@@ -40,7 +39,6 @@ export function SignUpForm() {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const iconsClassName = "absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground";
-  const agreeToTermsId = React.useId();
 
   const handlePasswordCheck = (password: string) => {
     const requirements = checkPasswordRequirements(password);

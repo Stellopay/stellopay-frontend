@@ -16,7 +16,6 @@ import {
 import {
   FormFieldInput,
   FormFieldCheckbox,
-  FormFieldPassword,
 } from "@/components/ui/form-field";
 import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
@@ -38,7 +37,7 @@ export function LoginForm() {
     },
   });
 
-  async function onSubmit(data: LoginFormValues) {
+  async function onSubmit(_data: LoginFormValues) {
     setIsLoading(true);
     try {
       // Simulate API call
