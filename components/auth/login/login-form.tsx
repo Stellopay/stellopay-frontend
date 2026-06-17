@@ -20,12 +20,14 @@ import {
 } from "@/components/ui/form-field";
 import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
-import { Loader2 } from "lucide-react";
+import { Loader2, Eye, EyeOff } from "lucide-react";
 import { AuthSocialButtons } from "../auth-social-buttons";
 import { loginSchema, LoginFormValues } from "@/types/auth";
 
 export function LoginForm() {
   const [isLoading, setIsLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [errorMessage, setErrorMessage] = useState("");
 
   const form = useForm<LoginFormValues>({
     resolver: zodResolver(loginSchema),
@@ -38,16 +40,26 @@ export function LoginForm() {
 
   async function onSubmit(data: LoginFormValues) {
     setIsLoading(true);
+    setErrorMessage("");
     try {
       // Simulate API call
-      await new Promise((resolve) => setTimeout(resolve, 2000));
+      await new Promise((resolve, reject) => setTimeout(() => {
+        // Simulate error for demonstration
+        if (data.email === "error@example.com") {
+          reject(new Error("Invalid credentials"));
+        } else {
+          resolve(null);
+        }
+      }, 2000));
       // Handle login logic here
-    } catch (error) {
-      console.error("Login error:", error);
+    } catch {
+      setErrorMessage("Invalid email or password. Please try again.");
     } finally {
       setIsLoading(false);
     }
   }
+
+  const iconsClassName = "absolute right-3 top-1/2 -translate-y-1/2";
 
   return (
     <section className="w-full order-1 lg:order-2">
@@ -142,6 +154,17 @@ export function LoginForm() {
               </FormItem>
             )}
           />
+
+          {/* Error Message */}
+          {errorMessage && (
+            <div
+              role="alert"
+              aria-live="polite"
+              className="bg-red-500/10 text-red-300 px-4 py-3 rounded-lg text-sm"
+            >
+              {errorMessage}
+            </div>
+          )}
 
           {/* Remember Me and Forgot Password */}
           <div className="flex items-center justify-between">
