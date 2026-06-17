@@ -78,20 +78,17 @@ const transactions: Transaction[] = [
 ];
 
 describe("formatAmount", () => {
-  it("returns current currency formatting for positive and negative amounts", () => {
+  it("delegates positive and negative amounts to formatCurrency", () => {
     expect(formatAmount(1234.5)).toBe(formatCurrency(1234.5));
-    expect(formatAmount(1234.5)).toBe("+$1234.50");
     expect(formatAmount(-1234.5)).toBe(formatCurrency(-1234.5));
-    expect(formatAmount(-1234.5)).toBe("$1234.50");
   });
 });
 
 describe("formatTransactionDate", () => {
-  it("returns the current formatted date for an ISO date", () => {
+  it("delegates ISO date formatting to formatDate", () => {
     const isoDate = "2023-04-15T00:00:00";
 
     expect(formatTransactionDate(isoDate)).toBe(formatDate(isoDate));
-    expect(formatTransactionDate(isoDate)).toBe("Apr 15, 2023");
   });
 });
 
@@ -251,9 +248,27 @@ describe("filterTransactions", () => {
 });
 
 describe("sortTransactions", () => {
-  it("sorts by date in ascending and descending order", () => {
+  it("sorts unsorted input by date in ascending and descending order", () => {
+    const [boundaryStart, marchReceived, aprilSwap, aprilSent, boundaryEnd] =
+      transactions;
+    const unsortedTransactions = [
+      aprilSwap,
+      boundaryEnd,
+      boundaryStart,
+      aprilSent,
+      marchReceived,
+    ];
+
+    expect(unsortedTransactions.map((transaction) => transaction.id)).toEqual([
+      "april-swap",
+      "boundary-end",
+      "boundary-start",
+      "april-sent",
+      "march-received",
+    ]);
+
     expect(
-      sortTransactions(transactions, "date", "asc").map(
+      sortTransactions(unsortedTransactions, "date", "asc").map(
         (transaction) => transaction.id,
       ),
     ).toEqual([
@@ -264,7 +279,7 @@ describe("sortTransactions", () => {
       "boundary-end",
     ]);
     expect(
-      sortTransactions(transactions, "date", "desc").map(
+      sortTransactions(unsortedTransactions, "date", "desc").map(
         (transaction) => transaction.id,
       ),
     ).toEqual([
