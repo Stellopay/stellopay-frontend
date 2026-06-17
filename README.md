@@ -97,23 +97,28 @@ stellopay-frontend
 
 ```
 
+## Testing
+
+- `npm run test` runs the Vitest unit suite with coverage for auth, transaction, and pagination utils plus auth schemas.
+- `npm run test:watch` runs Vitest in watch mode while developing unit tests.
+- `npm run test:e2e` is the Playwright local/E2E command.
+
 ## CI Pipeline
 
-Every pull request and push to `main` runs the following jobs via `.github/workflows/ci.yml`:
+Every pull request and push to `main` runs the following steps via `.github/workflows/ci.yml`:
 
 | Step | Command | Purpose |
 |------|---------|---------|
-| Install | `npm ci` | Reproducible install from lockfile |
+| Install dependencies | `npm ci` | Reproducible install from lockfile |
+| Unit Tests | `npm run test` | Vitest utility/schema tests for auth, transaction, pagination utils, and auth schemas |
 | Lint | `npm run lint` | ESLint via `next lint` |
 | Type-check | `npm run type-check` | `tsc --noEmit` — catches type errors |
 | Build | `npm run build` | Full Next.js production build |
-| E2E | `npm run test:e2e` | Playwright tests against the built app |
-
-On failure, the Playwright HTML report is uploaded as a workflow artifact (retained 7 days).
 
 **Node version:** 20 LTS (matches `@types/node ^20`).
 
 **Security:** workflow permissions are `contents: read`; actions are pinned to major version tags; `pull_request` trigger is used (not `pull_request_target`) so fork PRs cannot access repository secrets.
+
 ## ⚡ Performance Optimization & Code-Splitting
 
 We implemented target performance optimizations across the landing page and dashboard to improve First Paint, LCP (Largest Contentful Paint), and TBT (Total Blocking Time).
