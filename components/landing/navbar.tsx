@@ -4,6 +4,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { useTheme } from "@/context/theme-context";
+import NetworkSwitcher from "@/components/common/network-switcher";
 
 const navLinks = [
   { href: "/features", label: "Features" },
@@ -84,6 +85,8 @@ export default function Navbar() {
                 )}
               </button>
 
+              <NetworkSwitcher variant="landing" />
+
               <button
                 onClick={handleConnect}
                 className={`hidden md:inline-flex items-center px-5 py-2 rounded-full font-medium transition-shadow shadow-sm ${
@@ -132,6 +135,9 @@ export default function Navbar() {
                   {l.label}
                 </Link>
               ))}
+              <div className="pt-4 border-t border-gray-100 dark:border-white/5 flex justify-center">
+                <NetworkSwitcher variant="landing" />
+              </div>
             </div>
           </div>
         </div>

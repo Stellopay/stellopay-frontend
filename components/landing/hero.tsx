@@ -2,6 +2,7 @@
 import React from 'react'
 import Image from 'next/image'
 import { ArrowRight, CircleCheck, Shield, Sparkles, Wallet, Zap } from 'lucide-react'
+import Image from 'next/image'
 import stellar from '../../public/stellar.png'
 import skartnet from '../../public/StarknetIcon.png'
 
@@ -53,6 +54,11 @@ const InfoCard = ({children} : {children: React.ReactNode}) => {
   )
 }
 
+/**
+ * Hero component rendering the top section of the landing page.
+ * Implements optimized Next.js Image components for network logo assets
+ * with explicit sizing to secure visual stability (CLS reduction) above the fold.
+ */
 const Hero = () => {
   return (
     <section
@@ -190,7 +196,7 @@ const Hero = () => {
             <a href="#" className='rounded-[16px] border-[#e4e4e7] dark:border-[#27272A] border-[1.34px] p-4 w-full h-33.5 flex flex-col justify-between lg:border-2'>
               <div className='flex justify-between items-center w-full'>
                 <div className='bg-[#FFFFFF] dark:bg-[#18181B] w-10 h-10 rounded-[12px] flex justify-center items-center' style={{boxShadow: '0px 4px 20px 0px rgba(139, 92, 246, 0.25)'}}>
-                  <Image src={stellar} alt="Stellar network" width={24} height={20} />
+                  <Image src={stellar} alt="Stellar network" width={24} height={20} className='w-6 h-5'/>
                 </div>
                 <ArrowRight className='text-[#52525B] dark:text-[#A1A1AA] w-[13.99px] h-[13.99px]'/>
               </div>
@@ -207,7 +213,7 @@ const Hero = () => {
             <a href="#" className='rounded-[16px] border-[#e4e4e7] dark:border-[#27272A] border-[1.34px] p-4 w-full h-33.5 flex flex-col justify-between lg:border-2'>
               <div className='flex justify-between items-center w-full'>
                 <div className='bg-[#FFFFFF] dark:bg-[#18181B] w-10 h-10 rounded-[12px] flex justify-center items-center' style={{boxShadow: '0px 4px 20px 0px rgba(139, 92, 246, 0.25)'}}>
-                  <Image src={skartnet} alt="Starknet network" width={24} height={20} />
+                  <Image src={skartnet} alt="Starknet network" width={24} height={20} className='w-6 h-5'/>
                 </div>
                 <ArrowRight className='text-[#52525B] dark:text-[#A1A1AA] w-[13.99px] h-[13.99px]'/>
               </div>
