@@ -5,27 +5,31 @@ import { useForm } from "react-hook-form";
 import { useState } from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from "@/components/ui/form";
+import { Form } from "@/components/ui/form";
 import {
   FormFieldInput,
   FormFieldCheckbox,
   FormFieldPassword,
 } from "@/components/ui/form-field";
-import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
-import { Loader2 } from "lucide-react";
+import { Loader2, Eye, EyeOff } from "lucide-react";
 import { AuthSocialButtons } from "../auth-social-buttons";
 import { loginSchema, LoginFormValues } from "@/types/auth";
 
+/**
+ * LoginForm – renders the `/auth/login` page form.
+ *
+ * Uses `FormFieldPassword` for the password field which internally handles
+ * the Eye/EyeOff visibility toggle, aria attributes, and autoComplete.
+ *
+ * @security Password visibility defaults to hidden (`type="password"`).
+ *           Password values are never logged. `autoComplete="current-password"`
+ *           is preserved for password-manager compatibility.
+ */
 export function LoginForm() {
   const [isLoading, setIsLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [errorMessage, setErrorMessage] = useState("");
 
   const form = useForm<LoginFormValues>({
     resolver: zodResolver(loginSchema),
@@ -36,18 +40,28 @@ export function LoginForm() {
     },
   });
 
-  async function onSubmit(data: LoginFormValues) {
+  async function onSubmit(_data: LoginFormValues) {
     setIsLoading(true);
+    setErrorMessage("");
     try {
       // Simulate API call
-      await new Promise((resolve) => setTimeout(resolve, 2000));
+      await new Promise((resolve, reject) => setTimeout(() => {
+        // Simulate error for demonstration
+        if (data.email === "error@example.com") {
+          reject(new Error("Invalid credentials"));
+        } else {
+          resolve(null);
+        }
+      }, 2000));
       // Handle login logic here
-    } catch (error) {
-      console.error("Login error:", error);
+    } catch {
+      setErrorMessage("Invalid email or password. Please try again.");
     } finally {
       setIsLoading(false);
     }
   }
+
+  const iconsClassName = "absolute right-3 top-1/2 -translate-y-1/2";
 
   return (
     <section className="w-full order-1 lg:order-2">
@@ -102,46 +116,23 @@ export function LoginForm() {
           <FormFieldPassword
             control={form.control}
             name="password"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>
-                  Password{" "}
-                  <span
-                    className="text-destructive"
-                    aria-label="required field"
-                  >
-                    *
-                  </span>
-                </FormLabel>
-                <FormControl>
-                  <div className="relative">
-                    <Input
-                      type={showPassword ? "text" : "password"}
-                      placeholder="Enter your password"
-                      className="pr-10 py-4"
-                      disabled={isLoading}
-                      autoComplete="current-password"
-                      {...field}
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowPassword((v) => !v)}
-                      aria-label={showPassword ? "Hide password" : "Show password"}
-                      aria-pressed={showPassword}
-                      className={`${iconsClassName} cursor-pointer bg-transparent border-0 p-0 focus:outline-none focus:ring-2 focus:ring-ring rounded`}
-                    >
-                      {showPassword ? (
-                        <EyeOff aria-hidden="true" />
-                      ) : (
-                        <Eye aria-hidden="true" />
-                      )}
-                    </button>
-                  </div>
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
+            label="Password"
+            placeholder="Enter your password"
+            disabled={isLoading}
+            required
+            autoComplete="current-password"
           />
+
+          {/* Error Message */}
+          {errorMessage && (
+            <div
+              role="alert"
+              aria-live="polite"
+              className="bg-red-500/10 text-red-300 px-4 py-3 rounded-lg text-sm"
+            >
+              {errorMessage}
+            </div>
+          )}
 
           {/* Remember Me and Forgot Password */}
           <div className="flex items-center justify-between">

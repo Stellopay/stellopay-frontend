@@ -2,25 +2,58 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { X } from "lucide-react";
+import { X, Loader2 } from "lucide-react";
+
+type StatusType = "idle" | "loading" | "success" | "error";
 
 export default function VerifyEmail() {
   const [code, setCode] = useState("");
   const router = useRouter();
+  const [status, setStatus] = useState<StatusType>("idle");
+  const [message, setMessage] = useState("");
+  const [resendStatus, setResendStatus] = useState<StatusType>("idle");
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value.replace(/[^0-9a-zA-Z]/g, "");
     if (value.length <= 6) setCode(value);
   };
 
-  const handleResend = () => {
-    // Placeholder for resend logic
-    alert("Verification code resent to your email.");
+  const handleResend = async () => {
+    setResendStatus("loading");
+    setMessage("");
+    try {
+      // Simulate API call
+      await new Promise((resolve) => setTimeout(resolve, 1500));
+      setResendStatus("success");
+      setMessage("Verification code resent to your email.");
+    } catch {
+      setResendStatus("error");
+      setMessage("Failed to resend code. Please try again.");
+    } finally {
+      setTimeout(() => setResendStatus("idle"), 3000);
+    }
   };
 
-  const handleContinue = () => {
-    // Placeholder for continue logic
-    alert(`Submitted code: ${code}`);
+  const handleContinue = async () => {
+    setStatus("loading");
+    setMessage("");
+    try {
+      // Simulate API call
+      await new Promise((resolve, reject) => setTimeout(() => {
+        if (code === "123456") {
+          resolve(null);
+        } else {
+          reject(new Error("Invalid code"));
+        }
+      }, 1500));
+      setStatus("success");
+      setMessage("Email verified successfully!");
+    } catch {
+      setStatus("error");
+      setMessage("Invalid verification code. Please try again.");
+    } finally {
+      setTimeout(() => setStatus("idle"), 3000);
+    }
   };
 
   return (
@@ -43,9 +76,15 @@ export default function VerifyEmail() {
           Didn&apos;t get code?{" "}
           <button
             onClick={handleResend}
-            className="text-white font-semibold underline cursor-pointer"
+            disabled={resendStatus === "loading"}
+            className="text-white font-semibold underline cursor-pointer disabled:opacity-50"
           >
-            Resend
+            {resendStatus === "loading" ? (
+              <>
+                <Loader2 className="inline h-4 w-4 mr-1 animate-spin" />
+                Sending...
+              </>
+            ) : "Resend"}
           </button>
         </p>
 
@@ -56,27 +95,49 @@ export default function VerifyEmail() {
           maxLength={6}
           value={code}
           onChange={handleInputChange}
-          className="w-full text-left py-3 px-4 rounded-[8px] border border-[#2D2D2D] bg-transparent text-white mb-4 outline-none  mt-5"
+          className="w-full text-left py-3 px-4 rounded-[8px] border border-[#2D2D2D] bg-transparent text-white mb-4 outline-none mt-5"
           placeholder="- - - - - - - -"
         />
+
+        {/* Status Messages */}
+        {message && (
+          <div
+            role="status"
+            aria-live="polite"
+            className={`text-sm px-4 py-2 rounded-lg mb-2 ${
+              status === "success" || resendStatus === "success"
+                ? "bg-emerald-500/10 text-emerald-300"
+                : status === "error" || resendStatus === "error"
+                ? "bg-red-500/10 text-red-300"
+                : ""
+            }`}
+          >
+            {message}
+          </div>
+        )}
 
         {/* Continue Button */}
         <button
           onClick={handleContinue}
-          disabled={code.length !== 6}
-          className={`w-full  py-3 px-4 rounded-[8px]  bg-[#FFFFFF] text-black font-medium transition  mt-2 ${
-            code.length === 6
+          disabled={code.length !== 6 || status === "loading"}
+          className={`w-full py-3 px-4 rounded-[8px] bg-[#FFFFFF] text-black font-medium transition mt-2 flex items-center justify-center gap-2 ${
+            code.length === 6 && status !== "loading"
               ? "cursor-pointer"
               : "opacity-80 cursor-not-allowed"
           }`}
         >
-          Continue
+          {status === "loading" ? (
+            <>
+              <Loader2 className="h-4 w-4 animate-spin" />
+              Verifying...
+            </>
+          ) : "Continue"}
         </button>
 
         {/* Go Back */}
         <button
           onClick={() => router.back()}
-          className=" text-[13px] text-[#FFFFFF] underline font-semibold cursor-pointer"
+          className="text-[13px] text-[#FFFFFF] underline font-semibold cursor-pointer"
         >
           Go Back
         </button>

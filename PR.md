@@ -43,7 +43,8 @@ N/A
 
 ### New Footer Design
 
-![Redesigned Footer](/.gemini/antigravity/brain/ca1912f6-d93e-4add-98a4-397023a96c96/redesigned_footer_verification_1769671927190.png)
+*(Please refer to the design mockup for reference, or run the app locally to view the updated footer).*
+
 
 ### Design Reference
 

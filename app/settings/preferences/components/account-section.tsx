@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Image from "next/image";
-import { Camera } from "lucide-react";
+import { Camera, Loader2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -16,6 +16,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { FormMessage } from "@/components/ui/form";
 import DestructiveActionDialog from "./destructive-action-dialog";
+import { DEMO_PROFILE } from "@/lib/demo-data";
 
 interface ProfileState {
   firstName: string;
@@ -24,6 +25,11 @@ interface ProfileState {
   email: string;
   timezone: string;
   currency: string;
+}
+
+interface StatusState {
+  message: string;
+  type: "success" | "error" | null;
 }
 
 const sectionMap = [
@@ -49,22 +55,56 @@ const sectionMap = [
   },
 ];
 
+/**
+ * AccountSection component.
+ * Renders user profile information, identity details, and regional settings.
+ * Uses placeholder demo data pending full backend API integration.
+ */
 export default function AccountSection() {
   const [profile, setProfile] = useState<ProfileState>({
-    firstName: "Maya",
-    lastName: "Sullivan",
-    displayName: "Maya Sullivan",
-    email: "maya.sullivan@stellopay.app",
-    timezone: "Africa/Lagos",
-    currency: "USD",
+    firstName: DEMO_PROFILE.firstName,
+    lastName: DEMO_PROFILE.lastName,
+    displayName: DEMO_PROFILE.displayName,
+    email: DEMO_PROFILE.email,
+    timezone: DEMO_PROFILE.timezone,
+    currency: DEMO_PROFILE.currency,
   });
-  const [statusMessage, setStatusMessage] = useState("");
+  const [status, setStatus] = useState<StatusState>({ message: "", type: null });
+  const [isSaving, setIsSaving] = useState(false);
 
   const updateProfileField = (field: keyof ProfileState, value: string) => {
     setProfile((currentProfile) => ({
       ...currentProfile,
       [field]: value,
     }));
+  };
+
+  const handleSave = async () => {
+    setIsSaving(true);
+    setStatus({ message: "", type: null });
+    try {
+      // Simulate async API call
+      await new Promise((resolve, reject) => setTimeout(() => {
+        // Simulate occasional failure for testing
+        if (Math.random() > 0.8) {
+          reject(new Error("Failed to save"));
+        } else {
+          resolve(null);
+        }
+      }, 1500));
+      setStatus({
+        message: "Account profile changes are staged and ready for backend save.",
+        type: "success",
+      });
+    } catch {
+      setStatus({
+        message: "Failed to save changes. Please try again.",
+        type: "error",
+      });
+    } finally {
+      setIsSaving(false);
+      setTimeout(() => setStatus({ message: "", type: null }), 5000);
+    }
   };
 
   return (
@@ -85,8 +125,11 @@ export default function AccountSection() {
                 <span className="absolute -bottom-1 -right-1 h-5 w-5 rounded-full border-2 border-white bg-emerald-500 dark:border-[#09090B]" />
               </div>
               <div className="space-y-1">
-                <CardTitle className="font-general text-2xl text-zinc-950 dark:text-white">
+                <CardTitle className="font-general text-2xl text-zinc-950 dark:text-white flex flex-wrap items-center gap-2">
                   Account identity
+                  <span className="inline-flex items-center gap-1 rounded-full bg-amber-50 px-2 py-0.5 text-xs font-medium text-amber-800 ring-1 ring-inset ring-amber-600/20 dark:bg-amber-400/10 dark:text-amber-500 dark:ring-amber-400/20">
+                    Demo Data
+                  </span>
                 </CardTitle>
                 <CardDescription className="max-w-lg text-zinc-600 dark:text-zinc-400">
                   High-frequency profile fields are visible immediately, while
@@ -107,18 +150,21 @@ export default function AccountSection() {
               label="First name"
               value={profile.firstName}
               onChange={(value) => updateProfileField("firstName", value)}
+              disabled={isSaving}
             />
             <Field
               id="last-name"
               label="Last name"
               value={profile.lastName}
               onChange={(value) => updateProfileField("lastName", value)}
+              disabled={isSaving}
             />
             <Field
               id="display-name"
               label="Display name"
               value={profile.displayName}
               onChange={(value) => updateProfileField("displayName", value)}
+              disabled={isSaving}
             />
             <Field
               id="email-address"
@@ -126,6 +172,7 @@ export default function AccountSection() {
               type="email"
               value={profile.email}
               onChange={(value) => updateProfileField("email", value)}
+              disabled={isSaving}
             />
           </div>
 
@@ -136,6 +183,7 @@ export default function AccountSection() {
               value={profile.timezone}
               options={["Africa/Lagos", "Europe/London", "UTC"]}
               onChange={(value) => updateProfileField("timezone", value)}
+              disabled={isSaving}
             />
             <SelectField
               id="currency"
@@ -143,6 +191,7 @@ export default function AccountSection() {
               value={profile.currency}
               options={["USD", "NGN", "EUR"]}
               onChange={(value) => updateProfileField("currency", value)}
+              disabled={isSaving}
             />
           </div>
 
@@ -151,24 +200,36 @@ export default function AccountSection() {
               Core account edits stay on one card so users do not bounce between
               routes.
             </p>
-            <Button
-              onClick={() =>
-                setStatusMessage(
-                  "Account profile changes are staged and ready for backend save.",
-                )
-              }
-            >
-              Save account changes
+            <Button onClick={handleSave} disabled={isSaving}>
+              {isSaving ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Saving...
+                </>
+              ) : (
+                "Save account changes"
+              )}
             </Button>
           </div>
 
-          {statusMessage ? (
-            <div className="rounded-2xl border border-success/20 bg-success/10 px-4 py-3">
-              <FormMessage variant="success" className="text-success">
-                {statusMessage}
+          {status.message && (
+            <div
+              role="status"
+              aria-live="polite"
+              className={`rounded-2xl border px-4 py-3 ${
+                status.type === "success"
+                  ? "border-success/20 bg-success/10"
+                  : "border-destructive/20 bg-destructive/10"
+              }`}
+            >
+              <FormMessage
+                variant={status.type === "success" ? "success" : "error"}
+                className={status.type === "success" ? "text-success" : "text-destructive"}
+              >
+                {status.message}
               </FormMessage>
             </div>
-          ) : null}
+          )}
 
           <details className="rounded-2xl border border-zinc-200 bg-zinc-50 p-4 dark:border-white/10 dark:bg-white/5">
             <summary className="cursor-pointer list-none text-sm font-medium text-zinc-900 dark:text-white">
@@ -178,14 +239,14 @@ export default function AccountSection() {
               <Field
                 id="legal-name"
                 label="Legal entity"
-                value="Stellopay Labs"
+                value={DEMO_PROFILE.legalEntity}
                 onChange={() => undefined}
                 disabled
               />
               <Field
                 id="billing-country"
                 label="Billing country"
-                value="Nigeria"
+                value={DEMO_PROFILE.billingCountry}
                 onChange={() => undefined}
                 disabled
               />
@@ -258,9 +319,10 @@ export default function AccountSection() {
               confirmationLabel='Type "DEACTIVATE" to confirm'
               confirmLabel="Confirm deactivation"
               onConfirm={() =>
-                setStatusMessage(
-                  "Deactivation request captured. Keep this action gated until backend approval exists.",
-                )
+                setStatus({
+                  message: "Deactivation request captured. Keep this action gated until backend approval exists.",
+                  type: "success",
+                })
               }
             />
           </CardContent>
@@ -316,12 +378,14 @@ function SelectField({
   value,
   options,
   onChange,
+  disabled = false,
 }: {
   id: string;
   label: string;
   value: string;
   options: string[];
   onChange: (value: string) => void;
+  disabled?: boolean;
 }) {
   const fieldId = id;
   const descriptionId = `${fieldId}-description`;
@@ -338,7 +402,8 @@ function SelectField({
         id={fieldId}
         value={value}
         onChange={(event) => onChange(event.target.value)}
-        className="h-10 w-full rounded-md border border-zinc-200 bg-white px-3 text-sm text-zinc-900 outline-none transition focus:border-zinc-900 focus:ring-2 focus:ring-zinc-900/10 dark:border-white/10 dark:bg-white/5 dark:text-white dark:focus:border-white"
+        disabled={disabled}
+        className="h-10 w-full rounded-md border border-zinc-200 bg-white px-3 text-sm text-zinc-900 outline-none transition focus:border-zinc-900 focus:ring-2 focus:ring-zinc-900/10 dark:border-white/10 dark:bg-white/5 dark:text-white dark:focus:border-white disabled:opacity-50"
         aria-describedby={descriptionId}
       >
         {options.map((option) => (
