@@ -12,21 +12,11 @@ import {
 } from "@/components/ui/card";
 import ToggleCard from "@/components/common/toggle-card";
 import DestructiveActionDialog from "./destructive-action-dialog";
+import { DEMO_WALLETS } from "@/lib/demo-data";
+import { Loader2 } from "lucide-react";
+import { FormMessage } from "@/components/ui/form";
 
-const connectedWallets = [
-  {
-    name: "Primary Treasury",
-    network: "Stellar Mainnet",
-    address: "GBSL...4KQ2",
-    status: "Default settlement wallet",
-  },
-  {
-    name: "Operations Wallet",
-    network: "Starknet",
-    address: "0x47f...12ce",
-    status: "Approvals required for outbound transfers",
-  },
-];
+const connectedWallets = DEMO_WALLETS;
 
 interface WalletSettingsState {
   transferApprovals: boolean;
@@ -34,27 +24,67 @@ interface WalletSettingsState {
   travelRuleChecks: boolean;
 }
 
+interface StatusState {
+  message: string;
+  type: "success" | "error" | null;
+}
+
+/**
+ * WalletsSection component.
+ * Renders connected wallet configurations, region settings, and outbound transfer safeguards.
+ * Uses placeholder demo data pending full backend API integration.
+ */
 export default function WalletsSection() {
   const [settings, setSettings] = useState<WalletSettingsState>({
     transferApprovals: true,
     addressBookLock: true,
     travelRuleChecks: true,
   });
-  const [statusMessage, setStatusMessage] = useState("");
+  const [status, setStatus] = useState<StatusState>({ message: "", type: null });
+  const [isSaving, setIsSaving] = useState(false);
 
   const updateSetting = (field: keyof WalletSettingsState, value: boolean) => {
     setSettings((currentSettings) => ({
       ...currentSettings,
       [field]: value,
-    }));
+    });
+  };
+
+  const handleSave = async () => {
+    setIsSaving(true);
+    setStatus({ message: "", type: null });
+    try {
+      await new Promise((resolve, reject) => setTimeout(() => {
+        if (Math.random() > 0.8) {
+          reject(new Error("Failed to save"));
+        } else {
+          resolve(null);
+        }
+      }, 1500));
+      setStatus({
+        message: "Wallet safeguards updated. Transfer review controls remain enabled by default.",
+        type: "success",
+      });
+    } catch {
+      setStatus({
+        message: "Failed to save changes. Please try again.",
+        type: "error",
+      });
+    } finally {
+      setIsSaving(false);
+      setTimeout(() => setStatus({ message: "", type: null }), 5000);
+    }
   };
 
   return (
     <div className="grid gap-6 xl:grid-cols-[minmax(0,1.1fr)_minmax(320px,0.9fr)]">
       <Card className="border-zinc-200 bg-white/90 shadow-sm dark:border-white/10 dark:bg-white/5">
         <CardHeader className="border-b border-zinc-200/80 dark:border-white/10">
-          <CardTitle className="font-general text-2xl text-zinc-950 dark:text-white">
+          <CardTitle className="font-general text-2xl text-zinc-950 dark:text-white flex flex-wrap items-center gap-2">
             Connected wallets
+            <span className="inline-flex items-center gap-1 rounded-full bg-amber-50 px-2 py-0.5 text-xs font-medium text-amber-800 ring-1 ring-inset ring-amber-600/20 dark:bg-amber-400/10 dark:text-amber-500 dark:ring-amber-400/20">
+              Demo Data
+            </span>
           </CardTitle>
           <CardDescription className="text-zinc-600 dark:text-zinc-400">
             Wallet identity and transfer controls stay on the same surface so
@@ -137,20 +167,37 @@ export default function WalletsSection() {
               enabled={settings.travelRuleChecks}
               onToggle={(value) => updateSetting("travelRuleChecks", value)}
             />
-            <Button
-              onClick={() =>
-                setStatusMessage(
-                  "Wallet safeguards updated. Transfer review controls remain enabled by default.",
-                )
-              }
-            >
-              Save wallet settings
+            <Button onClick={handleSave} disabled={isSaving}>
+              {isSaving ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Saving...
+                </>
+              ) : (
+                "Save wallet settings"
+              )}
             </Button>
-            {statusMessage ? (
-              <p className="rounded-2xl border border-emerald-500/20 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-700 dark:text-emerald-300">
-                {statusMessage}
-              </p>
-            ) : null}
+            {status.message && (
+              <div
+                role="status"
+                aria-live="polite"
+                className={`rounded-2xl border px-4 py-3 ${
+                  status.type === "success"
+                    ? "border-emerald-500/20 bg-emerald-500/10"
+                    : "border-destructive/20 bg-destructive/10"
+                }`}
+              >
+                <p
+                  className={`text-sm ${
+                    status.type === "success"
+                      ? "text-emerald-700 dark:text-emerald-300"
+                      : "text-destructive"
+                  }`}
+                >
+                  {status.message}
+                </p>
+              </div>
+            )}
           </CardContent>
         </Card>
 
@@ -178,9 +225,10 @@ export default function WalletsSection() {
               confirmationLabel='Type "REMOVE" to confirm'
               confirmLabel="Remove wallet"
               onConfirm={() =>
-                setStatusMessage(
-                  "Wallet removal request captured. A replacement wallet should be selected before execution.",
-                )
+                setStatus({
+                  message: "Wallet removal request captured. A replacement wallet should be selected before execution.",
+                  type: "success",
+                })
               }
             />
           </CardContent>

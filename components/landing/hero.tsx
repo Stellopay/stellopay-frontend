@@ -1,5 +1,6 @@
 'use client'
 import React from 'react'
+import Image from 'next/image'
 import { ArrowRight, CircleCheck, Shield, Sparkles, Wallet, Zap } from 'lucide-react'
 import Image from 'next/image'
 import stellar from '../../public/stellar.png'

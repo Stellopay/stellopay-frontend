@@ -7,6 +7,7 @@ import {
   Monitor,
   ShieldCheck,
   Smartphone,
+  Loader2,
 } from "lucide-react";
 import ToggleCard from "@/components/common/toggle-card";
 import { Button } from "@/components/ui/button";
@@ -23,6 +24,7 @@ import { checkPasswordRequirements } from "@/utils/authUtils";
 import DestructiveActionDialog from "./destructive-action-dialog";
 import { Label } from "@/components/ui/label";
 import { FormMessage } from "@/components/ui/form";
+import { DEMO_SECURITY } from "@/lib/demo-data";
 
 const sessions = [
   {
@@ -39,13 +41,24 @@ const sessions = [
   },
 ];
 
+interface StatusState {
+  message: string;
+  type: "success" | "error" | null;
+}
+
+/**
+ * SecurityTab component.
+ * Renders security-sensitive forms (password updates, two-factor authentication, active sessions).
+ * Uses placeholder demo data pending full backend API integration.
+ */
 export default function SecurityTab() {
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [twoFactorEnabled, setTwoFactorEnabled] = useState(true);
   const [loginApprovalEnabled, setLoginApprovalEnabled] = useState(true);
   const [transferApprovalEnabled, setTransferApprovalEnabled] = useState(true);
-  const [statusMessage, setStatusMessage] = useState("");
+  const [status, setStatus] = useState<StatusState>({ message: "", type: null });
+  const [isSaving, setIsSaving] = useState(false);
 
   const passwordRequirements = checkPasswordRequirements(password);
   const isPasswordReady =
@@ -53,16 +66,35 @@ export default function SecurityTab() {
     password.length > 0 &&
     password === confirmPassword;
 
-  const handleSaveChanges = () => {
+  const handleSaveChanges = async () => {
     if (!isPasswordReady) {
       return;
     }
-
-    setStatusMessage(
-      "Password policy satisfied. Changes are ready for backend wiring.",
-    );
-    setPassword("");
-    setConfirmPassword("");
+    setIsSaving(true);
+    setStatus({ message: "", type: null });
+    try {
+      await new Promise((resolve, reject) => setTimeout(() => {
+        if (Math.random() > 0.8) {
+          reject(new Error("Failed to save"));
+        } else {
+          resolve(null);
+        }
+      }, 1500));
+      setStatus({
+        message: "Password policy satisfied. Changes are ready for backend wiring.",
+        type: "success",
+      });
+      setPassword("");
+      setConfirmPassword("");
+    } catch {
+      setStatus({
+        message: "Failed to save changes. Please try again.",
+        type: "error",
+      });
+    } finally {
+      setIsSaving(false);
+      setTimeout(() => setStatus({ message: "", type: null }), 5000);
+    }
   };
 
   return (
@@ -74,8 +106,11 @@ export default function SecurityTab() {
               <KeyRound className="size-5" />
             </span>
             <div className="space-y-1">
-              <CardTitle className="font-general text-xl text-zinc-950 dark:text-white">
+              <CardTitle className="font-general text-xl text-zinc-950 dark:text-white flex flex-wrap items-center gap-2">
                 Password and recovery
+                <span className="inline-flex items-center gap-1 rounded-full bg-amber-50 px-2 py-0.5 text-xs font-medium text-amber-800 ring-1 ring-inset ring-amber-600/20 dark:bg-amber-400/10 dark:text-amber-500 dark:ring-amber-400/20">
+                  Demo Data
+                </span>
               </CardTitle>
               <CardDescription className="text-zinc-600 dark:text-zinc-400">
                 Keep password work scoped to one card and show validation before
@@ -100,6 +135,7 @@ export default function SecurityTab() {
                 onChange={(event) => setPassword(event.target.value)}
                 placeholder="Use a strong password"
                 className="border-zinc-200 bg-white dark:border-white/10 dark:bg-white/5"
+                disabled={isSaving}
               />
             </div>
 
@@ -117,6 +153,7 @@ export default function SecurityTab() {
                 onChange={(event) => setConfirmPassword(event.target.value)}
                 placeholder="Repeat the new password"
                 className="border-zinc-200 bg-white dark:border-white/10 dark:bg-white/5"
+                disabled={isSaving}
               />
             </div>
           </div>
@@ -145,27 +182,45 @@ export default function SecurityTab() {
               Recovery methods stay hidden until needed to keep the primary path
               calm.
             </p>
-            <Button disabled={!isPasswordReady} onClick={handleSaveChanges}>
-              Update password
+            <Button disabled={!isPasswordReady || isSaving} onClick={handleSaveChanges}>
+              {isSaving ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Saving...
+                </>
+              ) : (
+                "Update password"
+              )}
             </Button>
           </div>
 
-          {statusMessage ? (
-            <div className="rounded-2xl border border-success/20 bg-success/10 px-4 py-3">
-              <FormMessage variant="success" className="text-success">
-                {statusMessage}
+          {status.message && (
+            <div
+              role="status"
+              aria-live="polite"
+              className={`rounded-2xl border px-4 py-3 ${
+                status.type === "success"
+                  ? "border-success/20 bg-success/10"
+                  : "border-destructive/20 bg-destructive/10"
+              }`}
+            >
+              <FormMessage
+                variant={status.type === "success" ? "success" : "error"}
+                className={status.type === "success" ? "text-success" : "text-destructive"}
+              >
+                {status.message}
               </FormMessage>
             </div>
-          ) : null}
+          )}
 
           <details className="group rounded-2xl border border-zinc-200 bg-zinc-50 p-4 dark:border-white/10 dark:bg-white/5">
             <summary className="cursor-pointer list-none text-sm font-medium text-zinc-900 dark:text-white">
               Show recovery methods
             </summary>
             <div className="mt-4 grid gap-3 text-sm text-zinc-600 dark:text-zinc-400">
-              <p>Primary email: maya.sullivan@stellopay.app</p>
-              <p>Recovery codes: generated and stored offline</p>
-              <p>Backup contact: +234 801 234 5678</p>
+              <p>Primary email: {DEMO_SECURITY.primaryEmail}</p>
+              <p>Recovery codes: {DEMO_SECURITY.recoveryCodesStatus}</p>
+              <p>Backup contact: {DEMO_SECURITY.backupContact}</p>
             </div>
           </details>
         </CardContent>
@@ -238,7 +293,7 @@ export default function SecurityTab() {
               return (
                 <div
                   key={session.name}
-                  className="flex items-start gap-3 rounded-2xl border border-zinc-200 bg-zinc-50 p-4 dark:border-white/10 dark:bg-white/5"
+                  className="flex items-start gap-3 rounded-2xl border border-zinc-200 bg-zinc-50 px-4 py-3 dark:border-white/10 dark:bg-white/5"
                 >
                   <span className="mt-0.5 flex h-10 w-10 items-center justify-center rounded-2xl bg-zinc-900 text-white dark:bg-white dark:text-zinc-900">
                     <SessionIcon className="size-4" />
@@ -271,9 +326,10 @@ export default function SecurityTab() {
               confirmationLabel='Type "LOGOUT" to continue'
               confirmLabel="Force sign-out"
               onConfirm={() =>
-                setStatusMessage(
-                  "Session reset requested. All other devices would be signed out.",
-                )
+                setStatus({
+                  message: "Session reset requested. All other devices would be signed out.",
+                  type: "success",
+                })
               }
             />
           </CardContent>
