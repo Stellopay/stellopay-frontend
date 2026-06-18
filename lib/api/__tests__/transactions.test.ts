@@ -5,7 +5,11 @@ import {
 } from "../transactions";
 
 beforeAll(() => {
-  process.env.NODE_ENV = "test";
+  vi.stubEnv("NODE_ENV", "test");
+});
+
+afterAll(() => {
+  vi.unstubAllEnvs();
 });
 
 describe("getTransactions", () => {

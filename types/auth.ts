@@ -17,6 +17,11 @@ export interface AuthShowcaseProps {
 }
 
 // Form schemas and types
+/**
+ * Validates signup form values: full name, valid email, an 8+ character
+ * password with uppercase and special characters, matching confirmation, and
+ * terms acceptance.
+ */
 export const signUpSchema = z
   .object({
     fullName: z.string().min(2, {
@@ -25,9 +30,17 @@ export const signUpSchema = z
     email: z.string().email({
       message: "Please enter a valid email address.",
     }),
-    password: z.string().min(8, {
-      message: "Password must be at least 8 characters.",
-    }),
+    password: z
+      .string()
+      .min(8, {
+        message: "Password must be at least 8 characters.",
+      })
+      .regex(/[A-Z]/, {
+        message: "Password must include at least one uppercase letter.",
+      })
+      .regex(/[@!#%$^&*()_+\-=[\]{};':"\\|,.<>/?]/, {
+        message: "Password must include at least one special character.",
+      }),
     confirmPassword: z.string(),
     agreeToTerms: z.boolean().refine((val) => val === true, {
       message: "You must agree to the terms and conditions.",
@@ -38,6 +51,10 @@ export const signUpSchema = z
     path: ["confirmPassword"],
   });
 
+/**
+ * Validates login form values: valid email, an 8+ character password, and
+ * remember-me preference.
+ */
 export const loginSchema = z.object({
   email: z.string().email({
     message: "Please enter a valid email address.",

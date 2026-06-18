@@ -12,7 +12,7 @@ import {
   FormFieldPassword,
 } from "@/components/ui/form-field";
 import { Separator } from "@/components/ui/separator";
-import { Loader2, Eye, EyeOff } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import { AuthSocialButtons } from "../auth-social-buttons";
 import { loginSchema, LoginFormValues } from "@/types/auth";
 
@@ -28,7 +28,6 @@ import { loginSchema, LoginFormValues } from "@/types/auth";
  */
 export function LoginForm() {
   const [isLoading, setIsLoading] = useState(false);
-  const [showPassword, setShowPassword] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
 
   const form = useForm<LoginFormValues>({
@@ -47,7 +46,7 @@ export function LoginForm() {
       // Simulate API call
       await new Promise((resolve, reject) => setTimeout(() => {
         // Simulate error for demonstration
-        if (data.email === "error@example.com") {
+        if (_data.email === "error@example.com") {
           reject(new Error("Invalid credentials"));
         } else {
           resolve(null);
@@ -61,7 +60,6 @@ export function LoginForm() {
     }
   }
 
-  const iconsClassName = "absolute right-3 top-1/2 -translate-y-1/2";
 
   return (
     <section className="w-full order-1 lg:order-2">

@@ -53,6 +53,9 @@ export const getPageItems = <T>(
   currentPage: number,
   itemsPerPage: number,
 ): T[] => {
+  if (currentPage <= 0) {
+    return [];
+  }
   const startIndex = getStartIndex(currentPage, itemsPerPage);
   const endIndex = getEndIndex(currentPage, itemsPerPage);
   return items.slice(startIndex, endIndex);

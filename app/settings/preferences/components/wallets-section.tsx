@@ -14,7 +14,6 @@ import ToggleCard from "@/components/common/toggle-card";
 import DestructiveActionDialog from "./destructive-action-dialog";
 import { DEMO_WALLETS } from "@/lib/demo-data";
 import { Loader2 } from "lucide-react";
-import { FormMessage } from "@/components/ui/form";
 
 const connectedWallets = DEMO_WALLETS;
 
@@ -47,7 +46,7 @@ export default function WalletsSection() {
     setSettings((currentSettings) => ({
       ...currentSettings,
       [field]: value,
-    });
+    }));
   };
 
   const handleSave = async () => {
