@@ -24,7 +24,7 @@ export const formatCurrency = (
  * @returns Formatted number string
  */
 export const formatNumber = (num: number): string => {
-  return num.toLocaleString();
+  return num.toLocaleString("en-US");
 };
 
 /**
