@@ -10,6 +10,31 @@
         "caughtErrorsIgnorePattern": "^_",
         "destructuredArrayIgnorePattern": "^_"
       }
+    ],
+    "no-restricted-imports": [
+      "error",
+      {
+        "paths": [
+          {
+            "name": "react-icons",
+            "message": "Please use lucide-react instead."
+          },
+          {
+            "name": "@hugeicons/react",
+            "message": "Please use lucide-react instead."
+          },
+          {
+            "name": "@hugeicons/core-free-icons",
+            "message": "Please use lucide-react instead."
+          }
+        ],
+        "patterns": [
+          {
+            "group": ["react-icons/*", "@hugeicons/*"],
+            "message": "Please use lucide-react instead."
+          }
+        ]
+      }
     ]
   }
 }

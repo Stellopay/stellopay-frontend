@@ -4,7 +4,7 @@ import { useState } from "react";
 import { Calendar } from "@/components/ui/calendar";
 import { Button } from "@/components/ui/button";
 
-import { HugeiconsIcon } from "@hugeicons/react";
+import { CalendarIcon } from "lucide-react";
 
 import {
   Popover,
@@ -12,7 +12,6 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { cn } from "@/utils/commonUtils";
-import { Calendar03Icon } from "@hugeicons/core-free-icons";
 import { TransactionsHeaderProps } from "@/types/transaction";
 import { formatDateForInput, formatDateForDisplay } from "@/utils/dateUtils";
 
@@ -60,8 +59,7 @@ export default function TransactionsHeader({
                 !fromDateObj && "text-muted-foreground",
               )}
             >
-              <HugeiconsIcon
-                icon={Calendar03Icon}
+              <CalendarIcon
                 size={16}
                 color="currentColor"
                 strokeWidth={1.8}
@@ -96,8 +94,7 @@ export default function TransactionsHeader({
                 !toDateObj && "text-muted-foreground",
               )}
             >
-              <HugeiconsIcon
-                icon={Calendar03Icon}
+              <CalendarIcon
                 size={16}
                 color="currentColor"
                 strokeWidth={1.8}

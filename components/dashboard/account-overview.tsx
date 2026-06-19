@@ -3,15 +3,14 @@
 import React from 'react';
 import AccountSummaryCard from './account-summary-card';
 import { summaryCardsData } from './summary-data';
-import { HiOutlineWallet, HiOutlineChartBar, HiOutlineArrowRight } from "react-icons/hi2";
-import { PiChartPieSlice } from "react-icons/pi";
+import { Wallet, BarChart3, ArrowRight, PieChart } from "lucide-react";
 
 export default function AccountOverview() {
   // Map icons to the data
   const icons = [
-    <HiOutlineWallet key="wallet" className="w-6 h-6 text-blue-600 dark:text-blue-400" />,
-    <HiOutlineChartBar key="chart" className="w-6 h-6 text-emerald-600 dark:text-emerald-400" />,
-    <PiChartPieSlice key="pie" className="w-6 h-6 text-amber-600 dark:text-amber-400" />
+    <Wallet key="wallet" className="w-6 h-6 text-blue-600 dark:text-blue-400" />,
+    <BarChart3 key="chart" className="w-6 h-6 text-emerald-600 dark:text-emerald-400" />,
+    <PieChart key="pie" className="w-6 h-6 text-amber-600 dark:text-amber-400" />
   ];
 
   return (
@@ -32,7 +31,7 @@ export default function AccountOverview() {
       <div className="flex items-center justify-between mb-8">
         <h2 className="text-2xl font-bold text-zinc-900 dark:text-white">Account Overview</h2>
         <button className="hidden sm:flex items-center gap-2 px-4 py-2 bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 rounded-lg text-sm font-semibold hover:opacity-90 transition-opacity cursor-pointer">
-          View Full Account <HiOutlineArrowRight className="w-4 h-4" />
+          View Full Account <ArrowRight className="w-4 h-4" />
         </button>
       </div>
 
@@ -49,7 +48,7 @@ export default function AccountOverview() {
       
       {/* Mobile Button */}
       <button className="sm:hidden w-full mt-6 flex items-center justify-center gap-2 px-4 py-3 bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 rounded-lg text-sm font-semibold shadow-lg cursor-pointer">
-        View Full Account <HiOutlineArrowRight className="w-4 h-4" />
+        View Full Account <ArrowRight className="w-4 h-4" />
       </button>
     </div>
   );
