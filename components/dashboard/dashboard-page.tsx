@@ -6,6 +6,7 @@ import AccountOverview from '@/components/dashboard/account-overview';
 import { QuickActions } from '@/components/dashboard/quick-actions';
 import dynamic from 'next/dynamic';
 import Skeleton from '@/components/ui/skeleton';
+import ClientAnalyticsView from '@/components/analytics/client-analytics-view';
 
 const AnalyticsInsights = dynamic(() => import('@/components/dashboard/analytics-insights').then(mod => mod.AnalyticsInsights), {
   loading: () => (
@@ -38,7 +39,7 @@ const AnalyticsInsights = dynamic(() => import('@/components/dashboard/analytics
  * to speed up initial route execution and loading metrics.
  */
 export default function Dashboard() {
-  const [, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(true);
 
   // Simulate loading for demo purposes
   useEffect(() => {
@@ -60,7 +61,11 @@ export default function Dashboard() {
 
         <AnalyticsInsights />
 
-        {/* <AnalyticsView /> */}
+        <ClientAnalyticsView
+          isLoading={isLoading}
+          showNotifications={true}
+          showDropdown={true}
+        />
         
         {/* <TransactionHistory /> */}
       </main>

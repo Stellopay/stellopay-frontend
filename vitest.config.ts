@@ -24,6 +24,8 @@ export default defineConfig({
         'utils/transactionUtils.ts',
         'utils/paginationUtils.ts',
         'types/auth.ts',
+        'components/analytics/analytics-view.tsx',
+        'components/analytics/client-analytics-view.tsx',
       ],
       exclude: [
         '**/*.test.{ts,tsx}',
