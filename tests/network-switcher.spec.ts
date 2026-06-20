@@ -37,7 +37,7 @@ test.describe("NetworkSwitcher — active badge", () => {
 
     const trigger = page.locator('[aria-label*="Current network"]').first();
     await expect(trigger).toHaveAttribute("aria-label", /current network/i);
-    await expect(trigger).toHaveAttribute("aria-label", /ETH/i);
+    await expect(trigger).toHaveAttribute("aria-label", /Stellar/i);
   });
 
   test("active network item shows 'Active' badge in dropdown", async ({ page }) => {
@@ -60,7 +60,7 @@ test.describe("NetworkSwitcher — no-op on active network", () => {
     await trigger.click();
 
     // Click the currently active network (ETH)
-    const ethItem = page.getByRole("menuitem", { name: /ETH/i }).first();
+    const ethItem = page.getByRole("menuitem", { name: /Stellar/i }).first();
     await ethItem.click();
 
     // Dialog should NOT appear
@@ -92,7 +92,7 @@ test.describe("NetworkSwitcher — confirmation dialog", () => {
     await page.getByRole("menuitem", { name: /Polygon/i }).first().click();
 
     const dialog = page.getByRole("dialog");
-    await expect(dialog).toContainText("ETH");
+    await expect(dialog).toContainText("Stellar");
     await expect(dialog).toContainText("Polygon");
   });
 
@@ -126,7 +126,7 @@ test.describe("NetworkSwitcher — confirmation dialog", () => {
 
     // Trigger still shows ETH
     const updatedTrigger = page.locator('[aria-label*="Current network"]').first();
-    await expect(updatedTrigger).toHaveAttribute("aria-label", /ETH/i);
+    await expect(updatedTrigger).toHaveAttribute("aria-label", /Stellar/i);
   });
 
   test("confirming the switch updates the displayed network", async ({ page }) => {
@@ -164,11 +164,11 @@ test.describe("NetworkSwitcher — rapid switching", () => {
 
     // Switch BSC → ETH
     await page.locator('[aria-label*="Current network"]').first().click();
-    await page.getByRole("menuitem", { name: /ETH/i }).first().click();
+    await page.getByRole("menuitem", { name: /Stellar/i }).first().click();
     await page.getByTestId("confirm-network-switch").click();
 
     const trigger = page.locator('[aria-label*="Current network"]').first();
-    await expect(trigger).toHaveAttribute("aria-label", /ETH/i);
+    await expect(trigger).toHaveAttribute("aria-label", /Stellar/i);
   });
 
   test("cancelling mid-sequence preserves the last confirmed network", async ({ page }) => {
@@ -242,7 +242,7 @@ test.describe("NetworkSwitcher — keyboard accessibility", () => {
     await expect(page.locator('[role="menu"]').first()).not.toBeVisible();
 
     // Network unchanged
-    await expect(trigger).toHaveAttribute("aria-label", /ETH/i);
+    await expect(trigger).toHaveAttribute("aria-label", /Stellar/i);
   });
 });
 
