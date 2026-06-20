@@ -25,6 +25,7 @@ export default defineConfig({
         'utils/paginationUtils.ts',
         'types/auth.ts',
         'app/global-error.tsx',
+        'context/wallet-context.tsx',
       ],
       exclude: [
         '**/*.test.{ts,tsx}',
