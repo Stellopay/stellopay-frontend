@@ -22,9 +22,12 @@ export default defineConfig({
       include: [
         'utils/authUtils.ts',
         'utils/dateUtils.ts',
+        'utils/formatUtils.ts',
         'utils/transactionUtils.ts',
         'utils/paginationUtils.ts',
         'types/auth.ts',
+        'app/global-error.tsx',
+        'context/wallet-context.tsx',
       ],
       exclude: [
         '**/*.test.{ts,tsx}',
