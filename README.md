@@ -22,6 +22,50 @@ You can start editing the page by modifying `app/page.tsx`. The page auto-update
 
 This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
 
+## Wallet and network state
+
+The connected wallet and the active network live in a single React context, `WalletProvider`, declared in `context/wallet-context.tsx`. The provider is wrapped around the entire app in both the App Router (`app/layout.tsx`) and the Pages Router (`pages/_app.tsx`), so every surface that needs to know which account or network is active reads from the same source of truth.
+
+Read the context with the `useWallet` hook. Calling it outside of a `WalletProvider` throws an explicit error, which makes provider wiring issues fail loudly during development instead of silently rendering placeholder data.
+
+```tsx
+import { useWallet, formatAddress } from "@/context/wallet-context";
+
+export function AccountBadge() {
+  const { address, isConnected, connect, disconnect, network } = useWallet();
+  if (!isConnected) {
+    return <button onClick={() => connect()}>Connect Wallet</button>;
+  }
+  return (
+    <span>
+      {formatAddress(address)} on {network.name}
+    </span>
+  );
+}
+```
+
+The context exposes:
+
+- `address` — the public Stellar G-address of the connected wallet, or `null` when disconnected. Only public material is ever stored or logged. The provider refuses any value that looks like a Stellar secret key (`S` followed by 55 base32 characters).
+- `isConnected` — derived from `address !== null`. Use this for branching rather than null-checking the address yourself.
+- `network` — a `{ id, name }` pair from `SUPPORTED_NETWORKS`. Defaults to Stellar.
+- `connect(address?)` — populates the address. Without an argument it uses a synthetic Stellar-style address for the demo flow. A real wallet integration replaces the body of this function without changing the public surface.
+- `disconnect()` — clears the address. The network selection survives a disconnect.
+- `setNetwork(network)` — switches the active network and persists the id in `localStorage` under `stellopay.wallet.network`. Hydration on the client follows the same SSR-safe pattern as `ThemeProvider` and `SidebarProvider`, so the server render and the first client render agree and React does not flag a hydration mismatch. The address itself is never persisted, so a page reload always returns to a disconnected state.
+
+### Surfaces that read the context
+
+- `components/common/network-switcher.tsx` reads the active network and the supported network list from the context. It keeps the existing confirmation dialog, and the `selectedNetwork` and `onNetworkChange` props still work for callers that want to treat the switcher as a controlled component.
+- `components/dashboard/account-overview.tsx` shows a `Connect Wallet` CTA when disconnected and the truncated context address when connected.
+- `components/dashboard/dashboard-navbar.tsx` mirrors the address pill and the network badge from the same context, so the navbar and the dashboard body never disagree.
+
+### Tests
+
+- `context/wallet-context.test.tsx` — Vitest unit coverage for the reducer surface, the localStorage hydration, the secret-key guard, and the `useWallet` outside-provider error.
+- `tests/wallet.spec.ts` — Playwright end-to-end coverage for the connect, disconnect, switch network, cancel switch, and reload-persistence flows on `/dashboard`.
+
+Run the unit suite with `npm test` and the end-to-end suite with `npx playwright test tests/wallet.spec.ts`.
+
 ## Learn More
 
 To learn more about Next.js, take a look at the following resources:

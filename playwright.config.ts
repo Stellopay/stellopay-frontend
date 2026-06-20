@@ -3,7 +3,10 @@ import { defineConfig, devices } from "@playwright/test";
 export default defineConfig({
   testDir: ".",
   testMatch: ["tests/**/*.spec.ts", "e2e/**/*.spec.ts"],
-  timeout: 60_000,
+  // Dashboard routes pull in Radix dialog and dropdown trees from the
+  // NetworkSwitcher integration; the first cold compile under `next dev`
+  // routinely needs more than the previous 60s budget.
+  timeout: 180_000,
   fullyParallel: false,
   workers: 1,
   use: {
