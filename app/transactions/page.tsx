@@ -10,7 +10,7 @@ import Sort from "@/components/transactions/sort";
 import { TransactionTableSkeleton } from "@/components/ui/table-skeleton";
 import { useTransactions } from "@/hooks/useTransactions";
 import type { TransactionProps } from "@/types/transaction";
-import { isDateInRange } from "@/utils/date-utils";
+import { isDateInRange } from "@/utils/dateUtils";
 
 const getTokenIcon = (token: string): string => {
   switch (token) {
