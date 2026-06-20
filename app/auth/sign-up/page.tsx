@@ -1,5 +1,14 @@
+import type { Metadata } from "next";
 import { SignUpForm } from "@/components/auth/sign-up/sign-up-form";
 import { AuthShowcase } from "@/components/auth/auth-showcase";
+
+/**
+ * Metadata configuration for the StelloPay sign-up route.
+ */
+export const metadata: Metadata = {
+  title: "Sign Up",
+  description: "Create a new StelloPay account to get started with fast, secure global blockchain payroll.",
+};
 
 export default function SignUpPage() {
   return (

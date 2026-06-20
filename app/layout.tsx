@@ -24,9 +24,39 @@ const generalSans = localFont({
   display: "swap",
 });
 
+/**
+ * Global metadata configuration for the StelloPay application.
+ * Sets the default title templates and default OpenGraph and Twitter preview parameters.
+ */
 export const metadata: Metadata = {
-  title: "Stellopay",
-  description: "Stellopay — fast, secure blockchain payroll and payments powered by Stellar.",
+  title: {
+    default: "StelloPay",
+    template: "%s | StelloPay",
+  },
+  description: "StelloPay — fast, secure blockchain payroll and payments powered by Stellar.",
+  openGraph: {
+    title: "StelloPay",
+    description: "Fast, secure blockchain payroll and payments powered by Stellar.",
+    url: "https://stellopay.com",
+    siteName: "StelloPay",
+    images: [
+      {
+        url: "/og-image.png",
+        width: 1200,
+        height: 630,
+        alt: "StelloPay Preview Image",
+      },
+    ],
+    locale: "en_US",
+    type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "StelloPay",
+    description: "Fast, secure blockchain payroll and payments powered by Stellar.",
+    images: ["/og-image.png"],
+    creator: "@stellopay",
+  },
 };
 
 export default function RootLayout({

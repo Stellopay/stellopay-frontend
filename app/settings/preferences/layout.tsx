@@ -2,10 +2,17 @@ import AppLayout from "@/components/common/app-layout";
 import { SidebarProvider } from "@/context/sidebar-context";
 import { Metadata } from "next";
 
+/**
+ * Metadata configuration for the private settings preferences route.
+ * Employs robots noindex directives to prevent indexing of settings dashboard.
+ */
 export const metadata: Metadata = {
-  title: "Stellopay | Settings",
-  description:
-    "Stellopay Settings - Manage your account, alerts, security, and wallet preferences",
+  title: "Preferences",
+  description: "Customize your StelloPay dashboard preferences, currency view, theme, and security parameters.",
+  robots: {
+    index: false,
+    follow: false,
+  },
 };
 
 export default function SettingsPreferencesLayout({
