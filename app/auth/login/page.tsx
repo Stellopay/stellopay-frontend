@@ -1,5 +1,14 @@
+import type { Metadata } from "next";
 import { AuthShowcase } from "@/components/auth/auth-showcase";
 import { LoginForm } from "@/components/auth/login/login-form";
+
+/**
+ * Metadata configuration for the StelloPay login route.
+ */
+export const metadata: Metadata = {
+  title: "Login",
+  description: "Log in to your StelloPay account to access secure blockchain payroll and manage your digital workspace.",
+};
 
 export default function LoginPage() {
   return (
