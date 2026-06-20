@@ -1,6 +1,7 @@
 /**
  * Date utility functions
  */
+import { isValid, isWithinInterval, parse } from "date-fns";
 
 /**
  * Formats a date string to a readable format (e.g., "Jan 15, 2024")
@@ -39,19 +40,62 @@ export const formatDateForDisplay = (date: Date): string => {
 };
 
 /**
+ * Parses transaction date labels such as "Apr 12, 2023".
+ * @param dateString - Transaction date label to parse
+ * @returns Parsed Date or null when the label is invalid
+ */
+export const parseTransactionDate = (dateString: string): Date | null => {
+  try {
+    const parsed = parse(dateString, "MMM dd, yyyy", new Date());
+    return isValid(parsed) ? parsed : null;
+  } catch {
+    return null;
+  }
+};
+
+/**
  * Checks if a date is within a given range
- * @param date - The date to check
+ * @param date - The date to check, or a transaction date label
  * @param fromDate - Start of the range
  * @param toDate - End of the range
  * @returns True if date is within range, false otherwise
  */
-export const isDateInRange = (
+export function isDateInRange(
   date: Date,
   fromDate: Date,
   toDate: Date,
-): boolean => {
+): boolean;
+export function isDateInRange(
+  date: string,
+  fromDate?: Date,
+  toDate?: Date,
+): boolean;
+export function isDateInRange(
+  date: Date | string,
+  fromDate: Date,
+  toDate: Date,
+): boolean;
+export function isDateInRange(
+  date: Date | string,
+  fromDate?: Date,
+  toDate?: Date,
+): boolean {
+  if (typeof date === "string") {
+    const parsedDate = parseTransactionDate(date);
+
+    if (!parsedDate) return true;
+    if (!fromDate && !toDate) return true;
+    if (fromDate && !toDate) return parsedDate >= fromDate;
+    if (!fromDate && toDate) return parsedDate <= toDate;
+    if (fromDate && toDate) {
+      return isWithinInterval(parsedDate, { start: fromDate, end: toDate });
+    }
+    return true;
+  }
+
+  if (!fromDate || !toDate) return true;
   return date >= fromDate && date <= toDate;
-};
+}
 
 /**
  * Gets the current date in YYYY-MM-DD format

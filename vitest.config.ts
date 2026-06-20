@@ -21,6 +21,7 @@ export default defineConfig({
       reporter: ['text', 'json', 'html'],
       include: [
         'utils/authUtils.ts',
+        'utils/dateUtils.ts',
         'utils/formatUtils.ts',
         'utils/transactionUtils.ts',
         'utils/paginationUtils.ts',
