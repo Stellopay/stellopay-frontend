@@ -1,6 +1,6 @@
 'use client'
 import Link from "next/link";
-import { HiMiniMagnifyingGlass } from "react-icons/hi2";
+import { Search } from "lucide-react";
 
 export default function SideBar() {
   return (
@@ -12,7 +12,7 @@ export default function SideBar() {
 
               <div className='w-[12.25rem] xl:w-[16.25rem] h-9 rounded-[4px]   mt-6'>
                 <div className="w-[85%] xl:w-[228px] h-9 px-4 border border-zinc-200 dark:border-[#2D333E] rounded-[6px] flex items-center mx-auto bg-zinc-50 dark:bg-transparent">
-                   <HiMiniMagnifyingGlass className="w-5 h-5 text-zinc-400 dark:text-inherit"/>
+                   <Search className="w-5 h-5 text-zinc-400 dark:text-inherit"/>
                    <input type="text" name='' placeholder='Search' className='outline-none pl-1.5 w-16 xl:w-32 bg-transparent text-zinc-900 dark:text-zinc-100'/>
                 </div>
                 

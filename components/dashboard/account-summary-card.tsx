@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { HiOutlineArrowTrendingUp, HiOutlineArrowTrendingDown } from "react-icons/hi2";
+import { TrendingUp, TrendingDown } from "lucide-react";
 import { AccountSummaryCardProps } from './summary-data';
 
 export default function AccountSummaryCard({
@@ -39,7 +39,7 @@ export default function AccountSummaryCard({
               ? 'text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-500/10' 
               : 'text-rose-600 dark:text-rose-400 bg-rose-50 dark:bg-rose-500/10'
           }`}>
-            {isPositive ? <HiOutlineArrowTrendingUp className="w-3 h-3" /> : <HiOutlineArrowTrendingDown className="w-3 h-3" />}
+            {isPositive ? <TrendingUp className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />}
             {change.split(' ')[0]}
           </div>
           <span className="text-xs text-zinc-400 dark:text-zinc-500">

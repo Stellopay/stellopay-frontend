@@ -3,7 +3,7 @@
 import Image from "next/image";
 import PaymentHistory from "./payment-history";
 import { useState } from "react";
-import { IoIosArrowDown, IoIosArrowUp, IoIosArrowForward } from "react-icons/io";
+import { ChevronDown, ChevronUp, ChevronRight } from "lucide-react";
 
 const amounts = [
   { amount: 92 },
@@ -56,7 +56,7 @@ export default function AnalyticsView() {
                     className="h-10 px-4 flex items-center gap-2 text-sm border border-zinc-200 dark:border-zinc-800 rounded-xl bg-zinc-50 dark:bg-zinc-900/50 cursor-pointer hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
                   >
                     <span className="font-medium text-zinc-700 dark:text-zinc-300">{selectedYear}</span>
-                    {isDropdownOpen ? <IoIosArrowUp className="text-zinc-400" /> : <IoIosArrowDown className="text-zinc-400" />}
+                    {isDropdownOpen ? <ChevronUp className="text-zinc-400" /> : <ChevronDown className="text-zinc-400" />}
                   </div>
                   
                   {isDropdownOpen && (
@@ -126,7 +126,7 @@ export default function AnalyticsView() {
 
              <div className="h-10 px-4 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900/50 flex items-center gap-2 cursor-pointer hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors">
                 <span className="text-sm font-medium text-zinc-700 dark:text-zinc-300">View All</span> 
-                <IoIosArrowForward className="text-zinc-400" />
+                <ChevronRight className="text-zinc-400" />
              </div>
           </div>
           <div className="flex-1 overflow-auto">
