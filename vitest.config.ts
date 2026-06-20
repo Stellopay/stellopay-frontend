@@ -28,6 +28,8 @@ export default defineConfig({
         'types/auth.ts',
         'app/global-error.tsx',
         'context/wallet-context.tsx',
+        'components/analytics/analytics-view.tsx',
+        'components/analytics/client-analytics-view.tsx',
       ],
       exclude: [
         '**/*.test.{ts,tsx}',
