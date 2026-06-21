@@ -101,9 +101,8 @@ describe("AnalyticsViews Component", () => {
 
   it("renders chart with empty data", () => {
     render(<AnalyticsViews data={[]} />);
-    const barChart = screen.getByTestId("bar-chart");
-    const parsedData = JSON.parse(barChart.getAttribute("data-data") || "[]");
-    expect(parsedData).toEqual([]);
+    expect(screen.getByText("No analytics data")).toBeInTheDocument();
+    expect(screen.queryByTestId("bar-chart")).not.toBeInTheDocument();
   });
 
   it("renders CustomTooltip content correctly inside Tooltip mock", () => {

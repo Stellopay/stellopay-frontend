@@ -8,6 +8,8 @@ import TableSearchbar from "@/components/transactions/table-searchbar";
 import Filter from "@/components/transactions/filter";
 import Sort from "@/components/transactions/sort";
 import { TransactionTableSkeleton } from "@/components/ui/table-skeleton";
+import EmptyState from "@/components/ui/empty-state";
+import ErrorState from "@/components/ui/error-state";
 import { useTransactions } from "@/hooks/useTransactions";
 import type { TransactionProps } from "@/types/transaction";
 import { isDateInRange } from "@/utils/dateUtils";
@@ -106,9 +108,11 @@ const Transactions = () => {
 
           {/* Error state */}
           {!isLoading && error && (
-            <div role="alert" className="py-8 text-center text-red-400 text-sm">
-              Failed to load transactions. Please try again.
-            </div>
+            <ErrorState
+              title="Failed to load transactions"
+              description="Refresh the data or try again after checking your connection."
+              className="border-[#2D2D2D] bg-[#1A1A1A] text-white"
+            />
           )}
 
           {/* Data state */}
@@ -116,9 +120,11 @@ const Transactions = () => {
             <>
               <TransactionsTable transactions={paginated} />
               {(searchParams || startDate || endDate) && paginated.length === 0 && (
-                <div role="status" aria-live="polite" className="py-4 text-center text-gray-400">
-                  No Transactions Found
-                </div>
+                <EmptyState
+                  title="No transactions found"
+                  description="Try adjusting your filters."
+                  className="mt-4 border-[#2D2D2D] bg-transparent"
+                />
               )}
             </>
           )}

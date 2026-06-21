@@ -8,6 +8,7 @@ import TransactionsHeader from "./transactions-header";
 import TransactionsFilters from "./transactions-filters";
 import { TransactionsTable } from "./transactions-table";
 import TransactionsPagination from "./transactions-pagination";
+import ErrorState from "@/components/ui/error-state";
 
 /** Map token symbol → icon path */
 const getTokenIcon = (token: string): string => {
@@ -102,12 +103,11 @@ export default function TransactionsContent() {
 
             {/* Error state */}
             {!isLoading && error && (
-              <div
-                role="alert"
-                className="py-8 text-center text-red-400 text-sm"
-              >
-                Failed to load transactions. Please try again.
-              </div>
+              <ErrorState
+                title="Failed to load transactions"
+                description="Refresh the data or try again after checking your connection."
+                className="border-[#2D2D2D] bg-[#1A1A1A] text-white"
+              />
             )}
 
             {/* Data state */}
