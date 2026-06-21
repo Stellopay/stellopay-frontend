@@ -14,8 +14,14 @@ import ToggleCard from "@/components/common/toggle-card";
 import DestructiveActionDialog from "./destructive-action-dialog";
 import { DEMO_WALLETS } from "@/lib/demo-data";
 import { Loader2 } from "lucide-react";
+import { stellarAddressSchema } from "@/utils/stellarAddress";
 
-const connectedWallets = DEMO_WALLETS;
+interface ConnectedWallet {
+  name: string;
+  network: string;
+  address: string;
+  status: string;
+}
 
 interface WalletSettingsState {
   transferApprovals: boolean;
@@ -41,6 +47,11 @@ export default function WalletsSection() {
   });
   const [status, setStatus] = useState<StatusState>({ message: "", type: null });
   const [isSaving, setIsSaving] = useState(false);
+  const [connectedWallets, setConnectedWallets] =
+    useState<ConnectedWallet[]>(() => [...DEMO_WALLETS]);
+  const [walletName, setWalletName] = useState("");
+  const [walletAddress, setWalletAddress] = useState("");
+  const [walletAddressError, setWalletAddressError] = useState("");
 
   const updateSetting = (field: keyof WalletSettingsState, value: boolean) => {
     setSettings((currentSettings) => ({
@@ -75,6 +86,49 @@ export default function WalletsSection() {
     }
   };
 
+  const handleAddWallet = () => {
+    setWalletAddressError("");
+
+    try {
+      const result = stellarAddressSchema.safeParse(walletAddress);
+
+      if (!result.success) {
+        setWalletAddressError(
+          result.error.issues[0]?.message ?? "Enter a valid Stellar public address.",
+        );
+        return;
+      }
+
+      const normalizedAddress = result.data;
+      const isDuplicate = connectedWallets.some(
+        (wallet) => wallet.address.toUpperCase() === normalizedAddress,
+      );
+
+      if (isDuplicate) {
+        setWalletAddressError("This Stellar address is already connected.");
+        return;
+      }
+
+      setConnectedWallets((currentWallets) => [
+        ...currentWallets,
+        {
+          name: walletName.trim() || "New Stellar wallet",
+          network: normalizedAddress.startsWith("M") ? "Stellar Muxed" : "Stellar",
+          address: normalizedAddress,
+          status: "Pending review",
+        },
+      ]);
+      setWalletName("");
+      setWalletAddress("");
+      setStatus({
+        message: "Wallet address added for review.",
+        type: "success",
+      });
+    } catch {
+      setWalletAddressError("Enter a valid Stellar public address.");
+    }
+  };
+
   return (
     <div className="grid gap-6 xl:grid-cols-[minmax(0,1.1fr)_minmax(320px,0.9fr)]">
       <Card className="border-zinc-200 bg-white/90 shadow-sm dark:border-white/10 dark:bg-white/5">
@@ -91,6 +145,60 @@ export default function WalletsSection() {
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4 pt-6">
+          <div className="rounded-3xl border border-zinc-200 bg-zinc-50 p-5 dark:border-white/10 dark:bg-white/5">
+            <div className="grid gap-4 md:grid-cols-[minmax(0,0.85fr)_minmax(0,1.15fr)_auto] md:items-end">
+              <div className="space-y-2">
+                <label
+                  htmlFor="wallet-name"
+                  className="text-sm font-medium text-zinc-900 dark:text-white"
+                >
+                  Wallet label
+                </label>
+                <input
+                  id="wallet-name"
+                  value={walletName}
+                  onChange={(event) => setWalletName(event.target.value)}
+                  className="h-10 w-full rounded-md border border-zinc-200 bg-white px-3 text-sm text-zinc-900 outline-none transition focus:border-zinc-900 focus:ring-2 focus:ring-zinc-900/10 dark:border-white/10 dark:bg-white/5 dark:text-white dark:focus:border-white"
+                  placeholder="Payroll wallet"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <label
+                  htmlFor="wallet-address"
+                  className="text-sm font-medium text-zinc-900 dark:text-white"
+                >
+                  Stellar address
+                </label>
+                <input
+                  id="wallet-address"
+                  value={walletAddress}
+                  onChange={(event) => {
+                    setWalletAddress(event.target.value);
+                    setWalletAddressError("");
+                  }}
+                  aria-invalid={walletAddressError ? "true" : undefined}
+                  aria-describedby={walletAddressError ? "wallet-address-error" : undefined}
+                  className="h-10 w-full rounded-md border border-zinc-200 bg-white px-3 text-sm text-zinc-900 outline-none transition focus:border-zinc-900 focus:ring-2 focus:ring-zinc-900/10 dark:border-white/10 dark:bg-white/5 dark:text-white dark:focus:border-white"
+                  placeholder="G... or M..."
+                />
+                {walletAddressError && (
+                  <p
+                    id="wallet-address-error"
+                    role="alert"
+                    className="text-sm text-destructive"
+                  >
+                    {walletAddressError}
+                  </p>
+                )}
+              </div>
+
+              <Button type="button" onClick={handleAddWallet}>
+                Add wallet
+              </Button>
+            </div>
+          </div>
+
           {connectedWallets.map((wallet) => (
             <div
               key={wallet.name}
