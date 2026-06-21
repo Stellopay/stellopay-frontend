@@ -23,6 +23,10 @@ We enforce a strict separation of concerns for data access.
 
 All data access must be routed through the established `lib/api` layer to ensure consistency and future-proof our backend integrations.
 
+## Package Manager
+
+Use npm for local development and CI. Install dependencies with `npm ci`, run scripts with `npm run <script>`, and keep `package-lock.json` as the only committed lockfile. Do not commit `pnpm-lock.yaml` or `yarn.lock`; duplicate lockfiles make dependency resolution drift between contributors and CI.
+
 ## Testing Expectations
 
 We expect all new utility functions and business logic to have **minimum 95% test coverage**.

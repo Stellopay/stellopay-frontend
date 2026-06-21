@@ -7,16 +7,13 @@ Please see our [Contributing Guide](CONTRIBUTING.md) for details on project stru
 First, run the development server:
 
 ```bash
+npm ci
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
 Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+
+This repository standardizes on npm. Use `package-lock.json` as the single committed lockfile; do not commit `pnpm-lock.yaml` or `yarn.lock`.
 
 You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
 
