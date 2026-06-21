@@ -193,7 +193,15 @@ describe("filterTransactions", () => {
     ).toEqual(["april-sent"]);
   });
 
-  it("excludes every transaction for invalid or empty date ranges", () => {
+  it("ignores invalid or empty date bounds instead of excluding all rows", () => {
+    const allTransactionIds = [
+      "boundary-start",
+      "march-received",
+      "april-swap",
+      "april-sent",
+      "boundary-end",
+    ];
+
     expect(
       filterTransactions(
         transactions,
@@ -202,7 +210,7 @@ describe("filterTransactions", () => {
         "not-a-date",
         fixtureEndDate,
       ).map((transaction) => transaction.id),
-    ).toEqual([]);
+    ).toEqual(allTransactionIds);
     expect(
       filterTransactions(
         transactions,
@@ -211,12 +219,12 @@ describe("filterTransactions", () => {
         fixtureStartDate,
         "not-a-date",
       ).map((transaction) => transaction.id),
-    ).toEqual([]);
+    ).toEqual(allTransactionIds);
     expect(
       filterTransactions(transactions, "", "All Transactions", "", "").map(
         (transaction) => transaction.id,
       ),
-    ).toEqual([]);
+    ).toEqual(allTransactionIds);
     expect(
       filterTransactions(
         transactions,
@@ -225,7 +233,7 @@ describe("filterTransactions", () => {
         "",
         fixtureEndDate,
       ).map((transaction) => transaction.id),
-    ).toEqual([]);
+    ).toEqual(allTransactionIds);
     expect(
       filterTransactions(
         transactions,
@@ -234,7 +242,7 @@ describe("filterTransactions", () => {
         fixtureStartDate,
         "",
       ).map((transaction) => transaction.id),
-    ).toEqual([]);
+    ).toEqual(allTransactionIds);
     expect(
       filterTransactions(
         transactions,

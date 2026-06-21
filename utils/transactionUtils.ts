@@ -6,6 +6,13 @@ import type {
 import { formatCurrency } from "./formatUtils";
 import { formatDate } from "./dateUtils";
 
+const toValidDate = (dateStr: string): Date | null => {
+  if (!dateStr) return null;
+
+  const date = new Date(dateStr);
+  return Number.isNaN(date.getTime()) ? null : date;
+};
+
 /**
  * Formats transaction amount with proper currency formatting
  * @param amount - The amount to format
@@ -63,10 +70,15 @@ export const filterTransactions = (
 
   // Filter by date range
   filtered = filtered.filter((transaction) => {
-    const transactionDate = new Date(transaction.date);
-    const from = new Date(fromDate);
-    const to = new Date(toDate);
-    return transactionDate >= from && transactionDate <= to;
+    const transactionDate = toValidDate(transaction.date);
+    const from = toValidDate(fromDate);
+    const to = toValidDate(toDate);
+
+    if (!transactionDate) return false;
+    if (from && transactionDate < from) return false;
+    if (to && transactionDate > to) return false;
+
+    return true;
   });
 
   return filtered;

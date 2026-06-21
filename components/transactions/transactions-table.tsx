@@ -12,6 +12,7 @@ import { TransactionsTableProps } from "@/types/transaction";
 import { Badge } from "@/components/ui/badge";
 import Image from "next/image";
 import { Skeleton } from "@/components/ui/skeleton";
+import { TRANSACTIONS_ITEMS_PER_PAGE } from "./transactions-config";
 
 interface TransactionsTablePropsExtended extends TransactionsTableProps {
   isLoading?: boolean;
@@ -51,8 +52,12 @@ export function TransactionsTable({ transactions, isLoading = false }: Transacti
           </TableHeader>
           <TableBody>
             {isLoading ? (
-              Array.from({ length: 6 }).map((_, index) => (
-                <TableRow key={`skeleton-${index}`} className="border border-[#2D2D2D]">
+              Array.from({ length: TRANSACTIONS_ITEMS_PER_PAGE }).map((_, index) => (
+                <TableRow
+                  key={`skeleton-${index}`}
+                  className="border border-[#2D2D2D]"
+                  data-testid="transaction-table-desktop-skeleton-row"
+                >
                   <TableCell className="font-medium border border-[#2D2D2D] py-4 px-6">
                     <Skeleton className="h-4 w-20 mb-1" />
                     <Skeleton className="h-3 w-16" />
@@ -128,8 +133,12 @@ export function TransactionsTable({ transactions, isLoading = false }: Transacti
       {/* Mobile Cards */}
       <div className="md:hidden space-y-4">
         {isLoading ? (
-          Array.from({ length: 6 }).map((_, index) => (
-            <div key={`skeleton-mobile-${index}`} className="p-4 border rounded-lg border-[#2D2D2D]">
+          Array.from({ length: TRANSACTIONS_ITEMS_PER_PAGE }).map((_, index) => (
+            <div
+              key={`skeleton-mobile-${index}`}
+              className="p-4 border rounded-lg border-[#2D2D2D]"
+              data-testid="transaction-table-mobile-skeleton-row"
+            >
               <div className="flex justify-between items-start">
                 <div className="space-y-2">
                   <Skeleton className="h-4 w-32" />

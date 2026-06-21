@@ -8,6 +8,10 @@ import TransactionsHeader from "./transactions-header";
 import TransactionsFilters from "./transactions-filters";
 import { TransactionsTable } from "./transactions-table";
 import TransactionsPagination from "./transactions-pagination";
+import {
+  TRANSACTIONS_DEFAULT_DATE_RANGE,
+  TRANSACTIONS_ITEMS_PER_PAGE,
+} from "./transactions-config";
 
 /** Map token symbol → icon path */
 const getTokenIcon = (token: string): string => {
@@ -37,19 +41,18 @@ const toTransactionProps = (t: Transaction): TransactionProps => ({
 export default function TransactionsContent() {
   const [filters, setFilters] = useState<TransactionFilters>({
     searchQuery: "",
-    fromDate: "2023-03-26",
-    toDate: "2023-04-15",
+    fromDate: TRANSACTIONS_DEFAULT_DATE_RANGE.fromDate,
+    toDate: TRANSACTIONS_DEFAULT_DATE_RANGE.toDate,
     selectedFilter: "All Transactions",
     sortField: "date",
     sortDirection: "desc",
   });
   const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 6;
 
   const { data, isLoading, error } = useTransactions({
     filters,
     page: currentPage,
-    pageSize: itemsPerPage,
+    pageSize: TRANSACTIONS_ITEMS_PER_PAGE,
   });
 
   const paginatedTransactions: TransactionProps[] = useMemo(
@@ -98,7 +101,9 @@ export default function TransactionsContent() {
 
           <div className="py-4">
             {/* Loading state */}
-            {isLoading && <TransactionTableSkeleton rows={itemsPerPage} />}
+            {isLoading && (
+              <TransactionTableSkeleton rows={TRANSACTIONS_ITEMS_PER_PAGE} />
+            )}
 
             {/* Error state */}
             {!isLoading && error && (
@@ -117,7 +122,7 @@ export default function TransactionsContent() {
                 <TransactionsPagination
                   totalItems={data?.total ?? 0}
                   currentPage={currentPage}
-                  itemsPerPage={itemsPerPage}
+                  itemsPerPage={TRANSACTIONS_ITEMS_PER_PAGE}
                   onPageChange={setCurrentPage}
                 />
               </>
