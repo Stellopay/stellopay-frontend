@@ -12,12 +12,18 @@ import { TransactionsTableProps } from "@/types/transaction";
 import { Badge } from "@/components/ui/badge";
 import Image from "next/image";
 import { Skeleton } from "@/components/ui/skeleton";
+import { TRANSACTIONS_PAGE_SIZE } from "@/lib/transactionDefaults";
 
 interface TransactionsTablePropsExtended extends TransactionsTableProps {
   isLoading?: boolean;
+  skeletonRows?: number;
 }
 
-export function TransactionsTable({ transactions, isLoading = false }: TransactionsTablePropsExtended) {
+export function TransactionsTable({
+  transactions,
+  isLoading = false,
+  skeletonRows = TRANSACTIONS_PAGE_SIZE,
+}: TransactionsTablePropsExtended) {
   const isEmpty = !isLoading && transactions.length === 0;
 
   return (
@@ -29,30 +35,52 @@ export function TransactionsTable({ transactions, isLoading = false }: Transacti
           <caption className="sr-only">Transaction history</caption>
           <TableHeader>
             <TableRow className="bg-[#191919]">
-              <TableHead scope="col" className="text-white font-bold border-[#2D2D2D] border-y-2 border-t-0 py-4 px-6">
+              <TableHead
+                scope="col"
+                className="text-white font-bold border-[#2D2D2D] border-y-2 border-t-0 py-4 px-6"
+              >
                 Transaction Type
               </TableHead>
-              <TableHead scope="col" className="text-white font-bold border-[#2D2D2D] border-y-2 border-t-0 py-4 px-6">
+              <TableHead
+                scope="col"
+                className="text-white font-bold border-[#2D2D2D] border-y-2 border-t-0 py-4 px-6"
+              >
                 Address
               </TableHead>
-              <TableHead scope="col" className="text-white font-bold border-[#2D2D2D] border-y-2 border-t-0 py-4 px-6">
+              <TableHead
+                scope="col"
+                className="text-white font-bold border-[#2D2D2D] border-y-2 border-t-0 py-4 px-6"
+              >
                 Date
               </TableHead>
-              <TableHead scope="col" className="text-white font-bold border-[#2D2D2D] border-y-2 border-t-0 py-4 px-6">
+              <TableHead
+                scope="col"
+                className="text-white font-bold border-[#2D2D2D] border-y-2 border-t-0 py-4 px-6"
+              >
                 Token
               </TableHead>
-              <TableHead scope="col" className="text-white font-bold border-[#2D2D2D] border-y-2 border-t-0 py-4 px-6">
+              <TableHead
+                scope="col"
+                className="text-white font-bold border-[#2D2D2D] border-y-2 border-t-0 py-4 px-6"
+              >
                 Amount
               </TableHead>
-              <TableHead scope="col" className="text-white font-bold border-[#2D2D2D] border-y-2 border-t-0 py-4 px-6">
+              <TableHead
+                scope="col"
+                className="text-white font-bold border-[#2D2D2D] border-y-2 border-t-0 py-4 px-6"
+              >
                 Status
               </TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {isLoading ? (
-              Array.from({ length: 6 }).map((_, index) => (
-                <TableRow key={`skeleton-${index}`} className="border border-[#2D2D2D]">
+              Array.from({ length: skeletonRows }).map((_, index) => (
+                <TableRow
+                  key={`skeleton-${index}`}
+                  className="border border-[#2D2D2D]"
+                  data-testid="transaction-table-skeleton-row"
+                >
                   <TableCell className="font-medium border border-[#2D2D2D] py-4 px-6">
                     <Skeleton className="h-4 w-20 mb-1" />
                     <Skeleton className="h-3 w-16" />
@@ -78,14 +106,21 @@ export function TransactionsTable({ transactions, isLoading = false }: Transacti
             ) : isEmpty ? (
               <TableRow>
                 <TableCell colSpan={6} className="py-12 text-center">
-                  <div role="status" aria-live="polite" className="text-muted-foreground">
+                  <div
+                    role="status"
+                    aria-live="polite"
+                    className="text-muted-foreground"
+                  >
                     No transactions found. Try adjusting your filters.
                   </div>
                 </TableCell>
               </TableRow>
             ) : (
               transactions.map((transaction, index) => (
-                <TableRow key={transaction.id ?? index} className="border border-[#2D2D2D]">
+                <TableRow
+                  key={transaction.id ?? index}
+                  className="border border-[#2D2D2D]"
+                >
                   <TableCell className="font-medium border border-[#2D2D2D] py-4 px-6">
                     <span className="text-[#D7E0EF]">{transaction.type}</span>
                     <p>#{transaction.id}</p>
@@ -113,7 +148,7 @@ export function TransactionsTable({ transactions, isLoading = false }: Transacti
                   <TableCell className="py-4 px-6">
                     <Badge
                       aria-label={`Status: ${transaction.status}`}
-                      className={`${transaction.status === "Completed" ? "bg-[#102B19] text-[#04842E]" : transaction.status === "Pending" ? "bg-[#191919] text-[#9F6603]" : "bg-[#1A1A1A] text-[#B70B05]" }`}
+                      className={`${transaction.status === "Completed" ? "bg-[#102B19] text-[#04842E]" : transaction.status === "Pending" ? "bg-[#191919] text-[#9F6603]" : "bg-[#1A1A1A] text-[#B70B05]"}`}
                     >
                       <span className="text-sm">{transaction.status}</span>
                     </Badge>
@@ -128,8 +163,12 @@ export function TransactionsTable({ transactions, isLoading = false }: Transacti
       {/* Mobile Cards */}
       <div className="md:hidden space-y-4">
         {isLoading ? (
-          Array.from({ length: 6 }).map((_, index) => (
-            <div key={`skeleton-mobile-${index}`} className="p-4 border rounded-lg border-[#2D2D2D]">
+          Array.from({ length: skeletonRows }).map((_, index) => (
+            <div
+              key={`skeleton-mobile-${index}`}
+              className="p-4 border rounded-lg border-[#2D2D2D]"
+              data-testid="transaction-card-skeleton"
+            >
               <div className="flex justify-between items-start">
                 <div className="space-y-2">
                   <Skeleton className="h-4 w-32" />
@@ -151,7 +190,11 @@ export function TransactionsTable({ transactions, isLoading = false }: Transacti
           ))
         ) : isEmpty ? (
           <div className="p-8 text-center border rounded-lg border-[#2D2D2D]">
-            <div role="status" aria-live="polite" className="text-muted-foreground">
+            <div
+              role="status"
+              aria-live="polite"
+              className="text-muted-foreground"
+            >
               No transactions found. Try adjusting your filters.
             </div>
           </div>
