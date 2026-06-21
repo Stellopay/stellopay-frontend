@@ -65,5 +65,37 @@ export const loginSchema = z.object({
   rememberMe: z.boolean(),
 });
 
+/**
+ * Validates settings password-change values with the same complexity policy
+ * used by sign-up. Password values must never be logged or echoed back.
+ */
+export const passwordChangeSchema = z
+  .object({
+    currentPassword: z.string().min(8, {
+      message: "Current password must be at least 8 characters.",
+    }),
+    newPassword: z
+      .string()
+      .min(8, {
+        message: "Password must be at least 8 characters.",
+      })
+      .regex(/[A-Z]/, {
+        message: "Password must include at least one uppercase letter.",
+      })
+      .regex(/[@!#%$^&*()_+\-=[\]{};':"\\|,.<>/?]/, {
+        message: "Password must include at least one special character.",
+      }),
+    confirmPassword: z.string(),
+  })
+  .refine((data) => data.newPassword === data.confirmPassword, {
+    message: "Passwords don't match",
+    path: ["confirmPassword"],
+  })
+  .refine((data) => data.currentPassword !== data.newPassword, {
+    message: "New password must be different from current password.",
+    path: ["newPassword"],
+  });
+
 export type SignUpFormValues = z.infer<typeof signUpSchema>;
 export type LoginFormValues = z.infer<typeof loginSchema>;
+export type PasswordChangeFormValues = z.infer<typeof passwordChangeSchema>;

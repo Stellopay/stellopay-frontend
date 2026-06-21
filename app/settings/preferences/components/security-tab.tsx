@@ -1,6 +1,8 @@
 "use client";
 
 import { useState } from "react";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useForm } from "react-hook-form";
 import {
   CheckCircle2,
   KeyRound,
@@ -12,6 +14,14 @@ import {
 import ToggleCard from "@/components/common/toggle-card";
 import { Button } from "@/components/ui/button";
 import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
+import {
   Card,
   CardContent,
   CardDescription,
@@ -22,9 +32,11 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { checkPasswordRequirements } from "@/utils/authUtils";
 import DestructiveActionDialog from "./destructive-action-dialog";
-import { Label } from "@/components/ui/label";
-import { FormMessage } from "@/components/ui/form";
 import { DEMO_SECURITY } from "@/lib/demo-data";
+import {
+  passwordChangeSchema,
+  PasswordChangeFormValues,
+} from "@/types/auth";
 
 const sessions = [
   {
@@ -52,25 +64,25 @@ interface StatusState {
  * Uses placeholder demo data pending full backend API integration.
  */
 export default function SecurityTab() {
-  const [password, setPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
   const [twoFactorEnabled, setTwoFactorEnabled] = useState(true);
   const [loginApprovalEnabled, setLoginApprovalEnabled] = useState(true);
   const [transferApprovalEnabled, setTransferApprovalEnabled] = useState(true);
   const [status, setStatus] = useState<StatusState>({ message: "", type: null });
-  const [isSaving, setIsSaving] = useState(false);
+  const form = useForm<PasswordChangeFormValues>({
+    resolver: zodResolver(passwordChangeSchema),
+    mode: "onChange",
+    defaultValues: {
+      currentPassword: "",
+      newPassword: "",
+      confirmPassword: "",
+    },
+  });
 
-  const passwordRequirements = checkPasswordRequirements(password);
-  const isPasswordReady =
-    Object.values(passwordRequirements).every(Boolean) &&
-    password.length > 0 &&
-    password === confirmPassword;
+  const newPassword = form.watch("newPassword");
+  const confirmPassword = form.watch("confirmPassword");
+  const passwordRequirements = checkPasswordRequirements(newPassword);
 
-  const handleSaveChanges = async () => {
-    if (!isPasswordReady) {
-      return;
-    }
-    setIsSaving(true);
+  const handleSaveChanges = async (_values: PasswordChangeFormValues) => {
     setStatus({ message: "", type: null });
     try {
       await new Promise((resolve, reject) => setTimeout(() => {
@@ -84,15 +96,13 @@ export default function SecurityTab() {
         message: "Password policy satisfied. Changes are ready for backend wiring.",
         type: "success",
       });
-      setPassword("");
-      setConfirmPassword("");
+      form.reset();
     } catch {
       setStatus({
         message: "Failed to save changes. Please try again.",
         type: "error",
       });
     } finally {
-      setIsSaving(false);
       setTimeout(() => setStatus({ message: "", type: null }), 5000);
     }
   };
@@ -120,79 +130,120 @@ export default function SecurityTab() {
           </div>
         </CardHeader>
         <CardContent className="space-y-6 pt-6">
-          <div className="grid gap-4 md:grid-cols-2">
-            <div className="space-y-2">
-              <Label
-                htmlFor="new-password"
-                className="text-zinc-900 dark:text-white"
-              >
-                New password
-              </Label>
-              <Input
-                id="new-password"
-                type="password"
-                value={password}
-                onChange={(event) => setPassword(event.target.value)}
-                placeholder="Use a strong password"
-                className="border-zinc-200 bg-white dark:border-white/10 dark:bg-white/5"
-                disabled={isSaving}
-              />
-            </div>
+          <Form {...form}>
+            <form
+              className="space-y-6"
+              onSubmit={form.handleSubmit(handleSaveChanges)}
+            >
+              <div className="grid gap-4 md:grid-cols-3">
+                <FormField
+                  control={form.control}
+                  name="currentPassword"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="text-zinc-900 dark:text-white">
+                        Current password
+                      </FormLabel>
+                      <FormControl>
+                        <Input
+                          type="password"
+                          placeholder="Enter current password"
+                          autoComplete="current-password"
+                          className="border-zinc-200 bg-white dark:border-white/10 dark:bg-white/5"
+                          disabled={form.formState.isSubmitting}
+                          {...field}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="newPassword"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="text-zinc-900 dark:text-white">
+                        New password
+                      </FormLabel>
+                      <FormControl>
+                        <Input
+                          type="password"
+                          placeholder="Use a strong password"
+                          autoComplete="new-password"
+                          className="border-zinc-200 bg-white dark:border-white/10 dark:bg-white/5"
+                          disabled={form.formState.isSubmitting}
+                          {...field}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="confirmPassword"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="text-zinc-900 dark:text-white">
+                        Confirm password
+                      </FormLabel>
+                      <FormControl>
+                        <Input
+                          type="password"
+                          placeholder="Repeat the new password"
+                          autoComplete="new-password"
+                          className="border-zinc-200 bg-white dark:border-white/10 dark:bg-white/5"
+                          disabled={form.formState.isSubmitting}
+                          {...field}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
 
-            <div className="space-y-2">
-              <Label
-                htmlFor="confirm-password"
-                className="text-zinc-900 dark:text-white"
-              >
-                Confirm password
-              </Label>
-              <Input
-                id="confirm-password"
-                type="password"
-                value={confirmPassword}
-                onChange={(event) => setConfirmPassword(event.target.value)}
-                placeholder="Repeat the new password"
-                className="border-zinc-200 bg-white dark:border-white/10 dark:bg-white/5"
-                disabled={isSaving}
-              />
-            </div>
-          </div>
+              <div className="grid gap-3 sm:grid-cols-2">
+                <RequirementItem
+                  label="At least 8 characters"
+                  met={passwordRequirements.minLength}
+                />
+                <RequirementItem
+                  label="One uppercase letter"
+                  met={passwordRequirements.uppercase}
+                />
+                <RequirementItem
+                  label="One special character"
+                  met={passwordRequirements.specialChar}
+                />
+                <RequirementItem
+                  label="Passwords match"
+                  met={newPassword.length > 0 && newPassword === confirmPassword}
+                />
+              </div>
 
-          <div className="grid gap-3 sm:grid-cols-2">
-            <RequirementItem
-              label="At least 8 characters"
-              met={passwordRequirements.minLength}
-            />
-            <RequirementItem
-              label="One uppercase letter"
-              met={passwordRequirements.uppercase}
-            />
-            <RequirementItem
-              label="One special character"
-              met={passwordRequirements.specialChar}
-            />
-            <RequirementItem
-              label="Passwords match"
-              met={password.length > 0 && password === confirmPassword}
-            />
-          </div>
-
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <p className="text-sm text-zinc-500 dark:text-zinc-400">
-              Recovery methods stay hidden until needed to keep the primary path
-              calm.
-            </p>
-            <Button disabled={!isPasswordReady || isSaving} onClick={handleSaveChanges}>
-              {isSaving ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Saving...
-                </>
-              ) : (
-                "Update password"
-              )}
-            </Button>
-          </div>
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <p className="text-sm text-zinc-500 dark:text-zinc-400">
+                  Recovery methods stay hidden until needed to keep the primary path
+                  calm.
+                </p>
+                <Button
+                  type="submit"
+                  disabled={!form.formState.isValid || form.formState.isSubmitting}
+                >
+                  {form.formState.isSubmitting ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Saving...
+                    </>
+                  ) : (
+                    "Update password"
+                  )}
+                </Button>
+              </div>
+            </form>
+          </Form>
 
           {status.message && (
             <div
@@ -204,12 +255,13 @@ export default function SecurityTab() {
                   : "border-destructive/20 bg-destructive/10"
               }`}
             >
-              <FormMessage
-                variant={status.type === "success" ? "success" : "error"}
-                className={status.type === "success" ? "text-success" : "text-destructive"}
+              <p
+                className={
+                  status.type === "success" ? "text-success" : "text-destructive"
+                }
               >
                 {status.message}
-              </FormMessage>
+              </p>
             </div>
           )}
 
