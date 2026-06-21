@@ -41,12 +41,28 @@ describe("paginationUtils", () => {
       expect(getPageItems(items, 4, itemsPerPage)).toEqual([]);
     });
 
-    it("does not clamp page zero to the first page", () => {
-      expect(getPageItems(items, 0, itemsPerPage)).toEqual([]);
+    it("clamps page zero to the first page", () => {
+      expect(getPageItems(items, 0, itemsPerPage)).toEqual([
+        "alpha",
+        "bravo",
+        "charlie",
+      ]);
     });
 
-    it("returns an empty list for a negative page instead of slicing from the end", () => {
-      expect(getPageItems(items, -1, itemsPerPage)).toEqual([]);
+    it("clamps a negative page to the first page instead of slicing from the end", () => {
+      expect(getPageItems(items, -1, itemsPerPage)).toEqual([
+        "alpha",
+        "bravo",
+        "charlie",
+      ]);
+    });
+
+    it("defaults a zero page size to one item per page", () => {
+      expect(getPageItems(items, 2, 0)).toEqual(["bravo"]);
+    });
+
+    it("returns all items when the page size is larger than the list", () => {
+      expect(getPageItems(items, 1, 100)).toEqual(items);
     });
   });
 
@@ -62,6 +78,17 @@ describe("paginationUtils", () => {
     it("returns zero pages when there are no items", () => {
       expect(getTotalPages(0, 4)).toBe(0);
     });
+
+    it("defaults zero and negative page sizes to one item per page", () => {
+      expect(getTotalPages(7, 0)).toBe(7);
+      expect(getTotalPages(7, -3)).toBe(7);
+    });
+
+    it("never returns Infinity or NaN for invalid inputs", () => {
+      expect(Number.isFinite(getTotalPages(7, 0))).toBe(true);
+      expect(Number.isNaN(getTotalPages(Number.NaN, 10))).toBe(false);
+      expect(getTotalPages(Number.NaN, 10)).toBe(0);
+    });
   });
 
   describe("index helpers", () => {
@@ -73,6 +100,11 @@ describe("paginationUtils", () => {
     it("returns start and end indexes for page 2", () => {
       expect(getStartIndex(2, 10)).toBe(10);
       expect(getEndIndex(2, 10)).toBe(20);
+    });
+
+    it("clamps negative pages and invalid page sizes", () => {
+      expect(getStartIndex(-2, 0)).toBe(0);
+      expect(getEndIndex(-2, 0)).toBe(1);
     });
   });
 
@@ -86,6 +118,11 @@ describe("paginationUtils", () => {
       expect(isValidPage(0, 5)).toBe(false);
       expect(isValidPage(-1, 5)).toBe(false);
       expect(isValidPage(6, 5)).toBe(false);
+    });
+
+    it("rejects non-finite pages", () => {
+      expect(isValidPage(Number.NaN, 5)).toBe(false);
+      expect(isValidPage(Number.POSITIVE_INFINITY, 5)).toBe(false);
     });
   });
 });
