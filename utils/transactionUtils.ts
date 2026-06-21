@@ -6,6 +6,22 @@ import type {
 import { formatCurrency } from "./formatUtils";
 import { formatDate } from "./dateUtils";
 
+type TransactionStatusColorKey = "completed" | "pending" | "failed" | "unknown";
+
+/**
+ * Fixed status-to-class palette for transaction badges.
+ * Known status outputs are kept stable while unexpected statuses use
+ * a separate fallback so bad data is visually distinct from "unknown".
+ */
+export const TRANSACTION_STATUS_COLOR_CLASSES = {
+  completed: "bg-[#102B19] text-[#04842E]",
+  pending: "bg-[#191919] text-[#9F6603]",
+  failed: "bg-[#1A1A1A] text-[#B70B05]",
+  unknown: "bg-[#1A1A1A] text-[#E5E5E5]",
+} as const satisfies Record<TransactionStatusColorKey, string>;
+
+const UNEXPECTED_STATUS_COLOR_CLASS = "bg-white text-black";
+
 /**
  * Formats transaction amount with proper currency formatting
  * @param amount - The amount to format
@@ -116,19 +132,19 @@ export const sortTransactions = (
 };
 
 /**
- * Gets the status color for a transaction status
+ * Gets the status color for a transaction status from a fixed palette.
+ * Unexpected statuses never get interpolated into class names.
  * @param status - Transaction status
  * @returns Color class name for the status
  */
 export const getStatusColor = (status: string): string => {
-  switch (status.toLowerCase()) {
-    case "completed":
-      return "bg-[#102B19] text-[#04842E]";
-    case "pending":
-      return "bg-[#191919] text-[#9F6603]";
-    case "failed":
-      return "bg-[#1A1A1A] text-[#B70B05]";
-    default:
-      return "bg-[#1A1A1A] text-[#E5E5E5]";
+  const normalizedStatus = status.toLowerCase();
+
+  if (normalizedStatus in TRANSACTION_STATUS_COLOR_CLASSES) {
+    return TRANSACTION_STATUS_COLOR_CLASSES[
+      normalizedStatus as TransactionStatusColorKey
+    ];
   }
+
+  return UNEXPECTED_STATUS_COLOR_CLASS;
 };

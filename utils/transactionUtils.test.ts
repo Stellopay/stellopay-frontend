@@ -9,6 +9,7 @@ import {
   formatTransactionDate,
   getStatusColor,
   sortTransactions,
+  TRANSACTION_STATUS_COLOR_CLASSES,
 } from "@/utils/transactionUtils";
 
 const fixtureStartDate = "2023-03-26";
@@ -392,17 +393,24 @@ describe("sortTransactions", () => {
 describe("getStatusColor", () => {
   it("returns exact classes for known statuses, unknown statuses, and mixed case", () => {
     const statusCases = [
-      ["completed", "bg-[#102B19] text-[#04842E]"],
-      ["pending", "bg-[#191919] text-[#9F6603]"],
-      ["failed", "bg-[#1A1A1A] text-[#B70B05]"],
-      ["unknown", "bg-[#1A1A1A] text-[#E5E5E5]"],
-      ["CoMpLeTeD", "bg-[#102B19] text-[#04842E]"],
-      ["PeNdInG", "bg-[#191919] text-[#9F6603]"],
-      ["FaIlEd", "bg-[#1A1A1A] text-[#B70B05]"],
+      ["completed", TRANSACTION_STATUS_COLOR_CLASSES.completed],
+      ["pending", TRANSACTION_STATUS_COLOR_CLASSES.pending],
+      ["failed", TRANSACTION_STATUS_COLOR_CLASSES.failed],
+      ["unknown", TRANSACTION_STATUS_COLOR_CLASSES.unknown],
+      ["CoMpLeTeD", TRANSACTION_STATUS_COLOR_CLASSES.completed],
+      ["PeNdInG", TRANSACTION_STATUS_COLOR_CLASSES.pending],
+      ["FaIlEd", TRANSACTION_STATUS_COLOR_CLASSES.failed],
     ] as const;
 
     for (const [status, expectedClassName] of statusCases) {
       expect(getStatusColor(status)).toBe(expectedClassName);
     }
+  });
+
+  it("uses a distinct fallback for unexpected statuses and empty strings", () => {
+    expect(getStatusColor("reversed")).not.toBe(
+      TRANSACTION_STATUS_COLOR_CLASSES.unknown,
+    );
+    expect(getStatusColor("")).not.toBe(TRANSACTION_STATUS_COLOR_CLASSES.unknown);
   });
 });
