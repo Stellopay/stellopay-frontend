@@ -31,6 +31,7 @@ export default function SupportTabs({
   const [email, setEmail] = useState<string>("");
   const [textarea, setTextarea] = useState<string>("");
   const [isButtonDisabled, setIsButtonDisabled] = useState<boolean>(true);
+  const [submitStatus, setSubmitStatus] = useState<string>("");
 
   React.useEffect(() => {
     setIsButtonDisabled(!(email && firstName && lastName && textarea));
@@ -44,7 +45,7 @@ export default function SupportTabs({
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     if (!isButtonDisabled) {
-      console.log("Submitted");
+      setSubmitStatus("Thanks. Our support team will review your message.");
     }
   };
 
@@ -193,6 +194,11 @@ export default function SupportTabs({
               fill={true}
               disabled={isButtonDisabled}
             />
+            {submitStatus && (
+              <p className="text-sm text-[#A3A3A3]" aria-live="polite">
+                {submitStatus}
+              </p>
+            )}
           </form>
         </div>
       )}

@@ -20,13 +20,6 @@ export default function Navbar() {
   const { theme, toggleTheme } = useTheme();
   const [mobileOpen, setMobileOpen] = useState(false);
 
-  const handleConnect = () => {
-    // placeholder connect wallet handler
-    // Integrate wallet modal/connector here
-    console.log("Connect Wallet clicked");
-    alert("Connect Wallet clicked (stub)");
-  };
-
   return (
      <header className="fixed top-0 left-0 w-full z-40">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-6">
@@ -88,7 +81,9 @@ export default function Navbar() {
               <NetworkSwitcher variant="landing" />
 
               <button
-                onClick={handleConnect}
+                type="button"
+                disabled
+                aria-disabled="true"
                 className={`hidden md:inline-flex items-center px-5 py-2 rounded-full font-medium transition-shadow shadow-sm ${
                   theme === "dark"
                     ? "bg-white text-black hover:opacity-95"

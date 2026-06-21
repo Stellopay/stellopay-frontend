@@ -7,11 +7,11 @@ import { useState } from "react";
 
 export default function GetStartedCTA() {
   const [email, setEmail] = useState("");
+  const [submittedEmail, setSubmittedEmail] = useState("");
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    console.log("Submitted email:", email);
-    // Add logic to submit email or redirect
+    setSubmittedEmail(email);
   };
 
   return (
@@ -71,6 +71,11 @@ export default function GetStartedCTA() {
                 <ArrowRight className="ml-2 h-4 w-4" />
               </Button>
             </form>
+            {submittedEmail && (
+              <p className="mt-3 text-sm text-[#52525B] dark:text-[#A3A3A3]" aria-live="polite">
+                Thanks. We&apos;ll follow up at {submittedEmail}.
+              </p>
+            )}
           </div>
 
           {/* Trust Indicators */}
