@@ -8,6 +8,7 @@ import TransactionsHeader from "./transactions-header";
 import TransactionsFilters from "./transactions-filters";
 import { TransactionsTable } from "./transactions-table";
 import TransactionsPagination from "./transactions-pagination";
+import { TRANSACTIONS_PAGE_SIZE, getDefaultDateRange } from "./transactions-config";
 
 /** Map token symbol → icon path */
 const getTokenIcon = (token: string): string => {
@@ -35,16 +36,15 @@ const toTransactionProps = (t: Transaction): TransactionProps => ({
 });
 
 export default function TransactionsContent() {
-  const [filters, setFilters] = useState<TransactionFilters>({
+  const [filters, setFilters] = useState<TransactionFilters>(() => ({
     searchQuery: "",
-    fromDate: "2023-03-26",
-    toDate: "2023-04-15",
+    ...getDefaultDateRange(),
     selectedFilter: "All Transactions",
     sortField: "date",
     sortDirection: "desc",
-  });
+  }));
   const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 6;
+  const itemsPerPage = TRANSACTIONS_PAGE_SIZE;
 
   const { data, isLoading, error } = useTransactions({
     filters,
