@@ -6,6 +6,9 @@ import type {
 import { formatCurrency } from "./formatUtils";
 import { formatDate } from "./dateUtils";
 
+type SortableTransactionField = Extract<keyof Transaction, SortField>;
+type TransactionSortValue = Date | number | string;
+
 /**
  * Formats transaction amount with proper currency formatting
  * @param amount - The amount to format
@@ -72,6 +75,24 @@ export const filterTransactions = (
   return filtered;
 };
 
+const getTransactionSortValue = (
+  transaction: Transaction,
+  sortField: SortableTransactionField,
+): TransactionSortValue | null => {
+  switch (sortField) {
+    case "date":
+      return new Date(transaction.date);
+    case "amount":
+      return Math.abs(transaction.amount);
+    case "type":
+      return transaction.type;
+    case "status":
+      return transaction.status;
+    default:
+      return null;
+  }
+};
+
 /**
  * Sorts transactions by specified field and direction
  * @param transactions - Array of transactions to sort
@@ -85,29 +106,10 @@ export const sortTransactions = (
   sortDirection: SortDirection,
 ): Transaction[] => {
   return [...transactions].sort((a, b) => {
-    let aValue: any;
-    let bValue: any;
+    const aValue = getTransactionSortValue(a, sortField);
+    const bValue = getTransactionSortValue(b, sortField);
 
-    switch (sortField) {
-      case "date":
-        aValue = new Date(a.date);
-        bValue = new Date(b.date);
-        break;
-      case "amount":
-        aValue = Math.abs(a.amount);
-        bValue = Math.abs(b.amount);
-        break;
-      case "type":
-        aValue = a.type;
-        bValue = b.type;
-        break;
-      case "status":
-        aValue = a.status;
-        bValue = b.status;
-        break;
-      default:
-        return 0;
-    }
+    if (aValue === null || bValue === null) return 0;
 
     if (aValue < bValue) return sortDirection === "asc" ? -1 : 1;
     if (aValue > bValue) return sortDirection === "asc" ? 1 : -1;
