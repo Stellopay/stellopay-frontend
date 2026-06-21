@@ -65,6 +65,9 @@ const EthereumIcon = () => (
   </svg>
 );
 
+const NETWORK_DIALOG_TITLE_ID = "network-switcher-dialog-title";
+const NETWORK_DIALOG_DESCRIPTION_ID = "network-switcher-dialog-description";
+
 export default function NetworkSwitcher({
   networks,
   selectedNetwork,
@@ -131,7 +134,10 @@ export default function NetworkSwitcher({
             aria-hidden="true"
           />
           {currentNetwork.icon || <EthereumIcon />}
-          <span className="text-sm font-medium" style={{ fontFamily: "General Sans, sans-serif" }}>
+          <span
+            className="text-sm font-medium"
+            style={{ fontFamily: "General Sans, sans-serif" }}
+          >
             {currentNetwork.name}
           </span>
           <ChevronDown className="w-4 h-4 text-[#6e6d6e]" aria-hidden="true" />
@@ -163,7 +169,10 @@ export default function NetworkSwitcher({
               >
                 <div className="flex items-center gap-2 w-full">
                   {network.icon || <EthereumIcon />}
-                  <span className="text-sm" style={{ fontFamily: "General Sans, sans-serif" }}>
+                  <span
+                    className="text-sm"
+                    style={{ fontFamily: "General Sans, sans-serif" }}
+                  >
                     {network.name}
                   </span>
                   {/* Active badge */}
@@ -173,7 +182,9 @@ export default function NetworkSwitcher({
                         className="w-1.5 h-1.5 rounded-full bg-green-500"
                         aria-hidden="true"
                       />
-                      <span className="text-xs text-green-400 font-medium">Active</span>
+                      <span className="text-xs text-green-400 font-medium">
+                        Active
+                      </span>
                     </span>
                   )}
                 </div>
@@ -184,18 +195,41 @@ export default function NetworkSwitcher({
       </DropdownMenu>
 
       {/* ── Confirmation dialog ───────────────────────────────────────── */}
-      <Dialog open={!!pendingNetwork} onOpenChange={(open) => { if (!open) cancelSwitch(); }}>
+      <Dialog
+        open={!!pendingNetwork}
+        onOpenChange={(open) => {
+          if (!open) cancelSwitch();
+        }}
+      >
         <DialogContent
+          aria-labelledby={NETWORK_DIALOG_TITLE_ID}
+          aria-describedby={NETWORK_DIALOG_DESCRIPTION_ID}
           className="bg-[#1A1A1A] border-[#242428] text-white max-w-sm"
           showCloseButton={false}
         >
           <DialogHeader>
-            <DialogTitle className="text-white">Switch network?</DialogTitle>
-            <DialogDescription className="text-[#9CA3AF]">
+            <DialogTitle id={NETWORK_DIALOG_TITLE_ID} className="text-white">
+              Switch network?
+            </DialogTitle>
+            <DialogDescription
+              id={NETWORK_DIALOG_DESCRIPTION_ID}
+              className="text-[#9CA3AF]"
+            >
               You are switching from{" "}
-              <span className="font-semibold text-white">{currentNetwork.name}</span>{" "}
+              <span
+                className="font-semibold text-white"
+                data-testid="network-switch-current-network"
+              >
+                {currentNetwork.name}
+              </span>{" "}
               to{" "}
-              <span className="font-semibold text-white">{pendingNetwork?.name}</span>.
+              <span
+                className="font-semibold text-white"
+                data-testid="network-switch-target-network"
+              >
+                {pendingNetwork?.name}
+              </span>
+              .
               <br />
               <br />
               Your displayed balances and transaction history will reflect the
