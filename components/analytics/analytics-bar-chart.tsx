@@ -1,0 +1,82 @@
+"use client";
+
+import {
+  Bar,
+  BarChart,
+  CartesianGrid,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from "recharts";
+
+import { formatChartValue } from "@/utils/formatUtils";
+import type { AnalyticsDataPoint } from "./analytics-view";
+
+interface AnalyticsBarChartProps {
+  data: AnalyticsDataPoint[];
+  showNotifications: boolean;
+}
+
+interface TooltipPayloadItem {
+  value: number;
+}
+
+interface CustomTooltipProps {
+  active?: boolean;
+  payload?: TooltipPayloadItem[];
+  label?: string;
+}
+
+function CustomTooltip({ active, payload, label }: CustomTooltipProps) {
+  if (active && payload && payload.length) {
+    return (
+      <div className="bg-white text-black p-2 rounded shadow text-sm border border-zinc-200">
+        <p className="font-semibold">{label}</p>
+        <p>{payload[0].value.toLocaleString()} views</p>
+      </div>
+    );
+  }
+  return null;
+}
+
+/**
+ * Recharts-only chart body kept behind a dynamic import boundary so the chart
+ * library does not ride along with the analytics shell's initial client chunk.
+ */
+export default function AnalyticsBarChart({
+  data,
+  showNotifications,
+}: AnalyticsBarChartProps) {
+  return (
+    <ResponsiveContainer width="100%" height="100%">
+      <BarChart data={data}>
+        <CartesianGrid
+          strokeDasharray="3 3"
+          vertical={false}
+          stroke={showNotifications ? "currentColor" : "#1f1b2e"}
+          className={showNotifications ? "text-zinc-200 dark:text-zinc-800" : ""}
+        />
+        <XAxis
+          dataKey="month"
+          tick={{ fill: "#aaa", fontSize: 10 }}
+          tickLine={false}
+          axisLine={false}
+        />
+        <YAxis
+          tick={{ fill: "#aaa", fontSize: 10 }}
+          tickFormatter={formatChartValue}
+          tickLine={false}
+          axisLine={false}
+        />
+        <Tooltip content={<CustomTooltip />} />
+        <Bar
+          dataKey="views"
+          fill={showNotifications ? "#3b82f6" : "#2E2E2E"}
+          radius={[4, 4, 0, 0]}
+          barSize={showNotifications ? 20 : 28}
+        />
+      </BarChart>
+    </ResponsiveContainer>
+  );
+}

@@ -2,7 +2,10 @@ import React from "react";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { describe, expect, it, vi, beforeEach } from "vitest";
 
-import AnalyticsViews, { AnalyticsDataPoint } from "./analytics-view";
+import AnalyticsViews, {
+  AnalyticsChartSkeleton,
+  AnalyticsDataPoint,
+} from "./analytics-view";
 import ClientAnalyticsView from "./client-analytics-view";
 
 // Mock recharts
@@ -78,38 +81,44 @@ describe("AnalyticsViews Component", () => {
     expect(screen.getByText("Loading analytics...")).toBeInTheDocument();
   });
 
-  it("renders chart with default data when data prop is not provided", () => {
+  it("renders chart with default data when data prop is not provided", async () => {
     render(<AnalyticsViews />);
     expect(screen.getByText("Analytics views")).toBeInTheDocument();
-    const barChart = screen.getByTestId("bar-chart");
+    const barChart = await screen.findByTestId("bar-chart");
     expect(barChart).toBeInTheDocument();
     const parsedData = JSON.parse(barChart.getAttribute("data-data") || "[]");
     expect(parsedData.length).toBe(12);
     expect(parsedData[0]).toEqual({ month: "Jan", views: 24000 });
   });
 
-  it("renders chart with custom populated data", () => {
+  it("renders chart with custom populated data", async () => {
     const customData: AnalyticsDataPoint[] = [
       { month: "Jan", views: 100 },
       { month: "Feb", views: 200 },
     ];
     render(<AnalyticsViews data={customData} />);
-    const barChart = screen.getByTestId("bar-chart");
+    const barChart = await screen.findByTestId("bar-chart");
     const parsedData = JSON.parse(barChart.getAttribute("data-data") || "[]");
     expect(parsedData).toEqual(customData);
   });
 
-  it("renders chart with empty data", () => {
+  it("renders chart with empty data", async () => {
     render(<AnalyticsViews data={[]} />);
-    const barChart = screen.getByTestId("bar-chart");
+    const barChart = await screen.findByTestId("bar-chart");
     const parsedData = JSON.parse(barChart.getAttribute("data-data") || "[]");
     expect(parsedData).toEqual([]);
   });
 
-  it("renders CustomTooltip content correctly inside Tooltip mock", () => {
+  it("renders CustomTooltip content correctly inside Tooltip mock", async () => {
     render(<AnalyticsViews />);
-    expect(screen.getByText("TestMonth")).toBeInTheDocument();
+    expect(await screen.findByText("TestMonth")).toBeInTheDocument();
     expect(screen.getByText("999 views")).toBeInTheDocument();
+  });
+
+  it("renders a chart skeleton for the dynamic Recharts chunk", () => {
+    render(<AnalyticsChartSkeleton />);
+    expect(screen.getByText("Loading analytics chart...")).toBeInTheDocument();
+    expect(screen.getByRole("status")).toHaveAttribute("aria-busy", "true");
   });
 
   it("handles year selector dropdown interactions", () => {
