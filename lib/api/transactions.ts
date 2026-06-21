@@ -24,6 +24,10 @@ export interface GetTransactionsParams {
   pageSize?: number;
 }
 
+type RemoteTransactionsResponse = Partial<PaginatedTransactions> & {
+  transactions?: Transaction[];
+};
+
 export const MIN_TRANSACTION_PAGE_SIZE = 1;
 export const MAX_TRANSACTION_PAGE_SIZE = 100;
 export const DEFAULT_TRANSACTION_PAGE_SIZE = 6;
@@ -68,6 +72,76 @@ const normalizeDateFilter = (
   }
 
   return value;
+};
+
+type NormalizedTransactionFilters = {
+  searchQuery: string;
+  selectedFilter: string;
+  fromDate: string;
+  toDate: string;
+  sortField: TransactionFilters["sortField"];
+  sortDirection: TransactionFilters["sortDirection"];
+};
+
+const buildTransactionsUrl = (
+  baseUrl: string,
+  page: number,
+  pageSize: number,
+  filters: NormalizedTransactionFilters,
+) => {
+  const url = new URL("/transactions", baseUrl);
+
+  url.searchParams.set("page", String(page));
+  url.searchParams.set("pageSize", String(pageSize));
+  url.searchParams.set("searchQuery", filters.searchQuery);
+  url.searchParams.set("selectedFilter", filters.selectedFilter);
+  url.searchParams.set("fromDate", filters.fromDate);
+  url.searchParams.set("toDate", filters.toDate);
+  url.searchParams.set("sortField", filters.sortField);
+  url.searchParams.set("sortDirection", filters.sortDirection);
+
+  return url;
+};
+
+const normalizeRemoteTransactions = (
+  response: RemoteTransactionsResponse,
+  fallbackPage: number,
+  fallbackPageSize: number,
+): PaginatedTransactions => {
+  const data = response.data ?? response.transactions ?? [];
+  const total = response.total ?? data.length;
+  const pageSize = response.pageSize ?? fallbackPageSize;
+
+  return {
+    data,
+    total,
+    page: response.page ?? fallbackPage,
+    pageSize,
+    totalPages: response.totalPages ?? Math.max(1, Math.ceil(total / pageSize)),
+  };
+};
+
+const fetchRemoteTransactions = async (
+  baseUrl: string,
+  page: number,
+  pageSize: number,
+  filters: NormalizedTransactionFilters,
+  signal?: AbortSignal,
+): Promise<PaginatedTransactions> => {
+  const response = await fetch(
+    buildTransactionsUrl(baseUrl, page, pageSize, filters),
+    { signal },
+  );
+
+  if (!response.ok) {
+    throw new Error(`Failed to fetch transactions: ${response.status}`);
+  }
+
+  return normalizeRemoteTransactions(
+    (await response.json()) as RemoteTransactionsResponse,
+    page,
+    pageSize,
+  );
 };
 
 /**
@@ -135,6 +209,25 @@ export async function getTransactions(
   // const json = await res.json();
   // return TransactionResponseSchema.parse(json); // zod validation here
   // ─────────────────────────────────────────────────────────────────────────
+
+  const apiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL;
+
+  if (apiBaseUrl) {
+    return fetchRemoteTransactions(
+      apiBaseUrl,
+      requestedSafePage,
+      safePageSize,
+      {
+        searchQuery,
+        selectedFilter,
+        fromDate: safeFromDate,
+        toDate: safeToDate,
+        sortField,
+        sortDirection,
+      },
+      signal,
+    );
+  }
 
   // Abortable delay (used by tests and prevents stale UI flashes)
   if (process.env.NODE_ENV === "development") {

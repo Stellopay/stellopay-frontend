@@ -15,6 +15,16 @@ afterAll(() => {
 });
 
 describe("getTransactions", () => {
+  beforeEach(() => {
+    vi.unstubAllGlobals();
+    vi.stubEnv("NEXT_PUBLIC_API_BASE_URL", "");
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    vi.stubEnv("NEXT_PUBLIC_API_BASE_URL", "");
+  });
+
   it("returns first page with default params", async () => {
     const result = await getTransactions();
     expect(result.page).toBe(1);
@@ -141,6 +151,60 @@ describe("getTransactions", () => {
       expect(typeof t.amount).toBe("number");
       expect(["Completed", "Pending", "Failed"]).toContain(t.status);
     });
+  });
+
+  it("fetches from NEXT_PUBLIC_API_BASE_URL when configured", async () => {
+    vi.stubEnv("NEXT_PUBLIC_API_BASE_URL", "https://api.example.test");
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        data: [
+          {
+            id: "remote-1",
+            type: "Payment Sent",
+            txId: "#REMOTE",
+            address: "GREMOTE",
+            date: "2024-01-01",
+            time: "10:00AM",
+            token: "XLM",
+            amount: -10,
+            status: "Completed",
+            statusColor: "success",
+          },
+        ],
+        total: 1,
+        page: 2,
+        pageSize: 5,
+        totalPages: 1,
+      }),
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    const result = await getTransactions({
+      filters: { searchQuery: "xlm" },
+      page: 2,
+      pageSize: 5,
+    });
+
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    const [url] = fetchMock.mock.calls[0];
+    expect(String(url)).toContain("https://api.example.test/transactions?");
+    expect(String(url)).toContain("page=2");
+    expect(String(url)).toContain("pageSize=5");
+    expect(String(url)).toContain("searchQuery=xlm");
+    expect(result.data[0]?.id).toBe("remote-1");
+  });
+
+  it("throws a useful error when the remote transactions request fails", async () => {
+    vi.stubEnv("NEXT_PUBLIC_API_BASE_URL", "https://api.example.test");
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue({ ok: false, status: 503 }),
+    );
+
+    await expect(getTransactions()).rejects.toThrow(
+      "Failed to fetch transactions: 503",
+    );
   });
 });
 
