@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { checkPasswordRequirements } from "@/utils/authUtils";
 
 // Auth component props
 export interface SignUpEmailModalProps {
@@ -30,17 +31,30 @@ export const signUpSchema = z
     email: z.string().email({
       message: "Please enter a valid email address.",
     }),
-    password: z
-      .string()
-      .min(8, {
-        message: "Password must be at least 8 characters.",
-      })
-      .regex(/[A-Z]/, {
-        message: "Password must include at least one uppercase letter.",
-      })
-      .regex(/[@!#%$^&*()_+\-=[\]{};':"\\|,.<>/?]/, {
-        message: "Password must include at least one special character.",
-      }),
+    password: z.string().superRefine((password, context) => {
+      const requirements = checkPasswordRequirements(password);
+
+      if (!requirements.minLength) {
+        context.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: "Password must be at least 8 characters.",
+        });
+      }
+
+      if (!requirements.uppercase) {
+        context.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: "Password must include at least one uppercase letter.",
+        });
+      }
+
+      if (!requirements.specialChar) {
+        context.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: "Password must include at least one special character.",
+        });
+      }
+    }),
     confirmPassword: z.string(),
     agreeToTerms: z.boolean().refine((val) => val === true, {
       message: "You must agree to the terms and conditions.",
@@ -53,7 +67,8 @@ export const signUpSchema = z
 
 /**
  * Validates login form values: valid email, an 8+ character password, and
- * remember-me preference.
+ * remember-me preference. Login intentionally keeps a length-only password
+ * check because existing credentials may predate the current signup policy.
  */
 export const loginSchema = z.object({
   email: z.string().email({

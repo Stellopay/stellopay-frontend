@@ -122,6 +122,21 @@ describe("signUpSchema", () => {
     });
   });
 
+  it("rejects lowercase-only passwords that the visual checklist marks invalid", () => {
+    const issues = issuesFor(signUpSchema, {
+      ...validSignUp,
+      password: "password1",
+      confirmPassword: "password1",
+    });
+
+    expect(issues.map((issue) => issue.message)).toEqual(
+      expect.arrayContaining([
+        "Password must include at least one uppercase letter.",
+        "Password must include at least one special character.",
+      ]),
+    );
+  });
+
   it("rejects mismatched confirmation passwords on confirmPassword", () => {
     expect(
       issueFor(
@@ -245,6 +260,16 @@ describe("loginSchema", () => {
       path: ["password"],
       message: "Password must be at least 8 characters.",
     });
+  });
+
+  it("keeps login validation compatible with existing length-only passwords", () => {
+    expect(
+      loginSchema.safeParse({
+        ...validLogin,
+        password: "password1",
+        rememberMe: false,
+      }).success,
+    ).toBe(true);
   });
 
   it.each([
