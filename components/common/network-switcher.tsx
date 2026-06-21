@@ -87,6 +87,8 @@ export default function NetworkSwitcher({
   const [pendingNetwork, setPendingNetwork] = useState<Network | null>(null);
 
   const isDashboard = variant === "dashboard";
+  const dialogTitleId = "network-switcher-confirm-title";
+  const dialogDescriptionId = "network-switcher-confirm-description";
 
   const handleNetworkSelect = (network: Network) => {
     if (network.id === currentNetwork.id) return;
@@ -188,14 +190,26 @@ export default function NetworkSwitcher({
         <DialogContent
           className="bg-[#1A1A1A] border-[#242428] text-white max-w-sm"
           showCloseButton={false}
+          aria-labelledby={dialogTitleId}
+          aria-describedby={dialogDescriptionId}
         >
           <DialogHeader>
-            <DialogTitle className="text-white">Switch network?</DialogTitle>
-            <DialogDescription className="text-[#9CA3AF]">
+            <DialogTitle id={dialogTitleId} className="text-white">
+              Switch network?
+            </DialogTitle>
+            <DialogDescription
+              id={dialogDescriptionId}
+              className="text-[#9CA3AF]"
+            >
               You are switching from{" "}
-              <span className="font-semibold text-white">{currentNetwork.name}</span>{" "}
+              <strong className="font-semibold text-white">
+                {currentNetwork.name}
+              </strong>{" "}
               to{" "}
-              <span className="font-semibold text-white">{pendingNetwork?.name}</span>.
+              <strong className="font-semibold text-white">
+                {pendingNetwork?.name}
+              </strong>
+              .
               <br />
               <br />
               Your displayed balances and transaction history will reflect the

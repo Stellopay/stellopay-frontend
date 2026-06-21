@@ -94,6 +94,15 @@ test.describe("NetworkSwitcher — confirmation dialog", () => {
     const dialog = page.getByRole("dialog");
     await expect(dialog).toContainText("Stellar");
     await expect(dialog).toContainText("Polygon");
+    await expect(dialog).toHaveAttribute(
+      "aria-labelledby",
+      "network-switcher-confirm-title",
+    );
+    await expect(dialog).toHaveAttribute(
+      "aria-describedby",
+      "network-switcher-confirm-description",
+    );
+    await expect(dialog.locator("strong", { hasText: "Polygon" })).toBeVisible();
   });
 
   test("dialog warns about balance/transaction context change", async ({ page }) => {
