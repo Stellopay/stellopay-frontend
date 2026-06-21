@@ -1,9 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import ToggleCard from "@/components/common/toggle-card";
 import { Button } from "@/components/ui/button";
-import { FormMessage } from "@/components/ui/form";
 import {
   Card,
   CardContent,
@@ -11,37 +10,102 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-
-interface NotificationSettingsState {
-  transactionAlerts: boolean;
-  securityAlerts: boolean;
-  productUpdates: boolean;
-  marketing: boolean;
-  emailChannel: boolean;
-  pushChannel: boolean;
-  smsChannel: boolean;
-}
+import {
+  DEFAULT_NOTIFICATION_PREFS,
+  getNotificationPrefs,
+  NotificationPreferences,
+  saveNotificationPrefs,
+} from "@/lib/api/notification-preferences";
 
 export default function NotificationsSection() {
-  const [settings, setSettings] = useState<NotificationSettingsState>({
-    transactionAlerts: true,
-    securityAlerts: true,
-    productUpdates: true,
-    marketing: false,
-    emailChannel: true,
-    pushChannel: true,
-    smsChannel: false,
-  });
-  const [statusMessage, setStatusMessage] = useState("");
+  const [settings, setSettings] = useState<NotificationPreferences>(
+    DEFAULT_NOTIFICATION_PREFS,
+  );
+  const [savedSettings, setSavedSettings] = useState<NotificationPreferences>(
+    DEFAULT_NOTIFICATION_PREFS,
+  );
+  const [status, setStatus] = useState<{
+    message: string;
+    type: "success" | "error" | null;
+  }>({ message: "", type: null });
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSaving, setIsSaving] = useState(false);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    getNotificationPrefs()
+      .then((preferences) => {
+        if (!isMounted) return;
+        setSettings(preferences);
+        setSavedSettings(preferences);
+        setStatus({ message: "", type: null });
+      })
+      .catch(() => {
+        if (!isMounted) return;
+        setStatus({
+          message:
+            "Notification preferences could not be loaded. Defaults are shown.",
+          type: "error",
+        });
+      })
+      .finally(() => {
+        if (isMounted) setIsLoading(false);
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  const hasPendingChanges = useMemo(
+    () => JSON.stringify(settings) !== JSON.stringify(savedSettings),
+    [settings, savedSettings],
+  );
 
   const updateSetting = (
-    field: keyof NotificationSettingsState,
+    field: keyof NotificationPreferences,
     value: boolean,
   ) => {
     setSettings((currentSettings) => ({
       ...currentSettings,
       [field]: value,
     }));
+    setStatus({ message: "", type: null });
+  };
+
+  const handleSave = async () => {
+    if (!hasPendingChanges || isSaving) return;
+
+    const previousSettings = savedSettings;
+    const nextSettings = settings;
+
+    setIsSaving(true);
+    setSavedSettings(nextSettings);
+    setStatus({
+      message: "Saving notification preferences...",
+      type: null,
+    });
+
+    try {
+      const persistedSettings = await saveNotificationPrefs(nextSettings);
+      setSettings(persistedSettings);
+      setSavedSettings(persistedSettings);
+      setStatus({
+        message: "Notification preferences saved.",
+        type: "success",
+      });
+    } catch {
+      setSettings(previousSettings);
+      setSavedSettings(previousSettings);
+      setStatus({
+        message:
+          "Notification preferences could not be saved. Previous preferences were restored.",
+        type: "error",
+      });
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   return (
@@ -140,19 +204,41 @@ export default function NotificationsSection() {
             </p>
           </div>
           <Button
-            onClick={() =>
-              setStatusMessage(
-                "Notification preferences updated. Critical alerts remain prioritized.",
-              )
-            }
+            onClick={handleSave}
+            disabled={!hasPendingChanges || isLoading || isSaving}
           >
-            Save notification settings
+            {isSaving
+              ? "Saving..."
+              : hasPendingChanges
+                ? "Save notification settings"
+                : "Saved"}
           </Button>
-          {statusMessage ? (
-            <div className="rounded-2xl border border-success/20 bg-success/10 px-4 py-3">
-              <FormMessage variant="success" className="text-success">
-                {statusMessage}
-              </FormMessage>
+          <div role="status" aria-live="polite">
+            {status.message ? (
+              <div
+                className={`rounded-2xl border px-4 py-3 ${
+                  status.type === "error"
+                    ? "border-destructive/20 bg-destructive/10"
+                    : "border-success/20 bg-success/10"
+                }`}
+              >
+                <p
+                  className={
+                    status.type === "error"
+                      ? "text-destructive"
+                      : "text-success"
+                  }
+                >
+                  {status.message}
+                </p>
+              </div>
+            ) : null}
+          </div>
+          {isLoading ? (
+            <div className="rounded-2xl border border-zinc-200 bg-zinc-50 px-4 py-3 dark:border-white/10 dark:bg-white/5">
+              <p className="text-sm text-zinc-500 dark:text-zinc-400">
+                Loading notification preferences...
+              </p>
             </div>
           ) : null}
         </CardContent>

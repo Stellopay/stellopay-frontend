@@ -21,6 +21,20 @@ test("desktop settings navigation and destructive confirmation stay clear", asyn
 
   await page.getByRole("tab", { name: /notifications/i }).click();
   await expect(page.getByText("Notification priorities")).toBeVisible();
+  await expect(
+    page.getByRole("button", { name: "Saved" }),
+  ).toBeDisabled();
+
+  await page
+    .getByRole("switch", { name: "Marketing and announcements" })
+    .click();
+  await expect(
+    page.getByRole("button", { name: "Save notification settings" }),
+  ).toBeEnabled();
+  await page
+    .getByRole("button", { name: "Save notification settings" })
+    .click();
+  await expect(page.getByText("Notification preferences saved.")).toBeVisible();
 
   await page.getByRole("tab", { name: /wallets/i }).click();
   await expect(
