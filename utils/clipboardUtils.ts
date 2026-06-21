@@ -42,18 +42,31 @@ export const copyToClipboardWithFeedback = async (
  * @param text - The text to copy
  * @param setCopied - State setter function for copied status
  * @param timeout - Timeout duration in milliseconds (default: 2000)
+ * @param onError - Callback function to call on error
+ * @returns Cleanup function that clears the pending reset timer
  */
 export const copyToClipboardWithTimeout = async (
   text: string,
   setCopied: (value: boolean) => void,
   timeout: number = 2000,
-): Promise<void> => {
+  onError?: (error: string) => void,
+): Promise<() => void> => {
   const success = await copyToClipboard(text);
+  let timeoutId: ReturnType<typeof setTimeout> | undefined;
 
   if (success) {
+    const safeTimeout =
+      Number.isFinite(timeout) && timeout > 0 ? timeout : 2000;
+
     setCopied(true);
-    setTimeout(() => setCopied(false), timeout);
+    timeoutId = setTimeout(() => setCopied(false), safeTimeout);
   } else {
-    alert("Failed to copy text. Please try again.");
+    onError?.("Failed to copy text. Please try again.");
   }
+
+  return () => {
+    if (timeoutId) {
+      clearTimeout(timeoutId);
+    }
+  };
 };
