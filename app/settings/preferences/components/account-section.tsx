@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import { Camera, Loader2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
@@ -14,7 +14,6 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { FormMessage } from "@/components/ui/form";
 import DestructiveActionDialog from "./destructive-action-dialog";
 import { DEMO_PROFILE } from "@/lib/demo-data";
 
@@ -61,6 +60,10 @@ const sectionMap = [
  * Uses placeholder demo data pending full backend API integration.
  */
 export default function AccountSection() {
+  const isMountedRef = useRef(true);
+  const statusTimerRef = useRef<ReturnType<typeof window.setTimeout> | null>(
+    null,
+  );
   const [profile, setProfile] = useState<ProfileState>({
     firstName: DEMO_PROFILE.firstName,
     lastName: DEMO_PROFILE.lastName,
@@ -72,6 +75,30 @@ export default function AccountSection() {
   const [status, setStatus] = useState<StatusState>({ message: "", type: null });
   const [isSaving, setIsSaving] = useState(false);
 
+  const clearStatusTimer = useCallback(() => {
+    if (statusTimerRef.current) {
+      window.clearTimeout(statusTimerRef.current);
+      statusTimerRef.current = null;
+    }
+  }, []);
+
+  const scheduleStatusClear = useCallback(() => {
+    clearStatusTimer();
+    statusTimerRef.current = window.setTimeout(() => {
+      if (isMountedRef.current) {
+        setStatus({ message: "", type: null });
+      }
+      statusTimerRef.current = null;
+    }, 5000);
+  }, [clearStatusTimer]);
+
+  useEffect(() => {
+    return () => {
+      isMountedRef.current = false;
+      clearStatusTimer();
+    };
+  }, [clearStatusTimer]);
+
   const updateProfileField = (field: keyof ProfileState, value: string) => {
     setProfile((currentProfile) => ({
       ...currentProfile,
@@ -80,6 +107,7 @@ export default function AccountSection() {
   };
 
   const handleSave = async () => {
+    clearStatusTimer();
     setIsSaving(true);
     setStatus({ message: "", type: null });
     try {
@@ -92,18 +120,24 @@ export default function AccountSection() {
           resolve(null);
         }
       }, 1500));
-      setStatus({
-        message: "Account profile changes are staged and ready for backend save.",
-        type: "success",
-      });
+      if (isMountedRef.current) {
+        setStatus({
+          message: "Account profile changes are staged and ready for backend save.",
+          type: "success",
+        });
+      }
     } catch {
-      setStatus({
-        message: "Failed to save changes. Please try again.",
-        type: "error",
-      });
+      if (isMountedRef.current) {
+        setStatus({
+          message: "Failed to save changes. Please try again.",
+          type: "error",
+        });
+      }
     } finally {
-      setIsSaving(false);
-      setTimeout(() => setStatus({ message: "", type: null }), 5000);
+      if (isMountedRef.current) {
+        setIsSaving(false);
+        scheduleStatusClear();
+      }
     }
   };
 
@@ -222,12 +256,13 @@ export default function AccountSection() {
                   : "border-destructive/20 bg-destructive/10"
               }`}
             >
-              <FormMessage
-                variant={status.type === "success" ? "success" : "error"}
-                className={status.type === "success" ? "text-success" : "text-destructive"}
+              <p
+                className={
+                  status.type === "success" ? "text-success" : "text-destructive"
+                }
               >
                 {status.message}
-              </FormMessage>
+              </p>
             </div>
           )}
 
