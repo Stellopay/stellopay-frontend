@@ -1,9 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import ToggleCard from "@/components/common/toggle-card";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { FormMessage } from "@/components/ui/form";
+import { Loader2 } from "lucide-react";
 import {
   Card,
   CardContent,
@@ -11,6 +12,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { safeStorage } from "@/utils/safeStorage";
 
 interface NotificationSettingsState {
   transactionAlerts: boolean;
@@ -22,7 +24,23 @@ interface NotificationSettingsState {
   smsChannel: boolean;
 }
 
+const NOTIFICATION_SETTINGS_KEY = "stellopay:notification-settings";
+
+const persistNotificationSettings = async (
+  settings: NotificationSettingsState,
+) => {
+  if (!settings.emailChannel && !settings.pushChannel && !settings.smsChannel) {
+    throw new Error("Select at least one delivery channel.");
+  }
+
+  await new Promise((resolve) => window.setTimeout(resolve, 300));
+  safeStorage.setItem(NOTIFICATION_SETTINGS_KEY, JSON.stringify(settings));
+};
+
 export default function NotificationsSection() {
+  const statusTimerRef = useRef<ReturnType<typeof window.setTimeout> | null>(
+    null,
+  );
   const [settings, setSettings] = useState<NotificationSettingsState>({
     transactionAlerts: true,
     securityAlerts: true,
@@ -33,6 +51,16 @@ export default function NotificationsSection() {
     smsChannel: false,
   });
   const [statusMessage, setStatusMessage] = useState("");
+  const [statusType, setStatusType] = useState<"success" | "error">("success");
+  const [isSaving, setIsSaving] = useState(false);
+
+  useEffect(() => {
+    return () => {
+      if (statusTimerRef.current) {
+        window.clearTimeout(statusTimerRef.current);
+      }
+    };
+  }, []);
 
   const updateSetting = (
     field: keyof NotificationSettingsState,
@@ -42,6 +70,41 @@ export default function NotificationsSection() {
       ...currentSettings,
       [field]: value,
     }));
+  };
+
+  const showStatus = (message: string, type: "success" | "error") => {
+    if (statusTimerRef.current) {
+      window.clearTimeout(statusTimerRef.current);
+    }
+
+    setStatusMessage(message);
+    setStatusType(type);
+    statusTimerRef.current = window.setTimeout(() => {
+      setStatusMessage("");
+      statusTimerRef.current = null;
+    }, 5000);
+  };
+
+  const handleSave = async () => {
+    setIsSaving(true);
+    setStatusMessage("");
+
+    try {
+      await persistNotificationSettings(settings);
+      showStatus(
+        "Notification preferences saved. Critical alerts remain prioritized.",
+        "success",
+      );
+    } catch (error) {
+      showStatus(
+        error instanceof Error
+          ? error.message
+          : "Failed to save notification preferences. Please try again.",
+        "error",
+      );
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   return (
@@ -123,36 +186,58 @@ export default function NotificationsSection() {
         </CardHeader>
         <CardContent className="space-y-4 pt-6">
           <div className="rounded-2xl border border-zinc-200 bg-zinc-50 p-4 dark:border-white/10 dark:bg-white/5">
-            <p className="text-sm font-medium text-zinc-900 dark:text-white">
-              Quiet hours
-            </p>
+            <div className="flex items-center gap-2">
+              <p className="text-sm font-medium text-zinc-900 dark:text-white">
+                Quiet hours
+              </p>
+              <Badge variant="outline">Read-only</Badge>
+            </div>
             <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
               10:00 PM to 6:00 AM local time. Security alerts bypass quiet
-              hours.
+              hours. Editable scheduling is pending backend support.
             </p>
           </div>
           <div className="rounded-2xl border border-zinc-200 bg-zinc-50 p-4 dark:border-white/10 dark:bg-white/5">
-            <p className="text-sm font-medium text-zinc-900 dark:text-white">
-              Channel fallback order
-            </p>
+            <div className="flex items-center gap-2">
+              <p className="text-sm font-medium text-zinc-900 dark:text-white">
+                Channel fallback order
+              </p>
+              <Badge variant="outline">Read-only</Badge>
+            </div>
             <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
               Push, then email, then SMS for urgent account protection notices.
+              Editable routing is pending backend support.
             </p>
           </div>
-          <Button
-            onClick={() =>
-              setStatusMessage(
-                "Notification preferences updated. Critical alerts remain prioritized.",
-              )
-            }
-          >
-            Save notification settings
+          <Button onClick={handleSave} disabled={isSaving}>
+            {isSaving ? (
+              <>
+                <Loader2 className="h-4 w-4 animate-spin" />
+                Saving...
+              </>
+            ) : (
+              "Save notification settings"
+            )}
           </Button>
           {statusMessage ? (
-            <div className="rounded-2xl border border-success/20 bg-success/10 px-4 py-3">
-              <FormMessage variant="success" className="text-success">
+            <div
+              role="status"
+              aria-live="polite"
+              className={`rounded-2xl border px-4 py-3 ${
+                statusType === "success"
+                  ? "border-success/20 bg-success/10"
+                  : "border-destructive/20 bg-destructive/10"
+              }`}
+            >
+              <p
+                className={
+                  statusType === "success"
+                    ? "text-success"
+                    : "text-destructive"
+                }
+              >
                 {statusMessage}
-              </FormMessage>
+              </p>
             </div>
           ) : null}
         </CardContent>
