@@ -14,9 +14,9 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { FormMessage } from "@/components/ui/form";
 import DestructiveActionDialog from "./destructive-action-dialog";
 import { DEMO_PROFILE } from "@/lib/demo-data";
+import { isValidEmail } from "@/utils/authUtils";
 
 interface ProfileState {
   firstName: string;
@@ -71,6 +71,11 @@ export default function AccountSection() {
   });
   const [status, setStatus] = useState<StatusState>({ message: "", type: null });
   const [isSaving, setIsSaving] = useState(false);
+  const [emailTouched, setEmailTouched] = useState(false);
+
+  const trimmedEmail = profile.email.trim();
+  const isEmailValid = isValidEmail(trimmedEmail);
+  const showEmailError = emailTouched && !isEmailValid;
 
   const updateProfileField = (field: keyof ProfileState, value: string) => {
     setProfile((currentProfile) => ({
@@ -80,6 +85,15 @@ export default function AccountSection() {
   };
 
   const handleSave = async () => {
+    setEmailTouched(true);
+    if (!isEmailValid) {
+      setStatus({
+        message: "Enter a valid email address before saving account changes.",
+        type: "error",
+      });
+      return;
+    }
+
     setIsSaving(true);
     setStatus({ message: "", type: null });
     try {
@@ -96,6 +110,10 @@ export default function AccountSection() {
         message: "Account profile changes are staged and ready for backend save.",
         type: "success",
       });
+      setProfile((currentProfile) => ({
+        ...currentProfile,
+        email: trimmedEmail,
+      }));
     } catch {
       setStatus({
         message: "Failed to save changes. Please try again.",
@@ -172,6 +190,9 @@ export default function AccountSection() {
               type="email"
               value={profile.email}
               onChange={(value) => updateProfileField("email", value)}
+              onBlur={() => setEmailTouched(true)}
+              error={showEmailError}
+              errorMessage="Enter a valid email address, including a domain and top-level domain."
               disabled={isSaving}
             />
           </div>
@@ -200,7 +221,7 @@ export default function AccountSection() {
               Core account edits stay on one card so users do not bounce between
               routes.
             </p>
-            <Button onClick={handleSave} disabled={isSaving}>
+            <Button onClick={handleSave} disabled={isSaving || !isEmailValid}>
               {isSaving ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -222,12 +243,13 @@ export default function AccountSection() {
                   : "border-destructive/20 bg-destructive/10"
               }`}
             >
-              <FormMessage
-                variant={status.type === "success" ? "success" : "error"}
-                className={status.type === "success" ? "text-success" : "text-destructive"}
+              <p
+                className={
+                  status.type === "success" ? "text-success" : "text-destructive"
+                }
               >
                 {status.message}
-              </FormMessage>
+              </p>
             </div>
           )}
 
@@ -339,6 +361,9 @@ function Field({
   onChange,
   type = "text",
   disabled = false,
+  onBlur,
+  error = false,
+  errorMessage,
 }: {
   id: string;
   label: string;
@@ -346,13 +371,18 @@ function Field({
   onChange: (value: string) => void;
   type?: string;
   disabled?: boolean;
+  onBlur?: () => void;
+  error?: boolean;
+  errorMessage?: string;
 }) {
   const fieldId = id;
   const descriptionId = `${fieldId}-description`;
+  const errorId = `${fieldId}-error`;
 
   return (
     <div className="space-y-2">
       <Label
+        id={`${fieldId}-label`}
         htmlFor={fieldId}
         className="text-sm font-medium text-zinc-900 dark:text-white"
       >
@@ -364,10 +394,18 @@ function Field({
         value={value}
         disabled={disabled}
         onChange={(event) => onChange(event.target.value)}
+        onBlur={onBlur}
+        error={error}
+        errorId={errorId}
         className="border-zinc-200 bg-white dark:border-white/10 dark:bg-white/5"
         labelId={`${fieldId}-label`}
         descriptionId={descriptionId}
       />
+      {error && errorMessage ? (
+        <p id={errorId} className="text-sm text-destructive">
+          {errorMessage}
+        </p>
+      ) : null}
     </div>
   );
 }
@@ -393,6 +431,7 @@ function SelectField({
   return (
     <div className="space-y-2">
       <Label
+        id={`${fieldId}-label`}
         htmlFor={fieldId}
         className="text-sm font-medium text-zinc-900 dark:text-white"
       >
