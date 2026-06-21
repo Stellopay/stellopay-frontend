@@ -366,6 +366,31 @@ describe("sortTransactions", () => {
     ]);
   });
 
+
+  it("keeps equal sort values in their original order", () => {
+    const sameAmountTransactions: Transaction[] = [
+      { ...transactions[0], id: "same-one", amount: -100 },
+      { ...transactions[1], id: "same-two", amount: 100 },
+      { ...transactions[2], id: "same-three", amount: -100 },
+    ];
+
+    expect(
+      sortTransactions(sameAmountTransactions, "amount", "asc").map(
+        (transaction) => transaction.id,
+      ),
+    ).toEqual(["same-one", "same-two", "same-three"]);
+  });
+
+  it("does not throw when date or amount values are malformed", () => {
+    const malformedTransactions: Transaction[] = [
+      { ...transactions[0], id: "bad-date", date: "not-a-date" },
+      { ...transactions[1], id: "bad-amount", amount: Number.NaN },
+      { ...transactions[2], id: "valid" },
+    ];
+
+    expect(() => sortTransactions(malformedTransactions, "date", "asc")).not.toThrow();
+    expect(() => sortTransactions(malformedTransactions, "amount", "asc")).not.toThrow();
+  });
   it("does not mutate the original transaction array", () => {
     const originalOrder = transactions.map((transaction) => transaction.id);
     const sorted = sortTransactions(transactions, "amount", "asc");
