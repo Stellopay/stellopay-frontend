@@ -23,6 +23,55 @@ We enforce a strict separation of concerns for data access.
 
 All data access must be routed through the established `lib/api` layer to ensure consistency and future-proof our backend integrations.
 
+## Linting Rules
+
+We treat lint as the cheapest quality gate, so a few rules are enforced beyond
+the Next.js defaults (`next/core-web-vitals` + `next/typescript`). Run them with:
+
+```bash
+npm run lint
+```
+
+### `no-console`
+
+`console.log`, `console.info`, `console.debug`, etc. are **errors**. Only
+`console.warn` and `console.error` are allowed, and only for genuine,
+user-impacting diagnostics.
+
+> **Why:** stray logging can leak sensitive data — emails, verification codes,
+> or wallet addresses — into the browser console. Removing it keeps that data
+> out of client logs. Use a real handler (or a `// TODO` marker) instead of a
+> placeholder `console.log`.
+
+### Explicit return types on module boundaries
+
+`@typescript-eslint/explicit-module-boundary-types` is enabled for non-component
+TypeScript modules (`**/*.ts` — e.g. `lib/`, `utils/`, `hooks/`). Exported
+functions must declare an explicit return type:
+
+```ts
+// ❌ ambiguous public signature
+export function getTransactions(params) { ... }
+
+// ✅ explicit, self-documenting
+export async function getTransactions(
+  params: GetTransactionsParams = {},
+): Promise<PaginatedTransactions> { ... }
+```
+
+> **Why:** explicit return types document the public contract of our data and
+> utility layers and catch accidental type widening before it ships.
+
+**Scope:** React components (`.tsx`) are intentionally exempt — their return
+type (JSX) is self-evident. Test files (`*.test.*`, `*.spec.*`, `e2e/`,
+`tests/`) are also exempt from `no-console` and the return-type rule so mocks
+and debugging stay frictionless.
+
+### Icon imports
+
+`react-icons` and `@hugeicons/*` are restricted — always import icons from
+`lucide-react`.
+
 ## Testing Expectations
 
 We expect all new utility functions and business logic to have **minimum 95% test coverage**.

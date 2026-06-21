@@ -29,7 +29,11 @@ vi.mock("recharts", () => {
       <div data-testid="x-axis" data-key={dataKey} />
     ),
     YAxis: () => <div data-testid="y-axis" />,
-    Tooltip: ({ content }: { content: React.ReactElement<any> }) => (
+    Tooltip: ({
+      content,
+    }: {
+      content: React.ReactElement<Record<string, unknown>>;
+    }) => (
       <div data-testid="tooltip">
         {React.cloneElement(content, {
           active: true,
