@@ -1,5 +1,11 @@
 import type { Transaction } from "@/types/transaction";
 
+/**
+ * Single typed mock transaction source for the app.
+ *
+ * UI code should read transactions through `lib/api/transactions.ts`, which
+ * applies filtering, sorting, pagination, and the future backend adapter.
+ */
 export const allTransactions: Transaction[] = [
   {
     id: "1",
