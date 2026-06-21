@@ -3,8 +3,10 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { X, Loader2 } from "lucide-react";
+import { useCountdown } from "@/hooks/useCountdown";
 
 type StatusType = "idle" | "loading" | "success" | "error";
+const RESEND_COOLDOWN_SECONDS = 30;
 
 export default function VerifyEmail() {
   const [code, setCode] = useState("");
@@ -12,6 +14,9 @@ export default function VerifyEmail() {
   const [status, setStatus] = useState<StatusType>("idle");
   const [message, setMessage] = useState("");
   const [resendStatus, setResendStatus] = useState<StatusType>("idle");
+  const resendCooldown = useCountdown({
+    initialSeconds: RESEND_COOLDOWN_SECONDS,
+  });
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value.replace(/[^0-9a-zA-Z]/g, "");
@@ -19,6 +24,8 @@ export default function VerifyEmail() {
   };
 
   const handleResend = async () => {
+    if (resendCooldown.isActive || resendStatus === "loading") return;
+
     setResendStatus("loading");
     setMessage("");
     try {
@@ -26,6 +33,7 @@ export default function VerifyEmail() {
       await new Promise((resolve) => setTimeout(resolve, 1500));
       setResendStatus("success");
       setMessage("Verification code resent to your email.");
+      resendCooldown.start();
     } catch {
       setResendStatus("error");
       setMessage("Failed to resend code. Please try again.");
@@ -76,7 +84,7 @@ export default function VerifyEmail() {
           Didn&apos;t get code?{" "}
           <button
             onClick={handleResend}
-            disabled={resendStatus === "loading"}
+            disabled={resendStatus === "loading" || resendCooldown.isActive}
             className="text-white font-semibold underline cursor-pointer disabled:opacity-50"
           >
             {resendStatus === "loading" ? (
@@ -84,6 +92,8 @@ export default function VerifyEmail() {
                 <Loader2 className="inline h-4 w-4 mr-1 animate-spin" />
                 Sending...
               </>
+            ) : resendCooldown.isActive ? (
+              `Resend in ${resendCooldown.secondsLeft}s`
             ) : "Resend"}
           </button>
         </p>
