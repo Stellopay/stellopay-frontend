@@ -19,7 +19,7 @@ import {
 
 export const NavLink = () => {
   const pathname = usePathname() || "/";
-  const { theme } = useTheme();
+  const { resolvedTheme } = useTheme();
   const { isSidebarOpen, isMobile } = useSidebar();
 
   const isExpanded = shouldExpandSidebar(isMobile, isSidebarOpen);
@@ -57,9 +57,9 @@ export const NavLink = () => {
           
           let iconColor = "";
           if (isActive) {
-            iconColor = theme === "dark" ? "#0D0D0D" : "#FFFFFF";
+            iconColor = resolvedTheme === "dark" ? "#0D0D0D" : "#FFFFFF";
           } else {
-            iconColor = theme === "dark" ? "#E5E5E5" : "#71717A"; 
+            iconColor = resolvedTheme === "dark" ? "#E5E5E5" : "#71717A";
           }
 
           if (isExpanded) {
