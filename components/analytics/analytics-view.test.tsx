@@ -29,7 +29,11 @@ vi.mock("recharts", () => {
       <div data-testid="x-axis" data-key={dataKey} />
     ),
     YAxis: () => <div data-testid="y-axis" />,
-    Tooltip: ({ content }: { content: React.ReactElement<any> }) => (
+    Tooltip: ({
+      content,
+    }: {
+      content: React.ReactElement<Record<string, unknown>>;
+    }) => (
       <div data-testid="tooltip">
         {React.cloneElement(content, {
           active: true,
@@ -70,7 +74,9 @@ describe("AnalyticsViews Component", () => {
 
   it("renders the loading skeleton when isLoading is true and showNotifications is false", () => {
     render(<AnalyticsViews isLoading={true} showNotifications={false} />);
-    expect(screen.getByText("Loading analytics views chart...")).toBeInTheDocument();
+    expect(
+      screen.getByText("Loading analytics views chart..."),
+    ).toBeInTheDocument();
   });
 
   it("renders the loading skeleton when isLoading is true and showNotifications is true", () => {
@@ -114,7 +120,7 @@ describe("AnalyticsViews Component", () => {
 
   it("handles year selector dropdown interactions", () => {
     render(<AnalyticsViews showDropdown={true} />);
-    
+
     // Toggle dropdown open
     const dropdownButton = screen.getByText("This Year");
     fireEvent.click(dropdownButton);
@@ -147,7 +153,9 @@ describe("ClientAnalyticsView Component", () => {
 
   it("renders default loading state when isLoading is true", () => {
     render(<ClientAnalyticsView isLoading={true} />);
-    expect(screen.getByText("Loading analytics views chart...")).toBeInTheDocument();
+    expect(
+      screen.getByText("Loading analytics views chart..."),
+    ).toBeInTheDocument();
   });
 
   it("renders notifications loading state when isLoading is true and showNotifications is true", () => {
@@ -157,10 +165,12 @@ describe("ClientAnalyticsView Component", () => {
 
   it("renders the loaded AnalyticsViews component after mounting", async () => {
     render(<ClientAnalyticsView />);
-    
+
     // After mounting, the loading state should disappear and the chart should appear
     await waitFor(() => {
-      expect(screen.queryByText("Loading analytics views chart...")).not.toBeInTheDocument();
+      expect(
+        screen.queryByText("Loading analytics views chart..."),
+      ).not.toBeInTheDocument();
     });
     expect(screen.getByText("Analytics views")).toBeInTheDocument();
   });

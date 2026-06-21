@@ -3,7 +3,12 @@
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/utils/commonUtils";
 import { ToggleCardProps } from "@/types/ui";
+import type { KeyboardEvent } from "react";
 
+/**
+ * Renders a controlled preference toggle whose visual, button, and ARIA states
+ * all reflect the same `enabled` value.
+ */
 export default function ToggleCard({
   title,
   description,
@@ -12,6 +17,26 @@ export default function ToggleCard({
   disabled = false,
   onToggle,
 }: ToggleCardProps) {
+  const stateLabel = enabled ? "on" : "off";
+  const accessibleLabel = `${title} is ${stateLabel}`;
+
+  const handleToggle = () => {
+    if (disabled) {
+      return;
+    }
+
+    onToggle(!enabled);
+  };
+
+  const handleKeyDown = (event: KeyboardEvent<HTMLButtonElement>) => {
+    if (event.key !== "Enter" && event.key !== " ") {
+      return;
+    }
+
+    event.preventDefault();
+    handleToggle();
+  };
+
   return (
     <div className="flex items-center justify-between gap-4 rounded-2xl border border-zinc-200/80 bg-white p-4 text-zinc-900 shadow-sm transition-all dark:border-white/10 dark:bg-white/5 dark:text-white">
       <div className="space-y-1">
@@ -34,11 +59,11 @@ export default function ToggleCard({
       </div>
       <button
         type="button"
-        role="switch"
-        aria-checked={enabled}
-        aria-label={title}
+        aria-pressed={enabled}
+        aria-label={accessibleLabel}
         disabled={disabled}
-        onClick={() => onToggle(!enabled)}
+        onClick={handleToggle}
+        onKeyDown={handleKeyDown}
         className={cn(
           "flex h-8 w-14 items-center rounded-full p-1 duration-300 ease-in-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900 focus-visible:ring-offset-2 focus-visible:ring-offset-white disabled:cursor-not-allowed disabled:opacity-60 dark:focus-visible:ring-white dark:focus-visible:ring-offset-[#09090B]",
           enabled
