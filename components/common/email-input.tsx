@@ -42,6 +42,7 @@ const EmailInput: React.FC<EnhancedEmailInputProps> = ({
   return (
     <div className={cn("w-full space-y-2", className)}>
       <Label
+        htmlFor={fieldId}
         required={required}
         error={error}
         descriptionId={descriptionId}

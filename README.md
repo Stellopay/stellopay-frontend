@@ -148,6 +148,7 @@ stellopay-frontend
 - `npm run test` runs the Vitest unit suite with coverage for auth, transaction, and pagination utils plus auth schemas.
 - `npm run test:watch` runs Vitest in watch mode while developing unit tests.
 - `npm run test:e2e` is the Playwright local/E2E command.
+- `npx playwright test tests/help-support.spec.ts` covers the Help/Support FAQ categories, account-management detail navigation, keyboard-reachable support tabs, and the support loading state.
 
 ## Iconography
 

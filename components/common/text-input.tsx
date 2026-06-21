@@ -50,6 +50,7 @@ const TextInput: React.FC<EnhancedTextInputProps> = ({
     <div className={cn("w-full space-y-2", className)}>
       {label && (
         <Label
+          htmlFor={fieldId}
           required={required}
           error={error}
           descriptionId={descriptionId}

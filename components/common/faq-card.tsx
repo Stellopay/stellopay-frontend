@@ -1,20 +1,15 @@
 "use client";
 import { SquareArrowOutUpRight } from "lucide-react";
 import React from "react";
-import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { FaqCardProps } from "@/types/ui";
 
 const FaqCard: React.FC<FaqCardProps> = ({ title, subtitle, link }) => {
-  const router = useRouter();
-
-  // Dummy navigation
-  const handleCardClick = () => {
-    router.push(link || "/settings/preferences");
-  };
+  const href = link || "/settings/preferences";
 
   return (
-    <div
-      onClick={handleCardClick}
+    <Link
+      href={href}
       className="w-full bg-[#121212] border border-[#2E2E2E] rounded-xl p-4 sm:p-5 md:p-6 hover:shadow-2xl hover:scale-105 transition-all duration-300 ease-in-out cursor-pointer"
     >
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
@@ -27,7 +22,7 @@ const FaqCard: React.FC<FaqCardProps> = ({ title, subtitle, link }) => {
           <SquareArrowOutUpRight size={18} color="#E5E5E5" />
         </div>
       </div>
-    </div>
+    </Link>
   );
 };
 
