@@ -5,6 +5,7 @@
 export interface Network {
   id: string;
   name: string;
+  passphrase?: string;
   icon?: React.ReactNode;
 }
 

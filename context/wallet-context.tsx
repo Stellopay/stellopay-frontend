@@ -22,15 +22,24 @@ import type {
   WalletProviderProps,
 } from "@/types/wallet";
 
-// Networks exposed to the UI. Stellar lives first so first-time visitors see
-// the network the product is actually built on. Synthetic placeholders cover
-// the multichain story until real adapters land.
+// Public Stellar networks exposed to the UI. Passphrases are public network
+// identifiers used by Stellar SDKs; they are not secrets.
 export const SUPPORTED_NETWORKS: Network[] = [
-  { id: "stellar", name: "Stellar" },
-  { id: "eth", name: "ETH" },
-  { id: "polygon", name: "Polygon" },
-  { id: "bsc", name: "BSC" },
-  { id: "arbitrum", name: "Arbitrum" },
+  {
+    id: "public",
+    name: "Mainnet",
+    passphrase: "Public Global Stellar Network ; September 2015",
+  },
+  {
+    id: "testnet",
+    name: "Testnet",
+    passphrase: "Test SDF Network ; September 2015",
+  },
+  {
+    id: "futurenet",
+    name: "Futurenet",
+    passphrase: "Test SDF Future Network ; October 2022",
+  },
 ];
 
 export const DEFAULT_NETWORK: Network = SUPPORTED_NETWORKS[0];

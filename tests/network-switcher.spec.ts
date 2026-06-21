@@ -37,7 +37,7 @@ test.describe("NetworkSwitcher — active badge", () => {
 
     const trigger = page.locator('[aria-label*="Current network"]').first();
     await expect(trigger).toHaveAttribute("aria-label", /current network/i);
-    await expect(trigger).toHaveAttribute("aria-label", /Stellar/i);
+    await expect(trigger).toHaveAttribute("aria-label", /Mainnet/i);
   });
 
   test("active network item shows 'Active' badge in dropdown", async ({ page }) => {
@@ -46,7 +46,7 @@ test.describe("NetworkSwitcher — active badge", () => {
     const trigger = page.locator('[aria-label*="Current network"]').first();
     await trigger.click();
 
-    // The first network (ETH) should show the Active badge
+    // The first network (Mainnet) should show the Active badge
     const activeBadge = page.getByText("Active").first();
     await expect(activeBadge).toBeVisible();
   });
@@ -59,9 +59,9 @@ test.describe("NetworkSwitcher — no-op on active network", () => {
     const trigger = page.locator('[aria-label*="Current network"]').first();
     await trigger.click();
 
-    // Click the currently active network (ETH)
-    const ethItem = page.getByRole("menuitem", { name: /Stellar/i }).first();
-    await ethItem.click();
+    // Click the currently active network (Mainnet)
+    const mainnetItem = page.getByRole("menuitem", { name: /Mainnet/i }).first();
+    await mainnetItem.click();
 
     // Dialog should NOT appear
     const dialog = page.getByRole("dialog");
@@ -76,8 +76,8 @@ test.describe("NetworkSwitcher — confirmation dialog", () => {
     const trigger = page.locator('[aria-label*="Current network"]').first();
     await trigger.click();
 
-    const polygonItem = page.getByRole("menuitem", { name: /Polygon/i }).first();
-    await polygonItem.click();
+    const testnetItem = page.getByRole("menuitem", { name: /Testnet/i }).first();
+    await testnetItem.click();
 
     const dialog = page.getByRole("dialog");
     await expect(dialog).toBeVisible();
@@ -89,11 +89,11 @@ test.describe("NetworkSwitcher — confirmation dialog", () => {
     const trigger = page.locator('[aria-label*="Current network"]').first();
     await trigger.click();
 
-    await page.getByRole("menuitem", { name: /Polygon/i }).first().click();
+    await page.getByRole("menuitem", { name: /Testnet/i }).first().click();
 
     const dialog = page.getByRole("dialog");
-    await expect(dialog).toContainText("Stellar");
-    await expect(dialog).toContainText("Polygon");
+    await expect(dialog).toContainText("Mainnet");
+    await expect(dialog).toContainText("Testnet");
   });
 
   test("dialog warns about balance/transaction context change", async ({ page }) => {
@@ -102,11 +102,11 @@ test.describe("NetworkSwitcher — confirmation dialog", () => {
     const trigger = page.locator('[aria-label*="Current network"]').first();
     await trigger.click();
 
-    await page.getByRole("menuitem", { name: /Polygon/i }).first().click();
+    await page.getByRole("menuitem", { name: /Testnet/i }).first().click();
 
     const dialog = page.getByRole("dialog");
     await expect(dialog).toContainText(/balances/i);
-    await expect(dialog).toContainText(/transaction/i);
+    await expect(dialog).toContainText(/operations/i);
     // Confirm no funds are moved
     await expect(dialog).toContainText(/no funds will be moved/i);
   });
@@ -117,16 +117,16 @@ test.describe("NetworkSwitcher — confirmation dialog", () => {
     const trigger = page.locator('[aria-label*="Current network"]').first();
     await trigger.click();
 
-    await page.getByRole("menuitem", { name: /Polygon/i }).first().click();
+    await page.getByRole("menuitem", { name: /Testnet/i }).first().click();
 
     await page.getByRole("button", { name: /cancel/i }).click();
 
     // Dialog should be gone
     await expect(page.getByRole("dialog")).not.toBeVisible();
 
-    // Trigger still shows ETH
+    // Trigger still shows Mainnet
     const updatedTrigger = page.locator('[aria-label*="Current network"]').first();
-    await expect(updatedTrigger).toHaveAttribute("aria-label", /Stellar/i);
+    await expect(updatedTrigger).toHaveAttribute("aria-label", /Mainnet/i);
   });
 
   test("confirming the switch updates the displayed network", async ({ page }) => {
@@ -135,16 +135,16 @@ test.describe("NetworkSwitcher — confirmation dialog", () => {
     const trigger = page.locator('[aria-label*="Current network"]').first();
     await trigger.click();
 
-    await page.getByRole("menuitem", { name: /Polygon/i }).first().click();
+    await page.getByRole("menuitem", { name: /Testnet/i }).first().click();
 
     await page.getByTestId("confirm-network-switch").click();
 
     // Dialog should be gone
     await expect(page.getByRole("dialog")).not.toBeVisible();
 
-    // Trigger now shows Polygon
+    // Trigger now shows Testnet
     const updatedTrigger = page.locator('[aria-label*="Current network"]').first();
-    await expect(updatedTrigger).toHaveAttribute("aria-label", /Polygon/i);
+    await expect(updatedTrigger).toHaveAttribute("aria-label", /Testnet/i);
   });
 });
 
@@ -152,41 +152,41 @@ test.describe("NetworkSwitcher — rapid switching", () => {
   test("switching back and forth quickly ends on the last confirmed network", async ({ page }) => {
     await page.goto(LANDING_URL);
 
-    // Switch ETH → Polygon
+    // Switch Mainnet to Testnet
     await page.locator('[aria-label*="Current network"]').first().click();
-    await page.getByRole("menuitem", { name: /Polygon/i }).first().click();
+    await page.getByRole("menuitem", { name: /Testnet/i }).first().click();
     await page.getByTestId("confirm-network-switch").click();
 
-    // Switch Polygon → BSC
+    // Switch Testnet to Futurenet
     await page.locator('[aria-label*="Current network"]').first().click();
-    await page.getByRole("menuitem", { name: /BSC/i }).first().click();
+    await page.getByRole("menuitem", { name: /Futurenet/i }).first().click();
     await page.getByTestId("confirm-network-switch").click();
 
-    // Switch BSC → ETH
+    // Switch Futurenet to Mainnet
     await page.locator('[aria-label*="Current network"]').first().click();
-    await page.getByRole("menuitem", { name: /Stellar/i }).first().click();
+    await page.getByRole("menuitem", { name: /Mainnet/i }).first().click();
     await page.getByTestId("confirm-network-switch").click();
 
     const trigger = page.locator('[aria-label*="Current network"]').first();
-    await expect(trigger).toHaveAttribute("aria-label", /Stellar/i);
+    await expect(trigger).toHaveAttribute("aria-label", /Mainnet/i);
   });
 
   test("cancelling mid-sequence preserves the last confirmed network", async ({ page }) => {
     await page.goto(LANDING_URL);
 
-    // Confirm ETH → Polygon
+    // Confirm Mainnet to Testnet
     await page.locator('[aria-label*="Current network"]').first().click();
-    await page.getByRole("menuitem", { name: /Polygon/i }).first().click();
+    await page.getByRole("menuitem", { name: /Testnet/i }).first().click();
     await page.getByTestId("confirm-network-switch").click();
 
-    // Start Polygon → BSC but cancel
+    // Start Testnet to Futurenet but cancel
     await page.locator('[aria-label*="Current network"]').first().click();
-    await page.getByRole("menuitem", { name: /BSC/i }).first().click();
+    await page.getByRole("menuitem", { name: /Futurenet/i }).first().click();
     await page.getByRole("button", { name: /cancel/i }).click();
 
-    // Should still be Polygon
+    // Should still be Testnet
     const trigger = page.locator('[aria-label*="Current network"]').first();
-    await expect(trigger).toHaveAttribute("aria-label", /Polygon/i);
+    await expect(trigger).toHaveAttribute("aria-label", /Testnet/i);
   });
 });
 
@@ -242,7 +242,7 @@ test.describe("NetworkSwitcher — keyboard accessibility", () => {
     await expect(page.locator('[role="menu"]').first()).not.toBeVisible();
 
     // Network unchanged
-    await expect(trigger).toHaveAttribute("aria-label", /Stellar/i);
+    await expect(trigger).toHaveAttribute("aria-label", /Mainnet/i);
   });
 });
 
