@@ -14,10 +14,23 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Tabs, TabsContent } from "@/components/ui/tabs";
-import AccountSection from "./account-section";
-import NotificationsSection from "./notifications-section";
-import SecurityTab from "./security-tab";
-import WalletsSection from "./wallets-section";
+import { DEMO_WALLETS } from "@/lib/demo-data";
+import AccountSection, {
+  INITIAL_PROFILE_STATE,
+  ProfileState,
+} from "./account-section";
+import NotificationsSection, {
+  INITIAL_NOTIFICATION_SETTINGS,
+  NotificationSettingsState,
+} from "./notifications-section";
+import SecurityTab, {
+  INITIAL_SECURITY_SUMMARY,
+  SecuritySummaryState,
+} from "./security-tab";
+import WalletsSection, {
+  INITIAL_WALLET_SETTINGS,
+  WalletSettingsState,
+} from "./wallets-section";
 
 const sections: SettingsHeaderSection[] = [
   {
@@ -61,6 +74,15 @@ export default function SettingsPageShell({
     ? initialSection!
     : "account";
   const [activeSection, setActiveSection] = useState(resolvedInitialSection);
+  const [profileSummary, setProfileSummary] =
+    useState<ProfileState>(INITIAL_PROFILE_STATE);
+  const [notificationSummary, setNotificationSummary] =
+    useState<NotificationSettingsState>(INITIAL_NOTIFICATION_SETTINGS);
+  const [securitySummary, setSecuritySummary] =
+    useState<SecuritySummaryState>(INITIAL_SECURITY_SUMMARY);
+  const [walletSummary, setWalletSummary] = useState<WalletSettingsState>(
+    INITIAL_WALLET_SETTINGS,
+  );
 
   const handleSectionChange = (nextSection: string) => {
     setActiveSection(nextSection);
@@ -68,6 +90,47 @@ export default function SettingsPageShell({
       scroll: false,
     });
   };
+
+  const profileFieldCount = Object.values(profileSummary).filter(
+    (value) => value.trim().length > 0,
+  ).length;
+  const profileTotalFields = Object.keys(profileSummary).length;
+  const profileValue =
+    profileFieldCount === profileTotalFields
+      ? "Complete"
+      : `${profileFieldCount}/${profileTotalFields} ready`;
+  const notificationActiveCount =
+    countEnabledSettings(notificationSummary);
+  const securityActiveCount = countEnabledSettings(securitySummary);
+  const walletSafeguardCount = countEnabledSettings(walletSummary);
+  const walletCount = DEMO_WALLETS.length;
+  const walletCountLabel = formatCount(walletCount, "linked");
+
+  const dynamicSections: SettingsHeaderSection[] = sections.map((section) => {
+    if (section.value === "account") {
+      return { ...section, badge: profileValue };
+    }
+
+    if (section.value === "notifications") {
+      return {
+        ...section,
+        badge: formatCount(notificationActiveCount, "active"),
+      };
+    }
+
+    if (section.value === "security") {
+      return {
+        ...section,
+        badge: formatCount(securityActiveCount, "active"),
+      };
+    }
+
+    if (section.value === "wallets") {
+      return { ...section, badge: walletCountLabel };
+    }
+
+    return section;
+  });
 
   return (
     <Tabs
@@ -78,7 +141,7 @@ export default function SettingsPageShell({
       <SettingsHeader
         pageTitle="Settings that stay easy to scan"
         pageDescription="Grouped sections keep high-frequency work within a couple of taps, while advanced and destructive actions stay clearly separated."
-        sections={sections}
+        sections={dynamicSections}
         activeSection={activeSection}
       />
 
@@ -87,47 +150,55 @@ export default function SettingsPageShell({
           <SummaryCard
             icon={UserRound}
             label="Profile readiness"
-            value="Complete"
+            value={profileValue}
             description="Identity, locale, and billing defaults are grouped together."
           />
           <SummaryCard
             icon={Bell}
             label="Alerts enabled"
-            value="5 active"
+            value={formatCount(notificationActiveCount, "active")}
             description="Critical alerts remain above lower-priority updates."
           />
           <SummaryCard
             icon={Shield}
             label="Security posture"
-            value="2-step on"
+            value={formatCount(securityActiveCount, "active")}
             description="Password, verification, and session controls share one section."
           />
           <SummaryCard
             icon={Wallet}
             label="Wallet coverage"
-            value="2 linked"
-            description="Connected wallets sit next to transfer safeguards."
+            value={walletCountLabel}
+            description={`${formatCount(walletSafeguardCount, "safeguard")} active beside connected wallets.`}
           />
         </section>
 
         <TabsContent value="account" className="mt-0">
-          <AccountSection />
+          <AccountSection onSummaryChange={setProfileSummary} />
         </TabsContent>
 
         <TabsContent value="notifications" className="mt-0">
-          <NotificationsSection />
+          <NotificationsSection onSummaryChange={setNotificationSummary} />
         </TabsContent>
 
         <TabsContent value="security" className="mt-0">
-          <SecurityTab />
+          <SecurityTab onSummaryChange={setSecuritySummary} />
         </TabsContent>
 
         <TabsContent value="wallets" className="mt-0">
-          <WalletsSection />
+          <WalletsSection onSummaryChange={setWalletSummary} />
         </TabsContent>
       </div>
     </Tabs>
   );
+}
+
+function countEnabledSettings(settings: object) {
+  return Object.values(settings).filter(Boolean).length;
+}
+
+function formatCount(count: number, label: string) {
+  return `${count} ${label}`;
 }
 
 function SummaryCard({

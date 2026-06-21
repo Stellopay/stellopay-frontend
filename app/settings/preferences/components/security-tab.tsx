@@ -46,17 +46,33 @@ interface StatusState {
   type: "success" | "error" | null;
 }
 
+export interface SecuritySummaryState {
+  twoFactorEnabled: boolean;
+  loginApprovalEnabled: boolean;
+  transferApprovalEnabled: boolean;
+}
+
+export const INITIAL_SECURITY_SUMMARY: SecuritySummaryState = {
+  twoFactorEnabled: true,
+  loginApprovalEnabled: true,
+  transferApprovalEnabled: true,
+};
+
+interface SecurityTabProps {
+  onSummaryChange?: (settings: SecuritySummaryState) => void;
+}
+
 /**
  * SecurityTab component.
  * Renders security-sensitive forms (password updates, two-factor authentication, active sessions).
  * Uses placeholder demo data pending full backend API integration.
  */
-export default function SecurityTab() {
+export default function SecurityTab({ onSummaryChange }: SecurityTabProps = {}) {
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
-  const [twoFactorEnabled, setTwoFactorEnabled] = useState(true);
-  const [loginApprovalEnabled, setLoginApprovalEnabled] = useState(true);
-  const [transferApprovalEnabled, setTransferApprovalEnabled] = useState(true);
+  const [summarySettings, setSummarySettings] = useState<SecuritySummaryState>(
+    INITIAL_SECURITY_SUMMARY,
+  );
   const [status, setStatus] = useState<StatusState>({ message: "", type: null });
   const [isSaving, setIsSaving] = useState(false);
 
@@ -65,6 +81,20 @@ export default function SecurityTab() {
     Object.values(passwordRequirements).every(Boolean) &&
     password.length > 0 &&
     password === confirmPassword;
+
+  const updateSummarySetting = (
+    field: keyof SecuritySummaryState,
+    value: boolean,
+  ) => {
+    setSummarySettings((currentSettings) => {
+      const nextSettings = {
+        ...currentSettings,
+        [field]: value,
+      };
+      onSummaryChange?.(nextSettings);
+      return nextSettings;
+    });
+  };
 
   const handleSaveChanges = async () => {
     if (!isPasswordReady) {
@@ -249,20 +279,26 @@ export default function SecurityTab() {
               title="Authenticator app verification"
               description="Require a second factor for password resets and critical profile changes."
               badge="Recommended"
-              enabled={twoFactorEnabled}
-              onToggle={setTwoFactorEnabled}
+              enabled={summarySettings.twoFactorEnabled}
+              onToggle={(value) =>
+                updateSummarySetting("twoFactorEnabled", value)
+              }
             />
             <ToggleCard
               title="New device approval"
               description="Challenge sign-ins from browsers or devices you have not approved yet."
-              enabled={loginApprovalEnabled}
-              onToggle={setLoginApprovalEnabled}
+              enabled={summarySettings.loginApprovalEnabled}
+              onToggle={(value) =>
+                updateSummarySetting("loginApprovalEnabled", value)
+              }
             />
             <ToggleCard
               title="Large transfer approval"
               description="Hold transfers over your threshold for a second confirmation."
-              enabled={transferApprovalEnabled}
-              onToggle={setTransferApprovalEnabled}
+              enabled={summarySettings.transferApprovalEnabled}
+              onToggle={(value) =>
+                updateSummarySetting("transferApprovalEnabled", value)
+              }
             />
           </CardContent>
         </Card>

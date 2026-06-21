@@ -18,7 +18,7 @@ import { FormMessage } from "@/components/ui/form";
 import DestructiveActionDialog from "./destructive-action-dialog";
 import { DEMO_PROFILE } from "@/lib/demo-data";
 
-interface ProfileState {
+export interface ProfileState {
   firstName: string;
   lastName: string;
   displayName: string;
@@ -55,28 +55,41 @@ const sectionMap = [
   },
 ];
 
+export const INITIAL_PROFILE_STATE: ProfileState = {
+  firstName: DEMO_PROFILE.firstName,
+  lastName: DEMO_PROFILE.lastName,
+  displayName: DEMO_PROFILE.displayName,
+  email: DEMO_PROFILE.email,
+  timezone: DEMO_PROFILE.timezone,
+  currency: DEMO_PROFILE.currency,
+};
+
+interface AccountSectionProps {
+  onSummaryChange?: (profile: ProfileState) => void;
+}
+
 /**
  * AccountSection component.
  * Renders user profile information, identity details, and regional settings.
  * Uses placeholder demo data pending full backend API integration.
  */
-export default function AccountSection() {
-  const [profile, setProfile] = useState<ProfileState>({
-    firstName: DEMO_PROFILE.firstName,
-    lastName: DEMO_PROFILE.lastName,
-    displayName: DEMO_PROFILE.displayName,
-    email: DEMO_PROFILE.email,
-    timezone: DEMO_PROFILE.timezone,
-    currency: DEMO_PROFILE.currency,
-  });
+export default function AccountSection({
+  onSummaryChange,
+}: AccountSectionProps = {}) {
+  const [profile, setProfile] =
+    useState<ProfileState>(INITIAL_PROFILE_STATE);
   const [status, setStatus] = useState<StatusState>({ message: "", type: null });
   const [isSaving, setIsSaving] = useState(false);
 
   const updateProfileField = (field: keyof ProfileState, value: string) => {
-    setProfile((currentProfile) => ({
-      ...currentProfile,
-      [field]: value,
-    }));
+    setProfile((currentProfile) => {
+      const nextProfile = {
+        ...currentProfile,
+        [field]: value,
+      };
+      onSummaryChange?.(nextProfile);
+      return nextProfile;
+    });
   };
 
   const handleSave = async () => {

@@ -17,7 +17,7 @@ import { Loader2 } from "lucide-react";
 
 const connectedWallets = DEMO_WALLETS;
 
-interface WalletSettingsState {
+export interface WalletSettingsState {
   transferApprovals: boolean;
   addressBookLock: boolean;
   travelRuleChecks: boolean;
@@ -28,25 +28,39 @@ interface StatusState {
   type: "success" | "error" | null;
 }
 
+export const INITIAL_WALLET_SETTINGS: WalletSettingsState = {
+  transferApprovals: true,
+  addressBookLock: true,
+  travelRuleChecks: true,
+};
+
+interface WalletsSectionProps {
+  onSummaryChange?: (settings: WalletSettingsState) => void;
+}
+
 /**
  * WalletsSection component.
  * Renders connected wallet configurations, region settings, and outbound transfer safeguards.
  * Uses placeholder demo data pending full backend API integration.
  */
-export default function WalletsSection() {
-  const [settings, setSettings] = useState<WalletSettingsState>({
-    transferApprovals: true,
-    addressBookLock: true,
-    travelRuleChecks: true,
-  });
+export default function WalletsSection({
+  onSummaryChange,
+}: WalletsSectionProps = {}) {
+  const [settings, setSettings] = useState<WalletSettingsState>(
+    INITIAL_WALLET_SETTINGS,
+  );
   const [status, setStatus] = useState<StatusState>({ message: "", type: null });
   const [isSaving, setIsSaving] = useState(false);
 
   const updateSetting = (field: keyof WalletSettingsState, value: boolean) => {
-    setSettings((currentSettings) => ({
-      ...currentSettings,
-      [field]: value,
-    }));
+    setSettings((currentSettings) => {
+      const nextSettings = {
+        ...currentSettings,
+        [field]: value,
+      };
+      onSummaryChange?.(nextSettings);
+      return nextSettings;
+    });
   };
 
   const handleSave = async () => {

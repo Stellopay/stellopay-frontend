@@ -12,7 +12,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 
-interface NotificationSettingsState {
+export interface NotificationSettingsState {
   transactionAlerts: boolean;
   securityAlerts: boolean;
   productUpdates: boolean;
@@ -22,26 +22,40 @@ interface NotificationSettingsState {
   smsChannel: boolean;
 }
 
-export default function NotificationsSection() {
-  const [settings, setSettings] = useState<NotificationSettingsState>({
-    transactionAlerts: true,
-    securityAlerts: true,
-    productUpdates: true,
-    marketing: false,
-    emailChannel: true,
-    pushChannel: true,
-    smsChannel: false,
-  });
+export const INITIAL_NOTIFICATION_SETTINGS: NotificationSettingsState = {
+  transactionAlerts: true,
+  securityAlerts: true,
+  productUpdates: true,
+  marketing: false,
+  emailChannel: true,
+  pushChannel: true,
+  smsChannel: false,
+};
+
+interface NotificationsSectionProps {
+  onSummaryChange?: (settings: NotificationSettingsState) => void;
+}
+
+export default function NotificationsSection({
+  onSummaryChange,
+}: NotificationsSectionProps = {}) {
+  const [settings, setSettings] = useState<NotificationSettingsState>(
+    INITIAL_NOTIFICATION_SETTINGS,
+  );
   const [statusMessage, setStatusMessage] = useState("");
 
   const updateSetting = (
     field: keyof NotificationSettingsState,
     value: boolean,
   ) => {
-    setSettings((currentSettings) => ({
-      ...currentSettings,
-      [field]: value,
-    }));
+    setSettings((currentSettings) => {
+      const nextSettings = {
+        ...currentSettings,
+        [field]: value,
+      };
+      onSummaryChange?.(nextSettings);
+      return nextSettings;
+    });
   };
 
   return (
