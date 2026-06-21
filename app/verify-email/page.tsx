@@ -11,11 +11,28 @@ export default function VerifyEmail() {
   const router = useRouter();
   const [status, setStatus] = useState<StatusType>("idle");
   const [message, setMessage] = useState("");
+  const [inputFeedback, setInputFeedback] = useState("");
   const [resendStatus, setResendStatus] = useState<StatusType>("idle");
 
+  const codeInputId = "verification-code";
+  const helpTextId = "verification-code-help";
+  const feedbackId = "verification-code-feedback";
+  const isCodeInvalid = code.length > 0 && code.length < 6;
+
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.value.replace(/[^0-9a-zA-Z]/g, "");
-    if (value.length <= 6) setCode(value);
+    const numericValue = e.target.value.replace(/\D/g, "");
+    const nextCode = numericValue.slice(0, 6);
+    setCode(nextCode);
+
+    if (numericValue.length > 6) {
+      setInputFeedback("Verification codes are 6 digits, so extra characters were removed.");
+    } else if (e.target.value !== numericValue) {
+      setInputFeedback("Use digits only for the verification code.");
+    } else if (nextCode.length > 0 && nextCode.length < 6) {
+      setInputFeedback("Enter the 6-digit code from your email.");
+    } else {
+      setInputFeedback("");
+    }
   };
 
   const handleResend = async () => {
@@ -89,15 +106,41 @@ export default function VerifyEmail() {
         </p>
 
         {/* Input */}
-        <input
-          type="text"
-          inputMode="numeric"
-          maxLength={6}
-          value={code}
-          onChange={handleInputChange}
-          className="w-full text-left py-3 px-4 rounded-[8px] border border-[#2D2D2D] bg-transparent text-white mb-4 outline-none mt-5"
-          placeholder="- - - - - - - -"
-        />
+        <div className="mt-5 mb-4 text-left">
+          <label
+            htmlFor={codeInputId}
+            className="mb-2 block text-sm font-medium text-white"
+          >
+            Verification code
+          </label>
+          <input
+            id={codeInputId}
+            name="verificationCode"
+            type="text"
+            inputMode="numeric"
+            autoComplete="one-time-code"
+            required
+            aria-label="Verification code"
+            aria-describedby={`${helpTextId} ${feedbackId}`}
+            aria-invalid={isCodeInvalid || status === "error"}
+            value={code}
+            onChange={handleInputChange}
+            className="w-full rounded-[8px] border border-[#2D2D2D] bg-transparent px-4 py-3 text-left text-white outline-none focus:border-white"
+            placeholder="- - - - - -"
+          />
+          <p id={helpTextId} className="mt-2 text-xs text-[#ACB4B5]">
+            Enter the 6-digit code sent to your email.
+          </p>
+          <p
+            id={feedbackId}
+            aria-live="polite"
+            className={`mt-1 min-h-4 text-xs ${
+              isCodeInvalid || inputFeedback ? "text-amber-300" : "text-[#ACB4B5]"
+            }`}
+          >
+            {inputFeedback || (code.length === 6 ? "Code is ready to verify." : "")}
+          </p>
+        </div>
 
         {/* Status Messages */}
         {message && (
