@@ -38,8 +38,12 @@ export default function DestructiveActionDialog({
   const [open, setOpen] = useState(false);
   const [confirmationText, setConfirmationText] = useState("");
   const inputId = `confirmation-${confirmationToken.toLowerCase()}`;
+  const instructionId = `${inputId}-instruction`;
+  const errorId = `${inputId}-error`;
 
-  const isConfirmed = confirmationText.trim() === confirmationToken;
+  const hasConfirmationText = confirmationText.length > 0;
+  const isConfirmed = confirmationText === confirmationToken;
+  const showMismatch = hasConfirmationText && !isConfirmed;
 
   const handleOpenChange = (nextOpen: boolean) => {
     setOpen(nextOpen);
@@ -101,13 +105,27 @@ export default function DestructiveActionDialog({
             >
               {confirmationLabel}
             </label>
+            <p id={instructionId} className="text-sm text-zinc-500 dark:text-zinc-400">
+              Type {confirmationToken} exactly. Extra spaces and different
+              casing will not match.
+            </p>
             <Input
               id={inputId}
               value={confirmationText}
               onChange={(event) => setConfirmationText(event.target.value)}
               placeholder={confirmationToken}
+              autoFocus
+              aria-required="true"
+              error={showMismatch}
+              errorId={errorId}
+              descriptionId={instructionId}
               className="border-zinc-200 bg-white dark:border-white/10 dark:bg-white/5"
             />
+            {showMismatch ? (
+              <p id={errorId} className="text-sm text-destructive">
+                The confirmation must match {confirmationToken} exactly.
+              </p>
+            ) : null}
           </div>
         </div>
 
