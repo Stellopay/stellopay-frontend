@@ -72,8 +72,30 @@ export const filterTransactions = (
   return filtered;
 };
 
+type TransactionSortValue = number | string;
+type TransactionSortAccessor = (transaction: Transaction) => TransactionSortValue;
+
+const toFiniteTimestamp = (date: string): number => {
+  const timestamp = new Date(date).getTime();
+  return Number.isFinite(timestamp) ? timestamp : 0;
+};
+
+const toFiniteMagnitude = (amount: number): number => {
+  const magnitude = Math.abs(amount);
+  return Number.isFinite(magnitude) ? magnitude : 0;
+};
+
+const transactionSortAccessors: Record<SortField, TransactionSortAccessor> = {
+  date: (transaction) => toFiniteTimestamp(transaction.date),
+  amount: (transaction) => toFiniteMagnitude(transaction.amount),
+  type: (transaction) => transaction.type,
+  status: (transaction) => transaction.status,
+};
+
 /**
- * Sorts transactions by specified field and direction
+ * Sorts transactions by a typed Transaction sort field and direction.
+ * Comparator values are restricted to number|string so invalid dates or NaN
+ * amounts cannot throw or silently bypass type checking through any.
  * @param transactions - Array of transactions to sort
  * @param sortField - Field to sort by (date, amount, type, status)
  * @param sortDirection - Sort direction (asc, desc)
@@ -84,30 +106,15 @@ export const sortTransactions = (
   sortField: SortField,
   sortDirection: SortDirection,
 ): Transaction[] => {
-  return [...transactions].sort((a, b) => {
-    let aValue: any;
-    let bValue: any;
+  const getSortValue = transactionSortAccessors[sortField];
 
-    switch (sortField) {
-      case "date":
-        aValue = new Date(a.date);
-        bValue = new Date(b.date);
-        break;
-      case "amount":
-        aValue = Math.abs(a.amount);
-        bValue = Math.abs(b.amount);
-        break;
-      case "type":
-        aValue = a.type;
-        bValue = b.type;
-        break;
-      case "status":
-        aValue = a.status;
-        bValue = b.status;
-        break;
-      default:
-        return 0;
-    }
+  if (!getSortValue) {
+    return [...transactions];
+  }
+
+  return [...transactions].sort((a, b) => {
+    const aValue = getSortValue(a);
+    const bValue = getSortValue(b);
 
     if (aValue < bValue) return sortDirection === "asc" ? -1 : 1;
     if (aValue > bValue) return sortDirection === "asc" ? 1 : -1;
