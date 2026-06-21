@@ -14,8 +14,7 @@ import ToggleCard from "@/components/common/toggle-card";
 import DestructiveActionDialog from "./destructive-action-dialog";
 import { DEMO_WALLETS } from "@/lib/demo-data";
 import { Loader2 } from "lucide-react";
-
-const connectedWallets = DEMO_WALLETS;
+import { formatAddress, useWallet } from "@/context/wallet-context";
 
 interface WalletSettingsState {
   transferApprovals: boolean;
@@ -34,6 +33,7 @@ interface StatusState {
  * Uses placeholder demo data pending full backend API integration.
  */
 export default function WalletsSection() {
+  const wallet = useWallet();
   const [settings, setSettings] = useState<WalletSettingsState>({
     transferApprovals: true,
     addressBookLock: true,
@@ -41,6 +41,21 @@ export default function WalletsSection() {
   });
   const [status, setStatus] = useState<StatusState>({ message: "", type: null });
   const [isSaving, setIsSaving] = useState(false);
+
+  const connectedWallets = wallet.isConnected
+    ? [
+        {
+          name: "Connected wallet",
+          network: wallet.network.name,
+          address: formatAddress(wallet.address),
+          status: "Active wallet",
+          isDemo: false,
+        },
+      ]
+    : DEMO_WALLETS.map((demoWallet) => ({
+        ...demoWallet,
+        isDemo: true,
+      }));
 
   const updateSetting = (field: keyof WalletSettingsState, value: boolean) => {
     setSettings((currentSettings) => ({
@@ -82,7 +97,7 @@ export default function WalletsSection() {
           <CardTitle className="font-general text-2xl text-zinc-950 dark:text-white flex flex-wrap items-center gap-2">
             Connected wallets
             <span className="inline-flex items-center gap-1 rounded-full bg-amber-50 px-2 py-0.5 text-xs font-medium text-amber-800 ring-1 ring-inset ring-amber-600/20 dark:bg-amber-400/10 dark:text-amber-500 dark:ring-amber-400/20">
-              Demo Data
+              {wallet.isConnected ? "Live Context" : "Demo Fallback"}
             </span>
           </CardTitle>
           <CardDescription className="text-zinc-600 dark:text-zinc-400">
@@ -91,30 +106,35 @@ export default function WalletsSection() {
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4 pt-6">
-          {connectedWallets.map((wallet) => (
+          {connectedWallets.map((connectedWallet) => (
             <div
-              key={wallet.name}
+              key={`${connectedWallet.network}-${connectedWallet.address}`}
               className="rounded-3xl border border-zinc-200 bg-zinc-50 p-5 dark:border-white/10 dark:bg-white/5"
             >
               <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
                 <div className="space-y-1">
                   <p className="font-medium text-zinc-900 dark:text-white">
-                    {wallet.name}
+                    {connectedWallet.name}
                   </p>
                   <p className="text-sm text-zinc-500 dark:text-zinc-400">
-                    {wallet.network}
+                    {connectedWallet.network}
                   </p>
                 </div>
                 <Badge
                   variant="outline"
                   className="border-zinc-200 bg-white text-zinc-600 dark:border-white/10 dark:bg-transparent dark:text-zinc-400"
                 >
-                  {wallet.status}
+                  {connectedWallet.status}
                 </Badge>
               </div>
               <p className="mt-4 text-sm text-zinc-500 dark:text-zinc-400">
-                Address: {wallet.address}
+                Address: {connectedWallet.address}
               </p>
+              {connectedWallet.isDemo ? (
+                <p className="mt-2 text-xs text-amber-700 dark:text-amber-400">
+                  Demo wallet shown because no wallet is currently connected.
+                </p>
+              ) : null}
             </div>
           ))}
 
@@ -212,23 +232,45 @@ export default function WalletsSection() {
           </CardHeader>
           <CardContent className="space-y-4 pt-6">
             <DestructiveActionDialog
-              triggerLabel="Remove primary wallet"
-              title="Remove the primary settlement wallet"
-              description="This will block settlement flows that depend on the current default wallet."
+              triggerLabel={
+                wallet.isConnected ? "Disconnect wallet" : "Remove demo wallet"
+              }
+              title={
+                wallet.isConnected
+                  ? "Disconnect the active wallet"
+                  : "Remove the demo settlement wallet"
+              }
+              description={
+                wallet.isConnected
+                  ? "This disconnects the wallet currently stored in WalletProvider."
+                  : "This demo action records a removal request until a real wallet is connected."
+              }
               impactItems={[
+                wallet.isConnected
+                  ? "Dashboard and settings wallet surfaces will return to a disconnected state."
+                  : "Demo wallet rows remain placeholders until a real wallet integration is connected.",
                 "Scheduled payouts using the wallet would pause immediately.",
-                "Operators would need to nominate a new default settlement wallet.",
                 "Historical references remain visible for audit trails.",
               ]}
-              confirmationToken="REMOVE"
-              confirmationLabel='Type "REMOVE" to confirm'
-              confirmLabel="Remove wallet"
-              onConfirm={() =>
-                setStatus({
-                  message: "Wallet removal request captured. A replacement wallet should be selected before execution.",
-                  type: "success",
-                })
+              confirmationToken={wallet.isConnected ? "DISCONNECT" : "REMOVE"}
+              confirmationLabel={
+                wallet.isConnected
+                  ? 'Type "DISCONNECT" to confirm'
+                  : 'Type "REMOVE" to confirm'
               }
+              confirmLabel={wallet.isConnected ? "Disconnect wallet" : "Remove wallet"}
+              onConfirm={() => {
+                if (wallet.isConnected) {
+                  wallet.disconnect();
+                }
+
+                setStatus({
+                  message: wallet.isConnected
+                    ? "Wallet disconnected. Connect a replacement wallet before scheduling payouts."
+                    : "Wallet removal request captured. A replacement wallet should be selected before execution.",
+                  type: "success",
+                });
+              }}
             />
           </CardContent>
         </Card>
