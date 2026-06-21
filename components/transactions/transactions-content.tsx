@@ -1,9 +1,18 @@
 "use client";
 
 import { useState, useMemo, useCallback } from "react";
-import type { SortField, TransactionFilters, Transaction, TransactionProps } from "@/types/transaction";
+import type {
+  SortField,
+  TransactionFilters,
+  Transaction,
+  TransactionProps,
+} from "@/types/transaction";
 import { useTransactions } from "@/hooks/useTransactions";
 import { TransactionTableSkeleton } from "@/components/ui/table-skeleton";
+import {
+  DEFAULT_TRANSACTION_FILTERS,
+  TRANSACTIONS_PAGE_SIZE,
+} from "@/lib/transactionDefaults";
 import TransactionsHeader from "./transactions-header";
 import TransactionsFilters from "./transactions-filters";
 import { TransactionsTable } from "./transactions-table";
@@ -12,9 +21,12 @@ import TransactionsPagination from "./transactions-pagination";
 /** Map token symbol → icon path */
 const getTokenIcon = (token: string): string => {
   switch (token) {
-    case "USDC": return "/usdc-logo.png";
-    case "XLM":  return "/stellar-xlm-logo.png";
-    default:     return "/usd.png";
+    case "USDC":
+      return "/usdc-logo.png";
+    case "XLM":
+      return "/stellar-xlm-logo.png";
+    default:
+      return "/usd.png";
   }
 };
 
@@ -36,33 +48,30 @@ const toTransactionProps = (t: Transaction): TransactionProps => ({
 
 export default function TransactionsContent() {
   const [filters, setFilters] = useState<TransactionFilters>({
-    searchQuery: "",
-    fromDate: "2023-03-26",
-    toDate: "2023-04-15",
-    selectedFilter: "All Transactions",
-    sortField: "date",
-    sortDirection: "desc",
+    ...DEFAULT_TRANSACTION_FILTERS,
   });
   const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 6;
 
   const { data, isLoading, error } = useTransactions({
     filters,
     page: currentPage,
-    pageSize: itemsPerPage,
+    pageSize: TRANSACTIONS_PAGE_SIZE,
   });
 
   const paginatedTransactions: TransactionProps[] = useMemo(
     () => (data?.data ?? []).map(toTransactionProps),
-    [data]
+    [data],
   );
 
   const updateFilter = useCallback(
-    <K extends keyof TransactionFilters>(key: K, value: TransactionFilters[K]) => {
+    <K extends keyof TransactionFilters>(
+      key: K,
+      value: TransactionFilters[K],
+    ) => {
       setFilters((prev) => ({ ...prev, [key]: value }));
       setCurrentPage(1);
     },
-    []
+    [],
   );
 
   const handleSort = useCallback((field: SortField) => {
@@ -70,7 +79,9 @@ export default function TransactionsContent() {
       ...prev,
       sortField: field,
       sortDirection:
-        prev.sortField === field && prev.sortDirection === "asc" ? "desc" : "asc",
+        prev.sortField === field && prev.sortDirection === "asc"
+          ? "desc"
+          : "asc",
     }));
     setCurrentPage(1);
   }, []);
@@ -98,7 +109,9 @@ export default function TransactionsContent() {
 
           <div className="py-4">
             {/* Loading state */}
-            {isLoading && <TransactionTableSkeleton rows={itemsPerPage} />}
+            {isLoading && (
+              <TransactionTableSkeleton rows={TRANSACTIONS_PAGE_SIZE} />
+            )}
 
             {/* Error state */}
             {!isLoading && error && (
@@ -117,7 +130,7 @@ export default function TransactionsContent() {
                 <TransactionsPagination
                   totalItems={data?.total ?? 0}
                   currentPage={currentPage}
-                  itemsPerPage={itemsPerPage}
+                  itemsPerPage={TRANSACTIONS_PAGE_SIZE}
                   onPageChange={setCurrentPage}
                 />
               </>
