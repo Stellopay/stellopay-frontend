@@ -73,6 +73,10 @@ const Transactions = () => {
         endDate={endDate}
         onStartDateChange={setStartDate}
         onEndDateChange={setEndDate}
+        onClearDateRange={() => {
+          setStartDate(undefined);
+          setEndDate(undefined);
+        }}
       />
 
       <div className="container mx-auto py-8 px-8">

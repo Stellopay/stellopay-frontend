@@ -1,7 +1,7 @@
 /**
  * Date utility functions
  */
-import { isValid, isWithinInterval, parse } from "date-fns";
+import { isValid, isWithinInterval, parse, parseISO } from "date-fns";
 
 /**
  * Formats a date string to a readable format (e.g., "Jan 15, 2024")
@@ -46,8 +46,11 @@ export const formatDateForDisplay = (date: Date): string => {
  */
 export const parseTransactionDate = (dateString: string): Date | null => {
   try {
-    const parsed = parse(dateString, "MMM dd, yyyy", new Date());
-    return isValid(parsed) ? parsed : null;
+    const isoParsed = parseISO(dateString);
+    if (isValid(isoParsed)) return isoParsed;
+
+    const labelParsed = parse(dateString, "MMM dd, yyyy", new Date());
+    return isValid(labelParsed) ? labelParsed : null;
   } catch {
     return null;
   }

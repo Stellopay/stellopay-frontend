@@ -32,6 +32,15 @@ describe("dateUtils", () => {
     expect(parseTransactionDate("not-a-date")).toBeNull();
   });
 
+  it("parses ISO transaction dates used by mock transaction data", () => {
+    const parsed = parseTransactionDate("2023-04-12");
+
+    expect(parsed).not.toBeNull();
+    expect(parsed?.getFullYear()).toBe(2023);
+    expect(parsed?.getMonth()).toBe(3);
+    expect(parsed?.getDate()).toBe(12);
+  });
+
   it("checks Date objects inclusively when both range endpoints are provided", () => {
     const start = new Date("2024-01-01T00:00:00.000Z");
     const middle = new Date("2024-01-15T00:00:00.000Z");
@@ -62,6 +71,8 @@ describe("dateUtils", () => {
     expect(isDateInRange("May 01, 2023", undefined, end)).toBe(false);
     expect(isDateInRange("Apr 12, 2023", start, end)).toBe(true);
     expect(isDateInRange("May 01, 2023", start, end)).toBe(false);
+    expect(isDateInRange("2023-04-12", start, end)).toBe(true);
+    expect(isDateInRange("2023-05-01", start, end)).toBe(false);
   });
 
   it("keeps malformed transaction date labels visible instead of filtering them out", () => {
