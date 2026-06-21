@@ -148,6 +148,11 @@ stellopay-frontend
 - `npm run test` runs the Vitest unit suite with coverage for auth, transaction, and pagination utils plus auth schemas.
 - `npm run test:watch` runs Vitest in watch mode while developing unit tests.
 - `npm run test:e2e` is the Playwright local/E2E command.
+- Playwright runs Chromium, Firefox, and WebKit projects from `playwright.config.ts`.
+  Run one browser locally with `npx playwright test --project=chromium`,
+  `npx playwright test --project=firefox`, or
+  `npx playwright test --project=webkit`.
+  CI retries failed Playwright tests twice while local runs fail fast.
 
 ## Iconography
 
