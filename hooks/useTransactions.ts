@@ -7,10 +7,12 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { getTransactions, PaginatedTransactions } from "@/lib/api";
+
 import type { TransactionFilters } from "@/types/transaction";
 
 interface UseTransactionsOptions {
   filters?: Partial<TransactionFilters>;
+
   page?: number;
   pageSize?: number;
 }
@@ -39,32 +41,50 @@ export function useTransactions(
 
   const refetch = useCallback(() => setTick((t) => t + 1), []);
 
+  /**
+   * Effect cancellation is critical to prevent stale async responses from
+   * overwriting newer filter/page results.
+   */
   useEffect(() => {
-    let cancelled = false;
+    const controller = new AbortController();
+    const requestId = Symbol("useTransactions-request");
+
+    // Only the latest request is allowed to commit state.
+    // Implemented by aborting in-flight requests and additionally guarding
+    // commits by request identity.
+    const latestRequestId = requestId;
+
+
     setIsLoading(true);
+
     setError(null);
 
-    getTransactions({ filters, page, pageSize })
+    getTransactions({ filters, page, pageSize }, controller.signal)
+
       .then((result) => {
-        if (!cancelled) {
-          setData(result);
-          setIsLoading(false);
-        }
+        if (controller.signal.aborted) return;
+        if (requestId !== latestRequestId) return;
+        setData(result);
+        setIsLoading(false);
       })
       .catch((err: unknown) => {
-        if (!cancelled) {
-          setError(
-            err instanceof Error ? err.message : "Failed to load transactions"
-          );
-          setIsLoading(false);
-        }
+        // AbortError is expected during rapid filter/page changes.
+        if (controller.signal.aborted) return;
+        if (requestId !== latestRequestId) return;
+
+        setError(
+          err instanceof Error ? err.message : "Failed to load transactions"
+        );
+
+        setIsLoading(false);
       });
 
     return () => {
-      cancelled = true;
+      controller.abort();
     };
   }, [
     filters?.searchQuery,
+
     filters?.selectedFilter,
     filters?.fromDate,
     filters?.toDate,

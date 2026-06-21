@@ -33,12 +33,14 @@ const MOCK_TO_DATE = "2099-12-31";
  * Today returns mock data; swap the body for a fetch() when the backend is ready.
  */
 export async function getTransactions(
-  params: GetTransactionsParams = {}
+  params: GetTransactionsParams = {},
+  signal?: AbortSignal
 ): Promise<PaginatedTransactions> {
   const { filters = {}, page = 1, pageSize = 6 } = params;
 
   const {
     searchQuery = "",
+
     selectedFilter = "All Transactions",
     fromDate = MOCK_FROM_DATE,
     toDate = MOCK_TO_DATE,
@@ -54,11 +56,32 @@ export async function getTransactions(
   // return TransactionResponseSchema.parse(json); // zod validation here
   // ─────────────────────────────────────────────────────────────────────────
 
+  // Abortable delay (used by tests and prevents stale UI flashes)
   if (process.env.NODE_ENV === "development") {
-    await new Promise((r) => setTimeout(r, 400));
+    await new Promise<void>((resolve, reject) => {
+      const timeoutId = setTimeout(() => resolve(), 400);
+
+      const onAbort = () => {
+        clearTimeout(timeoutId);
+        reject(new DOMException("Aborted", "AbortError"));
+      };
+
+      if (signal) {
+        if (signal.aborted) {
+          onAbort();
+          return;
+        }
+        signal.addEventListener("abort", onAbort, { once: true });
+      }
+    });
+  }
+
+  if (signal?.aborted) {
+    throw new DOMException("Aborted", "AbortError");
   }
 
   const filtered = filterTransactions(
+
     allTransactions,
     searchQuery,
     selectedFilter,
