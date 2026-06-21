@@ -5,7 +5,7 @@
 
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { getTransactions, PaginatedTransactions } from "@/lib/api";
 
 import type { TransactionFilters } from "@/types/transaction";
@@ -42,6 +42,36 @@ export function useTransactions(
   const refetch = useCallback(() => setTick((t) => t + 1), []);
 
   /**
+   * Memo key: the scalar filter fields, page, and page size are the complete
+   * query identity. This prevents equivalent caller object literals from
+   * forcing a new transaction derivation.
+   */
+  const query = useMemo(
+    () => ({
+      filters: {
+        searchQuery: filters?.searchQuery,
+        selectedFilter: filters?.selectedFilter,
+        fromDate: filters?.fromDate,
+        toDate: filters?.toDate,
+        sortField: filters?.sortField,
+        sortDirection: filters?.sortDirection,
+      },
+      page,
+      pageSize,
+    }),
+    [
+      filters?.searchQuery,
+      filters?.selectedFilter,
+      filters?.fromDate,
+      filters?.toDate,
+      filters?.sortField,
+      filters?.sortDirection,
+      page,
+      pageSize,
+    ],
+  );
+
+  /**
    * Effect cancellation is critical to prevent stale async responses from
    * overwriting newer filter/page results.
    */
@@ -59,7 +89,7 @@ export function useTransactions(
 
     setError(null);
 
-    getTransactions({ filters, page, pageSize }, controller.signal)
+    getTransactions(query, controller.signal)
 
       .then((result) => {
         if (controller.signal.aborted) return;
@@ -83,15 +113,7 @@ export function useTransactions(
       controller.abort();
     };
   }, [
-    filters?.searchQuery,
-
-    filters?.selectedFilter,
-    filters?.fromDate,
-    filters?.toDate,
-    filters?.sortField,
-    filters?.sortDirection,
-    page,
-    pageSize,
+    query,
     tick,
   ]);
 

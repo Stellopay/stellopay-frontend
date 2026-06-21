@@ -75,14 +75,35 @@ export default function TransactionsContent() {
     setCurrentPage(1);
   }, []);
 
+  const handleFromDateChange = useCallback(
+    (date: string) => updateFilter("fromDate", date),
+    [updateFilter],
+  );
+
+  const handleToDateChange = useCallback(
+    (date: string) => updateFilter("toDate", date),
+    [updateFilter],
+  );
+
+  const handleSearchChange = useCallback(
+    (query: string) => updateFilter("searchQuery", query),
+    [updateFilter],
+  );
+
+  const handleFilterChange = useCallback(
+    (filter: TransactionFilters["selectedFilter"]) =>
+      updateFilter("selectedFilter", filter),
+    [updateFilter],
+  );
+
   return (
     <div className="min-h-screen text-white mt-4">
       <div className="w-full max-w-7xl mx-auto mb-4">
         <TransactionsHeader
           fromDate={filters.fromDate}
           toDate={filters.toDate}
-          onFromDateChange={(date) => updateFilter("fromDate", date)}
-          onToDateChange={(date) => updateFilter("toDate", date)}
+          onFromDateChange={handleFromDateChange}
+          onToDateChange={handleToDateChange}
         />
 
         <div className="px-4 sm:px-6 lg:px-8 bg-[#160f17] pt-3 border-[#2D2D2D] border rounded-xl">
@@ -91,8 +112,8 @@ export default function TransactionsContent() {
             selectedFilter={filters.selectedFilter}
             sortField={filters.sortField}
             sortDirection={filters.sortDirection}
-            onSearchChange={(q) => updateFilter("searchQuery", q)}
-            onFilterChange={(f) => updateFilter("selectedFilter", f)}
+            onSearchChange={handleSearchChange}
+            onFilterChange={handleFilterChange}
             onSort={handleSort}
           />
 

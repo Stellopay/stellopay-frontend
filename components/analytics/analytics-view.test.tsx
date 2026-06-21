@@ -5,6 +5,8 @@ import { describe, expect, it, vi, beforeEach } from "vitest";
 import AnalyticsViews, { AnalyticsDataPoint } from "./analytics-view";
 import ClientAnalyticsView from "./client-analytics-view";
 
+let barChartRenderCount = 0;
+
 // Mock recharts
 vi.mock("recharts", () => {
   return {
@@ -18,9 +20,14 @@ vi.mock("recharts", () => {
       children: React.ReactNode;
       data: unknown;
     }) => (
-      <div data-testid="bar-chart" data-data={JSON.stringify(data)}>
-        {children}
-      </div>
+      (() => {
+        barChartRenderCount += 1;
+        return (
+          <div data-testid="bar-chart" data-data={JSON.stringify(data)}>
+            {children}
+          </div>
+        );
+      })()
     ),
     Bar: ({ dataKey }: { dataKey: string }) => (
       <div data-testid="bar" data-key={dataKey} />
@@ -54,6 +61,7 @@ vi.mock("@/hooks/usePaymentHistory", () => ({
 describe("AnalyticsViews Component", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    barChartRenderCount = 0;
     mockUsePaymentHistory.mockReturnValue({
       data: [
         {
@@ -124,6 +132,16 @@ describe("AnalyticsViews Component", () => {
     fireEvent.click(screen.getByText("2024"));
     expect(screen.getByText("2024")).toBeInTheDocument();
     expect(screen.queryByText("2023")).not.toBeInTheDocument();
+  });
+
+  it("does not re-render the bar chart for unrelated dropdown state changes", () => {
+    render(<AnalyticsViews showDropdown={true} />);
+    expect(barChartRenderCount).toBe(1);
+
+    fireEvent.click(screen.getByText("This Year"));
+    fireEvent.click(screen.getByText("2024"));
+
+    expect(barChartRenderCount).toBe(1);
   });
 
   it("renders notifications sidebar when showNotifications is true", () => {

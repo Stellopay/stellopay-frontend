@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useCallback, useMemo, useState } from "react";
 import Image from "next/image";
 import {
   BarChart,
@@ -100,6 +100,48 @@ const defaultData: AnalyticsDataPoint[] = [
   { month: "Dec", views: 54000 },
 ];
 
+interface AnalyticsBarChartProps {
+  chartData: AnalyticsDataPoint[];
+  showNotifications: boolean;
+}
+
+const AnalyticsBarChart = React.memo(function AnalyticsBarChart({
+  chartData,
+  showNotifications,
+}: AnalyticsBarChartProps) {
+  return (
+    <ResponsiveContainer width="100%" height="100%">
+      <BarChart data={chartData}>
+        <CartesianGrid
+          strokeDasharray="3 3"
+          vertical={false}
+          stroke={showNotifications ? "currentColor" : "#1f1b2e"}
+          className={showNotifications ? "text-zinc-200 dark:text-zinc-800" : ""}
+        />
+        <XAxis
+          dataKey="month"
+          tick={{ fill: "#aaa", fontSize: 10 }}
+          tickLine={false}
+          axisLine={false}
+        />
+        <YAxis
+          tick={{ fill: "#aaa", fontSize: 10 }}
+          tickFormatter={formatChartValue}
+          tickLine={false}
+          axisLine={false}
+        />
+        <Tooltip content={<CustomTooltip />} />
+        <Bar
+          dataKey="views"
+          fill={showNotifications ? "#3b82f6" : "#2E2E2E"}
+          radius={[4, 4, 0, 0]}
+          barSize={showNotifications ? 20 : 28}
+        />
+      </BarChart>
+    </ResponsiveContainer>
+  );
+});
+
 /**
  * The canonical AnalyticsViews component.
  * Renders a recharts bar chart with a clean, responsive design, an optional year-selector dropdown,
@@ -117,14 +159,21 @@ const AnalyticsViews = ({
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [selectedYear, setSelectedYear] = useState("This Year");
 
-  const yearOptions = ["This Year", "2024", "2023", "2022", "2021", "2020"];
+  const yearOptions = useMemo(
+    () => ["This Year", "2024", "2023", "2022", "2021", "2020"],
+    [],
+  );
 
-  const handleYearSelect = (year: string) => {
+  const handleYearSelect = useCallback((year: string) => {
     setSelectedYear(year);
     setIsDropdownOpen(false);
-  };
+  }, []);
 
-  const chartData = data || defaultData;
+  /**
+   * Memo key: only the caller-provided data reference changes the chart data.
+   * This keeps dropdown state updates from rebuilding the bar-chart payload.
+   */
+  const chartData = useMemo(() => data ?? defaultData, [data]);
 
   if (isLoading) {
     if (showNotifications) {
@@ -247,35 +296,10 @@ const AnalyticsViews = ({
         </div>
 
         <div className={showNotifications ? "w-full h-56 mt-4 border border-zinc-100 dark:border-zinc-800/50 p-6 rounded-xl bg-zinc-50/30 dark:bg-zinc-900/20" : "w-full h-full aspect-[3/1] rounded-lg border border-[#2D2D2D] p-2 sm:p-4"}>
-          <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={chartData}>
-              <CartesianGrid
-                strokeDasharray="3 3"
-                vertical={false}
-                stroke={showNotifications ? "currentColor" : "#1f1b2e"}
-                className={showNotifications ? "text-zinc-200 dark:text-zinc-800" : ""}
-              />
-              <XAxis
-                dataKey="month"
-                tick={{ fill: "#aaa", fontSize: 10 }}
-                tickLine={false}
-                axisLine={false}
-              />
-              <YAxis
-                tick={{ fill: "#aaa", fontSize: 10 }}
-                tickFormatter={formatChartValue}
-                tickLine={false}
-                axisLine={false}
-              />
-              <Tooltip content={<CustomTooltip />} />
-              <Bar
-                dataKey="views"
-                fill={showNotifications ? "#3b82f6" : "#2E2E2E"}
-                radius={[4, 4, 0, 0]}
-                barSize={showNotifications ? 20 : 28}
-              />
-            </BarChart>
-          </ResponsiveContainer>
+          <AnalyticsBarChart
+            chartData={chartData}
+            showNotifications={showNotifications}
+          />
         </div>
       </div>
 
