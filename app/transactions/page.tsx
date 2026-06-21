@@ -8,6 +8,7 @@ import TableSearchbar from "@/components/transactions/table-searchbar";
 import Filter from "@/components/transactions/filter";
 import Sort from "@/components/transactions/sort";
 import { TransactionTableSkeleton } from "@/components/ui/table-skeleton";
+import { DEFAULT_TRANSACTIONS_PAGE_SIZE } from "@/components/transactions/transactions-config";
 import { useTransactions } from "@/hooks/useTransactions";
 import type { TransactionProps } from "@/types/transaction";
 import { isDateInRange } from "@/utils/dateUtils";
@@ -25,7 +26,6 @@ const Transactions = () => {
   const [searchParams, setSearchParams] = useState("");
   const [startDate, setStartDate] = useState<Date | undefined>(undefined);
   const [endDate, setEndDate] = useState<Date | undefined>(undefined);
-  const itemsPerPage = 6;
 
   // Reset to page 1 whenever filters change
   useEffect(() => {
@@ -61,8 +61,8 @@ const Transactions = () => {
   );
 
   const paginated = useMemo(() => {
-    const start = (currentPage - 1) * itemsPerPage;
-    return dateFiltered.slice(start, start + itemsPerPage);
+    const start = (currentPage - 1) * DEFAULT_TRANSACTIONS_PAGE_SIZE;
+    return dateFiltered.slice(start, start + DEFAULT_TRANSACTIONS_PAGE_SIZE);
   }, [dateFiltered, currentPage]);
 
   return (
@@ -102,7 +102,9 @@ const Transactions = () => {
           </div>
 
           {/* Loading state */}
-          {isLoading && <TransactionTableSkeleton rows={itemsPerPage} />}
+          {isLoading && (
+            <TransactionTableSkeleton rows={DEFAULT_TRANSACTIONS_PAGE_SIZE} />
+          )}
 
           {/* Error state */}
           {!isLoading && error && (
@@ -129,7 +131,7 @@ const Transactions = () => {
         <TransactionsPagination
           totalItems={dateFiltered.length}
           currentPage={currentPage}
-          itemsPerPage={itemsPerPage}
+          itemsPerPage={DEFAULT_TRANSACTIONS_PAGE_SIZE}
           onPageChange={setCurrentPage}
         />
       )}

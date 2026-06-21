@@ -8,6 +8,10 @@ import TransactionsHeader from "./transactions-header";
 import TransactionsFilters from "./transactions-filters";
 import { TransactionsTable } from "./transactions-table";
 import TransactionsPagination from "./transactions-pagination";
+import {
+  DEFAULT_TRANSACTION_DATE_RANGE,
+  DEFAULT_TRANSACTIONS_PAGE_SIZE,
+} from "./transactions-config";
 
 /** Map token symbol → icon path */
 const getTokenIcon = (token: string): string => {
@@ -37,19 +41,17 @@ const toTransactionProps = (t: Transaction): TransactionProps => ({
 export default function TransactionsContent() {
   const [filters, setFilters] = useState<TransactionFilters>({
     searchQuery: "",
-    fromDate: "2023-03-26",
-    toDate: "2023-04-15",
+    ...DEFAULT_TRANSACTION_DATE_RANGE,
     selectedFilter: "All Transactions",
     sortField: "date",
     sortDirection: "desc",
   });
   const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 6;
 
   const { data, isLoading, error } = useTransactions({
     filters,
     page: currentPage,
-    pageSize: itemsPerPage,
+    pageSize: DEFAULT_TRANSACTIONS_PAGE_SIZE,
   });
 
   const paginatedTransactions: TransactionProps[] = useMemo(
@@ -98,7 +100,11 @@ export default function TransactionsContent() {
 
           <div className="py-4">
             {/* Loading state */}
-            {isLoading && <TransactionTableSkeleton rows={itemsPerPage} />}
+            {isLoading && (
+              <TransactionTableSkeleton
+                rows={DEFAULT_TRANSACTIONS_PAGE_SIZE}
+              />
+            )}
 
             {/* Error state */}
             {!isLoading && error && (
@@ -117,7 +123,7 @@ export default function TransactionsContent() {
                 <TransactionsPagination
                   totalItems={data?.total ?? 0}
                   currentPage={currentPage}
-                  itemsPerPage={itemsPerPage}
+                  itemsPerPage={DEFAULT_TRANSACTIONS_PAGE_SIZE}
                   onPageChange={setCurrentPage}
                 />
               </>

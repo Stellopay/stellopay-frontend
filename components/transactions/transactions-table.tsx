@@ -12,6 +12,7 @@ import { TransactionsTableProps } from "@/types/transaction";
 import { Badge } from "@/components/ui/badge";
 import Image from "next/image";
 import { Skeleton } from "@/components/ui/skeleton";
+import { DEFAULT_TRANSACTIONS_PAGE_SIZE } from "./transactions-config";
 
 interface TransactionsTablePropsExtended extends TransactionsTableProps {
   isLoading?: boolean;
@@ -51,7 +52,7 @@ export function TransactionsTable({ transactions, isLoading = false }: Transacti
           </TableHeader>
           <TableBody>
             {isLoading ? (
-              Array.from({ length: 6 }).map((_, index) => (
+              Array.from({ length: DEFAULT_TRANSACTIONS_PAGE_SIZE }).map((_, index) => (
                 <TableRow key={`skeleton-${index}`} className="border border-[#2D2D2D]">
                   <TableCell className="font-medium border border-[#2D2D2D] py-4 px-6">
                     <Skeleton className="h-4 w-20 mb-1" />
@@ -128,7 +129,7 @@ export function TransactionsTable({ transactions, isLoading = false }: Transacti
       {/* Mobile Cards */}
       <div className="md:hidden space-y-4">
         {isLoading ? (
-          Array.from({ length: 6 }).map((_, index) => (
+          Array.from({ length: DEFAULT_TRANSACTIONS_PAGE_SIZE }).map((_, index) => (
             <div key={`skeleton-mobile-${index}`} className="p-4 border rounded-lg border-[#2D2D2D]">
               <div className="flex justify-between items-start">
                 <div className="space-y-2">
