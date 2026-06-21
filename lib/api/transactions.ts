@@ -8,6 +8,7 @@
 
 import type { Transaction, TransactionFilters } from "@/types/transaction";
 import { allTransactions } from "@/lib/transactions";
+import { TRANSACTIONS_PAGE_SIZE } from "@/lib/transactionDefaults";
 import { filterTransactions, sortTransactions } from "@/utils/transactionUtils";
 
 export interface PaginatedTransactions {
@@ -33,9 +34,9 @@ const MOCK_TO_DATE = "2099-12-31";
  * Today returns mock data; swap the body for a fetch() when the backend is ready.
  */
 export async function getTransactions(
-  params: GetTransactionsParams = {}
+  params: GetTransactionsParams = {},
 ): Promise<PaginatedTransactions> {
-  const { filters = {}, page = 1, pageSize = 6 } = params;
+  const { filters = {}, page = 1, pageSize = TRANSACTIONS_PAGE_SIZE } = params;
 
   const {
     searchQuery = "",
@@ -63,7 +64,7 @@ export async function getTransactions(
     searchQuery,
     selectedFilter,
     fromDate || MOCK_FROM_DATE,
-    toDate || MOCK_TO_DATE
+    toDate || MOCK_TO_DATE,
   );
 
   const sorted = sortTransactions(filtered, sortField, sortDirection);
