@@ -41,12 +41,29 @@ describe("paginationUtils", () => {
       expect(getPageItems(items, 4, itemsPerPage)).toEqual([]);
     });
 
-    it("does not clamp page zero to the first page", () => {
-      expect(getPageItems(items, 0, itemsPerPage)).toEqual([]);
+    it("clamps page zero to the first page", () => {
+      expect(getPageItems(items, 0, itemsPerPage)).toEqual([
+        "alpha",
+        "bravo",
+        "charlie",
+      ]);
     });
 
-    it("returns an empty list for a negative page instead of slicing from the end", () => {
-      expect(getPageItems(items, -1, itemsPerPage)).toEqual([]);
+    it("clamps a negative page instead of slicing from the end", () => {
+      expect(getPageItems(items, -1, itemsPerPage)).toEqual([
+        "alpha",
+        "bravo",
+        "charlie",
+      ]);
+    });
+
+    it("uses a safe one-item page size when itemsPerPage is zero", () => {
+      expect(getPageItems(items, 2, 0)).toEqual(["bravo"]);
+    });
+
+    it("handles a huge page size without layout-shifting slices", () => {
+      expect(getPageItems(items, 1, 1000)).toEqual(items);
+      expect(getPageItems(items, 2, 1000)).toEqual([]);
     });
   });
 
@@ -62,6 +79,17 @@ describe("paginationUtils", () => {
     it("returns zero pages when there are no items", () => {
       expect(getTotalPages(0, 4)).toBe(0);
     });
+
+    it("never returns Infinity or NaN for zero or negative page sizes", () => {
+      expect(getTotalPages(7, 0)).toBe(7);
+      expect(getTotalPages(7, -2)).toBe(7);
+      expect(Number.isFinite(getTotalPages(7, 0))).toBe(true);
+      expect(Number.isNaN(getTotalPages(7, Number.NaN))).toBe(false);
+    });
+
+    it("returns one page for a page size larger than the item count", () => {
+      expect(getTotalPages(7, 1000)).toBe(1);
+    });
   });
 
   describe("index helpers", () => {
@@ -73,6 +101,13 @@ describe("paginationUtils", () => {
     it("returns start and end indexes for page 2", () => {
       expect(getStartIndex(2, 10)).toBe(10);
       expect(getEndIndex(2, 10)).toBe(20);
+    });
+
+    it("clamps negative pages and non-positive page sizes", () => {
+      expect(getStartIndex(-3, 10)).toBe(0);
+      expect(getEndIndex(-3, 10)).toBe(10);
+      expect(getStartIndex(3, 0)).toBe(2);
+      expect(getEndIndex(3, 0)).toBe(3);
     });
   });
 
