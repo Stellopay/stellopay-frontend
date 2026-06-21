@@ -6,16 +6,52 @@ import { X, Loader2 } from "lucide-react";
 
 type StatusType = "idle" | "loading" | "success" | "error";
 
+const CODE_INPUT_ID = "verification-code";
+const CODE_HELP_ID = "verification-code-help";
+const CODE_FEEDBACK_ID = "verification-code-feedback";
+
 export default function VerifyEmail() {
   const [code, setCode] = useState("");
   const router = useRouter();
   const [status, setStatus] = useState<StatusType>("idle");
   const [message, setMessage] = useState("");
   const [resendStatus, setResendStatus] = useState<StatusType>("idle");
+  const [codeFeedback, setCodeFeedback] = useState("");
+
+  const updateCode = (rawValue: string) => {
+    const numericValue = rawValue.replace(/\D/g, "");
+    const nextCode = numericValue.slice(0, 6);
+
+    setCode(nextCode);
+
+    if (rawValue !== numericValue) {
+      setCodeFeedback("Use numbers only for the verification code.");
+    } else if (numericValue.length > 6) {
+      setCodeFeedback("Verification codes are 6 digits. Extra digits were ignored.");
+    } else if (nextCode.length > 0 && nextCode.length < 6) {
+      setCodeFeedback("Enter all 6 digits.");
+    } else {
+      setCodeFeedback("");
+    }
+
+    if (status === "error") {
+      setStatus("idle");
+      setMessage("");
+    }
+  };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.value.replace(/[^0-9a-zA-Z]/g, "");
-    if (value.length <= 6) setCode(value);
+    updateCode(e.target.value);
+  };
+
+  const handleInputPaste = (e: React.ClipboardEvent<HTMLInputElement>) => {
+    const pastedText = e.clipboardData.getData("text");
+    const numericValue = pastedText.replace(/\D/g, "");
+
+    if (numericValue.length > 6 || pastedText !== numericValue) {
+      e.preventDefault();
+      updateCode(pastedText);
+    }
   };
 
   const handleResend = async () => {
@@ -51,10 +87,17 @@ export default function VerifyEmail() {
     } catch {
       setStatus("error");
       setMessage("Invalid verification code. Please try again.");
+      setCodeFeedback("Invalid verification code. Please try again.");
     } finally {
       setTimeout(() => setStatus("idle"), 3000);
     }
   };
+
+  const codeDescribedBy = codeFeedback
+    ? `${CODE_HELP_ID} ${CODE_FEEDBACK_ID}`
+    : CODE_HELP_ID;
+  const codeHasError =
+    (codeFeedback.length > 0 && code.length !== 6) || status === "error";
 
   return (
     <div className="min-h-screen flex items-center justify-center px-4 relative">
@@ -89,15 +132,47 @@ export default function VerifyEmail() {
         </p>
 
         {/* Input */}
-        <input
-          type="text"
-          inputMode="numeric"
-          maxLength={6}
-          value={code}
-          onChange={handleInputChange}
-          className="w-full text-left py-3 px-4 rounded-[8px] border border-[#2D2D2D] bg-transparent text-white mb-4 outline-none mt-5"
-          placeholder="- - - - - - - -"
-        />
+        <div className="mt-5 space-y-2 text-left">
+          <label
+            htmlFor={CODE_INPUT_ID}
+            className="block text-sm font-medium text-white"
+          >
+            Verification code
+          </label>
+          <p id={CODE_HELP_ID} className="text-xs text-[#ACB4B5]">
+            Enter the 6-digit code sent to your email.
+          </p>
+          <input
+            id={CODE_INPUT_ID}
+            name="verificationCode"
+            type="text"
+            inputMode="numeric"
+            autoComplete="one-time-code"
+            pattern="[0-9]{6}"
+            maxLength={6}
+            required
+            aria-label="Verification code"
+            aria-describedby={codeDescribedBy}
+            aria-invalid={codeHasError}
+            value={code}
+            onChange={handleInputChange}
+            onPaste={handleInputPaste}
+            className="w-full rounded-[8px] border border-[#2D2D2D] bg-transparent px-4 py-3 text-left text-white outline-none focus:border-[#F8D2FE]"
+            placeholder="- - - - - -"
+          />
+          {codeFeedback && (
+            <p
+              id={CODE_FEEDBACK_ID}
+              role="status"
+              aria-live="polite"
+              className={`text-xs ${
+                codeHasError ? "text-red-300" : "text-[#ACB4B5]"
+              }`}
+            >
+              {codeFeedback}
+            </p>
+          )}
+        </div>
 
         {/* Status Messages */}
         {message && (
