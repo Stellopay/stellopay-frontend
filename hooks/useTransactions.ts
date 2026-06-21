@@ -7,6 +7,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { getTransactions, PaginatedTransactions } from "@/lib/api";
+import { TRANSACTIONS_PAGE_SIZE } from "@/lib/transactionDefaults";
 import type { TransactionFilters } from "@/types/transaction";
 
 interface UseTransactionsOptions {
@@ -28,9 +29,9 @@ interface UseTransactionsResult {
  * @param options - filters, page, and pageSize
  */
 export function useTransactions(
-  options: UseTransactionsOptions = {}
+  options: UseTransactionsOptions = {},
 ): UseTransactionsResult {
-  const { filters, page = 1, pageSize = 6 } = options;
+  const { filters, page = 1, pageSize = TRANSACTIONS_PAGE_SIZE } = options;
 
   const [data, setData] = useState<PaginatedTransactions | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -54,7 +55,7 @@ export function useTransactions(
       .catch((err: unknown) => {
         if (!cancelled) {
           setError(
-            err instanceof Error ? err.message : "Failed to load transactions"
+            err instanceof Error ? err.message : "Failed to load transactions",
           );
           setIsLoading(false);
         }
