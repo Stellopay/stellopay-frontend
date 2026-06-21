@@ -1,5 +1,6 @@
 import { Skeleton } from "./skeleton";
 import { cn } from "@/utils/commonUtils";
+import { TRANSACTIONS_PAGE_SIZE } from "@/lib/transactionDefaults";
 
 interface TableSkeletonProps {
   /**
@@ -32,7 +33,10 @@ export function TableSkeleton({
   return (
     <div className={cn("w-full", className)}>
       {showHeader && (
-        <div className="grid gap-4 py-3 px-4 border-b border-[#2D2D2D]" style={{ gridTemplateColumns: `repeat(${columns}, 1fr)` }}>
+        <div
+          className="grid gap-4 py-3 px-4 border-b border-[#2D2D2D]"
+          style={{ gridTemplateColumns: `repeat(${columns}, 1fr)` }}
+        >
           {Array.from({ length: columns }).map((_, i) => (
             <Skeleton key={`header-${i}`} className="h-4 w-20" />
           ))}
@@ -50,7 +54,11 @@ export function TableSkeleton({
                 key={`cell-${rowIndex}-${colIndex}`}
                 className={cn(
                   "h-4",
-                  colIndex === 0 ? "w-24" : colIndex === columns - 1 ? "w-16" : "w-full"
+                  colIndex === 0
+                    ? "w-24"
+                    : colIndex === columns - 1
+                      ? "w-16"
+                      : "w-full",
                 )}
               />
             ))}
@@ -64,7 +72,11 @@ export function TableSkeleton({
 /**
  * Transaction Table Skeleton - matches the design of transaction history table
  */
-export function TransactionTableSkeleton({ rows = 6 }: { rows?: number }) {
+export function TransactionTableSkeleton({
+  rows = TRANSACTIONS_PAGE_SIZE,
+}: {
+  rows?: number;
+}) {
   return (
     <div className="w-full">
       {/* Header */}
