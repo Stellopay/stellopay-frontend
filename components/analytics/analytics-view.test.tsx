@@ -5,6 +5,12 @@ import { describe, expect, it, vi, beforeEach } from "vitest";
 import AnalyticsViews, { AnalyticsDataPoint } from "./analytics-view";
 import ClientAnalyticsView from "./client-analytics-view";
 
+type TooltipContentProps = {
+  active?: boolean;
+  payload?: Array<{ value: number }>;
+  label?: string;
+};
+
 // Mock recharts
 vi.mock("recharts", () => {
   return {
@@ -29,7 +35,7 @@ vi.mock("recharts", () => {
       <div data-testid="x-axis" data-key={dataKey} />
     ),
     YAxis: () => <div data-testid="y-axis" />,
-    Tooltip: ({ content }: { content: React.ReactElement<any> }) => (
+    Tooltip: ({ content }: { content: React.ReactElement<TooltipContentProps> }) => (
       <div data-testid="tooltip">
         {React.cloneElement(content, {
           active: true,
