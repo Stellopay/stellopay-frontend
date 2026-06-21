@@ -25,6 +25,17 @@ const generalSans = localFont({
   display: "swap",
 });
 
+const themeInitScript = `
+(function () {
+  try {
+    var storedTheme = window.localStorage.getItem("theme");
+    var prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
+    var useDark = storedTheme === "dark" || (!storedTheme && prefersDark);
+    document.documentElement.classList.toggle("dark", useDark);
+  } catch (_) {}
+})();
+`;
+
 /**
  * Global metadata configuration for the StelloPay application.
  * Sets the default title templates and default OpenGraph and Twitter preview parameters.
@@ -66,12 +77,13 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
       <body
         className={`${inter.variable} ${clashDisplay.variable} ${generalSans.variable} antialiased`}
       >
         {/* Skip navigation link — first focusable element on every page.
             Allows keyboard/screen-reader users to bypass repeated nav. */}
+        <script dangerouslySetInnerHTML={{ __html: themeInitScript }} />
         <a
           href="#main-content"
           className="sr-only focus:not-sr-only focus:fixed focus:top-4 focus:left-4 focus:z-[9999] focus:px-4 focus:py-2 focus:bg-white focus:text-black focus:rounded focus:shadow-lg focus:outline-none focus:ring-2 focus:ring-black"
