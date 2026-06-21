@@ -29,6 +29,7 @@ export default defineConfig({
         'utils/transactionUtils.ts',
         'utils/paginationUtils.ts',
         'types/auth.ts',
+        'app/error.tsx',
         'app/global-error.tsx',
         'context/wallet-context.tsx',
         'components/analytics/analytics-view.tsx',
