@@ -32,14 +32,16 @@ import { Button } from "@/components/ui/button";
 import { ChevronDown } from "lucide-react";
 import { cn } from "@/utils/commonUtils";
 import { Skeleton } from "@/components/ui/skeleton";
+import { SUPPORTED_NETWORKS, useWallet } from "@/context/wallet-context";
+import type { Network } from "@/types/wallet";
 
-export interface Network {
-  id: string;
-  name: string;
-  icon?: React.ReactNode;
-}
+export type { Network };
 
 interface NetworkSwitcherProps {
+  // Optional overrides. When omitted, the component reads the active network
+  // and the network list from WalletProvider, which is the source of truth.
+  // The props are kept so existing call sites and tests that pass networks
+  // explicitly continue to work without modification.
   networks?: Network[];
   selectedNetwork?: Network;
   onNetworkChange?: (network: Network) => void;
@@ -47,13 +49,6 @@ interface NetworkSwitcherProps {
   variant?: "dashboard" | "landing";
   isLoading?: boolean;
 }
-
-const defaultNetworks: Network[] = [
-  { id: "eth", name: "ETH" },
-  { id: "polygon", name: "Polygon" },
-  { id: "bsc", name: "BSC" },
-  { id: "arbitrum", name: "Arbitrum" },
-];
 
 /** Minimal Ethereum diamond icon — no external asset dependency */
 const EthereumIcon = () => (
@@ -71,29 +66,41 @@ const EthereumIcon = () => (
 );
 
 export default function NetworkSwitcher({
-  networks = defaultNetworks,
-  selectedNetwork = defaultNetworks[0],
+  networks,
+  selectedNetwork,
   onNetworkChange,
   className,
   variant = "dashboard",
   isLoading = false,
 }: NetworkSwitcherProps) {
-  const [currentNetwork, setCurrentNetwork] = useState<Network>(selectedNetwork);
-  /** The network the user clicked but hasn't confirmed yet */
+  const wallet = useWallet();
+
+  // Props win over context so callers that want to pin a network for a
+  // specific surface still can. When neither is provided, the wallet
+  // context drives both the list and the selection.
+  const resolvedNetworks: Network[] = networks ?? SUPPORTED_NETWORKS;
+  const currentNetwork: Network = selectedNetwork ?? wallet.network;
+
+  // The network the user clicked but has not confirmed yet. Local state by
+  // design: the pending choice should not be observable to the rest of the
+  // app until the user confirms.
   const [pendingNetwork, setPendingNetwork] = useState<Network | null>(null);
 
   const isDashboard = variant === "dashboard";
 
-  /** Called when the user clicks a network in the dropdown */
   const handleNetworkSelect = (network: Network) => {
-    if (network.id === currentNetwork.id) return; // already active — no-op
+    if (network.id === currentNetwork.id) return;
     setPendingNetwork(network);
   };
 
-  /** Called when the user confirms the switch in the dialog */
   const confirmSwitch = () => {
     if (!pendingNetwork) return;
-    setCurrentNetwork(pendingNetwork);
+    // Only commit to the shared context when there is no caller override.
+    // When selectedNetwork is provided, the parent is treating this as a
+    // controlled component and is responsible for the source of truth.
+    if (!selectedNetwork) {
+      wallet.setNetwork(pendingNetwork);
+    }
     onNetworkChange?.(pendingNetwork);
     setPendingNetwork(null);
   };
@@ -139,7 +146,7 @@ export default function NetworkSwitcher({
           sideOffset={8}
           aria-label="Available networks"
         >
-          {networks.map((network) => {
+          {resolvedNetworks.map((network) => {
             const isActive = currentNetwork.id === network.id;
             return (
               <DropdownMenuItem
