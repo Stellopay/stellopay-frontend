@@ -24,18 +24,79 @@ export interface GetTransactionsParams {
   pageSize?: number;
 }
 
+export const MIN_TRANSACTION_PAGE_SIZE = 1;
+export const MAX_TRANSACTION_PAGE_SIZE = 100;
+export const DEFAULT_TRANSACTION_PAGE_SIZE = 6;
+
 // Wide date range that includes all mock data when no range is specified
 const MOCK_FROM_DATE = "2000-01-01";
 const MOCK_TO_DATE = "2099-12-31";
 
+const clamp = (value: number, min: number, max: number) =>
+  Math.min(Math.max(value, min), max);
+
+const normalizePositiveInteger = (
+  value: number | undefined,
+  fallback: number,
+  min: number,
+  max: number,
+) => {
+  const numericValue = Number(value);
+
+  if (!Number.isFinite(numericValue)) {
+    return fallback;
+  }
+
+  return clamp(Math.trunc(numericValue), min, max);
+};
+
+const normalizeDateFilter = (
+  value: string | undefined,
+  fallback: string,
+  fieldName: "fromDate" | "toDate",
+) => {
+  if (value === undefined || value.trim() === "") {
+    return fallback;
+  }
+
+  const parsed = new Date(value);
+
+  if (Number.isNaN(parsed.getTime())) {
+    throw new RangeError(
+      `Invalid ${fieldName}: expected a parseable date string.`,
+    );
+  }
+
+  return value;
+};
+
 /**
  * Fetch a paginated, filtered, sorted list of transactions.
+ *
+ * Treats pagination and date filters as untrusted boundary inputs so the same
+ * contract remains safe when this demo data source is swapped for a backend.
+ * `page` is truncated to an integer and clamped to `>= 1`, then clamped again
+ * to the available page range. `pageSize` is truncated and clamped to the
+ * inclusive range `MIN_TRANSACTION_PAGE_SIZE` through
+ * `MAX_TRANSACTION_PAGE_SIZE`. Empty date filters are treated as unset and
+ * replaced with the mock-data defaults; non-empty date filters must parse to a
+ * valid JavaScript `Date`.
+ *
  * Today returns mock data; swap the body for a fetch() when the backend is ready.
+ *
+ * @param params - Optional transaction filters and pagination values.
+ * @returns The validated page of transactions with pagination metadata.
+ * @throws RangeError When `filters.fromDate` or `filters.toDate` is non-empty
+ * and cannot be parsed as a valid date.
  */
 export async function getTransactions(
-  params: GetTransactionsParams = {}
+  params: GetTransactionsParams = {},
 ): Promise<PaginatedTransactions> {
-  const { filters = {}, page = 1, pageSize = 6 } = params;
+  const {
+    filters = {},
+    page: requestedPage = 1,
+    pageSize: requestedPageSize = DEFAULT_TRANSACTION_PAGE_SIZE,
+  } = params;
 
   const {
     searchQuery = "",
@@ -46,9 +107,28 @@ export async function getTransactions(
     sortDirection = "desc",
   } = filters;
 
+  const safePageSize = normalizePositiveInteger(
+    requestedPageSize,
+    DEFAULT_TRANSACTION_PAGE_SIZE,
+    MIN_TRANSACTION_PAGE_SIZE,
+    MAX_TRANSACTION_PAGE_SIZE,
+  );
+  const requestedSafePage = normalizePositiveInteger(
+    requestedPage,
+    1,
+    1,
+    Number.MAX_SAFE_INTEGER,
+  );
+  const safeFromDate = normalizeDateFilter(
+    fromDate,
+    MOCK_FROM_DATE,
+    "fromDate",
+  );
+  const safeToDate = normalizeDateFilter(toDate, MOCK_TO_DATE, "toDate");
+
   // ── Real backend swap point ──────────────────────────────────────────────
   // const base = process.env.NEXT_PUBLIC_API_BASE_URL;
-  // const res = await fetch(`${base}/transactions?page=${page}&pageSize=${pageSize}&...`);
+  // const res = await fetch(`${base}/transactions?page=${requestedSafePage}&pageSize=${safePageSize}&...`);
   // if (!res.ok) throw new Error(`Failed to fetch transactions: ${res.status}`);
   // const json = await res.json();
   // return TransactionResponseSchema.parse(json); // zod validation here
@@ -62,19 +142,19 @@ export async function getTransactions(
     allTransactions,
     searchQuery,
     selectedFilter,
-    fromDate || MOCK_FROM_DATE,
-    toDate || MOCK_TO_DATE
+    safeFromDate,
+    safeToDate,
   );
 
   const sorted = sortTransactions(filtered, sortField, sortDirection);
 
   const total = sorted.length;
-  const totalPages = Math.max(1, Math.ceil(total / pageSize));
-  const safePage = Math.min(Math.max(1, page), totalPages);
-  const start = (safePage - 1) * pageSize;
-  const data = sorted.slice(start, start + pageSize);
+  const totalPages = Math.max(1, Math.ceil(total / safePageSize));
+  const safePage = Math.min(requestedSafePage, totalPages);
+  const start = (safePage - 1) * safePageSize;
+  const data = sorted.slice(start, start + safePageSize);
 
-  return { data, total, page: safePage, pageSize, totalPages };
+  return { data, total, page: safePage, pageSize: safePageSize, totalPages };
 }
 
 export interface AccountSummary {
