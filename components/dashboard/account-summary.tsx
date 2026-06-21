@@ -9,7 +9,7 @@ import { useAccountSummary } from "@/hooks/useAccountSummary";
 
 export default function AccountSummary() {
   const [copied, setCopied] = useState(false);
-  const { data, isLoading, error } = useAccountSummary();
+  const { data, isLoading, error, refetch } = useAccountSummary();
 
   if (isLoading) {
     return (
@@ -34,6 +34,13 @@ export default function AccountSummary() {
         className="max-w-full p-4 rounded-xl my-6 border-[1px] border-[#2D2D2D] bg-[#0D0D0D80] text-red-400 text-sm text-center"
       >
         Failed to load account summary.
+        <button
+          type="button"
+          onClick={refetch}
+          className="ml-3 rounded-md border border-red-400/40 px-3 py-1 text-xs text-red-200 transition hover:bg-red-400/10"
+        >
+          Retry
+        </button>
       </div>
     );
   }

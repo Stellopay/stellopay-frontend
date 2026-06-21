@@ -5,7 +5,7 @@ import { usePaymentHistory } from "@/hooks/usePaymentHistory";
 import { CardSkeleton } from "@/components/ui/card-skeleton";
 
 export default function PaymentHistory() {
-  const { data, isLoading, error } = usePaymentHistory();
+  const { data, isLoading, error, refetch } = usePaymentHistory();
 
   if (isLoading) {
     return (
@@ -21,6 +21,13 @@ export default function PaymentHistory() {
     return (
       <div role="alert" className="text-sm text-red-400 text-center py-4">
         Failed to load payment history.
+        <button
+          type="button"
+          onClick={refetch}
+          className="ml-3 rounded-md border border-red-400/40 px-3 py-1 text-xs text-red-200 transition hover:bg-red-400/10"
+        >
+          Retry
+        </button>
       </div>
     );
   }
