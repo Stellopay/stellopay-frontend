@@ -29,6 +29,7 @@ export default defineConfig({
         'types/auth.ts',
         'components/analytics/analytics-view.tsx',
         'components/analytics/client-analytics-view.tsx',
+        'components/common/notification-panel.tsx',
       ],
       exclude: [
         '**/*.test.{ts,tsx}',
