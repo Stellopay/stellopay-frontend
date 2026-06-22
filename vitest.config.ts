@@ -25,6 +25,7 @@ export default defineConfig({
         "utils/formatUtils.ts",
         "utils/transactionUtils.ts",
         "utils/paginationUtils.ts",
+        "utils/stellarAddress.ts",
         "types/auth.ts",
         "app/error.tsx",
         "app/global-error.tsx",
