@@ -8,6 +8,7 @@ import TransactionsHeader from "./transactions-header";
 import TransactionsFilters from "./transactions-filters";
 import { TransactionsTable } from "./transactions-table";
 import TransactionsPagination from "./transactions-pagination";
+import { ErrorState } from "@/components/ui/error-state";
 import { TRANSACTIONS_PAGE_SIZE, getDefaultDateRange } from "./transactions-config";
 
 /** Map token symbol → icon path */
@@ -102,12 +103,11 @@ export default function TransactionsContent() {
 
             {/* Error state */}
             {!isLoading && error && (
-              <div
-                role="alert"
-                className="py-8 text-center text-red-400 text-sm"
-              >
-                Failed to load transactions. Please try again.
-              </div>
+              <ErrorState
+                title="Failed to Load"
+                description="Failed to load transactions. Please try again."
+                onRetry={() => window.location.reload()}
+              />
             )}
 
             {/* Data state */}

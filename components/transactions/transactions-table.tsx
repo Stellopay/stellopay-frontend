@@ -12,6 +12,7 @@ import { TransactionsTableProps } from "@/types/transaction";
 import { Badge } from "@/components/ui/badge";
 import Image from "next/image";
 import { Skeleton } from "@/components/ui/skeleton";
+import { EmptyState } from "@/components/ui/empty-state";
 import { TRANSACTIONS_PAGE_SIZE } from "./transactions-config";
 
 interface TransactionsTablePropsExtended extends TransactionsTableProps {
@@ -79,9 +80,10 @@ export function TransactionsTable({ transactions, isLoading = false }: Transacti
             ) : isEmpty ? (
               <TableRow>
                 <TableCell colSpan={6} className="py-12 text-center">
-                  <div role="status" aria-live="polite" className="text-muted-foreground">
-                    No transactions found. Try adjusting your filters.
-                  </div>
+                  <EmptyState
+                    title="No Transactions Found"
+                    description="No transactions found. Try adjusting your filters."
+                  />
                 </TableCell>
               </TableRow>
             ) : (
@@ -151,10 +153,11 @@ export function TransactionsTable({ transactions, isLoading = false }: Transacti
             </div>
           ))
         ) : isEmpty ? (
-          <div className="p-8 text-center border rounded-lg border-[#2D2D2D]">
-            <div role="status" aria-live="polite" className="text-muted-foreground">
-              No transactions found. Try adjusting your filters.
-            </div>
+          <div className="p-8 border rounded-lg border-[#2D2D2D]">
+            <EmptyState
+              title="No Transactions Found"
+              description="No transactions found. Try adjusting your filters."
+            />
           </div>
         ) : (
           transactions.map((transaction, index) => (
