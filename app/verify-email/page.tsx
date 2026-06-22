@@ -6,16 +6,44 @@ import { X, Loader2 } from "lucide-react";
 
 type StatusType = "idle" | "loading" | "success" | "error";
 
+/**
+ * Keeps the verification code limited to numeric characters and six digits.
+ * The entered code is never logged or exposed outside component state.
+ */
+const normalizeVerificationCode = (value: string) =>
+  value.replace(/\D/g, "").slice(0, 6);
+
 export default function VerifyEmail() {
   const [code, setCode] = useState("");
   const router = useRouter();
   const [status, setStatus] = useState<StatusType>("idle");
   const [message, setMessage] = useState("");
+  const [codeError, setCodeError] = useState("");
   const [resendStatus, setResendStatus] = useState<StatusType>("idle");
 
+  const codeInputId = "verification-code";
+  const codeHelpId = "verification-code-help";
+  const codeErrorId = "verification-code-error";
+  const codeDescriptionIds = codeError
+    ? `${codeHelpId} ${codeErrorId}`
+    : codeHelpId;
+
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.value.replace(/[^0-9a-zA-Z]/g, "");
-    if (value.length <= 6) setCode(value);
+    const rawValue = e.target.value;
+    const numericValue = rawValue.replace(/\D/g, "");
+    const normalizedValue = normalizeVerificationCode(rawValue);
+
+    setCode(normalizedValue);
+
+    if (rawValue !== numericValue) {
+      setCodeError("Verification codes can only contain numbers.");
+    } else if (numericValue.length > 6) {
+      setCodeError("Verification codes are 6 digits. Extra digits were removed.");
+    } else if (normalizedValue.length > 0 && normalizedValue.length < 6) {
+      setCodeError("Enter the full 6-digit verification code.");
+    } else {
+      setCodeError("");
+    }
   };
 
   const handleResend = async () => {
@@ -35,8 +63,14 @@ export default function VerifyEmail() {
   };
 
   const handleContinue = async () => {
+    if (code.length !== 6) {
+      setCodeError("Enter the full 6-digit verification code.");
+      return;
+    }
+
     setStatus("loading");
     setMessage("");
+    setCodeError("");
     try {
       // Simulate API call
       await new Promise((resolve, reject) =>
@@ -53,6 +87,7 @@ export default function VerifyEmail() {
     } catch {
       setStatus("error");
       setMessage("Invalid verification code. Please try again.");
+      setCodeError("Invalid verification code. Please try again.");
     } finally {
       setTimeout(() => setStatus("idle"), 3000);
     }
@@ -93,16 +128,36 @@ export default function VerifyEmail() {
         </p>
 
         {/* Input */}
+        <label htmlFor={codeInputId} className="sr-only">
+          Verification code
+        </label>
         <input
+          id={codeInputId}
+          name="verificationCode"
           type="text"
           inputMode="numeric"
-          maxLength={6}
+          required
           value={code}
           onChange={handleInputChange}
           aria-label="Verification code"
-          className="w-full text-left py-3 px-4 rounded-[8px] border border-[#2D2D2D] bg-transparent text-white mb-4 outline-none mt-5"
+          aria-describedby={codeDescriptionIds}
+          aria-invalid={codeError ? "true" : "false"}
+          className="w-full text-left py-3 px-4 rounded-[8px] border border-[#2D2D2D] bg-transparent text-white mb-2 outline-none mt-5"
           placeholder="- - - - - - - -"
         />
+        <p id={codeHelpId} className="text-left text-xs text-[#ACB4B5] mb-2">
+          Enter the 6-digit code sent to your email.
+        </p>
+        {codeError && (
+          <p
+            id={codeErrorId}
+            role="alert"
+            aria-live="polite"
+            className="text-left text-xs text-red-300 mb-4"
+          >
+            {codeError}
+          </p>
+        )}
 
         {/* Status Messages */}
         {message && (
