@@ -66,6 +66,16 @@ The context exposes:
 
 Run the unit suite with `npm test` and the end-to-end suite with `npx playwright test tests/wallet.spec.ts`.
 
+## Error handling
+
+The App Router uses two cooperating client boundaries.
+
+`app/error.tsx` is the route-segment boundary. Any uncaught render or runtime error inside a route segment is caught here. It renders inside the root layout, so it has access to theme tokens and shared UI: a generic "Something went wrong" surface built from `bg-background`, `text-foreground`, and `text-destructive`, plus a "Try again" action wired to the `reset()` callback Next.js passes in, and a "Go to dashboard" escape hatch. The surface uses `role="alert"` and `aria-live="assertive"` so assistive tech announces it. In production, the raw `error.message` and `error.stack` are never rendered; the underlying message is only revealed when `process.env.NODE_ENV !== "production"` to keep debugging cheap locally. The `error.digest` Next.js attaches in production is logged through `console.error` so it can be correlated with server logs, but it is intentionally not surfaced in the UI.
+
+`app/global-error.tsx` is the wider safety net for when the root layout itself or one of its providers throws. It ships its own `<html>/<body>` shell with inline styles because the layout that loads `globals.css` is exactly what failed.
+
+Coverage for `app/error.tsx` is gated by the same 95% thresholds as the rest of the suite via `vitest.config.ts`. See `app/error.test.tsx` for the unit coverage.
+
 ## Learn More
 
 To learn more about Next.js, take a look at the following resources:
