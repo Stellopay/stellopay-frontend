@@ -44,6 +44,66 @@ test("desktop settings navigation and destructive confirmation stay clear", asyn
   });
 });
 
+test("destructive confirmation dialog is labeled and focus-managed", async ({
+  page,
+}) => {
+  await page.goto("/settings/preferences?section=account");
+
+  const trigger = page.getByRole("button", { name: "Deactivate account" });
+  await trigger.click();
+
+  const dialog = page.getByRole("dialog");
+  await expect(dialog).toBeVisible();
+
+  const input = page.getByLabel('Type "DEACTIVATE" to confirm');
+  const confirmButton = page.getByRole("button", {
+    name: "Confirm deactivation",
+  });
+
+  // Auto-focus: the field the user must fill is focused on open.
+  await expect(input).toBeFocused();
+
+  // ARIA wiring is present and starts in a valid, required state.
+  await expect(input).toHaveAttribute("aria-required", "true");
+  await expect(input).toHaveAttribute("aria-invalid", "false");
+  await expect(confirmButton).toBeDisabled();
+
+  // Wrong token -> inline error, aria-invalid flips, error is described.
+  await input.fill("nope");
+  await expect(confirmButton).toBeDisabled();
+  await expect(input).toHaveAttribute("aria-invalid", "true");
+  const errorMessage = dialog.getByRole("alert");
+  await expect(errorMessage).toBeVisible();
+  await expect(errorMessage).toContainText("doesn't match");
+  const errorId = await errorMessage.getAttribute("id");
+  expect(errorId).toBeTruthy();
+  await expect(input).toHaveAttribute(
+    "aria-describedby",
+    new RegExp(errorId as string),
+  );
+
+  // Trailing-space token -> still rejected, with a whitespace-specific hint.
+  await input.fill("DEACTIVATE ");
+  await expect(confirmButton).toBeDisabled();
+  await expect(dialog.getByRole("alert")).toContainText("extra spaces");
+
+  // Wrong casing -> rejected, with a capitalization hint (case-sensitive match).
+  await input.fill("deactivate");
+  await expect(confirmButton).toBeDisabled();
+  await expect(dialog.getByRole("alert")).toContainText("capitalization");
+
+  // Exact token -> valid: error clears and confirm is enabled.
+  await input.fill("DEACTIVATE");
+  await expect(input).toHaveAttribute("aria-invalid", "false");
+  await expect(dialog.getByRole("alert")).toHaveCount(0);
+  await expect(confirmButton).toBeEnabled();
+
+  // Escape cancels the dialog and restores focus to the trigger.
+  await page.keyboard.press("Escape");
+  await expect(dialog).toBeHidden();
+  await expect(trigger).toBeFocused();
+});
+
 test("mobile settings nav remains reachable", async ({ page }) => {
   ensureScreenshotDirectory();
 

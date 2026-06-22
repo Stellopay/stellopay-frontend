@@ -1,5 +1,5 @@
 import React from "react";
-import { render, screen, fireEvent, waitFor } from "@testing-library/react";
+import { render, screen, fireEvent } from "@testing-library/react";
 import { describe, expect, it, vi, beforeEach } from "vitest";
 
 import AnalyticsViews, { AnalyticsDataPoint } from "./analytics-view";
@@ -29,7 +29,11 @@ vi.mock("recharts", () => {
       <div data-testid="x-axis" data-key={dataKey} />
     ),
     YAxis: () => <div data-testid="y-axis" />,
-    Tooltip: ({ content }: { content: React.ReactElement<any> }) => (
+    Tooltip: ({
+      content,
+    }: {
+      content: React.ReactElement<Record<string, unknown>>;
+    }) => (
       <div data-testid="tooltip">
         {React.cloneElement(content, {
           active: true,
@@ -78,36 +82,41 @@ describe("AnalyticsViews Component", () => {
     expect(screen.getByText("Loading analytics...")).toBeInTheDocument();
   });
 
-  it("renders chart with default data when data prop is not provided", () => {
+  it("renders chart with default data when data prop is not provided", async () => {
     render(<AnalyticsViews />);
     expect(screen.getByText("Analytics views")).toBeInTheDocument();
-    const barChart = screen.getByTestId("bar-chart");
+    
+    // Assert skeleton shows before dynamic component resolves
+    expect(screen.getByText("Loading chart...")).toBeInTheDocument();
+
+    const barChart = await screen.findByTestId("bar-chart");
     expect(barChart).toBeInTheDocument();
     const parsedData = JSON.parse(barChart.getAttribute("data-data") || "[]");
     expect(parsedData.length).toBe(12);
     expect(parsedData[0]).toEqual({ month: "Jan", views: 24000 });
   });
 
-  it("renders chart with custom populated data", () => {
+  it("renders chart with custom populated data", async () => {
     const customData: AnalyticsDataPoint[] = [
       { month: "Jan", views: 100 },
       { month: "Feb", views: 200 },
     ];
     render(<AnalyticsViews data={customData} />);
-    const barChart = screen.getByTestId("bar-chart");
+    const barChart = await screen.findByTestId("bar-chart");
     const parsedData = JSON.parse(barChart.getAttribute("data-data") || "[]");
     expect(parsedData).toEqual(customData);
   });
 
-  it("renders chart with empty data", () => {
+  it("renders chart with empty data", async () => {
     render(<AnalyticsViews data={[]} />);
-    const barChart = screen.getByTestId("bar-chart");
+    const barChart = await screen.findByTestId("bar-chart");
     const parsedData = JSON.parse(barChart.getAttribute("data-data") || "[]");
     expect(parsedData).toEqual([]);
   });
 
-  it("renders CustomTooltip content correctly inside Tooltip mock", () => {
+  it("renders CustomTooltip content correctly inside Tooltip mock", async () => {
     render(<AnalyticsViews />);
+    await screen.findByTestId("bar-chart");
     expect(screen.getByText("TestMonth")).toBeInTheDocument();
     expect(screen.getByText("999 views")).toBeInTheDocument();
   });
@@ -155,13 +164,8 @@ describe("ClientAnalyticsView Component", () => {
     expect(screen.getByText("Loading analytics...")).toBeInTheDocument();
   });
 
-  it("renders the loaded AnalyticsViews component after mounting", async () => {
+  it("renders the AnalyticsViews component", () => {
     render(<ClientAnalyticsView />);
-    
-    // After mounting, the loading state should disappear and the chart should appear
-    await waitFor(() => {
-      expect(screen.queryByText("Loading analytics views chart...")).not.toBeInTheDocument();
-    });
     expect(screen.getByText("Analytics views")).toBeInTheDocument();
   });
 });
