@@ -23,9 +23,9 @@ test("desktop settings navigation and destructive confirmation stay clear", asyn
   await expect(page.getByText("Notification priorities")).toBeVisible();
 
   await page.getByRole("tab", { name: /wallets/i }).click();
-  await expect(
-    page.getByText("Connected wallets", { exact: true }),
-  ).toBeVisible();
+  await expect(page.getByRole("tabpanel", { name: /wallets/i })).toContainText(
+    "Connected wallets",
+  );
 
   await page.getByRole("tab", { name: /account/i }).click();
   await page.getByRole("button", { name: "Deactivate account" }).click();
@@ -102,6 +102,63 @@ test("destructive confirmation dialog is labeled and focus-managed", async ({
   await page.keyboard.press("Escape");
   await expect(dialog).toBeHidden();
   await expect(trigger).toBeFocused();
+});
+
+// A valid Ed25519 public key (G...) with a correct CRC16 checksum, and a real
+// secret seed (S...) that must be rejected. See utils/stellarAddress.test.ts.
+const VALID_G_ADDRESS =
+  "GAAACAQDAQCQMBYIBEFAWDANBYHRAEISCMKBKFQXDAMRUGY4DUPB7JZX";
+const SECRET_SEED = "SAAACAQDAQCQMBYIBEFAWDANBYHRAEISCMKBKFQXDAMRUGY4DUPB6NKI";
+
+test("add-wallet validates Stellar address format before storing", async ({
+  page,
+}) => {
+  ensureScreenshotDirectory();
+
+  await page.goto("/settings/preferences?section=wallets");
+
+  const addressInput = page.locator('input[name="address"]');
+  const addButton = page.getByRole("button", { name: "Add wallet" });
+  const formError = page.locator('p[data-slot="form-message"]');
+  await expect(addressInput).toBeVisible();
+
+  // Malformed input is rejected with an inline error and nothing is stored.
+  // The first interaction is retried so it cannot race React hydration under
+  // `next dev` (a click before hydration would otherwise be a no-op).
+  await expect(async () => {
+    await addressInput.fill("not-a-valid-address");
+    await addButton.click();
+    await expect(formError).toContainText(/valid Stellar address/i);
+  }).toPass({ timeout: 30_000 });
+  await expect(page.getByTestId("added-wallet")).toHaveCount(0);
+
+  // Secret seeds (S...) are rejected so a private key is never stored.
+  await addressInput.fill(SECRET_SEED);
+  await addButton.click();
+  await expect(formError).toContainText(/valid Stellar address/i);
+  await expect(page.getByTestId("added-wallet")).toHaveCount(0);
+
+  // A valid public key is accepted and shown truncated with a copy affordance.
+  await addressInput.fill(VALID_G_ADDRESS);
+  await addButton.click();
+  const addedWallet = page.getByTestId("added-wallet");
+  await expect(addedWallet).toHaveCount(1);
+  await expect(addedWallet).toContainText("GAAACA");
+  await expect(addedWallet).toContainText("7JZX");
+  await expect(
+    page.getByRole("button", { name: "Copy wallet address" }),
+  ).toBeVisible();
+
+  // Duplicates are rejected; the list stays at a single entry.
+  await addressInput.fill(VALID_G_ADDRESS);
+  await addButton.click();
+  await expect(formError).toContainText(/already been added/i);
+  await expect(page.getByTestId("added-wallet")).toHaveCount(1);
+
+  await page.screenshot({
+    path: path.join(screenshotDirectory, "settings-add-wallet.png"),
+    fullPage: true,
+  });
 });
 
 test("mobile settings nav remains reachable", async ({ page }) => {
