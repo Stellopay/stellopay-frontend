@@ -11,9 +11,17 @@
  *   navigation; trigger now has an explicit aria-label describing the
  *   current network so screen readers announce it correctly
  * - No secrets or private keys are ever displayed
+ *
+ * Improvements over the original (issue #343):
+ * - Confirmation dialog is associated with its title via `aria-labelledby`
+ *   and with its descriptive body via `aria-describedby` so screen-reader
+ *   users hear the full context when the dialog opens.
+ * - Target network name is wrapped in `<strong>` for semantic emphasis.
+ * - Focus returns to the DropdownMenuTrigger when the dialog closes
+ *   (either Cancel or Escape).
  */
 
-import React, { useState } from "react";
+import React, { useRef, useState } from "react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -86,6 +94,25 @@ export default function NetworkSwitcher({
   // app until the user confirms.
   const [pendingNetwork, setPendingNetwork] = useState<Network | null>(null);
 
+  /**
+   * Ref to the DropdownMenuTrigger button so focus can be explicitly returned
+   * to it when the confirmation dialog closes (issue #343).
+   * We attach this to a wrapper <div> because the shadcn DropdownMenuTrigger
+   * wrapper does not forward refs; the wrapping element is used only for
+   * focus-return measurement — the actual trigger button is queried inside it.
+   */
+  const triggerWrapperRef = useRef<HTMLDivElement>(null);
+
+  /**
+   * Returns focus to the DropdownMenuTrigger button after the dialog closes.
+   * Called from `onCloseAutoFocus` on DialogContent (issue #343).
+   */
+  const returnFocusToTrigger = (e: Event) => {
+    e.preventDefault(); // suppress Radix's default focus-return
+    const btn = triggerWrapperRef.current?.querySelector<HTMLElement>('[data-slot="dropdown-menu-trigger"]');
+    btn?.focus();
+  };
+
   const isDashboard = variant === "dashboard";
 
   const handleNetworkSelect = (network: Network) => {
@@ -103,9 +130,17 @@ export default function NetworkSwitcher({
     }
     onNetworkChange?.(pendingNetwork);
     setPendingNetwork(null);
+    // Focus returns to the trigger via onCloseAutoFocus on DialogContent
+    // (issue #343).
   };
 
-  const cancelSwitch = () => setPendingNetwork(null);
+  /**
+   * Cancels the pending switch. Focus returns to the dropdown trigger via
+   * the `onCloseAutoFocus` handler on DialogContent (issue #343).
+   */
+  const cancelSwitch = () => {
+    setPendingNetwork(null);
+  };
 
   if (isLoading) {
     return <Skeleton className={cn("h-9 w-24 rounded-md", className)} />;
@@ -114,6 +149,8 @@ export default function NetworkSwitcher({
   return (
     <>
       {/* ── Dropdown ─────────────────────────────────────────────────── */}
+      {/* ref wrapper lets us locate the trigger button for focus-return (issue #343) */}
+      <div ref={triggerWrapperRef} style={{ display: "contents" }}>
       <DropdownMenu>
         <DropdownMenuTrigger
           aria-label={`Current network: ${currentNetwork.name}. Click to switch network.`}
@@ -182,20 +219,44 @@ export default function NetworkSwitcher({
           })}
         </DropdownMenuContent>
       </DropdownMenu>
+      </div>{/* /triggerWrapperRef */}
 
       {/* ── Confirmation dialog ───────────────────────────────────────── */}
+      {/*
+       * aria-labelledby points to the DialogTitle so screen readers announce
+       * "Switch network?" as the dialog name when it opens (issue #343).
+       *
+       * aria-describedby points to the DialogDescription so the full warning
+       * text — including the target network name — is read after the title.
+       *
+       * Radix Dialog sets role="dialog" and manages focus automatically;
+       * focus moves to the first focusable element (Cancel) when it opens.
+       * onCloseAutoFocus returns focus to the DropdownMenuTrigger button so
+       * keyboard users land back on the control they originally activated.
+       */}
       <Dialog open={!!pendingNetwork} onOpenChange={(open) => { if (!open) cancelSwitch(); }}>
         <DialogContent
           className="bg-[#1A1A1A] border-[#242428] text-white max-w-sm"
           showCloseButton={false}
+          aria-labelledby="network-switcher-dialog-title"
+          aria-describedby="network-switcher-dialog-desc"
+          onCloseAutoFocus={returnFocusToTrigger}
         >
           <DialogHeader>
-            <DialogTitle className="text-white">Switch network?</DialogTitle>
-            <DialogDescription className="text-[#9CA3AF]">
+            <DialogTitle
+              id="network-switcher-dialog-title"
+              className="text-white"
+            >
+              Switch network?
+            </DialogTitle>
+            <DialogDescription
+              id="network-switcher-dialog-desc"
+              className="text-[#9CA3AF]"
+            >
               You are switching from{" "}
-              <span className="font-semibold text-white">{currentNetwork.name}</span>{" "}
+              <strong className="font-semibold text-white">{currentNetwork.name}</strong>{" "}
               to{" "}
-              <span className="font-semibold text-white">{pendingNetwork?.name}</span>.
+              <strong className="font-semibold text-white">{pendingNetwork?.name}</strong>.
               <br />
               <br />
               Your displayed balances and transaction history will reflect the
