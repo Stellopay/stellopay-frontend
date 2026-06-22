@@ -10,8 +10,7 @@ export default function GetStartedCTA() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    console.log("Submitted email:", email);
-    // Add logic to submit email or redirect
+    // TODO: submit `email` to the waitlist endpoint or redirect to sign-up.
   };
 
   return (
