@@ -11,7 +11,10 @@ export interface Transaction {
   statusColor: "success" | "warning" | "destructive";
 }
 
-export type SortField = "date" | "amount" | "type" | "status";
+export type SortField = Extract<
+  keyof Transaction,
+  "date" | "amount" | "type" | "status"
+>;
 export type SortDirection = "asc" | "desc";
 
 export interface TransactionFilters {
