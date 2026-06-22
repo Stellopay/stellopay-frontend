@@ -1,47 +1,44 @@
-import react from '@vitejs/plugin-react';
-import { fileURLToPath } from 'node:url';
-import { defineConfig } from 'vitest/config';
+import react from "@vitejs/plugin-react";
+import { fileURLToPath } from "node:url";
+import { defineConfig } from "vitest/config";
 
-const repoRoot = fileURLToPath(new URL('.', import.meta.url));
+const repoRoot = fileURLToPath(new URL(".", import.meta.url));
 
 export default defineConfig({
   plugins: [react()],
-  css: {
-    postcss: false,
-  },
   resolve: {
     alias: {
-      '@': repoRoot,
+      "@": repoRoot,
     },
   },
   test: {
     globals: true,
-    include: ['**/*.test.ts', '**/*.test.tsx'],
-    environment: 'jsdom',
-    setupFiles: './vitest.setup.ts',
+    include: ["**/*.test.ts", "**/*.test.tsx"],
+    environment: "jsdom",
+    setupFiles: "./vitest.setup.ts",
     coverage: {
-      provider: 'v8',
-      reporter: ['text', 'json', 'html'],
+      provider: "v8",
+      reporter: ["text", "json", "html"],
       include: [
-        'utils/authUtils.ts',
-        'utils/dateUtils.ts',
-        'utils/formatUtils.ts',
-        'utils/transactionUtils.ts',
-        'utils/paginationUtils.ts',
-        'types/auth.ts',
-        'app/error.tsx',
-        'app/global-error.tsx',
-        'context/wallet-context.tsx',
-        'components/analytics/analytics-view.tsx',
-        'components/analytics/client-analytics-view.tsx',
+        "utils/authUtils.ts",
+        "utils/dateUtils.ts",
+        "utils/formatUtils.ts",
+        "utils/transactionUtils.ts",
+        "utils/paginationUtils.ts",
+        "types/auth.ts",
+        "app/error.tsx",
+        "app/global-error.tsx",
+        "context/wallet-context.tsx",
+        "components/analytics/analytics-view.tsx",
+        "components/analytics/client-analytics-view.tsx",
       ],
       exclude: [
-        '**/*.test.{ts,tsx}',
-        '**/*.spec.{ts,tsx}',
-        '**/*.config.*',
-        'vitest.config.ts',
-        'tests/**',
-        'vitest.setup.ts',
+        "**/*.test.{ts,tsx}",
+        "**/*.spec.{ts,tsx}",
+        "**/*.config.*",
+        "vitest.config.ts",
+        "tests/**",
+        "vitest.setup.ts",
       ],
       thresholds: {
         lines: 95,
