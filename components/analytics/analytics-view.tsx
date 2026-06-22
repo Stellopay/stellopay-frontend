@@ -246,7 +246,7 @@ const AnalyticsViews = ({
           )}
         </div>
 
-        <div className={showNotifications ? "w-full h-56 mt-4 border border-zinc-100 dark:border-zinc-800/50 p-6 rounded-xl bg-zinc-50/30 dark:bg-zinc-900/20" : "w-full h-full aspect-[3/1] rounded-lg border border-[#2D2D2D] p-2 sm:p-4"}>
+        <div className={showNotifications ? "w-full h-56 mt-4 border border-zinc-100 dark:border-zinc-800/50 p-6 rounded-xl bg-zinc-50/30 dark:bg-zinc-900/20" : "w-full h-full aspect-[3/1] rounded-lg border border-[#2D2D2D] p-2 sm:p-4"} aria-label="Analytics chart">
           <ResponsiveContainer width="100%" height="100%">
             <BarChart data={chartData}>
               <CartesianGrid

@@ -36,7 +36,7 @@ function AccountSummaryView({ isLoading: _isLoading = false }: { isLoading?: boo
           <div className="flex items-center text-xs text-gray-400 space-x-2">
             <span>Copy Address:</span>
             <span className="truncate text-white">{address}</span>
-            <Copy size={14} className="cursor-pointer" onClick={handleCopy} />
+            <Copy size={14} className="cursor-pointer" onClick={handleCopy} aria-label="Copy address" />
             {copied && <span className="text-green-400 ml-2">Copied!</span>}
           </div>
         </div>
