@@ -3,6 +3,8 @@
 import Image from "next/image";
 import { usePaymentHistory } from "@/hooks/usePaymentHistory";
 import { CardSkeleton } from "@/components/ui/card-skeleton";
+import { ErrorState } from "@/components/ui/error-state";
+import { EmptyState } from "@/components/ui/empty-state";
 
 export default function PaymentHistory() {
   const { data, isLoading, error } = usePaymentHistory();
@@ -19,9 +21,20 @@ export default function PaymentHistory() {
 
   if (error) {
     return (
-      <div role="alert" className="text-sm text-red-400 text-center py-4">
-        Failed to load payment history.
-      </div>
+      <ErrorState
+        title="Failed to Load"
+        description="Failed to load payment history."
+        onRetry={() => window.location.reload()}
+      />
+    );
+  }
+
+  if (!data || data.length === 0) {
+    return (
+      <EmptyState
+        title="No History"
+        description="You have no payment history yet."
+      />
     );
   }
 
