@@ -7,7 +7,7 @@ import { ErrorState } from "@/components/ui/error-state";
 import { EmptyState } from "@/components/ui/empty-state";
 
 export default function PaymentHistory() {
-  const { data, isLoading, error } = usePaymentHistory();
+  const { data, isLoading, error, refetch } = usePaymentHistory();
 
   if (isLoading) {
     return (
@@ -24,7 +24,7 @@ export default function PaymentHistory() {
       <ErrorState
         title="Failed to Load"
         description="Failed to load payment history."
-        onRetry={() => window.location.reload()}
+        onRetry={refetch}
       />
     );
   }
