@@ -1,4 +1,3 @@
-import React from "react";
 import { renderHook, act } from "@testing-library/react";
 import { useTransactions } from "./useTransactions";
 import * as api from "@/lib/api/transactions";

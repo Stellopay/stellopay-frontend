@@ -74,9 +74,7 @@ export default function AccountSection() {
     type: null,
   });
   const [isSaving, setIsSaving] = useState(false);
-  const statusTimeoutRef = useRef<ReturnType<typeof window.setTimeout> | null>(
-    null,
-  );
+  const statusTimeoutRef = useRef<number | null>(null);
   const isMountedRef = useRef(true);
 
   useEffect(() => {

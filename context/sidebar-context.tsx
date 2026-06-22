@@ -2,7 +2,6 @@
 import {
   createContext,
   FC,
-  ReactNode,
   useContext,
   useState,
   useEffect,
@@ -27,8 +26,8 @@ export const SidebarProvider: FC<SidebarProviderProps> = ({ children }) => {
     }
   }, []);
 
-  // Screen size tracking
-  const [screenSize, setScreenSize] = useState<number | undefined>(undefined);
+  // Screen size tracking (value is only used to drive the isMobile flag below)
+  const [, setScreenSize] = useState<number | undefined>(undefined);
   const [isMobile, setIsMobile] = useState<boolean>(false);
 
   useEffect(() => {

@@ -28,4 +28,6 @@ export default function TokenIcon({ token }: TokenIconProps) {
       </div>
     );
   }
+
+  return null;
 }

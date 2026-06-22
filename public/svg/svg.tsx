@@ -152,7 +152,7 @@ export const SettinIcon: React.FC<svgInterface> = ({ color }) => (
   </svg>
 );
 
-export const BuildingIcon: React.FC<svgInterface> = ({ color }) => (
+export const BuildingIcon: React.FC<svgInterface> = () => (
   <svg
     width="64"
     height="64"
@@ -229,7 +229,7 @@ export const BuildingIcon: React.FC<svgInterface> = ({ color }) => (
   </svg>
 );
 
-export const LightbulbIcon: React.FC<svgInterface> = ({ color }) => (
+export const LightbulbIcon: React.FC<svgInterface> = () => (
   <svg
     width="64"
     height="64"
@@ -278,7 +278,7 @@ export const LightbulbIcon: React.FC<svgInterface> = ({ color }) => (
   </svg>
 );
 
-export const DollarIcon: React.FC<svgInterface> = ({ color }) => (
+export const DollarIcon: React.FC<svgInterface> = () => (
   <svg
     width="64"
     height="64"
@@ -320,7 +320,7 @@ export const DollarIcon: React.FC<svgInterface> = ({ color }) => (
   </svg>
 );
 
-export const MusicIcon: React.FC<svgInterface> = ({ color }) => (
+export const MusicIcon: React.FC<svgInterface> = () => (
   <svg
     width="64"
     height="64"
