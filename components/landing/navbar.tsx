@@ -21,9 +21,7 @@ export default function Navbar() {
   const [mobileOpen, setMobileOpen] = useState(false);
 
   const handleConnect = () => {
-    // placeholder connect wallet handler
-    // Integrate wallet modal/connector here
-    console.log("Connect Wallet clicked");
+    // TODO: integrate wallet modal/connector here.
     alert("Connect Wallet clicked (stub)");
   };
 

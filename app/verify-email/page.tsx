@@ -39,13 +39,15 @@ export default function VerifyEmail() {
     setMessage("");
     try {
       // Simulate API call
-      await new Promise((resolve, reject) => setTimeout(() => {
-        if (code === "123456") {
-          resolve(null);
-        } else {
-          reject(new Error("Invalid code"));
-        }
-      }, 1500));
+      await new Promise((resolve, reject) =>
+        setTimeout(() => {
+          if (code === "123456") {
+            resolve(null);
+          } else {
+            reject(new Error("Invalid code"));
+          }
+        }, 1500),
+      );
       setStatus("success");
       setMessage("Email verified successfully!");
     } catch {
@@ -84,7 +86,9 @@ export default function VerifyEmail() {
                 <Loader2 className="inline h-4 w-4 mr-1 animate-spin" />
                 Sending...
               </>
-            ) : "Resend"}
+            ) : (
+              "Resend"
+            )}
           </button>
         </p>
 
@@ -95,6 +99,7 @@ export default function VerifyEmail() {
           maxLength={6}
           value={code}
           onChange={handleInputChange}
+          aria-label="Verification code"
           className="w-full text-left py-3 px-4 rounded-[8px] border border-[#2D2D2D] bg-transparent text-white mb-4 outline-none mt-5"
           placeholder="- - - - - - - -"
         />
@@ -108,8 +113,8 @@ export default function VerifyEmail() {
               status === "success" || resendStatus === "success"
                 ? "bg-emerald-500/10 text-emerald-300"
                 : status === "error" || resendStatus === "error"
-                ? "bg-red-500/10 text-red-300"
-                : ""
+                  ? "bg-red-500/10 text-red-300"
+                  : ""
             }`}
           >
             {message}
@@ -131,7 +136,9 @@ export default function VerifyEmail() {
               <Loader2 className="h-4 w-4 animate-spin" />
               Verifying...
             </>
-          ) : "Continue"}
+          ) : (
+            "Continue"
+          )}
         </button>
 
         {/* Go Back */}
