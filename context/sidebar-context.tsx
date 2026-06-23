@@ -7,6 +7,7 @@ import {
   useState,
   useEffect,
 } from "react";
+import { safeStorage } from "@/utils/safeStorage";
 import type {
   SidebarContextProps,
   SidebarProviderProps,
@@ -20,22 +21,9 @@ export const SidebarProvider: FC<SidebarProviderProps> = ({ children }) => {
 
   // Hydrate sidebar open state from localStorage on the client.
   useEffect(() => {
-    if (typeof window === "undefined") {
-      return;
-    }
-
-    const storage = window.localStorage;
-    if (!storage || typeof storage.getItem !== "function") {
-      return;
-    }
-
-    try {
-      const savedState = storage.getItem("sidebarOpen");
-      if (savedState !== null) {
-        setIsSidebarOpenState(savedState === "true");
-      }
-    } catch (e) {
-      // ignore invalid localStorage implementations
+    const savedState = safeStorage.getItem("sidebarOpen");
+    if (savedState !== null) {
+      setIsSidebarOpenState(savedState === "true");
     }
   }, []);
 
@@ -63,9 +51,7 @@ export const SidebarProvider: FC<SidebarProviderProps> = ({ children }) => {
 
   // Persist sidebar state to localStorage when it changes
   useEffect(() => {
-    if (typeof window !== "undefined") {
-      localStorage.setItem("sidebarOpen", isSidebarOpen.toString());
-    }
+    safeStorage.setItem("sidebarOpen", isSidebarOpen.toString());
   }, [isSidebarOpen]);
 
   const setSidebarOpen = (open: boolean) => {
