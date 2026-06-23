@@ -4,12 +4,13 @@ import { useState } from "react";
 import Image from "next/image";
 import { copyToClipboardWithTimeout } from "@/utils/clipboardUtils";
 import { AccountSummaryCardSkeleton } from "@/components/ui/card-skeleton";
+import { ErrorState } from "@/components/ui/error-state";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useAccountSummary } from "@/hooks/useAccountSummary";
 
 export default function AccountSummary() {
   const [copied, setCopied] = useState(false);
-  const { data, isLoading, error } = useAccountSummary();
+  const { data, isLoading, error, refetch } = useAccountSummary();
 
   if (isLoading) {
     return (
@@ -29,11 +30,12 @@ export default function AccountSummary() {
 
   if (error || !data) {
     return (
-      <div
-        role="alert"
-        className="max-w-full p-4 rounded-xl my-6 border-[1px] border-[#2D2D2D] bg-[#0D0D0D80] text-red-400 text-sm text-center"
-      >
-        Failed to load account summary.
+      <div className="max-w-full my-6">
+        <ErrorState
+          title="Failed to Load"
+          description="Failed to load account summary."
+          onRetry={refetch}
+        />
       </div>
     );
   }

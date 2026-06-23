@@ -157,7 +157,33 @@ stellopay-frontend
 
 - `npm run test` runs the Vitest unit suite with coverage for auth, transaction, and pagination utils plus auth schemas.
 - `npm run test:watch` runs Vitest in watch mode while developing unit tests.
-- `npm run test:e2e` is the Playwright local/E2E command.
+- `npm run test:e2e` runs the full Playwright suite across **chromium**, **firefox**, and **webkit**.
+
+## Iconography
+
+To keep the application's bundle light and ensure visual consistency, the project consolidates all UI icons onto **Lucide React** (`lucide-react`) as the single primary icon set.
+
+### Guidelines
+- **Primary Set**: Use `lucide-react` for all UI icons.
+- **Custom / Brand Icons**: For brand logos or unique custom shapes (e.g., `StellOpayLogo`, `StellarIcon`), use raw SVG components located in [public/svg/svg.tsx](file:///home/ekwe/grantfox/stellopay-frontend/public/svg/svg.tsx) or local custom components.
+- **Restricted Libraries**: Do NOT import from `react-icons`, `@hugeicons/react`, or `@hugeicons/core-free-icons`.
+
+### Guardrails
+- **ESLint Rule**: The `no-restricted-imports` rule in [.eslintrc.json](file:///home/ekwe/grantfox/stellopay-frontend/.eslintrc.json) blocks imports from restricted packages.
+- **CI Guard Test**: [import-guard.test.ts](file:///home/ekwe/grantfox/stellopay-frontend/utils/import-guard.test.ts) scans all source files in `app/` and `components/` to verify no prohibited icon libraries are referenced.
+
+## Iconography
+
+To keep the application's bundle light and ensure visual consistency, the project consolidates all UI icons onto **Lucide React** (`lucide-react`) as the single primary icon set.
+
+### Guidelines
+- **Primary Set**: Use `lucide-react` for all UI icons.
+- **Custom / Brand Icons**: For brand logos or unique custom shapes (e.g., `StellOpayLogo`, `StellarIcon`), use raw SVG components located in [public/svg/svg.tsx](file:///home/ekwe/grantfox/stellopay-frontend/public/svg/svg.tsx) or local custom components.
+- **Restricted Libraries**: Do NOT import from `react-icons`, `@hugeicons/react`, or `@hugeicons/core-free-icons`.
+
+### Guardrails
+- **ESLint Rule**: The `no-restricted-imports` rule in [.eslintrc.json](file:///home/ekwe/grantfox/stellopay-frontend/.eslintrc.json) blocks imports from restricted packages.
+- **CI Guard Test**: [import-guard.test.ts](file:///home/ekwe/grantfox/stellopay-frontend/utils/import-guard.test.ts) scans all source files in `app/` and `components/` to verify no prohibited icon libraries are referenced.
 
 ## Iconography
 
@@ -174,19 +200,67 @@ To keep the application's bundle light and ensure visual consistency, the projec
 
 ## CI Pipeline
 
-Every pull request and push to `main` runs the following steps via `.github/workflows/ci.yml`:
+### Running a single browser locally
 
-| Step | Command | Purpose |
-|------|---------|---------|
-| Install dependencies | `npm ci` | Reproducible install from lockfile |
-| Unit Tests | `npm run test` | Vitest utility/schema tests for auth, transaction, pagination utils, and auth schemas |
-| Lint | `npm run lint` | ESLint via `next lint` |
-| Type-check | `npm run type-check` | `tsc --noEmit` — catches type errors |
-| Build | `npm run build` | Full Next.js production build |
+Pass `--project=<name>` to target one browser:
 
-**Node version:** 20 LTS (matches `@types/node ^20`).
+```bash
+npx playwright test --project=chromium
+npx playwright test --project=firefox
+npx playwright test --project=webkit
+```
 
-**Security:** workflow permissions are `contents: read`; actions are pinned to major version tags; `pull_request` trigger is used (not `pull_request_target`) so fork PRs cannot access repository secrets.
+You can also scope to a single spec file at the same time:
+
+```bash
+npx playwright test tests/wallet.spec.ts --project=firefox
+```
+
+### Retries
+
+Tests run with **0 retries** locally. In CI (`CI=true`) each test is retried up to **2 times** to absorb transient flakes.
+
+## Iconography
+
+To keep the application's bundle light and ensure visual consistency, the project consolidates all UI icons onto **Lucide React** (`lucide-react`) as the single primary icon set.
+
+### Guidelines
+- **Primary Set**: Use `lucide-react` for all UI icons.
+- **Custom / Brand Icons**: For brand logos or unique custom shapes (e.g., `StellOpayLogo`, `StellarIcon`), use raw SVG components located in [public/svg/svg.tsx](file:///home/ekwe/grantfox/stellopay-frontend/public/svg/svg.tsx) or local custom components.
+- **Restricted Libraries**: Do NOT import from `react-icons`, `@hugeicons/react`, or `@hugeicons/core-free-icons`.
+
+### Guardrails
+- **ESLint Rule**: The `no-restricted-imports` rule in [.eslintrc.json](file:///home/ekwe/grantfox/stellopay-frontend/.eslintrc.json) blocks imports from restricted packages.
+- **CI Guard Test**: [import-guard.test.ts](file:///home/ekwe/grantfox/stellopay-frontend/utils/import-guard.test.ts) scans all source files in `app/` and `components/` to verify no prohibited icon libraries are referenced.
+
+
+## CI
+
+The workflow at `.github/workflows/ci.yml` runs on every pull request and on
+pushes to `main`:
+
+1. **Install** — `npm ci`, with the npm dependency store cached by
+   `package-lock.json` hash via `actions/setup-node`'s built-in `cache: npm`.
+2. **Lint** — `npm run lint`.
+3. **Type-check** — `npm run type-check`.
+4. **Test with coverage gate** — `npm run test`, which runs `vitest run
+   --coverage`. The job fails if any metric (lines, functions, branches,
+   statements) drops below the 95% thresholds defined in `vitest.config.ts`.
+5. **Upload coverage report** — the `coverage/` directory (html, json, text)
+   is uploaded as a build artifact, available from the workflow run summary,
+   even when the job fails (`if: always()`).
+
+## Concurrency
+
+A `concurrency` group keyed on `github.ref` cancels any in-progress run for
+the same branch/PR when a new commit is pushed, so superseded runs don't
+queue up.
+
+## Security
+
+- All third-party actions are pinned to commit SHAs, not mutable version tags.
+- The workflow requests only `contents: read` — no write access is granted.
+
 
 ## ⚡ Performance Optimization & Code-Splitting
 

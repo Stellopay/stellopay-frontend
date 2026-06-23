@@ -17,6 +17,7 @@ import { Label } from "@/components/ui/label";
 import { FormMessage } from "@/components/ui/form";
 import DestructiveActionDialog from "./destructive-action-dialog";
 import { DEMO_PROFILE } from "@/lib/demo-data";
+import { isValidEmail } from "@/utils/authUtils";
 
 export interface ProfileState {
   firstName: string;
@@ -113,10 +114,15 @@ export default function AccountSection({
     type: null,
   });
   const [isSaving, setIsSaving] = useState(false);
-  const statusTimeoutRef = useRef<ReturnType<typeof window.setTimeout> | null>(
-    null,
-  );
+  const [isEmailTouched, setIsEmailTouched] = useState(false);
+  const statusTimeoutRef = useRef<number | null>(null);
   const isMountedRef = useRef(true);
+
+  // Trim before validating so incidental whitespace can neither defeat
+  // isValidEmail() nor end up persisted in a form the user never typed.
+  const normalizedEmail = profile.email.trim();
+  const isEmailValid = isValidEmail(normalizedEmail);
+  const showEmailError = isEmailTouched && !isEmailValid;
 
   useEffect(() => {
     return () => {
@@ -153,7 +159,44 @@ export default function AccountSection({
     }
   };
 
+  /**
+   * Validates the email on blur and normalizes the field by trimming
+   * leading/trailing whitespace, so the displayed value always matches
+   * what {@link isValidEmail} checked and what save would persist.
+   */
+  const handleEmailBlur = () => {
+    setIsEmailTouched(true);
+    setProfile((currentProfile) => {
+      const trimmed = currentProfile.email.trim();
+      return trimmed === currentProfile.email
+        ? currentProfile
+        : { ...currentProfile, email: trimmed };
+    });
+  };
+
+  /**
+   * Re-validates the email with the shared isValidEmail() helper before
+   * saving. Blocks the save and surfaces an inline status error for
+   * malformed emails instead of persisting them.
+   */
   const handleSave = async () => {
+    setIsEmailTouched(true);
+
+    if (!isEmailValid) {
+      setStatus({
+        message: "Enter a valid email address before saving.",
+        type: "error",
+      });
+      return;
+    }
+
+    if (normalizedEmail !== profile.email) {
+      setProfile((currentProfile) => ({
+        ...currentProfile,
+        email: normalizedEmail,
+      }));
+    }
+
     setIsSaving(true);
     setStatus({ message: "", type: null });
     clearQueuedStatusReset();
@@ -256,7 +299,10 @@ export default function AccountSection({
               type="email"
               value={profile.email}
               onChange={(value) => updateProfileField("email", value)}
+              onBlur={handleEmailBlur}
               disabled={isSaving}
+              error={showEmailError}
+              errorMessage="Enter a valid email address, e.g. name@example.com."
             />
           </div>
 
@@ -284,7 +330,7 @@ export default function AccountSection({
               Core account edits stay on one card so users do not bounce between
               routes.
             </p>
-            <Button onClick={handleSave} disabled={isSaving}>
+            <Button onClick={handleSave} disabled={isSaving || !isEmailValid}>
               {isSaving ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -426,23 +472,31 @@ function Field({
   label,
   value,
   onChange,
+  onBlur,
   type = "text",
   disabled = false,
+  error = false,
+  errorMessage,
 }: {
   id: string;
   label: string;
   value: string;
   onChange: (value: string) => void;
+  onBlur?: () => void;
   type?: string;
   disabled?: boolean;
+  error?: boolean;
+  errorMessage?: string;
 }) {
   const fieldId = id;
   const descriptionId = `${fieldId}-description`;
+  const errorId = `${fieldId}-error`;
 
   return (
     <div className="space-y-2">
       <Label
         htmlFor={fieldId}
+        id={`${fieldId}-label`}
         className="text-sm font-medium text-zinc-900 dark:text-white"
       >
         {label}
@@ -453,10 +507,18 @@ function Field({
         value={value}
         disabled={disabled}
         onChange={(event) => onChange(event.target.value)}
+        onBlur={onBlur}
+        error={error}
+        errorId={errorId}
         className="border-zinc-200 bg-white dark:border-white/10 dark:bg-white/5"
         labelId={`${fieldId}-label`}
         descriptionId={descriptionId}
       />
+      {error && errorMessage && (
+        <p id={errorId} role="alert" className="text-sm text-destructive">
+          {errorMessage}
+        </p>
+      )}
     </div>
   );
 }

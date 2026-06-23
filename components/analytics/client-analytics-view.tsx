@@ -1,9 +1,15 @@
 "use client";
 
-import React from "react";
+import React, { useEffect, useState } from "react";
+import dynamic from "next/dynamic";
+
 import Skeleton from "@/components/ui/skeleton";
-import AnalyticsViews from "./analytics-view";
 import type { AnalyticsViewsProps } from "./analytics-view";
+
+const AnalyticsViews = dynamic(() => import("./analytics-view"), {
+  ssr: false,
+});
+
 
 /**
  * ClientAnalyticsView wrapper that dynamically loads the heavy recharts-based
@@ -13,7 +19,13 @@ import type { AnalyticsViewsProps } from "./analytics-view";
  * Handles both the standalone page layout and the dashboard layout layout dynamically.
  */
 export default function ClientAnalyticsView(props: AnalyticsViewsProps) {
-  if (props.isLoading) {
+  const [isMounted, setIsMounted] = useState(false);
+
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
+
+  if (!isMounted || props.isLoading) {
     if (props.showNotifications) {
       return (
         <div className="max-w-full min-h-[332px] flex flex-col md:flex-row gap-6" aria-busy="true" aria-live="polite" role="status">
