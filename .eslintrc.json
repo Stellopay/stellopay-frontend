@@ -1,4 +1,5 @@
 {
+  "root": true,
   "extends": ["next/core-web-vitals", "next/typescript"],
   "rules": {
     "@typescript-eslint/no-unused-vars": [
@@ -9,6 +10,60 @@
         "caughtErrorsIgnorePattern": "^_",
         "destructuredArrayIgnorePattern": "^_"
       }
-    ]
-  }
+    ],
+    "no-restricted-imports": [
+      "error",
+      {
+        "paths": [
+          {
+            "name": "react-icons",
+            "message": "Please use lucide-react instead."
+          },
+          {
+            "name": "@hugeicons/react",
+            "message": "Please use lucide-react instead."
+          },
+          {
+            "name": "@hugeicons/core-free-icons",
+            "message": "Please use lucide-react instead."
+          }
+        ],
+        "patterns": [
+          {
+            "group": ["react-icons/*", "@hugeicons/*"],
+            "message": "Please use lucide-react instead."
+          }
+        ]
+      }
+    ],
+    "no-console": ["error", { "allow": ["warn", "error"] }]
+  },
+  "overrides": [
+    {
+      "files": ["**/*.ts"],
+      "excludedFiles": [
+        "**/*.test.ts",
+        "**/*.spec.ts",
+        "**/*.d.ts",
+        "*.config.ts"
+      ],
+      "rules": {
+        "@typescript-eslint/explicit-module-boundary-types": "error"
+      }
+    },
+    {
+      "files": [
+        "**/*.test.ts",
+        "**/*.test.tsx",
+        "**/*.spec.ts",
+        "**/*.spec.tsx",
+        "e2e/**",
+        "tests/**"
+      ],
+      "rules": {
+        "no-console": "off",
+        "@typescript-eslint/explicit-module-boundary-types": "off"
+      }
+    }
+  ]
 }

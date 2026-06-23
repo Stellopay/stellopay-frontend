@@ -1,11 +1,10 @@
-import { HugeiconsIcon } from "@hugeicons/react";
 import {
-  ArrowDown01Icon,
-  DocumentValidationIcon,
-  FilterMailSquareIcon,
-  Search01Icon,
-  UnfoldMoreIcon,
-} from "@hugeicons/core-free-icons";
+  ChevronDown,
+  FileCheck,
+  Filter,
+  Search,
+  ChevronsUpDown,
+} from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -33,8 +32,7 @@ export default function TransactionsFilters({
       <div className="flex items-center gap-2">
         {/* Calendar icon now outside button but visually aligned */}
         <div className="bg-[#110e11] p-2 rounded-lg border border-[#3E3E3E] inline-flex items-center justify-center">
-          <HugeiconsIcon
-            icon={DocumentValidationIcon}
+          <FileCheck
             size={35}
             color="currentColor"
             strokeWidth={1.5}
@@ -48,8 +46,7 @@ export default function TransactionsFilters({
               className="text-xl text-white hover:bg-[#160f17] hover:text-white px-2"
             >
               {selectedFilter}
-              <HugeiconsIcon
-                icon={ArrowDown01Icon}
+              <ChevronDown
                 size={16}
                 color="currentColor"
                 strokeWidth={2}
@@ -85,8 +82,7 @@ export default function TransactionsFilters({
         {/* Search Input */}
         <div className="relative">
           <span className="absolute left-3 top-1/2 transform -translate-y-1/2">
-            <HugeiconsIcon
-              icon={Search01Icon}
+            <Search
               size={16}
               color="#9CA3AF" // gray-400
               strokeWidth={1.5}
@@ -108,8 +104,7 @@ export default function TransactionsFilters({
               size="default"
               className="text-gray-400 hover:text-white hover:bg-[#1a0c1d] "
             >
-              <HugeiconsIcon
-                icon={FilterMailSquareIcon}
+              <Filter
                 size={20}
                 color="currentColor"
                 strokeWidth={1.5}
@@ -149,8 +144,7 @@ export default function TransactionsFilters({
               size="default"
               className="text-gray-400 hover:text-white hover:bg-[#1a0c1d] "
             >
-              <HugeiconsIcon
-                icon={UnfoldMoreIcon}
+              <ChevronsUpDown
                 size={20}
                 color="currentColor"
                 strokeWidth={1.5}

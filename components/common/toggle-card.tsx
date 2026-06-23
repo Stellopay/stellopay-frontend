@@ -4,6 +4,18 @@ import { Badge } from "@/components/ui/badge";
 import { cn } from "@/utils/commonUtils";
 import { ToggleCardProps } from "@/types/ui";
 
+/**
+ * A toggle card component that displays a setting and a switch to turn it on or off.
+ * This component is fully accessible, using native button keyboard interactions
+ * and ARIA attributes to announce state to screen readers.
+ *
+ * @param title - The name of the setting
+ * @param description - An optional longer description of the setting
+ * @param badge - An optional badge to show next to the title
+ * @param enabled - The current on/off state of the toggle
+ * @param disabled - Whether the toggle is interactable
+ * @param onToggle - Callback fired when the toggle is clicked or activated via keyboard
+ */
 export default function ToggleCard({
   title,
   description,
@@ -36,9 +48,16 @@ export default function ToggleCard({
         type="button"
         role="switch"
         aria-checked={enabled}
-        aria-label={title}
+        aria-pressed={enabled}
+        aria-label={`${title}, ${enabled ? "enabled" : "disabled"}`}
         disabled={disabled}
         onClick={() => onToggle(!enabled)}
+        onKeyDown={(e) => {
+          if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault();
+            onToggle(!enabled);
+          }
+        }}
         className={cn(
           "flex h-8 w-14 items-center rounded-full p-1 duration-300 ease-in-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900 focus-visible:ring-offset-2 focus-visible:ring-offset-white disabled:cursor-not-allowed disabled:opacity-60 dark:focus-visible:ring-white dark:focus-visible:ring-offset-[#09090B]",
           enabled

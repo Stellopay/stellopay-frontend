@@ -43,3 +43,28 @@ debug.log
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# AI tools & assistants
+.gemini/
+.gemini
+.cursor/
+.cursorrules
+.clinerules
+.aide/
+.windsurf/
+.windsurfrules
+.copilot/
+.copilotrules
+.prompts/
+*.prompt
+.ai/
+.anthropic/
+.openai/
+chat_history/
+*chat-history*
+*chat_history*
+.chat/
+performance_optimization_results.md
+codebase_index.md
+
+
