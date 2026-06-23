@@ -17,11 +17,10 @@ import { Form, FormFieldInput } from "@/components/ui/form-field";
 import ToggleCard from "@/components/common/toggle-card";
 import DestructiveActionDialog from "./destructive-action-dialog";
 import { DEMO_WALLETS } from "@/lib/demo-data";
+import { useWallet, formatAddress } from "@/context/wallet-context";
 import { stellarAddressSchema } from "@/utils/stellarAddress";
 import { copyToClipboardWithTimeout } from "@/utils/clipboardUtils";
 import { Check, Copy, Loader2, Plus } from "lucide-react";
-
-const connectedWallets = DEMO_WALLETS;
 
 /**
  * Add-wallet form schema. The address is validated and normalized (trimmed,
@@ -47,10 +46,21 @@ interface StatusState {
 
 /**
  * WalletsSection component.
- * Renders connected wallet configurations, region settings, and outbound transfer safeguards.
- * Uses placeholder demo data pending full backend API integration.
+ *
+ * Reads connected wallet state from {@link useWallet}. When a wallet is
+ * connected the live address (truncated) and active network are shown.
+ * When disconnected the component falls back to {@link DEMO_WALLETS} behind
+ * an explicit "Demo Data" badge.
+ *
+ * The danger-zone remove action routes through {@link WalletContextValue.disconnect}
+ * so all consumers (navbar, dashboard, etc.) see the change immediately.
+ *
+ * Security: only truncated public G-addresses are rendered; secret keys are
+ * never accepted or displayed.
  */
 export default function WalletsSection() {
+  const { address, isConnected, network, disconnect } = useWallet();
+
   const [settings, setSettings] = useState<WalletSettingsState>({
     transferApprovals: true,
     addressBookLock: true,
@@ -65,50 +75,45 @@ export default function WalletsSection() {
     defaultValues: { address: "" },
   });
 
-  // Addresses that already exist on the surface; normalized for comparison
-  // against the schema's normalized output so duplicates are caught regardless
-  // of casing or surrounding whitespace.
+  // Addresses already on the surface; normalized for duplicate detection.
   const reservedAddresses = useMemo(
     () =>
       new Set(
-        connectedWallets.map((wallet) => wallet.address.trim().toUpperCase()),
+        DEMO_WALLETS.map((wallet) => wallet.address.trim().toUpperCase()),
       ),
     [],
   );
 
   const handleAddWallet = (values: AddWalletFormValues) => {
-    const address = values.address;
-    if (reservedAddresses.has(address) || addedWallets.includes(address)) {
+    const addr = values.address;
+    if (reservedAddresses.has(addr) || addedWallets.includes(addr)) {
       form.setError("address", {
         type: "duplicate",
         message: "This wallet address has already been added.",
       });
       return;
     }
-    setAddedWallets((current) => [...current, address]);
+    setAddedWallets((current) => [...current, addr]);
     form.reset();
   };
 
   const updateSetting = (field: keyof WalletSettingsState, value: boolean) => {
-    setSettings((currentSettings) => ({
-      ...currentSettings,
-      [field]: value,
-    }));
+    setSettings((s) => ({ ...s, [field]: value }));
   };
 
   const handleSave = async () => {
     setIsSaving(true);
     setStatus({ message: "", type: null });
     try {
-      await new Promise((resolve, reject) => setTimeout(() => {
-        if (Math.random() > 0.8) {
-          reject(new Error("Failed to save"));
-        } else {
-          resolve(null);
-        }
-      }, 1500));
+      await new Promise((resolve, reject) =>
+        setTimeout(() => {
+          if (Math.random() > 0.8) reject(new Error("Failed to save"));
+          else resolve(null);
+        }, 1500),
+      );
       setStatus({
-        message: "Wallet safeguards updated. Transfer review controls remain enabled by default.",
+        message:
+          "Wallet safeguards updated. Transfer review controls remain enabled by default.",
         type: "success",
       });
     } catch {
@@ -122,15 +127,27 @@ export default function WalletsSection() {
     }
   };
 
+  /** Route the destructive remove action through the context. */
+  const handleRemoveWallet = () => {
+    disconnect();
+    setStatus({
+      message:
+        "Wallet removal request captured. A replacement wallet should be selected before execution.",
+      type: "success",
+    });
+  };
+
   return (
     <div className="grid gap-6 xl:grid-cols-[minmax(0,1.1fr)_minmax(320px,0.9fr)]">
       <Card className="border-zinc-200 bg-white/90 shadow-sm dark:border-white/10 dark:bg-white/5">
         <CardHeader className="border-b border-zinc-200/80 dark:border-white/10">
           <CardTitle className="font-general text-2xl text-zinc-950 dark:text-white flex flex-wrap items-center gap-2">
             Connected wallets
-            <span className="inline-flex items-center gap-1 rounded-full bg-amber-50 px-2 py-0.5 text-xs font-medium text-amber-800 ring-1 ring-inset ring-amber-600/20 dark:bg-amber-400/10 dark:text-amber-500 dark:ring-amber-400/20">
-              Demo Data
-            </span>
+            {!isConnected && (
+              <span className="inline-flex items-center gap-1 rounded-full bg-amber-50 px-2 py-0.5 text-xs font-medium text-amber-800 ring-1 ring-inset ring-amber-600/20 dark:bg-amber-400/10 dark:text-amber-500 dark:ring-amber-400/20">
+                Demo Data
+              </span>
+            )}
           </CardTitle>
           <CardDescription className="text-zinc-600 dark:text-zinc-400">
             Wallet identity and transfer controls stay on the same surface so
@@ -138,32 +155,63 @@ export default function WalletsSection() {
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4 pt-6">
-          {connectedWallets.map((wallet) => (
+          {isConnected ? (
+            // Live wallet card — sourced from WalletProvider context.
+            // Address is truncated; the full key is never rendered.
             <div
-              key={wallet.name}
+              data-testid="live-wallet-card"
               className="rounded-3xl border border-zinc-200 bg-zinc-50 p-5 dark:border-white/10 dark:bg-white/5"
             >
               <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
                 <div className="space-y-1">
                   <p className="font-medium text-zinc-900 dark:text-white">
-                    {wallet.name}
+                    Primary Treasury
                   </p>
                   <p className="text-sm text-zinc-500 dark:text-zinc-400">
-                    {wallet.network}
+                    {network.name}
                   </p>
                 </div>
                 <Badge
                   variant="outline"
                   className="border-zinc-200 bg-white text-zinc-600 dark:border-white/10 dark:bg-transparent dark:text-zinc-400"
                 >
-                  {wallet.status}
+                  Default settlement wallet
                 </Badge>
               </div>
               <p className="mt-4 text-sm text-zinc-500 dark:text-zinc-400">
-                Address: {wallet.address}
+                Address: {formatAddress(address)}
               </p>
             </div>
-          ))}
+          ) : (
+            // Fallback — demo wallets shown only when no wallet is connected.
+            DEMO_WALLETS.map((wallet) => (
+              <div
+                key={wallet.name}
+                data-testid="demo-wallet-card"
+                className="rounded-3xl border border-zinc-200 bg-zinc-50 p-5 dark:border-white/10 dark:bg-white/5"
+              >
+                <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+                  <div className="space-y-1">
+                    <p className="font-medium text-zinc-900 dark:text-white">
+                      {wallet.name}
+                    </p>
+                    <p className="text-sm text-zinc-500 dark:text-zinc-400">
+                      {wallet.network}
+                    </p>
+                  </div>
+                  <Badge
+                    variant="outline"
+                    className="border-zinc-200 bg-white text-zinc-600 dark:border-white/10 dark:bg-transparent dark:text-zinc-400"
+                  >
+                    {wallet.status}
+                  </Badge>
+                </div>
+                <p className="mt-4 text-sm text-zinc-500 dark:text-zinc-400">
+                  Address: {wallet.address}
+                </p>
+              </div>
+            ))
+          )}
 
           <details className="rounded-2xl border border-zinc-200 bg-zinc-50 p-4 dark:border-white/10 dark:bg-white/5">
             <summary className="cursor-pointer list-none text-sm font-medium text-zinc-900 dark:text-white">
@@ -208,9 +256,6 @@ export default function WalletsSection() {
                   autoComplete="off"
                   required
                 />
-                {/* type="button" so an early click (before hydration) never
-                    triggers a native form navigation; Enter still submits via
-                    the form's onSubmit handler. */}
                 <Button
                   type="button"
                   onClick={form.handleSubmit(handleAddWallet)}
@@ -222,8 +267,8 @@ export default function WalletsSection() {
             </Form>
             {addedWallets.length > 0 && (
               <ul className="space-y-2" data-testid="added-wallets">
-                {addedWallets.map((address) => (
-                  <AddedWalletRow key={address} address={address} />
+                {addedWallets.map((addr) => (
+                  <AddedWalletRow key={addr} address={addr} />
                 ))}
               </ul>
             )}
@@ -317,13 +362,7 @@ export default function WalletsSection() {
               confirmationToken="REMOVE"
               confirmationLabel='Type "REMOVE" to confirm'
               confirmLabel="Remove wallet"
-              onConfirm={() =>
-                setStatus({
-                  message:
-                    "Wallet removal request captured. A replacement wallet should be selected before execution.",
-                  type: "success",
-                })
-              }
+              onConfirm={handleRemoveWallet}
             />
           </CardContent>
         </Card>
