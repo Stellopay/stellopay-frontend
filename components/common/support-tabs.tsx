@@ -44,7 +44,7 @@ export default function SupportTabs({
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     if (!isButtonDisabled) {
-      console.log("Submitted");
+      // TODO: submit the contact-support request.
     }
   };
 

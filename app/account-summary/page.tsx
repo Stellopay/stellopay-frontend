@@ -6,14 +6,19 @@ import Image from "next/image";
 import Icon from "@/public/Icon.png";
 import Piggy from "@/public/piggy-bank.png";
 import { copyToClipboardWithTimeout } from "@/utils/clipboardUtils";
+import { useWallet, formatAddress } from "@/context/wallet-context";
 
-
+/**
+ * Renders the account summary card, sourcing the wallet address from the
+ * WalletProvider context. Shows a "no wallet connected" message when the
+ * user is disconnected. Only the truncated public address is ever displayed.
+ */
 function AccountSummaryView({ isLoading: _isLoading = false }: { isLoading?: boolean }) {
   const [copied, setCopied] = useState(false);
-  const address = "0x8dE1243U45...67800UZ";
+  const { address, isConnected } = useWallet();
 
   const handleCopy = () => {
-    copyToClipboardWithTimeout(address, setCopied);
+    if (address) copyToClipboardWithTimeout(address, setCopied);
   };
 
   return (
@@ -34,10 +39,16 @@ function AccountSummaryView({ isLoading: _isLoading = false }: { isLoading?: boo
             $2,432 <span className="text-base">USDC</span>
           </div>
           <div className="flex items-center text-xs text-gray-400 space-x-2">
-            <span>Copy Address:</span>
-            <span className="truncate text-white">{address}</span>
-            <Copy size={14} className="cursor-pointer" onClick={handleCopy} />
-            {copied && <span className="text-green-400 ml-2">Copied!</span>}
+            {isConnected ? (
+              <>
+                <span>Copy Address:</span>
+                <span className="truncate text-white">{formatAddress(address)}</span>
+                <Copy size={14} className="cursor-pointer" onClick={handleCopy} />
+                {copied && <span className="text-green-400 ml-2">Copied!</span>}
+              </>
+            ) : (
+              <span data-testid="no-wallet-message">No wallet connected</span>
+            )}
           </div>
         </div>
 
