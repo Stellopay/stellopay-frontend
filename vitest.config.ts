@@ -6,6 +6,9 @@ const repoRoot = fileURLToPath(new URL(".", import.meta.url));
 
 export default defineConfig({
   plugins: [react()],
+  css: {
+    postcss: false,
+  },
   resolve: {
     alias: {
       "@": repoRoot,

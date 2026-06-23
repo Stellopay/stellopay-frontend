@@ -36,7 +36,6 @@ export interface AnalyticsDataPoint {
   views: number;
 }
 
-
 /**
  * Props accepted by the canonical AnalyticsViews component.
  */

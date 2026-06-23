@@ -1,5 +1,5 @@
 import React from "react";
-import { render, screen, fireEvent } from "@testing-library/react";
+import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { describe, expect, it, vi, beforeEach } from "vitest";
 
 import AnalyticsViews, { AnalyticsDataPoint } from "./analytics-view";
@@ -85,7 +85,7 @@ describe("AnalyticsViews Component", () => {
   it("renders chart with default data when data prop is not provided", async () => {
     render(<AnalyticsViews />);
     expect(screen.getByText("Analytics views")).toBeInTheDocument();
-    
+
     // Assert skeleton shows before dynamic component resolves
     expect(screen.getByText("Loading chart...")).toBeInTheDocument();
 
@@ -164,8 +164,13 @@ describe("ClientAnalyticsView Component", () => {
     expect(screen.getByText("Loading analytics...")).toBeInTheDocument();
   });
 
-  it("renders the AnalyticsViews component", () => {
+  it("renders the loaded AnalyticsViews component after mounting", async () => {
     render(<ClientAnalyticsView />);
+
+    // After mounting, the loading state should disappear and the chart should appear
+    await waitFor(() => {
+      expect(screen.queryByText("Loading analytics views chart...")).not.toBeInTheDocument();
+    });
     expect(screen.getByText("Analytics views")).toBeInTheDocument();
   });
 });
