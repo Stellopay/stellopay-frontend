@@ -166,12 +166,10 @@ export default function AccountSection({
    */
   const handleEmailBlur = () => {
     setIsEmailTouched(true);
-    setProfile((currentProfile) => {
-      const trimmed = currentProfile.email.trim();
-      return trimmed === currentProfile.email
-        ? currentProfile
-        : { ...currentProfile, email: trimmed };
-    });
+    const trimmed = profile.email.trim();
+    if (trimmed !== profile.email) {
+      updateProfileField("email", trimmed);
+    }
   };
 
   /**
@@ -191,10 +189,7 @@ export default function AccountSection({
     }
 
     if (normalizedEmail !== profile.email) {
-      setProfile((currentProfile) => ({
-        ...currentProfile,
-        email: normalizedEmail,
-      }));
+      updateProfileField("email", normalizedEmail);
     }
 
     setIsSaving(true);
