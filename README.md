@@ -159,6 +159,47 @@ stellopay-frontend
 - `npm run test:watch` runs Vitest in watch mode while developing unit tests.
 - `npm run test:e2e` runs the full Playwright suite across **chromium**, **firefox**, and **webkit**.
 
+## Iconography
+
+To keep the application's bundle light and ensure visual consistency, the project consolidates all UI icons onto **Lucide React** (`lucide-react`) as the single primary icon set.
+
+### Guidelines
+- **Primary Set**: Use `lucide-react` for all UI icons.
+- **Custom / Brand Icons**: For brand logos or unique custom shapes (e.g., `StellOpayLogo`, `StellarIcon`), use raw SVG components located in [public/svg/svg.tsx](file:///home/ekwe/grantfox/stellopay-frontend/public/svg/svg.tsx) or local custom components.
+- **Restricted Libraries**: Do NOT import from `react-icons`, `@hugeicons/react`, or `@hugeicons/core-free-icons`.
+
+### Guardrails
+- **ESLint Rule**: The `no-restricted-imports` rule in [.eslintrc.json](file:///home/ekwe/grantfox/stellopay-frontend/.eslintrc.json) blocks imports from restricted packages.
+- **CI Guard Test**: [import-guard.test.ts](file:///home/ekwe/grantfox/stellopay-frontend/utils/import-guard.test.ts) scans all source files in `app/` and `components/` to verify no prohibited icon libraries are referenced.
+
+## Iconography
+
+To keep the application's bundle light and ensure visual consistency, the project consolidates all UI icons onto **Lucide React** (`lucide-react`) as the single primary icon set.
+
+### Guidelines
+- **Primary Set**: Use `lucide-react` for all UI icons.
+- **Custom / Brand Icons**: For brand logos or unique custom shapes (e.g., `StellOpayLogo`, `StellarIcon`), use raw SVG components located in [public/svg/svg.tsx](file:///home/ekwe/grantfox/stellopay-frontend/public/svg/svg.tsx) or local custom components.
+- **Restricted Libraries**: Do NOT import from `react-icons`, `@hugeicons/react`, or `@hugeicons/core-free-icons`.
+
+### Guardrails
+- **ESLint Rule**: The `no-restricted-imports` rule in [.eslintrc.json](file:///home/ekwe/grantfox/stellopay-frontend/.eslintrc.json) blocks imports from restricted packages.
+- **CI Guard Test**: [import-guard.test.ts](file:///home/ekwe/grantfox/stellopay-frontend/utils/import-guard.test.ts) scans all source files in `app/` and `components/` to verify no prohibited icon libraries are referenced.
+
+## Iconography
+
+To keep the application's bundle light and ensure visual consistency, the project consolidates all UI icons onto **Lucide React** (`lucide-react`) as the single primary icon set.
+
+### Guidelines
+- **Primary Set**: Use `lucide-react` for all UI icons.
+- **Custom / Brand Icons**: For brand logos or unique custom shapes (e.g., `StellOpayLogo`, `StellarIcon`), use raw SVG components located in [public/svg/svg.tsx](file:///home/ekwe/grantfox/stellopay-frontend/public/svg/svg.tsx) or local custom components.
+- **Restricted Libraries**: Do NOT import from `react-icons`, `@hugeicons/react`, or `@hugeicons/core-free-icons`.
+
+### Guardrails
+- **ESLint Rule**: The `no-restricted-imports` rule in [.eslintrc.json](file:///home/ekwe/grantfox/stellopay-frontend/.eslintrc.json) blocks imports from restricted packages.
+- **CI Guard Test**: [import-guard.test.ts](file:///home/ekwe/grantfox/stellopay-frontend/utils/import-guard.test.ts) scans all source files in `app/` and `components/` to verify no prohibited icon libraries are referenced.
+
+## CI Pipeline
+
 ### Running a single browser locally
 
 Pass `--project=<name>` to target one browser:

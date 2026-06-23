@@ -1,58 +1,104 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { X, Loader2 } from "lucide-react";
 
 type StatusType = "idle" | "loading" | "success" | "error";
-
-/**
- * Keeps the verification code limited to numeric characters and six digits.
- * The entered code is never logged or exposed outside component state.
- */
-const normalizeVerificationCode = (value: string) =>
-  value.replace(/\D/g, "").slice(0, 6);
+const OTP_LENGTH = 6;
+const RESEND_COOLDOWN_SECONDS = 30;
 
 export default function VerifyEmail() {
-  const [code, setCode] = useState("");
+  const [code, setCode] = useState<string[]>(Array(OTP_LENGTH).fill(""));
   const router = useRouter();
   const [status, setStatus] = useState<StatusType>("idle");
   const [message, setMessage] = useState("");
   const [codeError, setCodeError] = useState("");
   const [resendStatus, setResendStatus] = useState<StatusType>("idle");
+  const [cooldown, setCooldown] = useState(0);
+  const inputRefs = useRef<Array<HTMLInputElement | null>>([]);
+  const codeValue = code.join("");
 
-  const codeInputId = "verification-code";
   const codeHelpId = "verification-code-help";
   const codeErrorId = "verification-code-error";
-  const codeDescriptionIds = codeError
-    ? `${codeHelpId} ${codeErrorId}`
-    : codeHelpId;
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const rawValue = e.target.value;
-    const numericValue = rawValue.replace(/\D/g, "");
-    const normalizedValue = normalizeVerificationCode(rawValue);
+  useEffect(() => {
+    if (cooldown === 0) return;
 
-    setCode(normalizedValue);
+    const timerId = window.setInterval(() => {
+      setCooldown((seconds) => Math.max(0, seconds - 1));
+    }, 1000);
 
-    if (rawValue !== numericValue) {
-      setCodeError("Verification codes can only contain numbers.");
-    } else if (numericValue.length > 6) {
-      setCodeError("Verification codes are 6 digits. Extra digits were removed.");
-    } else if (normalizedValue.length > 0 && normalizedValue.length < 6) {
-      setCodeError("Enter the full 6-digit verification code.");
-    } else {
-      setCodeError("");
+    return () => window.clearInterval(timerId);
+  }, [cooldown]);
+
+  const updateCodeAt = (index: number, value: string) => {
+    const nextValue = value.replace(/[^0-9a-zA-Z]/g, "").slice(-1);
+    setCode((current) => {
+      const next = [...current];
+      next[index] = nextValue;
+      return next;
+    });
+
+    if (nextValue && index < OTP_LENGTH - 1) {
+      inputRefs.current[index + 1]?.focus();
     }
   };
 
+  const handleInputChange = (
+    index: number,
+    e: React.ChangeEvent<HTMLInputElement>,
+  ) => {
+    updateCodeAt(index, e.target.value);
+  };
+
+  const handleKeyDown = (
+    index: number,
+    e: React.KeyboardEvent<HTMLInputElement>,
+  ) => {
+    if (e.key === "Backspace" && !code[index] && index > 0) {
+      inputRefs.current[index - 1]?.focus();
+      return;
+    }
+
+    if (e.key === "ArrowLeft" && index > 0) {
+      e.preventDefault();
+      inputRefs.current[index - 1]?.focus();
+    }
+
+    if (e.key === "ArrowRight" && index < OTP_LENGTH - 1) {
+      e.preventDefault();
+      inputRefs.current[index + 1]?.focus();
+    }
+  };
+
+  const handlePaste = (e: React.ClipboardEvent<HTMLInputElement>) => {
+    e.preventDefault();
+    const pastedCode = e.clipboardData
+      .getData("text")
+      .replace(/[^0-9a-zA-Z]/g, "")
+      .slice(0, OTP_LENGTH)
+      .split("");
+
+    if (pastedCode.length === 0) return;
+
+    setCode([
+      ...pastedCode,
+      ...Array(OTP_LENGTH - pastedCode.length).fill(""),
+    ]);
+    inputRefs.current[Math.min(pastedCode.length, OTP_LENGTH) - 1]?.focus();
+  };
+
   const handleResend = async () => {
+    if (cooldown > 0 || resendStatus === "loading") return;
+
     setResendStatus("loading");
     setMessage("");
     try {
       // Simulate API call
       await new Promise((resolve) => setTimeout(resolve, 1500));
       setResendStatus("success");
+      setCooldown(RESEND_COOLDOWN_SECONDS);
       setMessage("Verification code resent to your email.");
     } catch {
       setResendStatus("error");
@@ -63,7 +109,9 @@ export default function VerifyEmail() {
   };
 
   const handleContinue = async () => {
-    if (code.length !== 6) {
+    if (codeValue.length !== OTP_LENGTH) {
+      setStatus("error");
+      setMessage("Enter the 6-character verification code.");
       setCodeError("Enter the full 6-digit verification code.");
       return;
     }
@@ -75,7 +123,7 @@ export default function VerifyEmail() {
       // Simulate API call
       await new Promise((resolve, reject) =>
         setTimeout(() => {
-          if (code === "123456") {
+          if (codeValue === "123456") {
             resolve(null);
           } else {
             reject(new Error("Invalid code"));
@@ -113,38 +161,54 @@ export default function VerifyEmail() {
           Didn&apos;t get code?{" "}
           <button
             onClick={handleResend}
-            disabled={resendStatus === "loading"}
+            disabled={resendStatus === "loading" || cooldown > 0}
             className="text-white font-semibold underline cursor-pointer disabled:opacity-50"
+            aria-describedby="resend-status"
           >
             {resendStatus === "loading" ? (
               <>
                 <Loader2 className="inline h-4 w-4 mr-1 animate-spin" />
                 Sending...
               </>
-            ) : (
-              "Resend"
-            )}
+            ) : cooldown > 0 ? (
+              `Resend in ${cooldown}s`
+            ) : "Resend"}
           </button>
         </p>
+        <p id="resend-status" aria-live="polite" className="sr-only">
+          {cooldown > 0
+            ? `You can request a new code in ${cooldown} seconds.`
+            : "You can request a new verification code."}
+        </p>
 
-        {/* Input */}
-        <label htmlFor={codeInputId} className="sr-only">
-          Verification code
-        </label>
-        <input
-          id={codeInputId}
-          name="verificationCode"
-          type="text"
-          inputMode="numeric"
-          required
-          value={code}
-          onChange={handleInputChange}
-          aria-label="Verification code"
-          aria-describedby={codeDescriptionIds}
-          aria-invalid={codeError ? "true" : "false"}
-          className="w-full text-left py-3 px-4 rounded-[8px] border border-[#2D2D2D] bg-transparent text-white mb-2 outline-none mt-5"
-          placeholder="- - - - - - - -"
-        />
+        {/* OTP input */}
+        <fieldset className="mt-5 mb-2">
+          <legend className="sr-only">Verification code</legend>
+          <div className="grid grid-cols-6 gap-2">
+            {code.map((value, index) => (
+              <input
+                key={index}
+                ref={(node) => {
+                  inputRefs.current[index] = node;
+                }}
+                type="text"
+                inputMode="text"
+                autoComplete={index === 0 ? "one-time-code" : "off"}
+                maxLength={1}
+                value={value}
+                onChange={(event) => handleInputChange(index, event)}
+                onKeyDown={(event) => handleKeyDown(index, event)}
+                onPaste={handlePaste}
+                aria-label={`Verification code character ${index + 1}`}
+                aria-describedby={
+                  codeError ? `${codeHelpId} ${codeErrorId}` : codeHelpId
+                }
+                aria-invalid={codeError ? "true" : "false"}
+                className="h-12 rounded-[8px] border border-[#2D2D2D] bg-transparent text-center text-lg font-semibold text-white outline-none focus:border-[#F8D2FE] focus:ring-1 focus:ring-[#F8D2FE]"
+              />
+            ))}
+          </div>
+        </fieldset>
         <p id={codeHelpId} className="text-left text-xs text-[#ACB4B5] mb-2">
           Enter the 6-digit code sent to your email.
         </p>
@@ -179,9 +243,9 @@ export default function VerifyEmail() {
         {/* Continue Button */}
         <button
           onClick={handleContinue}
-          disabled={code.length !== 6 || status === "loading"}
+          disabled={codeValue.length !== OTP_LENGTH || status === "loading"}
           className={`w-full py-3 px-4 rounded-[8px] bg-[#FFFFFF] text-black font-medium transition mt-2 flex items-center justify-center gap-2 ${
-            code.length === 6 && status !== "loading"
+            codeValue.length === OTP_LENGTH && status !== "loading"
               ? "cursor-pointer"
               : "opacity-80 cursor-not-allowed"
           }`}
