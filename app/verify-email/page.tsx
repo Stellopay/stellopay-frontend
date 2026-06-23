@@ -13,10 +13,14 @@ export default function VerifyEmail() {
   const router = useRouter();
   const [status, setStatus] = useState<StatusType>("idle");
   const [message, setMessage] = useState("");
+  const [codeError, setCodeError] = useState("");
   const [resendStatus, setResendStatus] = useState<StatusType>("idle");
   const [cooldown, setCooldown] = useState(0);
   const inputRefs = useRef<Array<HTMLInputElement | null>>([]);
   const codeValue = code.join("");
+
+  const codeHelpId = "verification-code-help";
+  const codeErrorId = "verification-code-error";
 
   useEffect(() => {
     if (cooldown === 0) return;
@@ -108,11 +112,13 @@ export default function VerifyEmail() {
     if (codeValue.length !== OTP_LENGTH) {
       setStatus("error");
       setMessage("Enter the 6-character verification code.");
+      setCodeError("Enter the full 6-digit verification code.");
       return;
     }
 
     setStatus("loading");
     setMessage("");
+    setCodeError("");
     try {
       // Simulate API call
       await new Promise((resolve, reject) =>
@@ -129,6 +135,7 @@ export default function VerifyEmail() {
     } catch {
       setStatus("error");
       setMessage("Invalid verification code. Please try again.");
+      setCodeError("Invalid verification code. Please try again.");
     } finally {
       setTimeout(() => setStatus("idle"), 3000);
     }
@@ -175,7 +182,7 @@ export default function VerifyEmail() {
         </p>
 
         {/* OTP input */}
-        <fieldset className="mt-5 mb-4">
+        <fieldset className="mt-5 mb-2">
           <legend className="sr-only">Verification code</legend>
           <div className="grid grid-cols-6 gap-2">
             {code.map((value, index) => (
@@ -193,11 +200,28 @@ export default function VerifyEmail() {
                 onKeyDown={(event) => handleKeyDown(index, event)}
                 onPaste={handlePaste}
                 aria-label={`Verification code character ${index + 1}`}
+                aria-describedby={
+                  codeError ? `${codeHelpId} ${codeErrorId}` : codeHelpId
+                }
+                aria-invalid={codeError ? "true" : "false"}
                 className="h-12 rounded-[8px] border border-[#2D2D2D] bg-transparent text-center text-lg font-semibold text-white outline-none focus:border-[#F8D2FE] focus:ring-1 focus:ring-[#F8D2FE]"
               />
             ))}
           </div>
         </fieldset>
+        <p id={codeHelpId} className="text-left text-xs text-[#ACB4B5] mb-2">
+          Enter the 6-digit code sent to your email.
+        </p>
+        {codeError && (
+          <p
+            id={codeErrorId}
+            role="alert"
+            aria-live="polite"
+            className="text-left text-xs text-red-300 mb-4"
+          >
+            {codeError}
+          </p>
+        )}
 
         {/* Status Messages */}
         {message && (
