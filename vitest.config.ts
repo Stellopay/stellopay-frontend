@@ -7,7 +7,10 @@ const repoRoot = fileURLToPath(new URL(".", import.meta.url));
 export default defineConfig({
   plugins: [react()],
   css: {
-    postcss: false,
+    // Empty inline PostCSS config: skips the project's Tailwind/PostCSS
+    // pipeline during unit tests without tripping Vite's css.postcss types
+    // (which accept a config object, not a boolean).
+    postcss: { plugins: [] },
   },
   resolve: {
     alias: {
