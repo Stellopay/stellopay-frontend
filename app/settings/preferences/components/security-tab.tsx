@@ -46,15 +46,41 @@ interface StatusState {
   type: "success" | "error" | null;
 }
 
+/** Default two-factor state, exported so a parent can own the same initial value. */
+export const DEFAULT_TWO_FACTOR_ENABLED = true;
+
+interface SecurityTabProps {
+  /**
+   * Controlled two-factor state. When provided the component renders this value
+   * and reports changes through `onTwoFactorEnabledChange`. When omitted the
+   * section manages its own internal state (standalone use).
+   */
+  twoFactorEnabled?: boolean;
+  onTwoFactorEnabledChange?: (next: boolean) => void;
+}
+
 /**
  * SecurityTab component.
  * Renders security-sensitive forms (password updates, two-factor authentication, active sessions).
  * Uses placeholder demo data pending full backend API integration.
  */
-export default function SecurityTab() {
+export default function SecurityTab({
+  twoFactorEnabled: controlledTwoFactor,
+  onTwoFactorEnabledChange,
+}: SecurityTabProps = {}) {
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
-  const [twoFactorEnabled, setTwoFactorEnabled] = useState(true);
+  const [internalTwoFactor, setInternalTwoFactor] = useState(
+    DEFAULT_TWO_FACTOR_ENABLED,
+  );
+  const twoFactorEnabled = controlledTwoFactor ?? internalTwoFactor;
+  const setTwoFactorEnabled = (next: boolean) => {
+    if (onTwoFactorEnabledChange) {
+      onTwoFactorEnabledChange(next);
+    } else {
+      setInternalTwoFactor(next);
+    }
+  };
   const [loginApprovalEnabled, setLoginApprovalEnabled] = useState(true);
   const [transferApprovalEnabled, setTransferApprovalEnabled] = useState(true);
   const [status, setStatus] = useState<StatusState>({ message: "", type: null });

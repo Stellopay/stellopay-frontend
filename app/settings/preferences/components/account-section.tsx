@@ -19,13 +19,44 @@ import DestructiveActionDialog from "./destructive-action-dialog";
 import { DEMO_PROFILE } from "@/lib/demo-data";
 import { isValidEmail } from "@/utils/authUtils";
 
-interface ProfileState {
+export interface ProfileState {
   firstName: string;
   lastName: string;
   displayName: string;
   email: string;
   timezone: string;
   currency: string;
+}
+
+/**
+ * Default profile values seeded from demo data. Exported so a parent surface
+ * (e.g. the settings summary cards) can own the same initial state when it
+ * lifts this section into a controlled component.
+ */
+export const DEFAULT_PROFILE: ProfileState = {
+  firstName: DEMO_PROFILE.firstName,
+  lastName: DEMO_PROFILE.lastName,
+  displayName: DEMO_PROFILE.displayName,
+  email: DEMO_PROFILE.email,
+  timezone: DEMO_PROFILE.timezone,
+  currency: DEMO_PROFILE.currency,
+};
+
+/** Number of profile fields that have a non-empty value. */
+export function countCompletedProfileFields(profile: ProfileState): number {
+  return (Object.values(profile) as string[]).filter(
+    (value) => value.trim().length > 0,
+  ).length;
+}
+
+/** Total number of profile fields tracked. */
+export function totalProfileFields(profile: ProfileState): number {
+  return Object.keys(profile).length;
+}
+
+/** A profile is "complete" once every tracked field is filled in. */
+export function isProfileComplete(profile: ProfileState): boolean {
+  return countCompletedProfileFields(profile) === totalProfileFields(profile);
 }
 
 interface StatusState {
@@ -61,15 +92,23 @@ const sectionMap = [
  * Renders user profile information, identity details, and regional settings.
  * Uses placeholder demo data pending full backend API integration.
  */
-export default function AccountSection() {
-  const [profile, setProfile] = useState<ProfileState>({
-    firstName: DEMO_PROFILE.firstName,
-    lastName: DEMO_PROFILE.lastName,
-    displayName: DEMO_PROFILE.displayName,
-    email: DEMO_PROFILE.email,
-    timezone: DEMO_PROFILE.timezone,
-    currency: DEMO_PROFILE.currency,
-  });
+interface AccountSectionProps {
+  /**
+   * Controlled profile state. When provided the component renders this value
+   * and reports edits through `onProfileChange`. When omitted the section
+   * manages its own internal state (standalone use).
+   */
+  profile?: ProfileState;
+  onProfileChange?: (next: ProfileState) => void;
+}
+
+export default function AccountSection({
+  profile: controlledProfile,
+  onProfileChange,
+}: AccountSectionProps = {}) {
+  const [internalProfile, setInternalProfile] =
+    useState<ProfileState>(DEFAULT_PROFILE);
+  const profile = controlledProfile ?? internalProfile;
   const [status, setStatus] = useState<StatusState>({
     message: "",
     type: null,
@@ -112,10 +151,12 @@ export default function AccountSection() {
   };
 
   const updateProfileField = (field: keyof ProfileState, value: string) => {
-    setProfile((currentProfile) => ({
-      ...currentProfile,
-      [field]: value,
-    }));
+    const next: ProfileState = { ...profile, [field]: value };
+    if (onProfileChange) {
+      onProfileChange(next);
+    } else {
+      setInternalProfile(next);
+    }
   };
 
   /**
