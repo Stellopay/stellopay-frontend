@@ -10,6 +10,7 @@ const AnalyticsViews = dynamic(() => import("./analytics-view"), {
   ssr: false,
 });
 
+
 /**
  * ClientAnalyticsView wrapper that dynamically loads the heavy recharts-based
  * AnalyticsViews component on the client-side with an accessible skeleton loader.

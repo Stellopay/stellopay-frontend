@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import { Camera, Loader2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
@@ -14,6 +14,7 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { FormMessage } from "@/components/ui/form";
 import DestructiveActionDialog from "./destructive-action-dialog";
 import { DEMO_PROFILE } from "@/lib/demo-data";
 import { isValidEmail } from "@/utils/authUtils";
@@ -69,15 +70,46 @@ export default function AccountSection() {
     timezone: DEMO_PROFILE.timezone,
     currency: DEMO_PROFILE.currency,
   });
-  const [status, setStatus] = useState<StatusState>({ message: "", type: null });
+  const [status, setStatus] = useState<StatusState>({
+    message: "",
+    type: null,
+  });
   const [isSaving, setIsSaving] = useState(false);
   const [isEmailTouched, setIsEmailTouched] = useState(false);
+  const statusTimeoutRef = useRef<number | null>(null);
+  const isMountedRef = useRef(true);
 
   // Trim before validating so incidental whitespace can neither defeat
   // isValidEmail() nor end up persisted in a form the user never typed.
   const normalizedEmail = profile.email.trim();
   const isEmailValid = isValidEmail(normalizedEmail);
   const showEmailError = isEmailTouched && !isEmailValid;
+
+  useEffect(() => {
+    return () => {
+      isMountedRef.current = false;
+      if (statusTimeoutRef.current) {
+        window.clearTimeout(statusTimeoutRef.current);
+      }
+    };
+  }, []);
+
+  const clearQueuedStatusReset = () => {
+    if (statusTimeoutRef.current) {
+      window.clearTimeout(statusTimeoutRef.current);
+      statusTimeoutRef.current = null;
+    }
+  };
+
+  const queueStatusReset = () => {
+    clearQueuedStatusReset();
+    statusTimeoutRef.current = window.setTimeout(() => {
+      if (isMountedRef.current) {
+        setStatus({ message: "", type: null });
+      }
+      statusTimeoutRef.current = null;
+    }, 5000);
+  };
 
   const updateProfileField = (field: keyof ProfileState, value: string) => {
     setProfile((currentProfile) => ({
@@ -126,28 +158,38 @@ export default function AccountSection() {
 
     setIsSaving(true);
     setStatus({ message: "", type: null });
+    clearQueuedStatusReset();
     try {
       // Simulate async API call
-      await new Promise((resolve, reject) => setTimeout(() => {
-        // Simulate occasional failure for testing
-        if (Math.random() > 0.8) {
-          reject(new Error("Failed to save"));
-        } else {
-          resolve(null);
-        }
-      }, 1500));
-      setStatus({
-        message: "Account profile changes are staged and ready for backend save.",
-        type: "success",
-      });
+      await new Promise((resolve, reject) =>
+        setTimeout(() => {
+          // Simulate occasional failure for testing
+          if (Math.random() > 0.8) {
+            reject(new Error("Failed to save"));
+          } else {
+            resolve(null);
+          }
+        }, 1500),
+      );
+      if (isMountedRef.current) {
+        setStatus({
+          message:
+            "Account profile changes are staged and ready for backend save.",
+          type: "success",
+        });
+      }
     } catch {
-      setStatus({
-        message: "Failed to save changes. Please try again.",
-        type: "error",
-      });
+      if (isMountedRef.current) {
+        setStatus({
+          message: "Failed to save changes. Please try again.",
+          type: "error",
+        });
+      }
     } finally {
-      setIsSaving(false);
-      setTimeout(() => setStatus({ message: "", type: null }), 5000);
+      if (isMountedRef.current) {
+        setIsSaving(false);
+        queueStatusReset();
+      }
     }
   };
 
@@ -269,14 +311,16 @@ export default function AccountSection() {
                   : "border-destructive/20 bg-destructive/10"
               }`}
             >
-              <p
-                role="alert"
-                className={`text-sm ${
-                  status.type === "success" ? "text-success" : "text-destructive"
-                }`}
+              <FormMessage
+                variant={status.type === "success" ? "success" : "error"}
+                className={
+                  status.type === "success"
+                    ? "text-success"
+                    : "text-destructive"
+                }
               >
                 {status.message}
-              </p>
+              </FormMessage>
             </div>
           )}
 
@@ -369,7 +413,8 @@ export default function AccountSection() {
               confirmLabel="Confirm deactivation"
               onConfirm={() =>
                 setStatus({
-                  message: "Deactivation request captured. Keep this action gated until backend approval exists.",
+                  message:
+                    "Deactivation request captured. Keep this action gated until backend approval exists.",
                   type: "success",
                 })
               }

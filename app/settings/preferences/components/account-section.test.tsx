@@ -1,7 +1,36 @@
-import { render, screen, fireEvent, waitFor } from "@testing-library/react";
-import { describe, expect, it, vi, afterEach } from "vitest";
+import React from "react";
+import {
+  act,
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+} from "@testing-library/react";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import AccountSection from "./account-section";
+
+vi.mock("next/image", () => ({
+  default: ({
+    alt,
+    priority: _priority,
+    ...props
+  }: React.ImgHTMLAttributes<HTMLImageElement> & { priority?: boolean }) => (
+    // eslint-disable-next-line @next/next/no-img-element
+    <img alt={alt} {...props} />
+  ),
+}));
+
+vi.mock("@/components/ui/form", () => ({
+  FormMessage: ({
+    children,
+    className,
+  }: {
+    children: React.ReactNode;
+    className?: string;
+  }) => <p className={className}>{children}</p>,
+}));
 
 const getEmailInput = () => screen.getByLabelText("Email address");
 const getSaveButton = () =>
@@ -159,5 +188,100 @@ describe("AccountSection email validation", () => {
     expect(screen.getByLabelText("Display name")).toHaveValue("Ada L.");
     expect(screen.getByLabelText("Timezone")).toHaveValue("UTC");
     expect(screen.getByLabelText("Settlement currency")).toHaveValue("EUR");
+  });
+});
+
+describe("AccountSection status timeout lifecycle", () => {
+  beforeEach(() => {
+    vi.useFakeTimers();
+    vi.spyOn(Math, "random").mockReturnValue(0.1);
+  });
+
+  afterEach(() => {
+    cleanup();
+    vi.restoreAllMocks();
+    vi.useRealTimers();
+  });
+
+  it("clears the profile-save status message after the queued timeout", async () => {
+    render(<AccountSection />);
+
+    fireEvent.click(
+      screen.getByRole("button", { name: /save account changes/i }),
+    );
+
+    await act(async () => {
+      vi.advanceTimersByTime(1500);
+    });
+
+    expect(
+      screen.getByText(
+        "Account profile changes are staged and ready for backend save.",
+      ),
+    ).toBeInTheDocument();
+
+    act(() => {
+      vi.advanceTimersByTime(4999);
+    });
+    expect(
+      screen.getByText(
+        "Account profile changes are staged and ready for backend save.",
+      ),
+    ).toBeInTheDocument();
+
+    act(() => {
+      vi.advanceTimersByTime(1);
+    });
+    expect(
+      screen.queryByText(
+        "Account profile changes are staged and ready for backend save.",
+      ),
+    ).not.toBeInTheDocument();
+  });
+
+  it("clears the queued status timeout when the section unmounts", async () => {
+    const clearTimeoutSpy = vi.spyOn(window, "clearTimeout");
+    const { unmount } = render(<AccountSection />);
+
+    fireEvent.click(
+      screen.getByRole("button", { name: /save account changes/i }),
+    );
+
+    await act(async () => {
+      vi.advanceTimersByTime(1500);
+    });
+
+    expect(
+      screen.getByText(
+        "Account profile changes are staged and ready for backend save.",
+      ),
+    ).toBeInTheDocument();
+
+    unmount();
+
+    expect(clearTimeoutSpy).toHaveBeenCalled();
+
+    act(() => {
+      vi.advanceTimersByTime(5000);
+    });
+  });
+
+  it("does not schedule a status reset after unmounting during save", async () => {
+    const setTimeoutSpy = vi.spyOn(window, "setTimeout");
+    const { unmount } = render(<AccountSection />);
+
+    fireEvent.click(
+      screen.getByRole("button", { name: /save account changes/i }),
+    );
+    unmount();
+
+    await act(async () => {
+      vi.advanceTimersByTime(1500);
+    });
+
+    const resetTimers = setTimeoutSpy.mock.calls.filter(
+      ([, delay]) => delay === 5000,
+    );
+    expect(resetTimers).toHaveLength(0);
   });
 });
