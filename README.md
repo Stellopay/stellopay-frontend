@@ -2,6 +2,10 @@ This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-
 
 Please see our [Contributing Guide](CONTRIBUTING.md) for details on project structure, the data-layer pattern, testing, and conventions.
 
+## Routing
+
+This project is **App-Router-only**. All routes, layouts, and pages live under `app/`; the legacy `pages/` directory was removed (#290). Do not add a `pages/` directory.
+
 ## Getting Started
 
 First, run the development server:
@@ -24,7 +28,7 @@ This project uses [`next/font`](https://nextjs.org/docs/app/building-your-applic
 
 ## Wallet and network state
 
-The connected wallet and the active network live in a single React context, `WalletProvider`, declared in `context/wallet-context.tsx`. The provider is wrapped around the entire app in both the App Router (`app/layout.tsx`) and the Pages Router (`pages/_app.tsx`), so every surface that needs to know which account or network is active reads from the same source of truth.
+The connected wallet and the active network live in a single React context, `WalletProvider`, declared in `context/wallet-context.tsx`. The provider is wrapped around the entire app in the App Router (`app/layout.tsx`), so every surface that needs to know which account or network is active reads from the same source of truth.
 
 Read the context with the `useWallet` hook. Calling it outside of a `WalletProvider` throws an explicit error, which makes provider wiring issues fail loudly during development instead of silently rendering placeholder data.
 
@@ -298,7 +302,7 @@ queue up.
 We implemented target performance optimizations across the landing page and dashboard to improve First Paint, LCP (Largest Contentful Paint), and TBT (Total Blocking Time).
 
 ### Key Changes
-1. **Below-the-Fold Dynamic Imports**: Code-split `HowItWorks`, `EnterpriseSolutionSection`, and `FAQSection` on the landing page ([pages/landing/index.tsx](file:///home/henry/projects/open-source/stellopay-frontend/pages/landing/index.tsx)) using `next/dynamic` to keep the initial HTML payload lightweight.
+1. **Below-the-Fold Dynamic Imports**: Code-split `HowItWorks`, `EnterpriseSolutionSection`, and `FAQSection` on the landing page ([components/landing/landing-page.tsx](components/landing/landing-page.tsx)) using `next/dynamic` to keep the initial HTML payload lightweight.
 2. **Chart & Insights Code-Splitting**: Dynamically loaded the recharts-heavy component ([AnalyticsViews](file:///home/henry/projects/open-source/stellopay-frontend/components/analytics/client-analytics-view.tsx)) and KPI metrics ([AnalyticsInsights](file:///home/henry/projects/open-source/stellopay-frontend/components/dashboard/dashboard-page.tsx)) with structural skeleton fallbacks equipped with accessibility attributes (`aria-busy="true"` and `aria-live="polite"`).
 3. **Optimized Layout Animations**: Replaced `framer-motion` JS-driven layout width transitions on the sidebar container ([components/common/side-bar.tsx](file:///home/henry/projects/open-source/stellopay-frontend/components/common/side-bar.tsx)) with pure CSS grid animations to prevent layout thrashing and lower Total Blocking Time (TBT).
 4. **Hero Image Optimization**: Upgraded native `img` tags for the network logo assets inside the above-the-fold Hero component ([components/landing/hero.tsx](file:///home/henry/projects/open-source/stellopay-frontend/components/landing/hero.tsx)) to Next.js `Image` components with explicit dimensions.
