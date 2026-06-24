@@ -1,6 +1,11 @@
 import { describe, expect, it } from "vitest";
 
-import { loginSchema, signUpSchema } from "@/types/auth";
+import {
+  loginSchema,
+  passwordPolicy,
+  passwordSchema,
+  signUpSchema,
+} from "@/types/auth";
 
 const validSignUp = {
   fullName: "Ada Lovelace",
@@ -12,7 +17,7 @@ const validSignUp = {
 
 const validLogin = {
   email: "ada@example.com",
-  password: "password",
+  password: "Password@1",
 };
 
 function issuesFor(
@@ -48,6 +53,34 @@ function withoutField<T extends object>(
   return payloadWithoutField;
 }
 
+describe("shared password policy", () => {
+  it("exports a shared password schema and policy for all auth forms", () => {
+    expect(passwordPolicy.rules).toHaveLength(3);
+    expect(passwordSchema.safeParse("Password@1").success).toBe(true);
+    expect(passwordSchema.safeParse("password").success).toBe(false);
+  });
+
+  it.each([
+    {
+      rule: passwordPolicy.rules[0],
+      password: "Pass@1",
+    },
+    {
+      rule: passwordPolicy.rules[1],
+      password: "password@1",
+    },
+    {
+      rule: passwordPolicy.rules[2],
+      password: "Password1",
+    },
+  ])("surfaces the shared $rule.id policy message", ({ rule, password }) => {
+    const result = passwordSchema.safeParse(password);
+
+    expect(result.success).toBe(false);
+    expect(result.error?.issues[0]?.message).toBe(rule.message);
+  });
+});
+
 describe("signUpSchema", () => {
   it("accepts a valid signup with matching passwords and accepted terms", () => {
     expect(signUpSchema.safeParse(validSignUp).success).toBe(true);
@@ -76,51 +109,48 @@ describe("signUpSchema", () => {
 
   it("rejects an invalid email with the configured message", () => {
     expect(
-      issueFor(signUpSchema, { ...validSignUp, email: "not-an-email" }, "email"),
+      issueFor(
+        signUpSchema,
+        { ...validSignUp, email: "not-an-email" },
+        "email",
+      ),
     ).toMatchObject({
       path: ["email"],
       message: "Please enter a valid email address.",
     });
   });
 
-  it("rejects passwords shorter than eight characters with the configured message", () => {
-    expect(
-      issueFor(
-        signUpSchema,
-        { ...validSignUp, password: "seven77", confirmPassword: "seven77" },
-        "password",
-      ),
-    ).toMatchObject({
-      path: ["password"],
-      message: "Password must be at least 8 characters.",
-    });
-  });
-
-  it("rejects passwords missing an uppercase letter with the configured message", () => {
-    expect(
-      issueFor(
-        signUpSchema,
-        { ...validSignUp, password: "password@1", confirmPassword: "password@1" },
-        "password",
-      ),
-    ).toMatchObject({
-      path: ["password"],
-      message: "Password must include at least one uppercase letter.",
-    });
-  });
-
-  it("rejects passwords missing a special character with the configured message", () => {
-    expect(
-      issueFor(
-        signUpSchema,
-        { ...validSignUp, password: "Password1", confirmPassword: "Password1" },
-        "password",
-      ),
-    ).toMatchObject({
-      path: ["password"],
-      message: "Password must include at least one special character.",
-    });
-  });
+  it.each([
+    {
+      name: "minimum length",
+      password: "seven77",
+      message: passwordPolicy.rules[0].message,
+    },
+    {
+      name: "uppercase letter",
+      password: "password@1",
+      message: passwordPolicy.rules[1].message,
+    },
+    {
+      name: "special character",
+      password: "Password1",
+      message: passwordPolicy.rules[2].message,
+    },
+  ])(
+    "rejects passwords missing a $name rule with the shared policy message",
+    ({ password, message }) => {
+      expect(
+        issueFor(
+          signUpSchema,
+          { ...validSignUp, password, confirmPassword: password },
+          "password",
+        ),
+      ).toMatchObject({
+        path: ["password"],
+        message,
+      });
+    },
+  );
 
   it("rejects mismatched confirmation passwords on confirmPassword", () => {
     expect(
@@ -199,26 +229,28 @@ describe("signUpSchema", () => {
       path: "agreeToTerms",
       payload: { ...validSignUp, agreeToTerms: "true" },
     },
-  ])("rejects $name with invalid_type on the field path", ({ payload, path }) => {
-    expect(issueFor(signUpSchema, payload, path)).toMatchObject({
-      path: [path],
-      code: "invalid_type",
-    });
-  });
-
+  ])(
+    "rejects $name with invalid_type on the field path",
+    ({ payload, path }) => {
+      expect(issueFor(signUpSchema, payload, path)).toMatchObject({
+        path: [path],
+        code: "invalid_type",
+      });
+    },
+  );
 });
 
 describe("loginSchema", () => {
   it("accepts valid login data with rememberMe true", () => {
-    expect(loginSchema.safeParse({ ...validLogin, rememberMe: true }).success).toBe(
-      true,
-    );
+    expect(
+      loginSchema.safeParse({ ...validLogin, rememberMe: true }).success,
+    ).toBe(true);
   });
 
   it("accepts valid login data with rememberMe false", () => {
-    expect(loginSchema.safeParse({ ...validLogin, rememberMe: false }).success).toBe(
-      true,
-    );
+    expect(
+      loginSchema.safeParse({ ...validLogin, rememberMe: false }).success,
+    ).toBe(true);
   });
 
   it("rejects invalid login emails with the configured message", () => {
@@ -234,7 +266,7 @@ describe("loginSchema", () => {
     });
   });
 
-  it("rejects short login passwords with the configured message", () => {
+  it("rejects short login passwords with the shared minimum-length message", () => {
     expect(
       issueFor(
         loginSchema,
@@ -243,7 +275,7 @@ describe("loginSchema", () => {
       ),
     ).toMatchObject({
       path: ["password"],
-      message: "Password must be at least 8 characters.",
+      message: passwordPolicy.rules[0].message,
     });
   });
 
@@ -268,12 +300,15 @@ describe("loginSchema", () => {
       path: "password",
       payload: { ...validLogin, password: 42, rememberMe: true },
     },
-  ])("rejects $name with invalid_type on the field path", ({ payload, path }) => {
-    expect(issueFor(loginSchema, payload, path)).toMatchObject({
-      path: [path],
-      code: "invalid_type",
-    });
-  });
+  ])(
+    "rejects $name with invalid_type on the field path",
+    ({ payload, path }) => {
+      expect(issueFor(loginSchema, payload, path)).toMatchObject({
+        path: [path],
+        code: "invalid_type",
+      });
+    },
+  );
 
   it("rejects missing rememberMe", () => {
     expect(issueFor(loginSchema, validLogin, "rememberMe")).toMatchObject({
@@ -284,7 +319,11 @@ describe("loginSchema", () => {
 
   it("rejects non-boolean rememberMe", () => {
     expect(
-      issueFor(loginSchema, { ...validLogin, rememberMe: "true" }, "rememberMe"),
+      issueFor(
+        loginSchema,
+        { ...validLogin, rememberMe: "true" },
+        "rememberMe",
+      ),
     ).toMatchObject({
       path: ["rememberMe"],
       code: "invalid_type",
