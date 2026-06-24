@@ -150,8 +150,39 @@ stellopay-frontend
 ├─ tsconfig.json
 └─ types
    └─ NotificationItem.tsx
-
 ```
+
+## Design Resources
+
+- **Main Figma Design Workspace**: See [design/figma-design.txt](design/figma-design.txt) for all page-specific layouts (Dashboard, Settings, Help/Support, etc.)
+- **Landing Page Redesign Figma Link**: [Figma Link](https://www.figma.com/design/J4X2XvMo8knspQEEQbHoDN/Stellopay-Landing-page?node-id=0-1&t=edynl8rBO0dXUrXp-1)
+
+## Theme System & Dark Mode
+
+The application uses a context-based theme system with Tailwind CSS and local storage persistence.
+
+### Architecture & Usage
+The context provider is configured in `context/theme-context.tsx` and wraps the root layout in `app/layout.tsx`.
+
+You can access and toggle the theme programmatically in components using the custom hook:
+
+```tsx
+import { useTheme } from "@/context/theme-context";
+
+export default function MyComponent() {
+  const { theme, toggleTheme, setTheme } = useTheme();
+  
+  // Access current theme ("light" or "dark")
+  console.log(theme);
+  
+  // Toggle between light and dark themes
+  return <button onClick={toggleTheme}>Toggle Theme</button>;
+}
+```
+
+- **Theme Toggle UI**: Located in the top-right corner within `components/landing/navbar.tsx`.
+- **System Preference**: Falls back to the system's preferred color scheme if no preference is stored in `localStorage`.
+- **Tailwind Integration**: Utilizes Tailwind's native `dark:` modifier (e.g. `bg-white dark:bg-zinc-900`) for styling.
 
 ## Testing
 
