@@ -1,8 +1,9 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { X, Loader2 } from "lucide-react";
+import { useCountdown } from "@/hooks/useCountdown";
 
 type StatusType = "idle" | "loading" | "success" | "error";
 const OTP_LENGTH = 6;
@@ -15,22 +16,12 @@ export default function VerifyEmail() {
   const [message, setMessage] = useState("");
   const [codeError, setCodeError] = useState("");
   const [resendStatus, setResendStatus] = useState<StatusType>("idle");
-  const [cooldown, setCooldown] = useState(0);
+  const { secondsLeft, isActive, start: startCooldown } = useCountdown();
   const inputRefs = useRef<Array<HTMLInputElement | null>>([]);
   const codeValue = code.join("");
 
   const codeHelpId = "verification-code-help";
   const codeErrorId = "verification-code-error";
-
-  useEffect(() => {
-    if (cooldown === 0) return;
-
-    const timerId = window.setInterval(() => {
-      setCooldown((seconds) => Math.max(0, seconds - 1));
-    }, 1000);
-
-    return () => window.clearInterval(timerId);
-  }, [cooldown]);
 
   const updateCodeAt = (index: number, value: string) => {
     const nextValue = value.replace(/[^0-9a-zA-Z]/g, "").slice(-1);
@@ -90,7 +81,7 @@ export default function VerifyEmail() {
   };
 
   const handleResend = async () => {
-    if (cooldown > 0 || resendStatus === "loading") return;
+    if (isActive || resendStatus === "loading") return;
 
     setResendStatus("loading");
     setMessage("");
@@ -98,7 +89,7 @@ export default function VerifyEmail() {
       // Simulate API call
       await new Promise((resolve) => setTimeout(resolve, 1500));
       setResendStatus("success");
-      setCooldown(RESEND_COOLDOWN_SECONDS);
+      startCooldown(RESEND_COOLDOWN_SECONDS);
       setMessage("Verification code resent to your email.");
     } catch {
       setResendStatus("error");
@@ -161,7 +152,7 @@ export default function VerifyEmail() {
           Didn&apos;t get code?{" "}
           <button
             onClick={handleResend}
-            disabled={resendStatus === "loading" || cooldown > 0}
+            disabled={resendStatus === "loading" || isActive}
             className="text-white font-semibold underline cursor-pointer disabled:opacity-50"
             aria-describedby="resend-status"
           >
@@ -170,14 +161,14 @@ export default function VerifyEmail() {
                 <Loader2 className="inline h-4 w-4 mr-1 animate-spin" />
                 Sending...
               </>
-            ) : cooldown > 0 ? (
-              `Resend in ${cooldown}s`
+            ) : isActive ? (
+              `Resend in ${secondsLeft}s`
             ) : "Resend"}
           </button>
         </p>
         <p id="resend-status" aria-live="polite" className="sr-only">
-          {cooldown > 0
-            ? `You can request a new code in ${cooldown} seconds.`
+          {isActive
+            ? `You can request a new code in ${secondsLeft} seconds.`
             : "You can request a new verification code."}
         </p>
 
