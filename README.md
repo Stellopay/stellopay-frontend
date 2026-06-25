@@ -205,6 +205,35 @@ export default function MyComponent() {
 
 All date parsing, formatting, and range-checking lives in a single module, [`utils/date-utils.ts`](utils/date-utils.ts), built on `date-fns` for deterministic, locale-independent output. Invalid input fails safely: `parseTransactionDate` returns `null` and `formatDate` returns `""` rather than throwing.
 
+### Accessibility testing
+
+Automated accessibility scanning runs as part of the Playwright suite using [`@axe-core/playwright`](https://github.com/dequelabs/axe-core-npm/tree/develop/packages/playwright), so a11y regressions (missing labels, low-contrast text, incorrect roles) fail CI the same way a broken assertion would — not just at design-review time.
+
+- **Shared helper**: [`tests/axe-helper.ts`](tests/axe-helper.ts) exports `expectNoSeriousA11yViolations(page, options?)`, which scans the current page against WCAG 2.x A/AA + best-practice rules and fails the test if any **serious** or **critical** violation is found.
+- **Where it runs**: [`tests/auth-forms.spec.ts`](tests/auth-forms.spec.ts) (`/auth/login`, `/auth/sign-up`), [`tests/dashboard.spec.ts`](tests/dashboard.spec.ts) (`/dashboard`), and [`tests/pagination.spec.ts`](tests/pagination.spec.ts) (`/transactions`).
+- **Severity thresholds**: `minor`/`moderate` violations are logged via `console.warn` (visible in the Playwright report) but do not fail the build — they're worth fixing but shouldn't block shipping. `serious`/`critical` violations fail the test.
+- **Triaged allowlist**: a known issue that can't be fixed immediately should be allowlisted explicitly, not silenced wholesale — pass it via the `allowlist` option with a `reason` (ideally linking a tracking issue):
+
+  ```ts
+  await expectNoSeriousA11yViolations(page, {
+    allowlist: [
+      { id: "color-contrast", reason: "Tracked in #999 — pending design token update" },
+    ],
+  });
+  ```
+
+  Allowlisted violations still print to the console on every run so they stay visible instead of disappearing.
+
+**Running scans locally:**
+
+```bash
+npx playwright test                                # full suite, includes a11y scans
+npx playwright test tests/dashboard.spec.ts         # a single spec
+npx playwright show-report                          # inspect the last HTML report
+```
+
+**Interpreting a failure**: the test output includes the axe rule id, impact level, the number of affected DOM nodes (with selectors), and a `helpUrl` linking to the deque rule documentation explaining the fix. Reproduce locally with `npx playwright test --headed <file>` to inspect the flagged elements in the browser.
+
 ## Iconography
 
 To keep the application's bundle light and ensure visual consistency, the project consolidates all UI icons onto **Lucide React** (`lucide-react`) as the single primary icon set.

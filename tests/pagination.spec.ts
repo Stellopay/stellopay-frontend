@@ -13,6 +13,7 @@
  */
 
 import { expect, test } from "@playwright/test";
+import { expectNoSeriousA11yViolations } from "./axe-helper";
 
 // The transactions page is the primary consumer of TransactionsPagination.
 const TRANSACTIONS_URL = "/transactions";
@@ -176,5 +177,12 @@ test.describe("TransactionsPagination — accessibility", () => {
 
     const page1Btn = page.getByRole("button", { name: "Page 1" });
     await expect(page1Btn).toHaveAttribute("aria-label", "Page 1");
+  });
+
+  test("transactions page has no serious or critical accessibility violations", async ({
+    page,
+  }) => {
+    await page.goto(TRANSACTIONS_URL);
+    await expectNoSeriousA11yViolations(page);
   });
 });

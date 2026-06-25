@@ -70,9 +70,9 @@ export function SignUpForm() {
     <section className="w-full order-1 lg:order-1">
       {/* Title */}
       <div className="space-y-12">
-        <h2 className="text-[#E5E5E5]">Stellopay</h2>
+        <h2 className="text-foreground">Stellopay</h2>
         <div className="flex flex-col gap-3">
-          <h1 className="text-4xl text-[#F8D2FE] text-center md:text-left">
+          <h1 className="text-4xl text-[#92569D] text-center md:text-left">
             Get Started Now
           </h1>
           <div>
@@ -80,7 +80,7 @@ export function SignUpForm() {
               Already have an account?
               <Link
                 href="/auth/login"
-                className="ml-1 text-white underline underline-offset-4 hover:text-purple-300 focus:outline-none focus:ring-2 focus:ring-purple-400 rounded"
+                className="ml-1 text-foreground underline underline-offset-4 hover:text-purple-300 focus:outline-none focus:ring-2 focus:ring-purple-400 rounded"
               >
                 Log in
               </Link>
@@ -207,7 +207,7 @@ export function SignUpForm() {
             control={form.control}
             name="agreeToTerms"
             label={
-              <span className="text-[#E5E5E5] cursor-pointer text-xs leading-relaxed">
+              <span className="text-foreground cursor-pointer text-xs leading-relaxed">
                 By selecting Agree and continue, I agree to Stellopay&apos;s{" "}
                 <Link
                   href={"/terms"}

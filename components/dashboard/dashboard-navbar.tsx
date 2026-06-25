@@ -17,6 +17,7 @@ export default function DashboardNavbar() {
             <div className="flex items-center gap-8 flex-1">
                 <Link
                     href="/"
+                    aria-label="StelloPay home"
                     className="flex items-center gap-2 text-zinc-900 dark:text-white transition-colors duration-200"
                 >
                     <StellOpayLogo />
@@ -42,17 +43,24 @@ export default function DashboardNavbar() {
                     <NetworkSwitcher variant="dashboard" />
                 </div>
 
-                <button className="relative p-2 rounded-lg text-zinc-500 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors cursor-pointer">
+                <button
+                    aria-label="Notifications"
+                    className="relative p-2 rounded-lg text-zinc-500 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors cursor-pointer"
+                >
                     <Bell size={20} strokeWidth={2} />
                     <span className="absolute top-2 right-2.5 w-2 h-2 bg-red-500 rounded-full border-2 border-white dark:border-[#0D0D0D]" />
                 </button>
 
-                <button className="p-2 rounded-lg text-zinc-500 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors hidden sm:block cursor-pointer">
+                <button
+                    aria-label="Settings"
+                    className="p-2 rounded-lg text-zinc-500 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors hidden sm:block cursor-pointer"
+                >
                     <Settings size={20} strokeWidth={2} />
                 </button>
 
                 <button
                     onClick={toggleTheme}
+                    aria-label={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
                     className="p-2 rounded-lg text-zinc-500 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors cursor-pointer"
                 >
                     {theme === 'dark' ? (

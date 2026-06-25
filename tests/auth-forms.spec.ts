@@ -1,4 +1,5 @@
 import { expect, test } from "@playwright/test";
+import { expectNoSeriousA11yViolations } from "./axe-helper";
 
 /**
  * Auth Forms – Password Visibility Toggle Tests
@@ -46,7 +47,9 @@ test.describe("Login form – password visibility toggle", () => {
   }) => {
     await page.goto("/auth/login");
 
-    const toggle = page.getByRole("button", { name: /show password/i });
+    // Matches both "Show password" and "Hide password" so the locator keeps
+    // resolving to the same button after its accessible name flips on click.
+    const toggle = page.getByRole("button", { name: /(show|hide) password/i });
     const input = page.locator('input[autocomplete="current-password"]');
 
     // Default state
@@ -68,6 +71,13 @@ test.describe("Login form – password visibility toggle", () => {
     await page.goto("/auth/login");
     const input = page.locator('input[autocomplete="current-password"]');
     await expect(input).toBeVisible();
+  });
+
+  test("has no serious or critical accessibility violations", async ({
+    page,
+  }) => {
+    await page.goto("/auth/login");
+    await expectNoSeriousA11yViolations(page);
   });
 });
 
@@ -105,8 +115,10 @@ test.describe("Sign-up form – password visibility toggles", () => {
   }) => {
     await page.goto("/auth/sign-up");
 
-    // Both toggles start with "Show password" — first one is for the password field
-    const toggles = page.getByRole("button", { name: /show password/i });
+    // Both toggles start with "Show password" — first one is for the password
+    // field. Match both "Show"/"Hide password" so re-querying the locator
+    // after a click still resolves to the same button.
+    const toggles = page.getByRole("button", { name: /(show|hide) password/i });
     const passwordInput = page.locator(
       'input[autocomplete="new-password"]',
     ).first();
@@ -132,8 +144,10 @@ test.describe("Sign-up form – password visibility toggles", () => {
   }) => {
     await page.goto("/auth/sign-up");
 
-    // Both toggles start with "Show password" — second one is for confirm password
-    const toggles = page.getByRole("button", { name: /show password/i });
+    // Both toggles start with "Show password" — second one is for confirm
+    // password. Match both "Show"/"Hide password" so re-querying the locator
+    // after a click still resolves to the same button.
+    const toggles = page.getByRole("button", { name: /(show|hide) password/i });
     const confirmInput = page.locator(
       'input[autocomplete="new-password"]',
     ).last();
@@ -156,5 +170,12 @@ test.describe("Sign-up form – password visibility toggles", () => {
     await page.goto("/auth/sign-up");
     const inputs = page.locator('input[autocomplete="new-password"]');
     await expect(inputs).toHaveCount(2);
+  });
+
+  test("has no serious or critical accessibility violations", async ({
+    page,
+  }) => {
+    await page.goto("/auth/sign-up");
+    await expectNoSeriousA11yViolations(page);
   });
 });

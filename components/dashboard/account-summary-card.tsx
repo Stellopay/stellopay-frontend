@@ -24,7 +24,7 @@ export default function AccountSummaryCard({
           </div>
           <div>
             <h3 className="text-sm font-medium text-zinc-500 dark:text-zinc-400">{title}</h3>
-            <p className="text-xs text-zinc-400 dark:text-zinc-500">{subtitle}</p>
+            <p className="text-xs text-zinc-600 dark:text-zinc-500">{subtitle}</p>
           </div>
         </div>
       </div>
@@ -35,14 +35,14 @@ export default function AccountSummaryCard({
         </div>
         <div className="flex items-center gap-1.5 mt-1">
           <div className={`flex items-center gap-0.5 px-2 py-0.5 rounded-full text-xs font-semibold ${
-            isPositive 
-              ? 'text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-500/10' 
-              : 'text-rose-600 dark:text-rose-400 bg-rose-50 dark:bg-rose-500/10'
+            isPositive
+              ? 'text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-500/10'
+              : 'text-rose-700 dark:text-rose-400 bg-rose-50 dark:bg-rose-500/10'
           }`}>
             {isPositive ? <TrendingUp className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />}
             {change.split(' ')[0]}
           </div>
-          <span className="text-xs text-zinc-400 dark:text-zinc-500">
+          <span className="text-xs text-zinc-600 dark:text-zinc-500">
             {change.split(' ').slice(1).join(' ')}
           </span>
         </div>
