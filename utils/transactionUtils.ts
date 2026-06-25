@@ -4,7 +4,7 @@ import type {
   SortDirection,
 } from "@/types/transaction";
 import { formatCurrency } from "./formatUtils";
-import { formatDate } from "./dateUtils";
+import { formatDate } from "./date-utils";
 
 type SortComparable = Date | number | string;
 

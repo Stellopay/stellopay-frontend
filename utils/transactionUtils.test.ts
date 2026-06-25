@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import type { SortField, Transaction } from "@/types/transaction";
-import { formatDate } from "@/utils/dateUtils";
+import { formatDate } from "@/utils/date-utils";
 import { formatCurrency } from "@/utils/formatUtils";
 import {
   filterTransactions,

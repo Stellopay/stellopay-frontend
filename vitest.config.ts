@@ -28,7 +28,7 @@ export default defineConfig({
       include: [
         "hooks/useCountdown.ts",
         "utils/authUtils.ts",
-        "utils/dateUtils.ts",
+        "utils/date-utils.ts",
         "utils/formatUtils.ts",
         "utils/transactionUtils.ts",
         "utils/paginationUtils.ts",
@@ -39,6 +39,7 @@ export default defineConfig({
         "context/wallet-context.tsx",
         "components/analytics/analytics-view.tsx",
         "components/analytics/client-analytics-view.tsx",
+        "components/common/notification-panel.tsx",
       ],
       exclude: [
         "**/*.test.{ts,tsx}",
