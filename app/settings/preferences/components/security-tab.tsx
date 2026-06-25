@@ -25,6 +25,7 @@ import DestructiveActionDialog from "./destructive-action-dialog";
 import { Label } from "@/components/ui/label";
 import { FormMessage } from "@/components/ui/form";
 import { DEMO_SECURITY } from "@/lib/demo-data";
+import { passwordPolicy, passwordSchema } from "@/types/auth";
 
 const sessions = [
   {
@@ -46,21 +47,76 @@ interface StatusState {
   type: "success" | "error" | null;
 }
 
+function getPasswordValidationMessages(
+  password: string,
+  confirmPassword: string,
+) {
+  const messages: string[] = [];
+
+  if (password.length === 0) {
+    return messages;
+  }
+
+  const parsedPassword = passwordSchema.safeParse(password);
+  if (!parsedPassword.success) {
+    messages.push(...parsedPassword.error.issues.map((issue) => issue.message));
+  }
+
+  if (password !== confirmPassword) {
+    messages.push("Passwords don't match");
+  }
+
+  return messages;
+}
+
+/** Default two-factor state, exported so a parent can own the same initial value. */
+export const DEFAULT_TWO_FACTOR_ENABLED = true;
+
+interface SecurityTabProps {
+  /**
+   * Controlled two-factor state. When provided the component renders this value
+   * and reports changes through `onTwoFactorEnabledChange`. When omitted the
+   * section manages its own internal state (standalone use).
+   */
+  twoFactorEnabled?: boolean;
+  onTwoFactorEnabledChange?: (next: boolean) => void;
+}
+
 /**
  * SecurityTab component.
  * Renders security-sensitive forms (password updates, two-factor authentication, active sessions).
  * Uses placeholder demo data pending full backend API integration.
  */
-export default function SecurityTab() {
+export default function SecurityTab({
+  twoFactorEnabled: controlledTwoFactor,
+  onTwoFactorEnabledChange,
+}: SecurityTabProps = {}) {
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
-  const [twoFactorEnabled, setTwoFactorEnabled] = useState(true);
+  const [internalTwoFactor, setInternalTwoFactor] = useState(
+    DEFAULT_TWO_FACTOR_ENABLED,
+  );
+  const twoFactorEnabled = controlledTwoFactor ?? internalTwoFactor;
+  const setTwoFactorEnabled = (next: boolean) => {
+    if (onTwoFactorEnabledChange) {
+      onTwoFactorEnabledChange(next);
+    } else {
+      setInternalTwoFactor(next);
+    }
+  };
   const [loginApprovalEnabled, setLoginApprovalEnabled] = useState(true);
   const [transferApprovalEnabled, setTransferApprovalEnabled] = useState(true);
-  const [status, setStatus] = useState<StatusState>({ message: "", type: null });
+  const [status, setStatus] = useState<StatusState>({
+    message: "",
+    type: null,
+  });
   const [isSaving, setIsSaving] = useState(false);
 
   const passwordRequirements = checkPasswordRequirements(password);
+  const passwordValidationMessages = getPasswordValidationMessages(
+    password,
+    confirmPassword,
+  );
   const isPasswordReady =
     Object.values(passwordRequirements).every(Boolean) &&
     password.length > 0 &&
@@ -68,20 +124,28 @@ export default function SecurityTab() {
 
   const handleSaveChanges = async () => {
     if (!isPasswordReady) {
+      setStatus({
+        message:
+          passwordValidationMessages[0] ?? "Password policy not satisfied.",
+        type: "error",
+      });
       return;
     }
     setIsSaving(true);
     setStatus({ message: "", type: null });
     try {
-      await new Promise((resolve, reject) => setTimeout(() => {
-        if (Math.random() > 0.8) {
-          reject(new Error("Failed to save"));
-        } else {
-          resolve(null);
-        }
-      }, 1500));
+      await new Promise((resolve, reject) =>
+        setTimeout(() => {
+          if (Math.random() > 0.8) {
+            reject(new Error("Failed to save"));
+          } else {
+            resolve(null);
+          }
+        }, 1500),
+      );
       setStatus({
-        message: "Password policy satisfied. Changes are ready for backend wiring.",
+        message:
+          "Password policy satisfied. Changes are ready for backend wiring.",
         type: "success",
       });
       setPassword("");
@@ -159,30 +223,46 @@ export default function SecurityTab() {
           </div>
 
           <div className="grid gap-3 sm:grid-cols-2">
-            <RequirementItem
-              label="At least 8 characters"
-              met={passwordRequirements.minLength}
-            />
-            <RequirementItem
-              label="One uppercase letter"
-              met={passwordRequirements.uppercase}
-            />
-            <RequirementItem
-              label="One special character"
-              met={passwordRequirements.specialChar}
-            />
+            {passwordPolicy.rules.map((rule) => {
+              const met =
+                rule.id === "minLength"
+                  ? passwordRequirements.minLength
+                  : rule.id === "uppercase"
+                    ? passwordRequirements.uppercase
+                    : passwordRequirements.specialChar;
+
+              return (
+                <RequirementItem key={rule.id} label={rule.label} met={met} />
+              );
+            })}
             <RequirementItem
               label="Passwords match"
               met={password.length > 0 && password === confirmPassword}
             />
           </div>
 
+          {password.length > 0 && passwordValidationMessages.length > 0 && (
+            <div className="rounded-2xl border border-destructive/20 bg-destructive/10 p-3">
+              <p className="text-sm font-medium text-destructive">
+                {passwordPolicy.title}
+              </p>
+              <ul className="mt-2 space-y-1 text-sm text-destructive">
+                {passwordValidationMessages.map((message) => (
+                  <li key={message}>• {message}</li>
+                ))}
+              </ul>
+            </div>
+          )}
+
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <p className="text-sm text-zinc-500 dark:text-zinc-400">
               Recovery methods stay hidden until needed to keep the primary path
               calm.
             </p>
-            <Button disabled={!isPasswordReady || isSaving} onClick={handleSaveChanges}>
+            <Button
+              disabled={!isPasswordReady || isSaving}
+              onClick={handleSaveChanges}
+            >
               {isSaving ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -206,7 +286,11 @@ export default function SecurityTab() {
             >
               <FormMessage
                 variant={status.type === "success" ? "success" : "error"}
-                className={status.type === "success" ? "text-success" : "text-destructive"}
+                className={
+                  status.type === "success"
+                    ? "text-success"
+                    : "text-destructive"
+                }
               >
                 {status.message}
               </FormMessage>
@@ -327,7 +411,8 @@ export default function SecurityTab() {
               confirmLabel="Force sign-out"
               onConfirm={() =>
                 setStatus({
-                  message: "Session reset requested. All other devices would be signed out.",
+                  message:
+                    "Session reset requested. All other devices would be signed out.",
                   type: "success",
                 })
               }

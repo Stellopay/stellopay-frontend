@@ -24,8 +24,7 @@ export function SignUpEmailModal({
   const handleResend = async () => {
     setIsResending(true);
     setResendStatus("");
-    // Add your resend logic here
-    console.log("Resending verification email to:", email);
+    // TODO: trigger the resend-verification-email request for `email`.
     setTimeout(() => {
       setIsResending(false);
       setResendStatus("Verification email resent successfully.");

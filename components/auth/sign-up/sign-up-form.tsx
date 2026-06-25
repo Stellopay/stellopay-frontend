@@ -15,7 +15,7 @@ import { Separator } from "@/components/ui/separator";
 import { Check, X } from "lucide-react";
 import { SignUpEmailModal } from "./sign-up-email-modal";
 import { AuthSocialButtons } from "../auth-social-buttons";
-import { signUpSchema, SignUpFormValues } from "@/types/auth";
+import { passwordPolicy, signUpSchema, SignUpFormValues } from "@/types/auth";
 import { checkPasswordRequirements } from "@/utils/authUtils";
 
 /**
@@ -147,84 +147,43 @@ export function SignUpForm() {
               aria-live="polite"
             >
               <p className="text-gray-300 text-sm mb-2">
-                Password must contain:
+                {passwordPolicy.title}
               </p>
               <ul
                 className="space-y-1"
                 aria-label="Password requirements checklist"
               >
-                <li className="flex items-center text-sm">
-                  {passwordRequirements.minLength ? (
-                    <Check
-                      size={16}
-                      className="text-green-400 mr-2"
-                      aria-hidden="true"
-                    />
-                  ) : (
-                    <X
-                      size={16}
-                      className="text-red-400 mr-2"
-                      aria-hidden="true"
-                    />
-                  )}
-                  <span
-                    className={
-                      passwordRequirements.minLength
-                        ? "text-green-400"
-                        : "text-gray-300"
-                    }
-                  >
-                    Minimum of 8 characters
-                  </span>
-                </li>
-                <li className="flex items-center text-sm">
-                  {passwordRequirements.uppercase ? (
-                    <Check
-                      size={16}
-                      className="text-green-400 mr-2"
-                      aria-hidden="true"
-                    />
-                  ) : (
-                    <X
-                      size={16}
-                      className="text-red-400 mr-2"
-                      aria-hidden="true"
-                    />
-                  )}
-                  <span
-                    className={
-                      passwordRequirements.uppercase
-                        ? "text-green-400"
-                        : "text-gray-300"
-                    }
-                  >
-                    One UPPERCASE character
-                  </span>
-                </li>
-                <li className="flex items-center text-sm">
-                  {passwordRequirements.specialChar ? (
-                    <Check
-                      size={16}
-                      className="text-green-400 mr-2"
-                      aria-hidden="true"
-                    />
-                  ) : (
-                    <X
-                      size={16}
-                      className="text-red-400 mr-2"
-                      aria-hidden="true"
-                    />
-                  )}
-                  <span
-                    className={
-                      passwordRequirements.specialChar
-                        ? "text-green-400"
-                        : "text-gray-300"
-                    }
-                  >
-                    One unique character (e.g., @!#%$^&*)
-                  </span>
-                </li>
+                {passwordPolicy.rules.map((rule) => {
+                  const isMet =
+                    rule.id === "minLength"
+                      ? passwordRequirements.minLength
+                      : rule.id === "uppercase"
+                        ? passwordRequirements.uppercase
+                        : passwordRequirements.specialChar;
+
+                  return (
+                    <li key={rule.id} className="flex items-center text-sm">
+                      {isMet ? (
+                        <Check
+                          size={16}
+                          className="text-green-400 mr-2"
+                          aria-hidden="true"
+                        />
+                      ) : (
+                        <X
+                          size={16}
+                          className="text-red-400 mr-2"
+                          aria-hidden="true"
+                        />
+                      )}
+                      <span
+                        className={isMet ? "text-green-400" : "text-gray-300"}
+                      >
+                        {rule.label}
+                      </span>
+                    </li>
+                  );
+                })}
               </ul>
               {isPasswordStrong && (
                 <p

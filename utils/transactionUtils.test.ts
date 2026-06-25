@@ -368,6 +368,40 @@ describe("sortTransactions", () => {
     ]);
   });
 
+  it("handles invalid dates without throwing during sorting", () => {
+    const malformedTransactions: Transaction[] = [
+      { ...transactions[0], id: "valid-late", date: "2023-06-01" },
+      { ...transactions[1], id: "invalid-date", date: "not-a-date" },
+      { ...transactions[2], id: "valid-early", date: "2023-01-01" },
+    ];
+
+    expect(() =>
+      sortTransactions(malformedTransactions, "date", "asc"),
+    ).not.toThrow();
+    expect(
+      sortTransactions(malformedTransactions, "date", "asc").map(
+        (transaction) => transaction.id,
+      ),
+    ).toEqual(["invalid-date", "valid-early", "valid-late"]);
+  });
+
+  it("handles non-finite amounts without throwing during sorting", () => {
+    const malformedTransactions: Transaction[] = [
+      { ...transactions[0], id: "finite-large", amount: 500 },
+      { ...transactions[1], id: "nan-amount", amount: Number.NaN },
+      { ...transactions[2], id: "finite-small", amount: -10 },
+    ];
+
+    expect(() =>
+      sortTransactions(malformedTransactions, "amount", "asc"),
+    ).not.toThrow();
+    expect(
+      sortTransactions(malformedTransactions, "amount", "asc").map(
+        (transaction) => transaction.id,
+      ),
+    ).toEqual(["nan-amount", "finite-small", "finite-large"]);
+  });
+
   it("does not mutate the original transaction array", () => {
     const originalOrder = transactions.map((transaction) => transaction.id);
     const sorted = sortTransactions(transactions, "amount", "asc");
@@ -397,9 +431,9 @@ describe("getStatusColor", () => {
     expect(getStatusColor("pending")).toBe(STATUS_COLOR_PALETTE.pending);
     expect(getStatusColor("failed")).toBe(STATUS_COLOR_PALETTE.failed);
 
-    expect(getStatusColor("completed")).toBe("bg-[#102B19] text-[#34D399]");
-    expect(getStatusColor("pending")).toBe("bg-[#191919] text-[#FBBF24]");
-    expect(getStatusColor("failed")).toBe("bg-[#1A1A1A] text-[#F87171]");
+    expect(getStatusColor("completed")).toBe("bg-[#102B19] text-[#04842E]");
+    expect(getStatusColor("pending")).toBe("bg-[#191919] text-[#9F6603]");
+    expect(getStatusColor("failed")).toBe("bg-[#1A1A1A] text-[#B70B05]");
   });
 
   it("is case-insensitive for known statuses", () => {

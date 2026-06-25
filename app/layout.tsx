@@ -4,6 +4,7 @@ import localFont from "next/font/local";
 import "./globals.css";
 import { SidebarProvider } from "@/context/sidebar-context";
 import { ThemeProvider } from "@/context/theme-context";
+import { WalletProvider } from "@/context/wallet-context";
 
 const inter = Inter({
   variable: "--font-inter",
@@ -78,7 +79,9 @@ export default function RootLayout({
           Skip to main content
         </a>
         <ThemeProvider>
-          <SidebarProvider>{children}</SidebarProvider>
+          <WalletProvider>
+            <SidebarProvider>{children}</SidebarProvider>
+          </WalletProvider>
         </ThemeProvider>
       </body>
     </html>

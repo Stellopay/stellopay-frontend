@@ -1,5 +1,6 @@
 "use client";
 import React, { createContext, useContext, useEffect, useState } from "react";
+import { safeStorage } from "@/utils/safeStorage";
 
 type Theme = "light" | "dark";
 
@@ -18,7 +19,7 @@ export const ThemeProvider: React.FC<React.PropsWithChildren<{}>> = ({
 
   useEffect(() => {
     try {
-      const stored = localStorage.getItem("theme");
+      const stored = safeStorage.getItem("theme");
       if (stored === "dark" || stored === "light") {
         setThemeState(stored);
       } else {
@@ -40,7 +41,7 @@ export const ThemeProvider: React.FC<React.PropsWithChildren<{}>> = ({
       } else {
         root.classList.remove("dark");
       }
-      localStorage.setItem("theme", theme);
+      safeStorage.setItem("theme", theme);
     } catch (e) {}
   }, [theme]);
 

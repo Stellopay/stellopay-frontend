@@ -6,6 +6,8 @@ import type {
 import { formatCurrency } from "./formatUtils";
 import { formatDate } from "./date-utils";
 
+type SortComparable = Date | number | string;
+
 /**
  * Formats transaction amount with proper currency formatting
  * @param amount - The amount to format
@@ -72,10 +74,51 @@ export const filterTransactions = (
   return filtered;
 };
 
+const invalidDate = new Date(0);
+
+const normalizeDate = (value: Transaction["date"]): Date => {
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? invalidDate : date;
+};
+
+const normalizeAmount = (value: Transaction["amount"]): number => {
+  const amount = Math.abs(value);
+  return Number.isFinite(amount) ? amount : 0;
+};
+
+const getSortValue = (
+  transaction: Transaction,
+  sortField: SortField,
+): SortComparable => {
+  switch (sortField) {
+    case "date":
+      return normalizeDate(transaction.date);
+    case "amount":
+      return normalizeAmount(transaction.amount);
+    case "type":
+      return transaction.type;
+    case "status":
+      return transaction.status;
+  }
+};
+
+const compareSortValues = (
+  aValue: SortComparable,
+  bValue: SortComparable,
+): number => {
+  if (aValue < bValue) return -1;
+  if (aValue > bValue) return 1;
+  return 0;
+};
+
 /**
- * Sorts transactions by specified field and direction
+ * Sorts transactions by a type-checked transaction field.
+ *
+ * Invalid dates and non-finite amounts are normalized to stable fallback values
+ * so malformed transaction data cannot throw while rendering the sorted view.
+ *
  * @param transactions - Array of transactions to sort
- * @param sortField - Field to sort by (date, amount, type, status)
+ * @param sortField - Transaction field to sort by (date, amount, type, status)
  * @param sortDirection - Sort direction (asc, desc)
  * @returns Sorted array of transactions
  */
@@ -85,33 +128,12 @@ export const sortTransactions = (
   sortDirection: SortDirection,
 ): Transaction[] => {
   return [...transactions].sort((a, b) => {
-    let aValue: any;
-    let bValue: any;
+    const comparison = compareSortValues(
+      getSortValue(a, sortField),
+      getSortValue(b, sortField),
+    );
 
-    switch (sortField) {
-      case "date":
-        aValue = new Date(a.date);
-        bValue = new Date(b.date);
-        break;
-      case "amount":
-        aValue = Math.abs(a.amount);
-        bValue = Math.abs(b.amount);
-        break;
-      case "type":
-        aValue = a.type;
-        bValue = b.type;
-        break;
-      case "status":
-        aValue = a.status;
-        bValue = b.status;
-        break;
-      default:
-        return 0;
-    }
-
-    if (aValue < bValue) return sortDirection === "asc" ? -1 : 1;
-    if (aValue > bValue) return sortDirection === "asc" ? 1 : -1;
-    return 0;
+    return sortDirection === "asc" ? comparison : -comparison;
   });
 };
 
@@ -135,13 +157,9 @@ export type KnownTransactionStatus = "completed" | "pending" | "failed";
 export const STATUS_COLOR_PALETTE: Readonly<
   Record<KnownTransactionStatus, string>
 > = {
-  // Text colors are brightened from the original #04842E/#9F6603/#B70B05 —
-  // those failed axe's WCAG AA color-contrast check (3.14:1, 3.67:1, 2.53:1
-  // against their backgrounds; AA requires 4.5:1). These shades keep the
-  // same green/amber/red hue family while clearing the threshold.
-  completed: "bg-[#102B19] text-[#34D399]",
-  pending: "bg-[#191919] text-[#FBBF24]",
-  failed: "bg-[#1A1A1A] text-[#F87171]",
+  completed: "bg-[#102B19] text-[#04842E]",
+  pending: "bg-[#191919] text-[#9F6603]",
+  failed: "bg-[#1A1A1A] text-[#B70B05]",
 };
 
 /**
