@@ -111,6 +111,18 @@ To keep the application's bundle light and ensure visual consistency, the projec
 - **ESLint Rule**: The `no-restricted-imports` rule in [`.eslintrc.json`](.eslintrc.json) blocks imports from restricted packages.
 - **CI Guard Test**: [`utils/import-guard.test.ts`](utils/import-guard.test.ts) scans all source files in `app/` and `components/` to verify no prohibited icon libraries are referenced.
 
+## Networks
+
+[`components/common/network-switcher.tsx`](components/common/network-switcher.tsx) lets the user pick which Stellar network the app is operating against. The default `Network[]` is Stellar's public networks — Mainnet (`public`), Testnet, and Futurenet — each carrying its public network passphrase so callers can resolve the matching Horizon/RPC endpoint:
+
+| id | name | passphrase |
+| --- | --- | --- |
+| `public` | Mainnet | `Public Global Stellar Network ; September 2015` |
+| `testnet` | Testnet | `Test SDF Network ; September 2015` |
+| `futurenet` | Futurenet | `Test SDF Future Network ; October 2022` |
+
+These passphrases are public Stellar protocol constants, not secrets — no private keys or seeds are stored or rendered by this component. Switching networks only updates which balances/operations are displayed; it never moves funds.
+
 ## CI Pipeline
 
 Every pull request and push to `main` runs the following steps via `.github/workflows/ci.yml`:

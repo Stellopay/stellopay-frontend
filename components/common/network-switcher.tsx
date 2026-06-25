@@ -3,14 +3,19 @@
 /**
  * NetworkSwitcher
  *
- * Improvements over the original (issue #238):
+ * Lets the user switch between Stellar networks (Mainnet, Testnet,
+ * Futurenet). Each network in {@link defaultNetworks} carries its public
+ * passphrase so callers can map the selection to the correct Horizon/RPC
+ * endpoint.
+ *
  * - Active-network badge: green dot + "Active" label on the current network
  * - Confirmation dialog: shown before committing a switch, warns that
- *   balances and transaction history will reflect the new network
+ *   balances and Stellar operations will reflect the new network
  * - Keyboard accessibility: Radix DropdownMenu already handles arrow-key
  *   navigation; trigger now has an explicit aria-label describing the
  *   current network so screen readers announce it correctly
- * - No secrets or private keys are ever displayed
+ * - No secrets or private keys are ever displayed — only public network
+ *   passphrases
  */
 
 import React, { useState } from "react";
@@ -32,10 +37,22 @@ import { Button } from "@/components/ui/button";
 import { ChevronDown } from "lucide-react";
 import { cn } from "@/utils/commonUtils";
 import { Skeleton } from "@/components/ui/skeleton";
+import { StellarIcon } from "@/public/svg/svg";
 
+/**
+ * A Stellar network the user can switch the app to.
+ */
 export interface Network {
+  /** Stable identifier, e.g. "public", "testnet", "futurenet" */
   id: string;
+  /** Human-readable label shown in the switcher, e.g. "Mainnet" */
   name: string;
+  /**
+   * Stellar network passphrase used to sign transactions and select the
+   * correct Horizon/RPC endpoint for this network. Only public, well-known
+   * passphrases belong here — never a secret key or seed.
+   */
+  passphrase?: string;
   icon?: React.ReactNode;
 }
 
@@ -48,27 +65,27 @@ interface NetworkSwitcherProps {
   isLoading?: boolean;
 }
 
+/**
+ * Default Stellar networks offered by the switcher, ordered with the
+ * production network first so it is selected by default.
+ */
 const defaultNetworks: Network[] = [
-  { id: "eth", name: "ETH" },
-  { id: "polygon", name: "Polygon" },
-  { id: "bsc", name: "BSC" },
-  { id: "arbitrum", name: "Arbitrum" },
+  {
+    id: "public",
+    name: "Mainnet",
+    passphrase: "Public Global Stellar Network ; September 2015",
+  },
+  {
+    id: "testnet",
+    name: "Testnet",
+    passphrase: "Test SDF Network ; September 2015",
+  },
+  {
+    id: "futurenet",
+    name: "Futurenet",
+    passphrase: "Test SDF Future Network ; October 2022",
+  },
 ];
-
-/** Minimal Ethereum diamond icon — no external asset dependency */
-const EthereumIcon = () => (
-  <svg
-    width="16"
-    height="16"
-    viewBox="0 0 24 24"
-    fill="none"
-    xmlns="http://www.w3.org/2000/svg"
-    aria-hidden="true"
-  >
-    <path d="M12 0L5.5 12.5L12 16L18.5 12.5L12 0Z" fill="currentColor" />
-    <path d="M12 17.5L5.5 13.5L12 24L18.5 13.5L12 17.5Z" fill="currentColor" />
-  </svg>
-);
 
 export default function NetworkSwitcher({
   networks = defaultNetworks,
@@ -123,7 +140,7 @@ export default function NetworkSwitcher({
             className="w-2 h-2 rounded-full bg-green-500 shrink-0"
             aria-hidden="true"
           />
-          {currentNetwork.icon || <EthereumIcon />}
+          {currentNetwork.icon || <StellarIcon />}
           <span className="text-sm font-medium" style={{ fontFamily: "General Sans, sans-serif" }}>
             {currentNetwork.name}
           </span>
@@ -155,7 +172,7 @@ export default function NetworkSwitcher({
                 )}
               >
                 <div className="flex items-center gap-2 w-full">
-                  {network.icon || <EthereumIcon />}
+                  {network.icon || <StellarIcon />}
                   <span className="text-sm" style={{ fontFamily: "General Sans, sans-serif" }}>
                     {network.name}
                   </span>
@@ -191,7 +208,7 @@ export default function NetworkSwitcher({
               <span className="font-semibold text-white">{pendingNetwork?.name}</span>.
               <br />
               <br />
-              Your displayed balances and transaction history will reflect the
+              Your displayed balances and Stellar operations will reflect the
               new network. No funds will be moved.
             </DialogDescription>
           </DialogHeader>
