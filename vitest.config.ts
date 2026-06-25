@@ -26,6 +26,7 @@ export default defineConfig({
       provider: "v8",
       reporter: ["text", "json", "html"],
       include: [
+        "hooks/useCountdown.ts",
         "utils/authUtils.ts",
         "utils/dateUtils.ts",
         "utils/formatUtils.ts",
