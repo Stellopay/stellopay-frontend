@@ -2,7 +2,9 @@
   "name": "my-app",
   "version": "0.1.0",
   "private": true,
+  "packageManager": "npm@10.9.7",
   "scripts": {
+    "preinstall": "node scripts/check-package-manager.js",
     "dev": "next dev --turbopack",
     "build": "next build",
     "start": "next start",

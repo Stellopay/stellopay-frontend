@@ -24,7 +24,7 @@ This project is **App-Router-only**. All routes, layouts, and pages live under `
 ### Prerequisites
 
 - Node.js 20 LTS
-- npm (the repo is developed and tested against `npm`; lockfiles for `yarn`/`pnpm` also exist but are not the primary CI path)
+- npm — this is the only supported package manager for this repo. `package-lock.json` is the single source of truth for dependency versions; do not generate or commit a `yarn.lock` or `pnpm-lock.yaml` (see [CONTRIBUTING.md](CONTRIBUTING.md)). A `preinstall` check (`scripts/check-package-manager.js`) fails the install if one is present.
 
 ### Setup
 
