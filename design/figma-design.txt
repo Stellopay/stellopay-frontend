@@ -7,3 +7,7 @@ FIGMA LINK (legacy): https://www.figma.com/design/wcDLcVPO7I0HZVb6zJr6Ep/Stellop
 Redesigned pages – Account Summary (#150), Agreements (#151), Transactions (#152), Analytics View (#153), Pricing (#154), Settings/Preferences (#155)
 FIGMA LINK (redesign): https://www.figma.com/design/74oIRaFdQHOJ1A2hXMOnll/Stellopay?node-id=0-1&p=f&t=UdOvEZFmdxnp7D1E-0
 
+Landing Page Redesign
+FIGMA LINK (landing page): https://www.figma.com/design/J4X2XvMo8knspQEEQbHoDN/Stellopay-Landing-page?node-id=0-1&t=edynl8rBO0dXUrXp-1
+
+

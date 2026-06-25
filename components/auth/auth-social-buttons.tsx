@@ -5,13 +5,11 @@ import Image from "next/image";
 
 export function AuthSocialButtons() {
   const handleGoogleLogin = () => {
-    console.log("Authenticating with Google...");
-    // Add your actual Google auth logic here
+    // TODO: integrate Google authentication.
   };
 
   const handleAppleLogin = () => {
-    console.log("Authenticating with Apple...");
-    // Add your actual Apple auth logic here
+    // TODO: integrate Apple authentication.
   };
 
   return (

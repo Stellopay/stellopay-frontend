@@ -3,7 +3,7 @@ import { renderHook, act } from "@testing-library/react";
 import { useTransactions } from "./useTransactions";
 import * as api from "@/lib/api/transactions";
 
-import { vi } from "vitest";
+import { vi, type Mock } from "vitest";
 
 vi.mock("@/lib/api/transactions", () => {
 
@@ -38,13 +38,13 @@ describe("useTransactions cancellation", () => {
     let firstResolve!: (v: any) => void;
     let secondResolve!: (v: any) => void;
 
-    (api.getTransactions as unknown as vi.Mock).mockImplementation(
+    (api.getTransactions as unknown as Mock).mockImplementation(
       (_params: any, _signal?: AbortSignal) => {
-        if (!(api.getTransactions as unknown as vi.Mock).mock.calls.length) {
+        if (!(api.getTransactions as unknown as Mock).mock.calls.length) {
           // not used
         }
 
-        const callIndex = (api.getTransactions as unknown as vi.Mock).mock.calls
+        const callIndex = (api.getTransactions as unknown as Mock).mock.calls
           .length;
 
         return new Promise((resolve) => {
@@ -108,7 +108,7 @@ describe("useTransactions cancellation", () => {
     };
 
     let resolveFn!: (v: any) => void;
-    (api.getTransactions as unknown as vi.Mock).mockImplementation(
+    (api.getTransactions as unknown as Mock).mockImplementation(
       () =>
         new Promise((resolve) => {
           resolveFn = resolve;
