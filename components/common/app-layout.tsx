@@ -26,7 +26,9 @@ export default function AppLayout({ children }: AppLayoutProps) {
         {/* Main content area */}
         <div className="relative h-full overflow-y-auto overflow-x-hidden flex flex-col scrollbar-hide">
           <Navbar />
-          <main className="flex-1 flex flex-col">{children}</main>
+          <main id="main-content" className="flex-1 flex flex-col">
+            {children}
+          </main>
         </div>
       </div>
 

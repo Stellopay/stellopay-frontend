@@ -37,7 +37,6 @@ function Label({
         !error && !success && !warning && "text-foreground",
         className,
       )}
-      aria-required={required}
       aria-describedby={descriptionId}
       {...props}
     >

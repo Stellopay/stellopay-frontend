@@ -65,9 +65,9 @@ export function LoginForm() {
     <section className="w-full order-1 lg:order-2">
       {/* Title */}
       <div className="space-y-12">
-        <h2 className="text-[#E5E5E5]">Stellopay</h2>
+        <h2 className="text-foreground">Stellopay</h2>
         <div className="flex flex-col gap-3">
-          <h1 className="text-4xl text-[#F8D2FE] text-center md:text-left">
+          <h1 className="text-4xl text-[#92569D] text-center md:text-left">
             Welcome Back
           </h1>
           <div>
@@ -75,7 +75,7 @@ export function LoginForm() {
               Don&apos;t have an account?{" "}
               <Link
                 href={"/auth/sign-up"}
-                className="underline underline-offset-4 text-white"
+                className="underline underline-offset-4 text-foreground"
               >
                 Sign up
               </Link>

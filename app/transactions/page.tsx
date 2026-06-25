@@ -66,7 +66,7 @@ const Transactions = () => {
   }, [dateFiltered, currentPage]);
 
   return (
-    <main id="main-content">
+    <div>
       <TransactionHeader
         pageTitle="Transaction"
         startDate={startDate}
@@ -133,7 +133,7 @@ const Transactions = () => {
           onPageChange={setCurrentPage}
         />
       )}
-    </main>
+    </div>
   );
 };
 
