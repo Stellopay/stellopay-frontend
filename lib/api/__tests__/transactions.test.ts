@@ -1,4 +1,6 @@
 import {
+  MAX_TRANSACTION_PAGE_SIZE,
+  MIN_TRANSACTION_PAGE_SIZE,
   getTransactions,
   getAccountSummary,
   getPaymentHistory,
@@ -32,6 +34,56 @@ describe("getTransactions", () => {
   it("clamps page to valid range", async () => {
     const result = await getTransactions({ page: 9999, pageSize: 6 });
     expect(result.page).toBe(result.totalPages);
+  });
+
+  it("clamps negative page to the first page", async () => {
+    const result = await getTransactions({ page: -4, pageSize: 2 });
+    expect(result.page).toBe(1);
+    expect(result.data).toHaveLength(2);
+  });
+
+  it("clamps zero and negative pageSize to the minimum", async () => {
+    const zeroPageSize = await getTransactions({ pageSize: 0 });
+    const negativePageSize = await getTransactions({ pageSize: -10 });
+
+    expect(zeroPageSize.pageSize).toBe(MIN_TRANSACTION_PAGE_SIZE);
+    expect(zeroPageSize.totalPages).toBe(zeroPageSize.total);
+    expect(zeroPageSize.data).toHaveLength(MIN_TRANSACTION_PAGE_SIZE);
+    expect(negativePageSize.pageSize).toBe(MIN_TRANSACTION_PAGE_SIZE);
+    expect(negativePageSize.data).toHaveLength(MIN_TRANSACTION_PAGE_SIZE);
+  });
+
+  it("clamps pageSize to the maximum", async () => {
+    const result = await getTransactions({ pageSize: 10_000 });
+
+    expect(result.pageSize).toBe(MAX_TRANSACTION_PAGE_SIZE);
+    expect(result.totalPages).toBe(1);
+    expect(result.data).toHaveLength(result.total);
+  });
+
+  it("falls back to the default pageSize for non-finite values", async () => {
+    const result = await getTransactions({ pageSize: Number.NaN });
+
+    expect(result.pageSize).toBe(6);
+    expect(Number.isFinite(result.totalPages)).toBe(true);
+  });
+
+  it("rejects invalid fromDate and toDate filters", async () => {
+    await expect(
+      getTransactions({ filters: { fromDate: "not-a-date" } }),
+    ).rejects.toThrow("Invalid fromDate");
+    await expect(
+      getTransactions({ filters: { toDate: "also-not-a-date" } }),
+    ).rejects.toThrow("Invalid toDate");
+  });
+
+  it("treats empty date filters as unset", async () => {
+    const result = await getTransactions({
+      filters: { fromDate: "", toDate: "   " },
+    });
+
+    expect(result.total).toBeGreaterThan(0);
+    expect(result.data.length).toBeGreaterThan(0);
   });
 
   it("filters by searchQuery USDC", async () => {
@@ -89,6 +141,43 @@ describe("getTransactions", () => {
       expect(typeof t.amount).toBe("number");
       expect(["Completed", "Pending", "Failed"]).toContain(t.status);
     });
+  });
+});
+
+// The data layer applies an artificial delay only in development so the demo
+// UI exercises its loading states. These tests drive that branch with fake
+// timers to keep the suite fast while still covering the dev-only path.
+describe("dev-only demo delay", () => {
+  beforeEach(() => {
+    vi.useFakeTimers();
+    vi.stubEnv("NODE_ENV", "development");
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+    // Restore the suite-wide default set in the top-level beforeAll.
+    vi.stubEnv("NODE_ENV", "test");
+  });
+
+  it("delays getTransactions in development", async () => {
+    const pending = getTransactions({ pageSize: 2 });
+    await vi.advanceTimersByTimeAsync(400);
+    const result = await pending;
+    expect(result.data).toHaveLength(2);
+  });
+
+  it("delays getAccountSummary in development", async () => {
+    const pending = getAccountSummary();
+    await vi.advanceTimersByTimeAsync(400);
+    const summary = await pending;
+    expect(summary).toHaveProperty("walletAddress");
+  });
+
+  it("delays getPaymentHistory in development", async () => {
+    const pending = getPaymentHistory();
+    await vi.advanceTimersByTimeAsync(400);
+    const items = await pending;
+    expect(items.length).toBeGreaterThan(0);
   });
 });
 

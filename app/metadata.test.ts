@@ -1,4 +1,12 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
+
+vi.mock("next/font/google", () => ({
+  Inter: () => ({ variable: "font-inter" }),
+}));
+
+vi.mock("next/font/local", () => ({
+  default: () => ({ variable: "font-local" }),
+}));
 
 import { metadata as rootMetadata } from "@/app/layout";
 import { metadata as dashboardMetadata } from "@/app/dashboard/layout";
