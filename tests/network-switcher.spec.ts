@@ -2,6 +2,7 @@
  * Network-switcher tests — issue #238
  *
  * Covers:
+ * - Stellar is the default/active network exposed by the wallet context
  * - Active-network badge (green dot + "Active" label) on current network
  * - Trigger aria-label announces current network
  * - Clicking the active network does NOT open the confirmation dialog
@@ -46,7 +47,7 @@ test.describe("NetworkSwitcher — active badge", () => {
     const trigger = page.locator('[aria-label*="Current network"]').first();
     await trigger.click();
 
-    // The first network (ETH) should show the Active badge
+    // The first network (Stellar) should show the Active badge
     const activeBadge = page.getByText("Active").first();
     await expect(activeBadge).toBeVisible();
   });
@@ -59,9 +60,9 @@ test.describe("NetworkSwitcher — no-op on active network", () => {
     const trigger = page.locator('[aria-label*="Current network"]').first();
     await trigger.click();
 
-    // Click the currently active network (ETH)
-    const ethItem = page.getByRole("menuitem", { name: /Stellar/i }).first();
-    await ethItem.click();
+    // Click the currently active network (Stellar)
+    const stellarItem = page.getByRole("menuitem", { name: /Stellar/i }).first();
+    await stellarItem.click();
 
     // Dialog should NOT appear
     const dialog = page.getByRole("dialog");
@@ -96,7 +97,7 @@ test.describe("NetworkSwitcher — confirmation dialog", () => {
     await expect(dialog).toContainText("Polygon");
   });
 
-  test("dialog warns about balance/transaction context change", async ({ page }) => {
+  test("dialog warns about balance/operations context change", async ({ page }) => {
     await page.goto(LANDING_URL);
 
     const trigger = page.locator('[aria-label*="Current network"]').first();
@@ -106,7 +107,7 @@ test.describe("NetworkSwitcher — confirmation dialog", () => {
 
     const dialog = page.getByRole("dialog");
     await expect(dialog).toContainText(/balances/i);
-    await expect(dialog).toContainText(/transaction/i);
+    await expect(dialog).toContainText(/stellar operations/i);
     // Confirm no funds are moved
     await expect(dialog).toContainText(/no funds will be moved/i);
   });
@@ -124,7 +125,7 @@ test.describe("NetworkSwitcher — confirmation dialog", () => {
     // Dialog should be gone
     await expect(page.getByRole("dialog")).not.toBeVisible();
 
-    // Trigger still shows ETH
+    // Trigger still shows Stellar
     const updatedTrigger = page.locator('[aria-label*="Current network"]').first();
     await expect(updatedTrigger).toHaveAttribute("aria-label", /Stellar/i);
   });
@@ -152,7 +153,7 @@ test.describe("NetworkSwitcher — rapid switching", () => {
   test("switching back and forth quickly ends on the last confirmed network", async ({ page }) => {
     await page.goto(LANDING_URL);
 
-    // Switch ETH → Polygon
+    // Switch Stellar → Polygon
     await page.locator('[aria-label*="Current network"]').first().click();
     await page.getByRole("menuitem", { name: /Polygon/i }).first().click();
     await page.getByTestId("confirm-network-switch").click();
@@ -162,7 +163,7 @@ test.describe("NetworkSwitcher — rapid switching", () => {
     await page.getByRole("menuitem", { name: /BSC/i }).first().click();
     await page.getByTestId("confirm-network-switch").click();
 
-    // Switch BSC → ETH
+    // Switch BSC → Stellar
     await page.locator('[aria-label*="Current network"]').first().click();
     await page.getByRole("menuitem", { name: /Stellar/i }).first().click();
     await page.getByTestId("confirm-network-switch").click();
@@ -174,7 +175,7 @@ test.describe("NetworkSwitcher — rapid switching", () => {
   test("cancelling mid-sequence preserves the last confirmed network", async ({ page }) => {
     await page.goto(LANDING_URL);
 
-    // Confirm ETH → Polygon
+    // Confirm Stellar → Polygon
     await page.locator('[aria-label*="Current network"]').first().click();
     await page.getByRole("menuitem", { name: /Polygon/i }).first().click();
     await page.getByTestId("confirm-network-switch").click();

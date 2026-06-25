@@ -3,14 +3,19 @@
 /**
  * NetworkSwitcher
  *
- * Improvements over the original (issue #238):
+ * Lets the user switch between Stellar networks (Mainnet, Testnet,
+ * Futurenet). Each network in {@link defaultNetworks} carries its public
+ * passphrase so callers can map the selection to the correct Horizon/RPC
+ * endpoint.
+ *
  * - Active-network badge: green dot + "Active" label on the current network
  * - Confirmation dialog: shown before committing a switch, warns that
- *   balances and transaction history will reflect the new network
+ *   balances and Stellar operations will reflect the new network
  * - Keyboard accessibility: Radix DropdownMenu already handles arrow-key
  *   navigation; trigger now has an explicit aria-label describing the
  *   current network so screen readers announce it correctly
- * - No secrets or private keys are ever displayed
+ * - No secrets or private keys are ever displayed — only public network
+ *   material
  *
  * Improvements over the original (issue #343):
  * - Confirmation dialog is associated with its title via `aria-labelledby`
@@ -40,6 +45,7 @@ import { Button } from "@/components/ui/button";
 import { ChevronDown } from "lucide-react";
 import { cn } from "@/utils/commonUtils";
 import { Skeleton } from "@/components/ui/skeleton";
+import { StellarIcon } from "@/public/svg/svg";
 import { SUPPORTED_NETWORKS, useWallet } from "@/context/wallet-context";
 import type { Network } from "@/types/wallet";
 
@@ -57,21 +63,6 @@ interface NetworkSwitcherProps {
   variant?: "dashboard" | "landing";
   isLoading?: boolean;
 }
-
-/** Minimal Ethereum diamond icon — no external asset dependency */
-const EthereumIcon = () => (
-  <svg
-    width="16"
-    height="16"
-    viewBox="0 0 24 24"
-    fill="none"
-    xmlns="http://www.w3.org/2000/svg"
-    aria-hidden="true"
-  >
-    <path d="M12 0L5.5 12.5L12 16L18.5 12.5L12 0Z" fill="currentColor" />
-    <path d="M12 17.5L5.5 13.5L12 24L18.5 13.5L12 17.5Z" fill="currentColor" />
-  </svg>
-);
 
 export default function NetworkSwitcher({
   networks,
@@ -167,7 +158,7 @@ export default function NetworkSwitcher({
             className="w-2 h-2 rounded-full bg-green-500 shrink-0"
             aria-hidden="true"
           />
-          {currentNetwork.icon || <EthereumIcon />}
+          {currentNetwork.icon || <StellarIcon />}
           <span className="text-sm font-medium" style={{ fontFamily: "General Sans, sans-serif" }}>
             {currentNetwork.name}
           </span>
@@ -199,7 +190,7 @@ export default function NetworkSwitcher({
                 )}
               >
                 <div className="flex items-center gap-2 w-full">
-                  {network.icon || <EthereumIcon />}
+                  {network.icon || <StellarIcon />}
                   <span className="text-sm" style={{ fontFamily: "General Sans, sans-serif" }}>
                     {network.name}
                   </span>
@@ -259,7 +250,7 @@ export default function NetworkSwitcher({
               <strong className="font-semibold text-white">{pendingNetwork?.name}</strong>.
               <br />
               <br />
-              Your displayed balances and transaction history will reflect the
+              Your displayed balances and Stellar operations will reflect the
               new network. No funds will be moved.
             </DialogDescription>
           </DialogHeader>
