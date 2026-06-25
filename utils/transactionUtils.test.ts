@@ -368,6 +368,40 @@ describe("sortTransactions", () => {
     ]);
   });
 
+  it("handles invalid dates without throwing during sorting", () => {
+    const malformedTransactions: Transaction[] = [
+      { ...transactions[0], id: "valid-late", date: "2023-06-01" },
+      { ...transactions[1], id: "invalid-date", date: "not-a-date" },
+      { ...transactions[2], id: "valid-early", date: "2023-01-01" },
+    ];
+
+    expect(() =>
+      sortTransactions(malformedTransactions, "date", "asc"),
+    ).not.toThrow();
+    expect(
+      sortTransactions(malformedTransactions, "date", "asc").map(
+        (transaction) => transaction.id,
+      ),
+    ).toEqual(["invalid-date", "valid-early", "valid-late"]);
+  });
+
+  it("handles non-finite amounts without throwing during sorting", () => {
+    const malformedTransactions: Transaction[] = [
+      { ...transactions[0], id: "finite-large", amount: 500 },
+      { ...transactions[1], id: "nan-amount", amount: Number.NaN },
+      { ...transactions[2], id: "finite-small", amount: -10 },
+    ];
+
+    expect(() =>
+      sortTransactions(malformedTransactions, "amount", "asc"),
+    ).not.toThrow();
+    expect(
+      sortTransactions(malformedTransactions, "amount", "asc").map(
+        (transaction) => transaction.id,
+      ),
+    ).toEqual(["nan-amount", "finite-small", "finite-large"]);
+  });
+
   it("does not mutate the original transaction array", () => {
     const originalOrder = transactions.map((transaction) => transaction.id);
     const sorted = sortTransactions(transactions, "amount", "asc");

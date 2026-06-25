@@ -2,21 +2,31 @@
 
 import React, { useState } from "react";
 import Image from "next/image";
-import {
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  Tooltip,
-  ResponsiveContainer,
-  CartesianGrid,
-} from "recharts";
 import { ChevronDown, ChevronUp, ChevronRight } from "lucide-react";
 
 import chart from "@/public/chart-up.png";
-import { formatChartValue } from "@/utils/formatUtils";
 import { Skeleton } from "@/components/ui/skeleton";
 import PaymentHistory from "@/components/dashboard/payment-history";
+import dynamic from "next/dynamic";
+
+const CardSkeleton = () => (
+  <div className="w-full h-full flex items-end gap-2" aria-busy="true" aria-live="polite" role="status">
+    <span className="sr-only">Loading chart...</span>
+    {Array.from({ length: 12 }).map((_, i) => (
+      <Skeleton
+        key={i}
+        className="flex-1"
+        shade="dark"
+        style={{ height: `${20 + (i % 4) * 15}%` }}
+      />
+    ))}
+  </div>
+);
+
+const AnalyticsChart = dynamic(() => import("./analytics-chart"), {
+  ssr: false,
+  loading: () => <CardSkeleton />,
+});
 
 /**
  * Data structure for an individual analytics data point.
@@ -25,40 +35,6 @@ export interface AnalyticsDataPoint {
   month: string;
   views: number;
 }
-
-/**
- * Interface representing a item payload inside the custom tooltip.
- */
-interface TooltipPayloadItem {
-  value: number;
-}
-
-/**
- * Props for the custom tooltip component.
- */
-interface CustomTooltipProps {
-  active?: boolean;
-  payload?: TooltipPayloadItem[];
-  label?: string;
-}
-
-/**
- * A custom tooltip component rendered when hovering over the chart bars.
- * 
- * @param props - CustomTooltipProps containing payload data.
- * @returns A JSX element rendering the tooltip contents, or null.
- */
-const CustomTooltip = ({ active, payload, label }: CustomTooltipProps) => {
-  if (active && payload && payload.length) {
-    return (
-      <div className="bg-white text-black p-2 rounded shadow text-sm border border-zinc-200">
-        <p className="font-semibold">{label}</p>
-        <p>{payload[0].value.toLocaleString()} views</p>
-      </div>
-    );
-  }
-  return null;
-};
 
 /**
  * Props accepted by the canonical AnalyticsViews component.
@@ -247,35 +223,7 @@ const AnalyticsViews = ({
         </div>
 
         <div className={showNotifications ? "w-full h-56 mt-4 border border-zinc-100 dark:border-zinc-800/50 p-6 rounded-xl bg-zinc-50/30 dark:bg-zinc-900/20" : "w-full h-full aspect-[3/1] rounded-lg border border-[#2D2D2D] p-2 sm:p-4"}>
-          <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={chartData}>
-              <CartesianGrid
-                strokeDasharray="3 3"
-                vertical={false}
-                stroke={showNotifications ? "currentColor" : "#1f1b2e"}
-                className={showNotifications ? "text-zinc-200 dark:text-zinc-800" : ""}
-              />
-              <XAxis
-                dataKey="month"
-                tick={{ fill: "#aaa", fontSize: 10 }}
-                tickLine={false}
-                axisLine={false}
-              />
-              <YAxis
-                tick={{ fill: "#aaa", fontSize: 10 }}
-                tickFormatter={formatChartValue}
-                tickLine={false}
-                axisLine={false}
-              />
-              <Tooltip content={<CustomTooltip />} />
-              <Bar
-                dataKey="views"
-                fill={showNotifications ? "#3b82f6" : "#2E2E2E"}
-                radius={[4, 4, 0, 0]}
-                barSize={showNotifications ? 20 : 28}
-              />
-            </BarChart>
-          </ResponsiveContainer>
+          <AnalyticsChart data={chartData} showNotifications={showNotifications} />
         </div>
       </div>
 
