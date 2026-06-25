@@ -9,6 +9,8 @@ import {
   formatTransactionDate,
   getStatusColor,
   sortTransactions,
+  STATUS_COLOR_PALETTE,
+  UNKNOWN_STATUS_COLOR,
 } from "@/utils/transactionUtils";
 
 const fixtureStartDate = "2023-03-26";
@@ -424,19 +426,41 @@ describe("sortTransactions", () => {
 });
 
 describe("getStatusColor", () => {
-  it("returns exact classes for known statuses, unknown statuses, and mixed case", () => {
-    const statusCases = [
-      ["completed", "bg-[#102B19] text-[#04842E]"],
-      ["pending", "bg-[#191919] text-[#9F6603]"],
-      ["failed", "bg-[#1A1A1A] text-[#B70B05]"],
-      ["unknown", "bg-[#1A1A1A] text-[#E5E5E5]"],
-      ["CoMpLeTeD", "bg-[#102B19] text-[#04842E]"],
-      ["PeNdInG", "bg-[#191919] text-[#9F6603]"],
-      ["FaIlEd", "bg-[#1A1A1A] text-[#B70B05]"],
-    ] as const;
+  it("returns the exact palette class for each known status", () => {
+    expect(getStatusColor("completed")).toBe(STATUS_COLOR_PALETTE.completed);
+    expect(getStatusColor("pending")).toBe(STATUS_COLOR_PALETTE.pending);
+    expect(getStatusColor("failed")).toBe(STATUS_COLOR_PALETTE.failed);
 
-    for (const [status, expectedClassName] of statusCases) {
-      expect(getStatusColor(status)).toBe(expectedClassName);
+    expect(getStatusColor("completed")).toBe("bg-[#102B19] text-[#04842E]");
+    expect(getStatusColor("pending")).toBe("bg-[#191919] text-[#9F6603]");
+    expect(getStatusColor("failed")).toBe("bg-[#1A1A1A] text-[#B70B05]");
+  });
+
+  it("is case-insensitive for known statuses", () => {
+    expect(getStatusColor("CoMpLeTeD")).toBe(STATUS_COLOR_PALETTE.completed);
+    expect(getStatusColor("PeNdInG")).toBe(STATUS_COLOR_PALETTE.pending);
+    expect(getStatusColor("FaIlEd")).toBe(STATUS_COLOR_PALETTE.failed);
+  });
+
+  it("falls back to the distinct unknown-status style for unrecognized statuses", () => {
+    expect(getStatusColor("unknown")).toBe(UNKNOWN_STATUS_COLOR);
+    expect(getStatusColor("reversed")).toBe(UNKNOWN_STATUS_COLOR);
+    expect(getStatusColor("")).toBe(UNKNOWN_STATUS_COLOR);
+  });
+
+  it("never returns the unknown style for a known status, and vice versa", () => {
+    const knownClassNames = Object.values(STATUS_COLOR_PALETTE);
+
+    expect(knownClassNames).not.toContain(UNKNOWN_STATUS_COLOR);
+    for (const className of knownClassNames) {
+      expect(getStatusColor("not-a-real-status")).not.toBe(className);
     }
+  });
+
+  it("never interpolates the raw status string into the returned class name", () => {
+    const maliciousStatus = '"><script>alert(1)</script>';
+
+    expect(getStatusColor(maliciousStatus)).toBe(UNKNOWN_STATUS_COLOR);
+    expect(getStatusColor(maliciousStatus)).not.toContain(maliciousStatus);
   });
 });

@@ -138,19 +138,53 @@ export const sortTransactions = (
 };
 
 /**
- * Gets the status color for a transaction status
+ * Known, normalized (lowercase) transaction status keys with a defined
+ * color treatment. Any other status falls back to {@link UNKNOWN_STATUS_COLOR}.
+ */
+export type KnownTransactionStatus = "completed" | "pending" | "failed";
+
+/**
+ * Single source of truth mapping each known transaction status to its
+ * Tailwind background/text classes. Values are fixed literals — never
+ * built from user input — so {@link getStatusColor} cannot be coerced into
+ * emitting an arbitrary class string.
+ *
+ * Outputs are intentionally kept as the original hex-based classes for
+ * backward compatibility with existing UI; new statuses should prefer
+ * theme tokens (e.g. `bg-success`, `text-warning`) defined in
+ * `app/globals.css` instead of raw hex where possible.
+ */
+export const STATUS_COLOR_PALETTE: Readonly<
+  Record<KnownTransactionStatus, string>
+> = {
+  completed: "bg-[#102B19] text-[#04842E]",
+  pending: "bg-[#191919] text-[#9F6603]",
+  failed: "bg-[#1A1A1A] text-[#B70B05]",
+};
+
+/**
+ * Style used for any status not present in {@link STATUS_COLOR_PALETTE}.
+ *
+ * Deliberately distinct from every known status (dashed border + the
+ * `warning` theme token) so unrecognized/bad status data is visually
+ * obvious instead of blending in with a normal-looking pill.
+ */
+export const UNKNOWN_STATUS_COLOR =
+  "bg-warning/10 text-warning border border-dashed border-warning/50";
+
+/**
+ * Gets the Tailwind color classes for a transaction status pill.
+ *
+ * The status string is matched case-insensitively against the fixed
+ * {@link STATUS_COLOR_PALETTE} lookup table and is never interpolated into
+ * the returned class string, so an unexpected status value can never
+ * inject arbitrary classes.
+ *
  * @param status - Transaction status
- * @returns Color class name for the status
+ * @returns Color class name for the status, or {@link UNKNOWN_STATUS_COLOR}
+ * when the status isn't recognized
  */
 export const getStatusColor = (status: string): string => {
-  switch (status.toLowerCase()) {
-    case "completed":
-      return "bg-[#102B19] text-[#04842E]";
-    case "pending":
-      return "bg-[#191919] text-[#9F6603]";
-    case "failed":
-      return "bg-[#1A1A1A] text-[#B70B05]";
-    default:
-      return "bg-[#1A1A1A] text-[#E5E5E5]";
-  }
+  const normalizedStatus = status.toLowerCase() as KnownTransactionStatus;
+  return STATUS_COLOR_PALETTE[normalizedStatus] ?? UNKNOWN_STATUS_COLOR;
 };
