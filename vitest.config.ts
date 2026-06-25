@@ -26,6 +26,7 @@ export default defineConfig({
         'utils/authUtils.ts',
         'utils/transactionUtils.ts',
         'utils/paginationUtils.ts',
+        'utils/date-utils.ts',
         'types/auth.ts',
         'components/analytics/analytics-view.tsx',
         'components/analytics/client-analytics-view.tsx',

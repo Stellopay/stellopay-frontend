@@ -13,7 +13,10 @@ import {
 } from "@/components/ui/popover";
 import { cn } from "@/utils/commonUtils";
 import { TransactionsHeaderProps } from "@/types/transaction";
-import { formatDateForInput, formatDateForDisplay } from "@/utils/dateUtils";
+import {
+  formatDateForInput,
+  formatDateForDisplay,
+} from "@/utils/date-utils";
 
 export default function TransactionsHeader({
   fromDate,
