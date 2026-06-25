@@ -12,7 +12,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 
-interface NotificationSettingsState {
+export interface NotificationSettingsState {
   transactionAlerts: boolean;
   securityAlerts: boolean;
   productUpdates: boolean;
@@ -22,26 +22,60 @@ interface NotificationSettingsState {
   smsChannel: boolean;
 }
 
-export default function NotificationsSection() {
-  const [settings, setSettings] = useState<NotificationSettingsState>({
-    transactionAlerts: true,
-    securityAlerts: true,
-    productUpdates: true,
-    marketing: false,
-    emailChannel: true,
-    pushChannel: true,
-    smsChannel: false,
-  });
+/**
+ * Default notification preferences. Exported so a parent surface (e.g. the
+ * settings summary cards) can own the same initial state when it lifts this
+ * section into a controlled component.
+ */
+export const DEFAULT_NOTIFICATION_SETTINGS: NotificationSettingsState = {
+  transactionAlerts: true,
+  securityAlerts: true,
+  productUpdates: true,
+  marketing: false,
+  emailChannel: true,
+  pushChannel: true,
+  smsChannel: false,
+};
+
+/**
+ * Count how many notification preferences are currently enabled. Used by the
+ * settings summary "Alerts enabled" card so the number tracks real state.
+ */
+export function countActiveNotifications(
+  settings: NotificationSettingsState,
+): number {
+  return Object.values(settings).filter(Boolean).length;
+}
+
+interface NotificationsSectionProps {
+  /**
+   * Controlled notification state. When provided the component renders this
+   * value and reports edits through `onSettingsChange`. When omitted the
+   * section manages its own internal state (standalone use).
+   */
+  settings?: NotificationSettingsState;
+  onSettingsChange?: (next: NotificationSettingsState) => void;
+}
+
+export default function NotificationsSection({
+  settings: controlledSettings,
+  onSettingsChange,
+}: NotificationsSectionProps = {}) {
+  const [internalSettings, setInternalSettings] =
+    useState<NotificationSettingsState>(DEFAULT_NOTIFICATION_SETTINGS);
+  const settings = controlledSettings ?? internalSettings;
   const [statusMessage, setStatusMessage] = useState("");
 
   const updateSetting = (
     field: keyof NotificationSettingsState,
     value: boolean,
   ) => {
-    setSettings((currentSettings) => ({
-      ...currentSettings,
-      [field]: value,
-    }));
+    const next: NotificationSettingsState = { ...settings, [field]: value };
+    if (onSettingsChange) {
+      onSettingsChange(next);
+    } else {
+      setInternalSettings(next);
+    }
   };
 
   return (

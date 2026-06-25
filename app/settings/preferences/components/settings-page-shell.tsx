@@ -14,10 +14,26 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Tabs, TabsContent } from "@/components/ui/tabs";
-import AccountSection from "./account-section";
-import NotificationsSection from "./notifications-section";
-import SecurityTab from "./security-tab";
+import { DEMO_WALLETS } from "@/lib/demo-data";
+import AccountSection, {
+  DEFAULT_PROFILE,
+  isProfileComplete,
+  countCompletedProfileFields,
+  totalProfileFields,
+} from "./account-section";
+import NotificationsSection, {
+  DEFAULT_NOTIFICATION_SETTINGS,
+  countActiveNotifications,
+} from "./notifications-section";
+import SecurityTab, { DEFAULT_TWO_FACTOR_ENABLED } from "./security-tab";
 import WalletsSection from "./wallets-section";
+
+/**
+ * Number of wallets currently linked. Sourced from the wallets data the
+ * Wallets section renders (eventually `useWallet()` context) rather than a
+ * hardcoded "2 linked" literal so the summary stays in sync with reality.
+ */
+const linkedWalletCount = DEMO_WALLETS.length;
 
 const sections: SettingsHeaderSection[] = [
   {
@@ -42,7 +58,7 @@ const sections: SettingsHeaderSection[] = [
     value: "wallets",
     label: "Wallets",
     description: "Connected wallets and transfer safeguards.",
-    badge: "2 linked",
+    badge: `${linkedWalletCount} linked`,
   },
 ];
 
@@ -61,6 +77,25 @@ export default function SettingsPageShell({
     ? initialSection!
     : "account";
   const [activeSection, setActiveSection] = useState(resolvedInitialSection);
+
+  // The shell owns the summary-relevant slice of each section's state so the
+  // summary cards and the section editors share a single source of truth. The
+  // sections fall back to their own internal state when rendered standalone.
+  const [profile, setProfile] = useState(DEFAULT_PROFILE);
+  const [notificationSettings, setNotificationSettings] = useState(
+    DEFAULT_NOTIFICATION_SETTINGS,
+  );
+  const [twoFactorEnabled, setTwoFactorEnabled] = useState(
+    DEFAULT_TWO_FACTOR_ENABLED,
+  );
+
+  // Summary card values, derived from live state rather than hardcoded copy.
+  const profileReadiness = isProfileComplete(profile)
+    ? "Complete"
+    : `${countCompletedProfileFields(profile)}/${totalProfileFields(profile)} done`;
+  const activeAlerts = countActiveNotifications(notificationSettings);
+  const securityPosture = twoFactorEnabled ? "2-step on" : "2-step off";
+  const walletCoverage = `${linkedWalletCount} linked`;
 
   const handleSectionChange = (nextSection: string) => {
     setActiveSection(nextSection);
@@ -87,39 +122,45 @@ export default function SettingsPageShell({
           <SummaryCard
             icon={UserRound}
             label="Profile readiness"
-            value="Complete"
+            value={profileReadiness}
             description="Identity, locale, and billing defaults are grouped together."
           />
           <SummaryCard
             icon={Bell}
             label="Alerts enabled"
-            value="5 active"
+            value={`${activeAlerts} active`}
             description="Critical alerts remain above lower-priority updates."
           />
           <SummaryCard
             icon={Shield}
             label="Security posture"
-            value="2-step on"
+            value={securityPosture}
             description="Password, verification, and session controls share one section."
           />
           <SummaryCard
             icon={Wallet}
             label="Wallet coverage"
-            value="2 linked"
+            value={walletCoverage}
             description="Connected wallets sit next to transfer safeguards."
           />
         </section>
 
         <TabsContent value="account" className="mt-0">
-          <AccountSection />
+          <AccountSection profile={profile} onProfileChange={setProfile} />
         </TabsContent>
 
         <TabsContent value="notifications" className="mt-0">
-          <NotificationsSection />
+          <NotificationsSection
+            settings={notificationSettings}
+            onSettingsChange={setNotificationSettings}
+          />
         </TabsContent>
 
         <TabsContent value="security" className="mt-0">
-          <SecurityTab />
+          <SecurityTab
+            twoFactorEnabled={twoFactorEnabled}
+            onTwoFactorEnabledChange={setTwoFactorEnabled}
+          />
         </TabsContent>
 
         <TabsContent value="wallets" className="mt-0">
