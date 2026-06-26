@@ -318,6 +318,14 @@ queue up.
 - All third-party actions are pinned to commit SHAs, not mutable version tags.
 - The workflow requests only `contents: read` — no write access is granted.
 
+## Landing FAQ Copy
+
+The landing FAQ in [`components/landing/faq-section.tsx`](components/landing/faq-section.tsx)
+must stay aligned with StelloPay's Stellar product surface. Public copy should
+reference Stellar wallets such as Freighter, Albedo, and xBull; Stellar assets
+such as XLM and USDC on Stellar; and the active mainnet/testnet context. Avoid
+EVM-only wallet names, ETH asset claims, seed phrase handling claims, or
+unverifiable fee-savings guarantees.
 
 ## Performance Optimization & Code-Splitting
 
