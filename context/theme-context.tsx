@@ -4,6 +4,28 @@ import { safeStorage } from "@/utils/safeStorage";
 
 type Theme = "light" | "dark";
 
+/**
+ * Safely resolves the stored theme from localStorage or system preference.
+ * This is used post-hydration to initialize the theme state correctly.
+ * 
+ * @returns The resolved theme: "dark" or "light".
+ */
+export function getStoredTheme(): Theme {
+  try {
+    const stored = safeStorage.getItem("theme");
+    if (stored === "dark" || stored === "light") {
+      return stored;
+    }
+    const prefersDark =
+      typeof window !== "undefined" &&
+      window.matchMedia &&
+      window.matchMedia("(prefers-color-scheme: dark)").matches;
+    return prefersDark ? "dark" : "light";
+  } catch (e) {
+    return "light";
+  }
+}
+
 type ThemeContextValue = {
   theme: Theme;
   toggleTheme: () => void;
@@ -17,22 +39,12 @@ export const ThemeProvider: React.FC<React.PropsWithChildren<{}>> = ({
 }) => {
   const [theme, setThemeState] = useState<Theme>("light");
 
+  // On mount, resolve the theme from storage/prefers-color-scheme
   useEffect(() => {
-    try {
-      const stored = safeStorage.getItem("theme");
-      if (stored === "dark" || stored === "light") {
-        setThemeState(stored);
-      } else {
-        // prefer system dark
-        const prefersDark =
-          window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches;
-        setThemeState(prefersDark ? "dark" : "light");
-      }
-    } catch (e) {
-      // ignore
-    }
+    setThemeState(getStoredTheme());
   }, []);
 
+  // Update document class and persist theme when it changes
   useEffect(() => {
     try {
       const root = document.documentElement;

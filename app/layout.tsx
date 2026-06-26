@@ -66,7 +66,34 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
+      <head>
+        {/*
+          Pre-hydration theme initializer:
+          Executes immediately on load to determine the user's preferred theme 
+          from localStorage or system settings and applies the 'dark' class to 
+          the <html> element before React hydrates. This prevents light flash on page load.
+        */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              (function() {
+                var stored = null;
+                try {
+                  stored = window.localStorage.getItem('theme');
+                } catch (e) {}
+                try {
+                  if (stored === 'dark' || (!stored && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+                    document.documentElement.classList.add('dark');
+                  } else {
+                    document.documentElement.classList.remove('dark');
+                  }
+                } catch (e) {}
+              })();
+            `,
+          }}
+        />
+      </head>
       <body
         className={`${inter.variable} ${clashDisplay.variable} ${generalSans.variable} antialiased`}
       >
