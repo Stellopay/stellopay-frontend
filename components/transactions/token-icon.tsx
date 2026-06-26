@@ -15,6 +15,7 @@ export default function TokenIcon({ token }: TokenIconProps) {
       </div>
     );
   }
+
   if (token === "XLM") {
     return (
       <div className="w-5 h-5 rounded-full overflow-hidden flex items-center justify-center ">
@@ -28,4 +29,16 @@ export default function TokenIcon({ token }: TokenIconProps) {
       </div>
     );
   }
+
+  // Fallback for any unsupported/unknown token symbol.
+  return (
+    <div
+      className="w-5 h-5 rounded-full overflow-hidden flex items-center justify-center bg-[#1A1A1A] border border-[#2D2D2D]"
+      aria-label={`Unknown token icon: ${token}`}
+      title={token}
+    >
+      <span className="text-[10px] text-white/80">{token?.slice(0, 2) ?? "?"}</span>
+    </div>
+  );
 }
+
