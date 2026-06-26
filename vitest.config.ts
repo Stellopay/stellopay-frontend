@@ -33,6 +33,7 @@ export default defineConfig({
         "utils/transactionUtils.ts",
         "utils/paginationUtils.ts",
         "utils/stellarAddress.ts",
+        "utils/commonUtils.ts",
         "types/auth.ts",
         "app/error.tsx",
         "app/global-error.tsx",
