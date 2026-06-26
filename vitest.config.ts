@@ -28,6 +28,8 @@ export default defineConfig({
         'utils/paginationUtils.ts',
         'utils/date-utils.ts',
         'types/auth.ts',
+        'types/wallet.ts',
+        'context/wallet-context.tsx',
         'components/analytics/analytics-view.tsx',
         'components/analytics/client-analytics-view.tsx',
         'components/common/notification-panel.tsx',

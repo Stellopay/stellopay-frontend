@@ -4,7 +4,7 @@
  * NetworkSwitcher
  *
  * Lets the user switch between Stellar networks (Mainnet, Testnet,
- * Futurenet). Each network in {@link defaultNetworks} carries its public
+ * Futurenet). Each network in {@link SUPPORTED_NETWORKS} carries its public
  * passphrase so callers can map the selection to the correct Horizon/RPC
  * endpoint.
  *
@@ -38,26 +38,12 @@ import { ChevronDown } from "lucide-react";
 import { cn } from "@/utils/commonUtils";
 import { Skeleton } from "@/components/ui/skeleton";
 import { StellarIcon } from "@/public/svg/svg";
+import { SUPPORTED_NETWORKS, type Network } from "@/types/wallet";
 
-/**
- * A Stellar network the user can switch the app to.
- */
-export interface Network {
-  /** Stable identifier, e.g. "public", "testnet", "futurenet" */
-  id: string;
-  /** Human-readable label shown in the switcher, e.g. "Mainnet" */
-  name: string;
-  /**
-   * Stellar network passphrase used to sign transactions and select the
-   * correct Horizon/RPC endpoint for this network. Only public, well-known
-   * passphrases belong here — never a secret key or seed.
-   */
-  passphrase?: string;
-  icon?: React.ReactNode;
-}
+export type { Network };
 
 interface NetworkSwitcherProps {
-  networks?: Network[];
+  networks?: readonly Network[];
   selectedNetwork?: Network;
   onNetworkChange?: (network: Network) => void;
   className?: string;
@@ -65,31 +51,9 @@ interface NetworkSwitcherProps {
   isLoading?: boolean;
 }
 
-/**
- * Default Stellar networks offered by the switcher, ordered with the
- * production network first so it is selected by default.
- */
-const defaultNetworks: Network[] = [
-  {
-    id: "public",
-    name: "Mainnet",
-    passphrase: "Public Global Stellar Network ; September 2015",
-  },
-  {
-    id: "testnet",
-    name: "Testnet",
-    passphrase: "Test SDF Network ; September 2015",
-  },
-  {
-    id: "futurenet",
-    name: "Futurenet",
-    passphrase: "Test SDF Future Network ; October 2022",
-  },
-];
-
 export default function NetworkSwitcher({
-  networks = defaultNetworks,
-  selectedNetwork = defaultNetworks[0],
+  networks = SUPPORTED_NETWORKS,
+  selectedNetwork = SUPPORTED_NETWORKS[0],
   onNetworkChange,
   className,
   variant = "dashboard",
@@ -140,7 +104,7 @@ export default function NetworkSwitcher({
             className="w-2 h-2 rounded-full bg-green-500 shrink-0"
             aria-hidden="true"
           />
-          {currentNetwork.icon || <StellarIcon />}
+          <StellarIcon />
           <span className="text-sm font-medium" style={{ fontFamily: "General Sans, sans-serif" }}>
             {currentNetwork.name}
           </span>
@@ -172,7 +136,7 @@ export default function NetworkSwitcher({
                 )}
               >
                 <div className="flex items-center gap-2 w-full">
-                  {network.icon || <StellarIcon />}
+                  <StellarIcon />
                   <span className="text-sm" style={{ fontFamily: "General Sans, sans-serif" }}>
                     {network.name}
                   </span>
