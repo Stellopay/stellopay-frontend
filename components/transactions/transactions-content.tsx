@@ -47,7 +47,7 @@ export default function TransactionsContent() {
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = TRANSACTIONS_PAGE_SIZE;
 
-  const { data, isLoading, error } = useTransactions({
+  const { data, isLoading, error, refetch } = useTransactions({
     filters,
     page: currentPage,
     pageSize: itemsPerPage,
@@ -106,7 +106,9 @@ export default function TransactionsContent() {
               <ErrorState
                 title="Failed to Load"
                 description="Failed to load transactions. Please try again."
-                onRetry={() => window.location.reload()}
+                // Recover only the failed request in-place using refetch() to avoid full page reloads,
+                // which destroys the React tree, loses client state, and refetches the entire application.
+                onRetry={refetch}
               />
             )}
 

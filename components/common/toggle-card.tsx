@@ -48,7 +48,6 @@ export default function ToggleCard({
         type="button"
         role="switch"
         aria-checked={enabled}
-        aria-pressed={enabled}
         aria-label={`${title}, ${enabled ? "enabled" : "disabled"}`}
         disabled={disabled}
         onClick={() => onToggle(!enabled)}

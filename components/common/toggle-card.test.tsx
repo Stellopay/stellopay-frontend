@@ -3,14 +3,13 @@ import { describe, it, expect, vi } from 'vitest';
 import ToggleCard from './toggle-card';
 
 describe('ToggleCard Accessibility', () => {
-  it('exposes aria-pressed and aria-checked attributes that flip on toggle', () => {
+  it('exposes aria-checked attributes that flip on toggle', () => {
     const handleToggle = vi.fn();
     const { rerender } = render(
       <ToggleCard title="Notifications" enabled={false} onToggle={handleToggle} />
     );
     
     const button = screen.getByRole('switch');
-    expect(button).toHaveAttribute('aria-pressed', 'false');
     expect(button).toHaveAttribute('aria-checked', 'false');
     expect(button).toHaveAttribute('aria-label', 'Notifications, disabled');
     
@@ -20,7 +19,6 @@ describe('ToggleCard Accessibility', () => {
     
     // Rerender with new state
     rerender(<ToggleCard title="Notifications" enabled={true} onToggle={handleToggle} />);
-    expect(button).toHaveAttribute('aria-pressed', 'true');
     expect(button).toHaveAttribute('aria-checked', 'true');
     expect(button).toHaveAttribute('aria-label', 'Notifications, enabled');
   });
