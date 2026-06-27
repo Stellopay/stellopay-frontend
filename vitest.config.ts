@@ -42,7 +42,9 @@ export default defineConfig({
         "components/analytics/analytics-view.tsx",
         "components/analytics/client-analytics-view.tsx",
         "components/common/notification-panel.tsx",
+        "components/common/nav-link.tsx",
         "components/ui/pagination.tsx",
+        "components/ui/tooltip.tsx",
       ],
       exclude: [
         "**/*.test.{ts,tsx}",
