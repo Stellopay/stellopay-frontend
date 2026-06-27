@@ -4,6 +4,7 @@ import { describe, expect, it, vi, beforeEach } from "vitest";
 
 import AnalyticsViews, { AnalyticsDataPoint } from "./analytics-view";
 import ClientAnalyticsView from "./client-analytics-view";
+import { CustomTooltip } from "./analytics-chart";
 
 // Mock recharts
 vi.mock("recharts", () => {
@@ -172,5 +173,35 @@ describe("ClientAnalyticsView Component", () => {
       expect(screen.queryByText("Loading analytics views chart...")).not.toBeInTheDocument();
     });
     expect(screen.getByText("Analytics views")).toBeInTheDocument();
+  });
+});
+
+describe("CustomTooltip", () => {
+  it("renders with theme-aware classes and content when active with valid payload", () => {
+    const { container } = render(
+      <CustomTooltip active payload={[{ value: 1234 }]} label="TestMonth" />
+    );
+    const tooltipEl = container.firstChild as HTMLElement;
+    expect(tooltipEl).toHaveClass("bg-white");
+    expect(tooltipEl).toHaveClass("dark:bg-zinc-900");
+    expect(tooltipEl).toHaveClass("text-zinc-900");
+    expect(tooltipEl).toHaveClass("dark:text-zinc-100");
+    expect(tooltipEl).toHaveClass("border-zinc-200");
+    expect(tooltipEl).toHaveClass("dark:border-zinc-800");
+    expect(tooltipEl).toHaveClass("text-center");
+    expect(screen.getByText("TestMonth")).toBeInTheDocument();
+    expect(screen.getByText("1,234 views")).toBeInTheDocument();
+  });
+
+  it("renders nothing when active with empty payload", () => {
+    const { container } = render(
+      <CustomTooltip active payload={[]} label="x" />
+    );
+    expect(container).toBeEmptyDOMElement();
+  });
+
+  it("renders nothing when inactive", () => {
+    const { container } = render(<CustomTooltip active={false} />);
+    expect(container).toBeEmptyDOMElement();
   });
 });
