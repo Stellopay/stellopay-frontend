@@ -1,6 +1,8 @@
 "use client";
 
 import { useState } from "react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
 import {
   CheckCircle2,
   KeyRound,
@@ -18,12 +20,12 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { Form } from "@/components/ui/form";
+import { FormFieldPassword } from "@/components/ui/form-field";
+import { changePasswordSchema, ChangePasswordFormValues } from "@/types/auth";
 import { checkPasswordRequirements } from "@/utils/authUtils";
 import DestructiveActionDialog from "./destructive-action-dialog";
-import { Label } from "@/components/ui/label";
-import { FormMessage } from "@/components/ui/form";
 import { DEMO_SECURITY } from "@/lib/demo-data";
 
 const sessions = [
@@ -47,45 +49,83 @@ interface StatusState {
 }
 
 /**
- * SecurityTab component.
- * Renders security-sensitive forms (password updates, two-factor authentication, active sessions).
- * Uses placeholder demo data pending full backend API integration.
+ * SecurityTab — password change, verification controls, and active sessions.
+ *
+ * ## Password-change validation flow
+ *
+ * The form is backed by {@link changePasswordSchema} via `zodResolver`, which
+ * enforces the same policy as sign-up:
+ * - Minimum 8 characters
+ * - At least one uppercase letter
+ * - At least one special character (`@!#%$^&*()_+...`)
+ * - New password and confirmation must match (cross-field refinement)
+ *
+ * Validation mode is `"onTouched"`: errors surface on the first blur then
+ * update on every subsequent keystroke, so the UI stays quiet while the user
+ * is still composing their password. Each field drives `aria-invalid` through
+ * `FormControl → Input`, and `FormMessage` surfaces the zod error text inline
+ * below the field.
+ *
+ * The submit button is disabled until `form.formState.isValid` is `true`
+ * **and** both fields contain text, so an initially-empty form can never be
+ * submitted accidentally. While the async save is in-flight the button shows a
+ * spinner and is disabled; the form re-enables when the promise resolves.
+ *
+ * @security Password values are never logged, printed, or stored outside the
+ *   react-hook-form internal state. The `handleSaveChanges` callback receives
+ *   the validated `ChangePasswordFormValues` but ignores all field values —
+ *   the parameter is prefixed with `_` to make the intent explicit. The form
+ *   is reset to empty strings on success to prevent values lingering in state.
  */
 export default function SecurityTab() {
-  const [password, setPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
   const [twoFactorEnabled, setTwoFactorEnabled] = useState(true);
   const [loginApprovalEnabled, setLoginApprovalEnabled] = useState(true);
   const [transferApprovalEnabled, setTransferApprovalEnabled] = useState(true);
   const [status, setStatus] = useState<StatusState>({ message: "", type: null });
   const [isSaving, setIsSaving] = useState(false);
 
-  const passwordRequirements = checkPasswordRequirements(password);
-  const isPasswordReady =
-    Object.values(passwordRequirements).every(Boolean) &&
-    password.length > 0 &&
-    password === confirmPassword;
+  const form = useForm<ChangePasswordFormValues>({
+    resolver: zodResolver(changePasswordSchema),
+    mode: "onTouched",
+    defaultValues: { newPassword: "", confirmPassword: "" },
+  });
 
-  const handleSaveChanges = async () => {
-    if (!isPasswordReady) {
-      return;
-    }
+  const watchedPassword = form.watch("newPassword");
+  const watchedConfirm = form.watch("confirmPassword");
+  const passwordRequirements = checkPasswordRequirements(watchedPassword);
+  const passwordsMatch =
+    watchedPassword.length > 0 && watchedPassword === watchedConfirm;
+
+  const canSubmit =
+    form.formState.isValid &&
+    watchedPassword.length > 0 &&
+    watchedConfirm.length > 0;
+
+  /**
+   * Invoked by `form.handleSubmit` after zod passes all validations.
+   *
+   * `_data` is typed as `ChangePasswordFormValues` but intentionally unused —
+   * no password value is read, stored, or logged anywhere in this function.
+   */
+  const handleSaveChanges = async (_data: ChangePasswordFormValues) => {
     setIsSaving(true);
     setStatus({ message: "", type: null });
     try {
-      await new Promise((resolve, reject) => setTimeout(() => {
-        if (Math.random() > 0.8) {
-          reject(new Error("Failed to save"));
-        } else {
-          resolve(null);
-        }
-      }, 1500));
+      await new Promise<void>((resolve, reject) =>
+        setTimeout(() => {
+          if (Math.random() > 0.8) {
+            reject(new Error("Failed to save"));
+          } else {
+            resolve();
+          }
+        }, 1500),
+      );
       setStatus({
-        message: "Password policy satisfied. Changes are ready for backend wiring.",
+        message:
+          "Password policy satisfied. Changes are ready for backend wiring.",
         type: "success",
       });
-      setPassword("");
-      setConfirmPassword("");
+      form.reset();
     } catch {
       setStatus({
         message: "Failed to save changes. Please try again.",
@@ -120,98 +160,94 @@ export default function SecurityTab() {
           </div>
         </CardHeader>
         <CardContent className="space-y-6 pt-6">
-          <div className="grid gap-4 md:grid-cols-2">
-            <div className="space-y-2">
-              <Label
-                htmlFor="new-password"
-                className="text-zinc-900 dark:text-white"
-              >
-                New password
-              </Label>
-              <Input
-                id="new-password"
-                type="password"
-                value={password}
-                onChange={(event) => setPassword(event.target.value)}
-                placeholder="Use a strong password"
-                className="border-zinc-200 bg-white dark:border-white/10 dark:bg-white/5"
-                disabled={isSaving}
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label
-                htmlFor="confirm-password"
-                className="text-zinc-900 dark:text-white"
-              >
-                Confirm password
-              </Label>
-              <Input
-                id="confirm-password"
-                type="password"
-                value={confirmPassword}
-                onChange={(event) => setConfirmPassword(event.target.value)}
-                placeholder="Repeat the new password"
-                className="border-zinc-200 bg-white dark:border-white/10 dark:bg-white/5"
-                disabled={isSaving}
-              />
-            </div>
-          </div>
-
-          <div className="grid gap-3 sm:grid-cols-2">
-            <RequirementItem
-              label="At least 8 characters"
-              met={passwordRequirements.minLength}
-            />
-            <RequirementItem
-              label="One uppercase letter"
-              met={passwordRequirements.uppercase}
-            />
-            <RequirementItem
-              label="One special character"
-              met={passwordRequirements.specialChar}
-            />
-            <RequirementItem
-              label="Passwords match"
-              met={password.length > 0 && password === confirmPassword}
-            />
-          </div>
-
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <p className="text-sm text-zinc-500 dark:text-zinc-400">
-              Recovery methods stay hidden until needed to keep the primary path
-              calm.
-            </p>
-            <Button disabled={!isPasswordReady || isSaving} onClick={handleSaveChanges}>
-              {isSaving ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Saving...
-                </>
-              ) : (
-                "Update password"
-              )}
-            </Button>
-          </div>
-
-          {status.message && (
-            <div
-              role="status"
-              aria-live="polite"
-              className={`rounded-2xl border px-4 py-3 ${
-                status.type === "success"
-                  ? "border-success/20 bg-success/10"
-                  : "border-destructive/20 bg-destructive/10"
-              }`}
+          <Form {...form}>
+            <form
+              onSubmit={form.handleSubmit(handleSaveChanges)}
+              noValidate
+              className="space-y-6"
             >
-              <FormMessage
-                variant={status.type === "success" ? "success" : "error"}
-                className={status.type === "success" ? "text-success" : "text-destructive"}
-              >
-                {status.message}
-              </FormMessage>
-            </div>
-          )}
+              <div className="grid gap-4 md:grid-cols-2">
+                <FormFieldPassword
+                  control={form.control}
+                  name="newPassword"
+                  label="New password"
+                  placeholder="Use a strong password"
+                  autoComplete="new-password"
+                  disabled={isSaving}
+                />
+                <FormFieldPassword
+                  control={form.control}
+                  name="confirmPassword"
+                  label="Confirm password"
+                  placeholder="Repeat the new password"
+                  autoComplete="new-password"
+                  disabled={isSaving}
+                />
+              </div>
+
+              <div className="grid gap-3 sm:grid-cols-2">
+                <RequirementItem
+                  label="At least 8 characters"
+                  met={passwordRequirements.minLength}
+                />
+                <RequirementItem
+                  label="One uppercase letter"
+                  met={passwordRequirements.uppercase}
+                />
+                <RequirementItem
+                  label="One special character"
+                  met={passwordRequirements.specialChar}
+                />
+                <RequirementItem
+                  label="Passwords match"
+                  met={passwordsMatch}
+                />
+              </div>
+
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <p className="text-sm text-zinc-500 dark:text-zinc-400">
+                  Recovery methods stay hidden until needed to keep the primary
+                  path calm.
+                </p>
+                <Button
+                  type="submit"
+                  disabled={!canSubmit || isSaving}
+                >
+                  {isSaving ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Saving...
+                    </>
+                  ) : (
+                    "Update password"
+                  )}
+                </Button>
+              </div>
+
+              {status.message && (
+                <div
+                  role="status"
+                  aria-live="polite"
+                  className={`rounded-2xl border px-4 py-3 ${
+                    status.type === "success"
+                      ? "border-success/20 bg-success/10"
+                      : "border-destructive/20 bg-destructive/10"
+                  }`}
+                >
+                  <p
+                    role="alert"
+                    className={`text-sm ${
+                      status.type === "success"
+                        ? "text-success"
+                        : "text-destructive"
+                    }`}
+                  >
+                    {status.message}
+                  </p>
+                </div>
+              )}
+            </form>
+          </Form>
 
           <details className="group rounded-2xl border border-zinc-200 bg-zinc-50 p-4 dark:border-white/10 dark:bg-white/5">
             <summary className="cursor-pointer list-none text-sm font-medium text-zinc-900 dark:text-white">
@@ -327,7 +363,8 @@ export default function SecurityTab() {
               confirmLabel="Force sign-out"
               onConfirm={() =>
                 setStatus({
-                  message: "Session reset requested. All other devices would be signed out.",
+                  message:
+                    "Session reset requested. All other devices would be signed out.",
                   type: "success",
                 })
               }
@@ -344,6 +381,7 @@ function RequirementItem({ label, met }: { label: string; met: boolean }) {
     <div className="flex items-center gap-2 rounded-2xl border border-zinc-200 bg-zinc-50 px-4 py-3 text-sm text-zinc-600 dark:border-white/10 dark:bg-white/5 dark:text-zinc-400">
       <CheckCircle2
         className={`size-4 ${met ? "text-emerald-500" : "text-zinc-300 dark:text-zinc-600"}`}
+        aria-hidden="true"
       />
       <span>{label}</span>
     </div>

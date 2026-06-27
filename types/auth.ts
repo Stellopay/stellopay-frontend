@@ -17,6 +17,24 @@ export interface AuthShowcaseProps {
 }
 
 // Form schemas and types
+
+/**
+ * Shared password policy: minimum 8 characters, one uppercase letter, one
+ * special character. Reused by {@link signUpSchema} and
+ * {@link changePasswordSchema} so both flows enforce identical rules.
+ */
+export const passwordPolicySchema = z
+  .string()
+  .min(8, {
+    message: "Password must be at least 8 characters.",
+  })
+  .regex(/[A-Z]/, {
+    message: "Password must include at least one uppercase letter.",
+  })
+  .regex(/[@!#%$^&*()_+\-=[\]{};':"\\|,.<>/?]/, {
+    message: "Password must include at least one special character.",
+  });
+
 /**
  * Validates signup form values: full name, valid email, an 8+ character
  * password with uppercase and special characters, matching confirmation, and
@@ -30,17 +48,7 @@ export const signUpSchema = z
     email: z.string().email({
       message: "Please enter a valid email address.",
     }),
-    password: z
-      .string()
-      .min(8, {
-        message: "Password must be at least 8 characters.",
-      })
-      .regex(/[A-Z]/, {
-        message: "Password must include at least one uppercase letter.",
-      })
-      .regex(/[@!#%$^&*()_+\-=[\]{};':"\\|,.<>/?]/, {
-        message: "Password must include at least one special character.",
-      }),
+    password: passwordPolicySchema,
     confirmPassword: z.string(),
     agreeToTerms: z.boolean().refine((val) => val === true, {
       message: "You must agree to the terms and conditions.",
@@ -65,5 +73,25 @@ export const loginSchema = z.object({
   rememberMe: z.boolean(),
 });
 
+/**
+ * Validates the change-password form in SecurityTab.
+ *
+ * The new password must satisfy {@link passwordPolicySchema} (minimum 8
+ * characters, one uppercase, one special character) and the confirmation must
+ * match exactly. Neither field value is ever logged or persisted beyond the
+ * form state.
+ */
+export const changePasswordSchema = z
+  .object({
+    newPassword: passwordPolicySchema,
+    confirmPassword: z.string(),
+  })
+  .refine((data) => data.newPassword === data.confirmPassword, {
+    message: "Passwords don't match.",
+    path: ["confirmPassword"],
+  });
+
 export type SignUpFormValues = z.infer<typeof signUpSchema>;
 export type LoginFormValues = z.infer<typeof loginSchema>;
+/** Inferred type for the change-password form. */
+export type ChangePasswordFormValues = z.infer<typeof changePasswordSchema>;
