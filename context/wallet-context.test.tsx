@@ -10,7 +10,9 @@ import {
   useWallet,
 } from "@/context/wallet-context";
 
-const POLYGON = SUPPORTED_NETWORKS.find((n) => n.id === "polygon")!;
+// Stellar is the only supported network now that the placeholder EVM chains
+// have been removed, so network-switching/persistence is exercised against it.
+const STELLAR = SUPPORTED_NETWORKS.find((n) => n.id === "stellar")!;
 const STORAGE_KEY = "stellopay.wallet.network";
 
 function wrap(children: React.ReactNode) {
@@ -102,21 +104,21 @@ describe("WalletProvider", () => {
     });
 
     act(() => {
-      result.current.setNetwork(POLYGON);
+      result.current.setNetwork(STELLAR);
     });
 
-    expect(result.current.network.id).toBe("polygon");
-    expect(window.localStorage.getItem(STORAGE_KEY)).toBe("polygon");
+    expect(result.current.network.id).toBe("stellar");
+    expect(window.localStorage.getItem(STORAGE_KEY)).toBe("stellar");
   });
 
   it("hydrates the network from localStorage on mount", () => {
-    window.localStorage.setItem(STORAGE_KEY, "polygon");
+    window.localStorage.setItem(STORAGE_KEY, "stellar");
 
     const { result } = renderHook(() => useWallet(), {
       wrapper: ({ children }) => wrap(children),
     });
 
-    expect(result.current.network.id).toBe("polygon");
+    expect(result.current.network.id).toBe("stellar");
   });
 
   it("ignores unknown network ids in storage", () => {
@@ -217,10 +219,10 @@ describe("WalletProvider storage edge cases", () => {
       });
       expect(() => {
         act(() => {
-          result.current.setNetwork(POLYGON);
+          result.current.setNetwork(STELLAR);
         });
       }).not.toThrow();
-      expect(result.current.network.id).toBe("polygon");
+      expect(result.current.network.id).toBe("stellar");
     });
   });
 
@@ -233,7 +235,7 @@ describe("WalletProvider storage edge cases", () => {
       expect(result.current.network.id).toBe(DEFAULT_NETWORK.id);
       expect(() => {
         act(() => {
-          result.current.setNetwork(POLYGON);
+          result.current.setNetwork(STELLAR);
         });
       }).not.toThrow();
     });
