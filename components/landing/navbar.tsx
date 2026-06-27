@@ -17,13 +17,11 @@ const navLinks = [
 
 export default function Navbar() {
   const pathname = usePathname() || "/";
-  const { theme, toggleTheme } = useTheme();
+  const { theme, resolvedTheme, toggleTheme } = useTheme();
   const [mobileOpen, setMobileOpen] = useState(false);
 
   const handleConnect = () => {
-    // placeholder connect wallet handler
-    // Integrate wallet modal/connector here
-    console.log("Connect Wallet clicked");
+    // TODO: integrate wallet modal/connector here.
     alert("Connect Wallet clicked (stub)");
   };
 
@@ -36,7 +34,7 @@ export default function Navbar() {
             <div className="flex items-center">
               <Link href="/" className="flex items-center">
                 <Image
-                  src={theme === "dark" ? "/logos/LOGO A/PNG/StelloPay Brand-13.png" : "/logos/LOGO A/PNG/StelloPay Brand-14.png"}
+                  src={resolvedTheme === "dark" ? "/logos/LOGO A/PNG/StelloPay Brand-13.png" : "/logos/LOGO A/PNG/StelloPay Brand-14.png"}
                   alt="StelloPay Logo"
                   width={130}
                   height={32}
@@ -70,11 +68,11 @@ export default function Navbar() {
             {/* Right: controls */}
             <div className="flex items-center justify-end gap-3">
               <button
-                aria-label="Toggle theme"
+                aria-label={theme === "light" ? "Switch to dark mode" : theme === "dark" ? "Switch to system mode" : "Switch to light mode"}
                 onClick={toggleTheme}
                 className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-white/5 transition-colors"
               >
-                {theme === "light" ? (
+                {resolvedTheme === "light" ? (
                   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                     <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" fill="#0F172A" />
                   </svg>
@@ -90,7 +88,7 @@ export default function Navbar() {
               <button
                 onClick={handleConnect}
                 className={`hidden md:inline-flex items-center px-5 py-2 rounded-full font-medium transition-shadow shadow-sm ${
-                  theme === "dark"
+                  resolvedTheme === "dark"
                     ? "bg-white text-black hover:opacity-95"
                     : "bg-black text-white hover:opacity-95"
                 }`}

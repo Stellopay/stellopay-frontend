@@ -4,6 +4,7 @@ import localFont from "next/font/local";
 import "./globals.css";
 import { SidebarProvider } from "@/context/sidebar-context";
 import { ThemeProvider } from "@/context/theme-context";
+import { WalletProvider } from "@/context/wallet-context";
 
 const inter = Inter({
   variable: "--font-inter",
@@ -65,7 +66,36 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
+      <head>
+        {/*
+          Pre-hydration theme initializer:
+          Executes immediately on load to determine the user's preferred theme 
+          from localStorage or system settings and applies the 'dark' class to 
+          the <html> element before React hydrates. This prevents light flash on page load.
+        */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              (function() {
+                var stored = null;
+                try {
+                  stored = window.localStorage.getItem('theme');
+                } catch (e) {}
+                try {
+                  var prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+                  var useSystem = stored !== 'dark' && stored !== 'light';
+                  if (stored === 'dark' || (useSystem && prefersDark)) {
+                    document.documentElement.classList.add('dark');
+                  } else {
+                    document.documentElement.classList.remove('dark');
+                  }
+                } catch (e) {}
+              })();
+            `,
+          }}
+        />
+      </head>
       <body
         className={`${inter.variable} ${clashDisplay.variable} ${generalSans.variable} antialiased`}
       >
@@ -78,7 +108,9 @@ export default function RootLayout({
           Skip to main content
         </a>
         <ThemeProvider>
-          <SidebarProvider>{children}</SidebarProvider>
+          <WalletProvider>
+            <SidebarProvider>{children}</SidebarProvider>
+          </WalletProvider>
         </ThemeProvider>
       </body>
     </html>
