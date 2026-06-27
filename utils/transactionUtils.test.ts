@@ -431,9 +431,9 @@ describe("getStatusColor", () => {
     expect(getStatusColor("pending")).toBe(STATUS_COLOR_PALETTE.pending);
     expect(getStatusColor("failed")).toBe(STATUS_COLOR_PALETTE.failed);
 
-    expect(getStatusColor("completed")).toBe("bg-[#102B19] text-[#04842E]");
-    expect(getStatusColor("pending")).toBe("bg-[#191919] text-[#9F6603]");
-    expect(getStatusColor("failed")).toBe("bg-[#1A1A1A] text-[#B70B05]");
+    expect(getStatusColor("completed")).toBe("bg-[#102B19] text-[#34D399]");
+    expect(getStatusColor("pending")).toBe("bg-[#191919] text-[#FBBF24]");
+    expect(getStatusColor("failed")).toBe("bg-[#1A1A1A] text-[#F87171]");
   });
 
   it("is case-insensitive for known statuses", () => {

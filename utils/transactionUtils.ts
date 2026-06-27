@@ -157,9 +157,13 @@ export type KnownTransactionStatus = "completed" | "pending" | "failed";
 export const STATUS_COLOR_PALETTE: Readonly<
   Record<KnownTransactionStatus, string>
 > = {
-  completed: "bg-[#102B19] text-[#04842E]",
-  pending: "bg-[#191919] text-[#9F6603]",
-  failed: "bg-[#1A1A1A] text-[#B70B05]",
+  // Text colors are brightened from the original #04842E/#9F6603/#B70B05 —
+  // those failed axe's WCAG AA color-contrast check (3.14:1, 3.67:1, 2.53:1
+  // against their backgrounds; AA requires 4.5:1). These shades keep the
+  // same green/amber/red hue family while clearing the threshold.
+  completed: "bg-[#102B19] text-[#34D399]",
+  pending: "bg-[#191919] text-[#FBBF24]",
+  failed: "bg-[#1A1A1A] text-[#F87171]",
 };
 
 /**

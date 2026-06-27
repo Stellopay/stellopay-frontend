@@ -70,7 +70,12 @@ test.describe("NetworkSwitcher — no-op on active network", () => {
   });
 });
 
-test.describe("NetworkSwitcher — confirmation dialog", () => {
+// Skipped: the placeholder EVM networks (Polygon/BSC/etc) were removed from
+// SUPPORTED_NETWORKS, so Stellar is now the only network. With nothing to
+// switch *to*, the confirmation-dialog flow can no longer be exercised. These
+// scenarios should be reinstated (with real targets) once genuine multichain
+// support lands.
+test.describe.skip("NetworkSwitcher — confirmation dialog", () => {
   test("switching to a different network opens the confirmation dialog", async ({ page }) => {
     await page.goto(LANDING_URL);
 
@@ -149,7 +154,8 @@ test.describe("NetworkSwitcher — confirmation dialog", () => {
   });
 });
 
-test.describe("NetworkSwitcher — rapid switching", () => {
+// Skipped: requires multiple networks to switch between (see note above).
+test.describe.skip("NetworkSwitcher — rapid switching", () => {
   test("switching back and forth quickly ends on the last confirmed network", async ({ page }) => {
     await page.goto(LANDING_URL);
 
@@ -257,7 +263,9 @@ test.describe("NetworkSwitcher — keyboard accessibility", () => {
  *  - returns focus to the DropdownMenuTrigger after Cancel
  *  - returns focus to the DropdownMenuTrigger after Confirm
  */
-test.describe("NetworkSwitcher — dialog ARIA labels (issue #343)", () => {
+// Skipped: the confirmation dialog only opens when switching to a *different*
+// network, which is impossible now that Stellar is the sole supported network.
+test.describe.skip("NetworkSwitcher — dialog ARIA labels (issue #343)", () => {
   test("confirmation dialog has aria-labelledby referencing its title", async ({ page }) => {
     await page.goto(LANDING_URL);
 

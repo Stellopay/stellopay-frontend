@@ -23,10 +23,10 @@ interface CustomTooltipProps {
   label?: string;
 }
 
-const CustomTooltip = ({ active, payload, label }: CustomTooltipProps) => {
+export const CustomTooltip = ({ active, payload, label }: CustomTooltipProps) => {
   if (active && payload && payload.length) {
     return (
-      <div className="bg-white text-black p-2 rounded shadow text-sm border border-zinc-200">
+      <div className="bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100 p-2 rounded shadow text-sm border border-zinc-200 dark:border-zinc-800 text-center">
         <p className="font-semibold">{label}</p>
         <p>{payload[0].value.toLocaleString()} views</p>
       </div>
