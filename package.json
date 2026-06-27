@@ -7,6 +7,7 @@
     "preinstall": "node scripts/check-package-manager.js",
     "dev": "next dev --turbopack",
     "build": "next build",
+    "analyze": "ANALYZE=true next build",
     "start": "next start",
     "lint": "next lint",
     "test": "vitest run --coverage",
@@ -32,7 +33,6 @@
     "clsx": "^2.1.1",
     "date-fns": "^3.6.0",
     "framer-motion": "^12.23.0",
-    "install": "^0.13.0",
     "lucide-react": "^0.503.0",
     "next": "15.3.8",
     "next-auth": "^4.24.11",
@@ -42,11 +42,11 @@
     "react-hook-form": "^7.60.0",
     "recharts": "^2.15.3",
     "tailwind-merge": "^3.2.0",
-    "yarn": "^1.22.22",
     "zod": "^3.25.74"
   },
   "devDependencies": {
     "@axe-core/playwright": "^4.12.1",
+    "@next/bundle-analyzer": "^16.2.9",
     "@playwright/test": "^1.55.0",
     "@tailwindcss/postcss": "^4",
     "@testing-library/jest-dom": "^6.9.1",

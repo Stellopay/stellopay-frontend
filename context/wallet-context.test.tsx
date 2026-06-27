@@ -1,340 +1,267 @@
-/**
- * wallet-context — unit tests
- *
- * Covers:
- * - SUPPORTED_NETWORKS contains exactly Stellar Mainnet/Testnet/Futurenet
- * - No EVM chain ids or names appear anywhere in the allow-list
- * - DEFAULT_NETWORK is Mainnet (the safe production default)
- * - WalletProvider exposes the default network when localStorage is empty
- * - Valid persisted network ids are restored on hydration
- * - Stale EVM ids ("eth", "polygon", "bsc", "arbitrum") fall back to default
- * - Arbitrary unknown ids fall back to default
- * - setActiveNetwork switches the active network and writes to localStorage
- * - setActiveNetwork rejects ids not on the allow-list (no-op)
- * - localStorage unavailability does not crash the provider
- * - useWallet throws outside a WalletProvider
- */
-
-import { render, screen, act, waitFor } from "@testing-library/react";
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { act, render, renderHook, screen } from "@testing-library/react";
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import React from "react";
 
 import {
   DEFAULT_NETWORK,
   SUPPORTED_NETWORKS,
   WalletProvider,
+  formatAddress,
   useWallet,
-} from "./wallet-context";
-import { WALLET_NETWORK_STORAGE_KEY } from "@/types/wallet";
+} from "@/context/wallet-context";
 
-// ─── helpers ────────────────────────────────────────────────────────────────
+// Stellar is the only supported network now that the placeholder EVM chains
+// have been removed, so network-switching/persistence is exercised against it.
+const STELLAR = SUPPORTED_NETWORKS.find((n) => n.id === "stellar")!;
+const STORAGE_KEY = "stellopay.wallet.network";
 
-/** Renders a consumer that exposes the context value through data-testids. */
-function WalletConsumer() {
-  const { activeNetwork, setActiveNetwork, supportedNetworks } = useWallet();
-  return (
-    <div>
-      <span data-testid="active-id">{activeNetwork.id}</span>
-      <span data-testid="active-name">{activeNetwork.name}</span>
-      <span data-testid="active-passphrase">{activeNetwork.passphrase}</span>
-      <span data-testid="network-count">{supportedNetworks.length}</span>
-      {supportedNetworks.map((n) => (
-        <span key={n.id} data-testid={`network-${n.id}`}>
-          {n.name}
-        </span>
-      ))}
-      <button
-        onClick={() =>
-          setActiveNetwork({ id: "testnet", name: "Testnet", passphrase: "Test SDF Network ; September 2015" })
-        }
-        data-testid="switch-testnet"
-      >
-        Switch to Testnet
-      </button>
-      <button
-        onClick={() =>
-          setActiveNetwork({ id: "futurenet", name: "Futurenet", passphrase: "Test SDF Future Network ; October 2022" })
-        }
-        data-testid="switch-futurenet"
-      >
-        Switch to Futurenet
-      </button>
-      <button
-        onClick={() =>
-          setActiveNetwork({ id: "eth", name: "Ethereum", passphrase: "" })
-        }
-        data-testid="switch-eth"
-      >
-        Try switch to ETH (invalid)
-      </button>
-    </div>
-  );
+function wrap(children: React.ReactNode) {
+  return <WalletProvider>{children}</WalletProvider>;
 }
 
-function renderWithProvider(initialStorageValue?: string | null) {
-  if (initialStorageValue !== undefined) {
-    if (initialStorageValue === null) {
-      localStorage.removeItem(WALLET_NETWORK_STORAGE_KEY);
-    } else {
-      localStorage.setItem(WALLET_NETWORK_STORAGE_KEY, initialStorageValue);
-    }
-  }
-  return render(
-    <WalletProvider>
-      <WalletConsumer />
-    </WalletProvider>,
-  );
-}
-
-// ─── setup / teardown ───────────────────────────────────────────────────────
-
-beforeEach(() => {
-  localStorage.clear();
-});
-
-afterEach(() => {
-  localStorage.clear();
-  vi.restoreAllMocks();
-});
-
-// ─── SUPPORTED_NETWORKS shape ────────────────────────────────────────────────
-
-describe("SUPPORTED_NETWORKS", () => {
-  it("contains exactly three networks", () => {
-    expect(SUPPORTED_NETWORKS).toHaveLength(3);
+describe("WalletProvider", () => {
+  beforeEach(() => {
+    window.localStorage.clear();
   });
 
-  it("includes Mainnet, Testnet, and Futurenet", () => {
-    const ids = SUPPORTED_NETWORKS.map((n) => n.id);
-    expect(ids).toContain("public");
-    expect(ids).toContain("testnet");
-    expect(ids).toContain("futurenet");
+  afterEach(() => {
+    window.localStorage.clear();
   });
 
-  it("does not include any EVM chain ids", () => {
-    const ids = SUPPORTED_NETWORKS.map((n) => n.id);
-    for (const evmId of ["eth", "ethereum", "polygon", "bsc", "arbitrum"]) {
-      expect(ids).not.toContain(evmId);
-    }
-  });
-
-  it("does not include any EVM chain names", () => {
-    const names = SUPPORTED_NETWORKS.map((n) => n.name.toLowerCase());
-    for (const evmName of ["ethereum", "polygon", "bsc", "arbitrum", "eth"]) {
-      expect(names).not.toContain(evmName);
-    }
-  });
-
-  it("each network has a non-empty passphrase", () => {
-    for (const network of SUPPORTED_NETWORKS) {
-      expect(network.passphrase.length).toBeGreaterThan(0);
-    }
-  });
-
-  it("passphrases do not look like private keys (64 hex chars)", () => {
-    for (const network of SUPPORTED_NETWORKS) {
-      expect(network.passphrase).not.toMatch(/^[0-9a-fA-F]{64}$/);
-    }
-  });
-});
-
-// ─── DEFAULT_NETWORK ─────────────────────────────────────────────────────────
-
-describe("DEFAULT_NETWORK", () => {
-  it("is Mainnet (id: public)", () => {
-    expect(DEFAULT_NETWORK.id).toBe("public");
-    expect(DEFAULT_NETWORK.name).toBe("Mainnet");
-  });
-
-  it("is the first entry in SUPPORTED_NETWORKS", () => {
-    expect(DEFAULT_NETWORK).toEqual(SUPPORTED_NETWORKS[0]);
-  });
-});
-
-// ─── WalletProvider default state ────────────────────────────────────────────
-
-describe("WalletProvider — default state", () => {
-  it("starts with Mainnet when localStorage is empty", async () => {
-    renderWithProvider(null);
-    await waitFor(() => {
-      expect(screen.getByTestId("active-id").textContent).toBe("public");
+  it("starts disconnected with the default network", () => {
+    const { result } = renderHook(() => useWallet(), {
+      wrapper: ({ children }) => wrap(children),
     });
+
+    expect(result.current.isConnected).toBe(false);
+    expect(result.current.address).toBeNull();
+    expect(result.current.network.id).toBe(DEFAULT_NETWORK.id);
   });
 
-  it("exposes all three supported networks", async () => {
-    renderWithProvider(null);
-    await waitFor(() => {
-      expect(screen.getByTestId("network-count").textContent).toBe("3");
+  it("connect populates a synthetic Stellar address and flips isConnected", () => {
+    const { result } = renderHook(() => useWallet(), {
+      wrapper: ({ children }) => wrap(children),
     });
-    expect(screen.getByTestId("network-public")).toBeInTheDocument();
-    expect(screen.getByTestId("network-testnet")).toBeInTheDocument();
-    expect(screen.getByTestId("network-futurenet")).toBeInTheDocument();
-  });
-});
-
-// ─── Persisted network hydration ─────────────────────────────────────────────
-
-describe("WalletProvider — valid persisted network", () => {
-  it("restores testnet when stellopay.wallet.network=testnet", async () => {
-    renderWithProvider("testnet");
-    await waitFor(() => {
-      expect(screen.getByTestId("active-id").textContent).toBe("testnet");
-    });
-  });
-
-  it("restores futurenet when stellopay.wallet.network=futurenet", async () => {
-    renderWithProvider("futurenet");
-    await waitFor(() => {
-      expect(screen.getByTestId("active-id").textContent).toBe("futurenet");
-    });
-  });
-
-  it("restores public (mainnet) when stellopay.wallet.network=public", async () => {
-    renderWithProvider("public");
-    await waitFor(() => {
-      expect(screen.getByTestId("active-id").textContent).toBe("public");
-    });
-  });
-});
-
-// ─── Stale / invalid persisted values fall back to default ───────────────────
-
-describe("WalletProvider — stale EVM network ids fall back to default", () => {
-  for (const staleId of ["eth", "polygon", "bsc", "arbitrum", "ethereum"]) {
-    it(`"${staleId}" falls back to Mainnet`, async () => {
-      renderWithProvider(staleId);
-      await waitFor(() => {
-        expect(screen.getByTestId("active-id").textContent).toBe("public");
-        expect(screen.getByTestId("active-name").textContent).toBe("Mainnet");
-      });
-    });
-  }
-});
-
-describe("WalletProvider — arbitrary unknown ids fall back to default", () => {
-  for (const unknown of ["", "solana", "bnb", "avax", "TESTNET", "Public"]) {
-    it(`"${unknown}" falls back to Mainnet`, async () => {
-      renderWithProvider(unknown || null);
-      await waitFor(() => {
-        expect(screen.getByTestId("active-id").textContent).toBe("public");
-      });
-    });
-  }
-});
-
-// ─── setActiveNetwork ────────────────────────────────────────────────────────
-
-describe("WalletProvider — setActiveNetwork", () => {
-  it("switches to Testnet and persists the id", async () => {
-    renderWithProvider(null);
-    await waitFor(() =>
-      expect(screen.getByTestId("active-id").textContent).toBe("public"),
-    );
 
     act(() => {
-      screen.getByTestId("switch-testnet").click();
+      result.current.connect();
     });
 
-    await waitFor(() => {
-      expect(screen.getByTestId("active-id").textContent).toBe("testnet");
-    });
-    expect(localStorage.getItem(WALLET_NETWORK_STORAGE_KEY)).toBe("testnet");
+    expect(result.current.isConnected).toBe(true);
+    expect(result.current.address).toMatch(/^G[A-Z0-9]+/);
   });
 
-  it("switches to Futurenet and persists the id", async () => {
-    renderWithProvider(null);
-    await waitFor(() =>
-      expect(screen.getByTestId("active-id").textContent).toBe("public"),
-    );
+  it("connect accepts a caller-supplied public G-address", () => {
+    const { result } = renderHook(() => useWallet(), {
+      wrapper: ({ children }) => wrap(children),
+    });
+
+    const publicAddress =
+      "GAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAW";
 
     act(() => {
-      screen.getByTestId("switch-futurenet").click();
+      result.current.connect(publicAddress);
     });
 
-    await waitFor(() => {
-      expect(screen.getByTestId("active-id").textContent).toBe("futurenet");
-    });
-    expect(localStorage.getItem(WALLET_NETWORK_STORAGE_KEY)).toBe("futurenet");
+    expect(result.current.address).toBe(publicAddress);
   });
 
-  it("is a no-op when the supplied network id is not on the allow-list", async () => {
-    renderWithProvider(null);
-    await waitFor(() =>
-      expect(screen.getByTestId("active-id").textContent).toBe("public"),
-    );
-
-    act(() => {
-      screen.getByTestId("switch-eth").click();
+  it("connect rejects values that look like a Stellar secret key", () => {
+    const { result } = renderHook(() => useWallet(), {
+      wrapper: ({ children }) => wrap(children),
     });
 
-    // State must remain unchanged
-    await waitFor(() => {
-      expect(screen.getByTestId("active-id").textContent).toBe("public");
-    });
-    // Nothing written to storage
-    expect(localStorage.getItem(WALLET_NETWORK_STORAGE_KEY)).toBeNull();
-  });
-});
+    const fakeSecret = "S" + "A".repeat(55);
 
-// ─── localStorage availability ────────────────────────────────────────────────
-
-describe("WalletProvider — localStorage resilience", () => {
-  it("does not crash when localStorage.getItem throws", async () => {
-    vi.spyOn(Storage.prototype, "getItem").mockImplementation(() => {
-      throw new Error("Storage unavailable");
-    });
-
-    expect(() =>
-      render(
-        <WalletProvider>
-          <WalletConsumer />
-        </WalletProvider>,
-      ),
-    ).not.toThrow();
-
-    await waitFor(() => {
-      expect(screen.getByTestId("active-id").textContent).toBe("public");
-    });
-  });
-
-  it("does not crash when localStorage.setItem throws", async () => {
-    vi.spyOn(Storage.prototype, "setItem").mockImplementation(() => {
-      throw new Error("Storage full");
-    });
-
-    renderWithProvider(null);
-    await waitFor(() =>
-      expect(screen.getByTestId("active-id").textContent).toBe("public"),
-    );
-
-    expect(() =>
+    expect(() => {
       act(() => {
-        screen.getByTestId("switch-testnet").click();
-      }),
-    ).not.toThrow();
+        result.current.connect(fakeSecret);
+      });
+    }).toThrow(/secret key/i);
+    expect(result.current.address).toBeNull();
+  });
 
-    // State is still updated in memory even though storage write failed
-    await waitFor(() => {
-      expect(screen.getByTestId("active-id").textContent).toBe("testnet");
+  it("disconnect clears the address", () => {
+    const { result } = renderHook(() => useWallet(), {
+      wrapper: ({ children }) => wrap(children),
+    });
+
+    act(() => {
+      result.current.connect();
+    });
+    expect(result.current.isConnected).toBe(true);
+
+    act(() => {
+      result.current.disconnect();
+    });
+    expect(result.current.isConnected).toBe(false);
+    expect(result.current.address).toBeNull();
+  });
+
+  it("setNetwork updates the network and persists the id", () => {
+    const { result } = renderHook(() => useWallet(), {
+      wrapper: ({ children }) => wrap(children),
+    });
+
+    act(() => {
+      result.current.setNetwork(STELLAR);
+    });
+
+    expect(result.current.network.id).toBe("stellar");
+    expect(window.localStorage.getItem(STORAGE_KEY)).toBe("stellar");
+  });
+
+  it("hydrates the network from localStorage on mount", () => {
+    window.localStorage.setItem(STORAGE_KEY, "stellar");
+
+    const { result } = renderHook(() => useWallet(), {
+      wrapper: ({ children }) => wrap(children),
+    });
+
+    expect(result.current.network.id).toBe("stellar");
+  });
+
+  it("ignores unknown network ids in storage", () => {
+    window.localStorage.setItem(STORAGE_KEY, "made-up-network");
+
+    const { result } = renderHook(() => useWallet(), {
+      wrapper: ({ children }) => wrap(children),
+    });
+
+    expect(result.current.network.id).toBe(DEFAULT_NETWORK.id);
+  });
+
+  it("does not persist a secret-looking value even if forced through state", () => {
+    const { result } = renderHook(() => useWallet(), {
+      wrapper: ({ children }) => wrap(children),
+    });
+
+    const fakeSecret = "S" + "A".repeat(55);
+    expect(() => {
+      act(() => {
+        result.current.connect(fakeSecret);
+      });
+    }).toThrow();
+    expect(window.localStorage.getItem("stellopay.wallet.address")).toBeNull();
+  });
+});
+
+describe("useWallet outside provider", () => {
+  it("throws a clear error", () => {
+    expect(() => renderHook(() => useWallet())).toThrow(
+      /useWallet must be used within a WalletProvider/,
+    );
+  });
+});
+
+describe("formatAddress", () => {
+  it("truncates long Stellar addresses", () => {
+    expect(formatAddress("GABCDEFGHIJKLMNOPQRSTUVWXYZF123")).toBe("GABC...F123");
+  });
+
+  it("returns empty string for null", () => {
+    expect(formatAddress(null)).toBe("");
+  });
+
+  it("leaves short values untouched", () => {
+    expect(formatAddress("G123")).toBe("G123");
+  });
+});
+
+describe("WalletProvider storage edge cases", () => {
+  // jsdom exposes localStorage as a getter on the window prototype. Replacing
+  // it with a throwing stub forces the provider's try/catch paths to fire so
+  // we exercise the failure branches and meet the 95% coverage gate.
+  function withStubbedLocalStorage<T>(stub: Storage, body: () => T): T {
+    const originalDescriptor = Object.getOwnPropertyDescriptor(
+      window,
+      "localStorage",
+    );
+    Object.defineProperty(window, "localStorage", {
+      configurable: true,
+      get: () => stub,
+    });
+    try {
+      return body();
+    } finally {
+      if (originalDescriptor) {
+        Object.defineProperty(window, "localStorage", originalDescriptor);
+      }
+    }
+  }
+
+  const throwingStorage = {
+    getItem: () => {
+      throw new Error("storage blocked");
+    },
+    setItem: () => {
+      throw new Error("quota exceeded");
+    },
+    removeItem: () => undefined,
+    clear: () => undefined,
+    key: () => null,
+    length: 0,
+  } as unknown as Storage;
+
+  it("survives a localStorage.getItem that throws on hydrate", () => {
+    withStubbedLocalStorage(throwingStorage, () => {
+      const { result } = renderHook(() => useWallet(), {
+        wrapper: ({ children }) => wrap(children),
+      });
+      expect(result.current.network.id).toBe(DEFAULT_NETWORK.id);
+    });
+  });
+
+  it("survives a localStorage.setItem that throws on persist", () => {
+    withStubbedLocalStorage(throwingStorage, () => {
+      const { result } = renderHook(() => useWallet(), {
+        wrapper: ({ children }) => wrap(children),
+      });
+      expect(() => {
+        act(() => {
+          result.current.setNetwork(STELLAR);
+        });
+      }).not.toThrow();
+      expect(result.current.network.id).toBe("stellar");
+    });
+  });
+
+  it("falls back to defaults when localStorage is missing the API surface", () => {
+    const partial = {} as unknown as Storage;
+    withStubbedLocalStorage(partial, () => {
+      const { result } = renderHook(() => useWallet(), {
+        wrapper: ({ children }) => wrap(children),
+      });
+      expect(result.current.network.id).toBe(DEFAULT_NETWORK.id);
+      expect(() => {
+        act(() => {
+          result.current.setNetwork(STELLAR);
+        });
+      }).not.toThrow();
     });
   });
 });
 
-// ─── useWallet outside provider ───────────────────────────────────────────────
-
-describe("useWallet", () => {
-  it("throws a descriptive error when used outside WalletProvider", () => {
-    // Suppress expected React error boundary output
-    const consoleSpy = vi.spyOn(console, "error").mockImplementation(() => {});
-
-    function Orphan() {
-      useWallet();
-      return null;
+describe("WalletProvider initial props", () => {
+  it("respects initialAddress for SSR seeding", () => {
+    const seeded = "GAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAW";
+    function Probe() {
+      const { address, isConnected } = useWallet();
+      return (
+        <span data-testid="probe">
+          {isConnected ? `connected:${address}` : "disconnected"}
+        </span>
+      );
     }
 
-    expect(() => render(<Orphan />)).toThrow(
-      "useWallet must be used within a WalletProvider",
+    render(
+      <WalletProvider initialAddress={seeded}>
+        <Probe />
+      </WalletProvider>,
     );
 
-    consoleSpy.mockRestore();
+    expect(screen.getByTestId("probe").textContent).toBe(
+      `connected:${seeded}`,
+    );
   });
 });

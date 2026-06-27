@@ -4,7 +4,7 @@
  * NetworkSwitcher
  *
  * Lets the user switch between Stellar networks (Mainnet, Testnet,
- * Futurenet). Each network in {@link SUPPORTED_NETWORKS} carries its public
+ * Futurenet). Each network in {@link defaultNetworks} carries its public
  * passphrase so callers can map the selection to the correct Horizon/RPC
  * endpoint.
  *
@@ -15,10 +15,18 @@
  *   navigation; trigger now has an explicit aria-label describing the
  *   current network so screen readers announce it correctly
  * - No secrets or private keys are ever displayed — only public network
- *   passphrases
+ *   material
+ *
+ * Improvements over the original (issue #343):
+ * - Confirmation dialog is associated with its title via `aria-labelledby`
+ *   and with its descriptive body via `aria-describedby` so screen-reader
+ *   users hear the full context when the dialog opens.
+ * - Target network name is wrapped in `<strong>` for semantic emphasis.
+ * - Focus returns to the DropdownMenuTrigger when the dialog closes
+ *   (either Cancel or Escape).
  */
 
-import React, { useState } from "react";
+import React, { useRef, useState } from "react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -38,12 +46,17 @@ import { ChevronDown } from "lucide-react";
 import { cn } from "@/utils/commonUtils";
 import { Skeleton } from "@/components/ui/skeleton";
 import { StellarIcon } from "@/public/svg/svg";
-import { SUPPORTED_NETWORKS, type Network } from "@/types/wallet";
+import { SUPPORTED_NETWORKS, useWallet } from "@/context/wallet-context";
+import type { Network } from "@/types/wallet";
 
 export type { Network };
 
 interface NetworkSwitcherProps {
-  networks?: readonly Network[];
+  // Optional overrides. When omitted, the component reads the active network
+  // and the network list from WalletProvider, which is the source of truth.
+  // The props are kept so existing call sites and tests that pass networks
+  // explicitly continue to work without modification.
+  networks?: Network[];
   selectedNetwork?: Network;
   onNetworkChange?: (network: Network) => void;
   className?: string;
@@ -52,34 +65,73 @@ interface NetworkSwitcherProps {
 }
 
 export default function NetworkSwitcher({
-  networks = SUPPORTED_NETWORKS,
-  selectedNetwork = SUPPORTED_NETWORKS[0],
+  networks,
+  selectedNetwork,
   onNetworkChange,
   className,
   variant = "dashboard",
   isLoading = false,
 }: NetworkSwitcherProps) {
-  const [currentNetwork, setCurrentNetwork] = useState<Network>(selectedNetwork);
-  /** The network the user clicked but hasn't confirmed yet */
+  const wallet = useWallet();
+
+  // Props win over context so callers that want to pin a network for a
+  // specific surface still can. When neither is provided, the wallet
+  // context drives both the list and the selection.
+  const resolvedNetworks: Network[] = networks ?? SUPPORTED_NETWORKS;
+  const currentNetwork: Network = selectedNetwork ?? wallet.network;
+
+  // The network the user clicked but has not confirmed yet. Local state by
+  // design: the pending choice should not be observable to the rest of the
+  // app until the user confirms.
   const [pendingNetwork, setPendingNetwork] = useState<Network | null>(null);
+
+  /**
+   * Ref to the DropdownMenuTrigger button so focus can be explicitly returned
+   * to it when the confirmation dialog closes (issue #343).
+   * We attach this to a wrapper <div> because the shadcn DropdownMenuTrigger
+   * wrapper does not forward refs; the wrapping element is used only for
+   * focus-return measurement — the actual trigger button is queried inside it.
+   */
+  const triggerWrapperRef = useRef<HTMLDivElement>(null);
+
+  /**
+   * Returns focus to the DropdownMenuTrigger button after the dialog closes.
+   * Called from `onCloseAutoFocus` on DialogContent (issue #343).
+   */
+  const returnFocusToTrigger = (e: Event) => {
+    e.preventDefault(); // suppress Radix's default focus-return
+    const btn = triggerWrapperRef.current?.querySelector<HTMLElement>('[data-slot="dropdown-menu-trigger"]');
+    btn?.focus();
+  };
 
   const isDashboard = variant === "dashboard";
 
-  /** Called when the user clicks a network in the dropdown */
   const handleNetworkSelect = (network: Network) => {
-    if (network.id === currentNetwork.id) return; // already active — no-op
+    if (network.id === currentNetwork.id) return;
     setPendingNetwork(network);
   };
 
-  /** Called when the user confirms the switch in the dialog */
   const confirmSwitch = () => {
     if (!pendingNetwork) return;
-    setCurrentNetwork(pendingNetwork);
+    // Only commit to the shared context when there is no caller override.
+    // When selectedNetwork is provided, the parent is treating this as a
+    // controlled component and is responsible for the source of truth.
+    if (!selectedNetwork) {
+      wallet.setNetwork(pendingNetwork);
+    }
     onNetworkChange?.(pendingNetwork);
     setPendingNetwork(null);
+    // Focus returns to the trigger via onCloseAutoFocus on DialogContent
+    // (issue #343).
   };
 
-  const cancelSwitch = () => setPendingNetwork(null);
+  /**
+   * Cancels the pending switch. Focus returns to the dropdown trigger via
+   * the `onCloseAutoFocus` handler on DialogContent (issue #343).
+   */
+  const cancelSwitch = () => {
+    setPendingNetwork(null);
+  };
 
   if (isLoading) {
     return <Skeleton className={cn("h-9 w-24 rounded-md", className)} />;
@@ -88,6 +140,8 @@ export default function NetworkSwitcher({
   return (
     <>
       {/* ── Dropdown ─────────────────────────────────────────────────── */}
+      {/* ref wrapper lets us locate the trigger button for focus-return (issue #343) */}
+      <div ref={triggerWrapperRef} style={{ display: "contents" }}>
       <DropdownMenu>
         <DropdownMenuTrigger
           aria-label={`Current network: ${currentNetwork.name}. Click to switch network.`}
@@ -104,7 +158,7 @@ export default function NetworkSwitcher({
             className="w-2 h-2 rounded-full bg-green-500 shrink-0"
             aria-hidden="true"
           />
-          <StellarIcon />
+          {currentNetwork.icon || <StellarIcon />}
           <span className="text-sm font-medium" style={{ fontFamily: "General Sans, sans-serif" }}>
             {currentNetwork.name}
           </span>
@@ -120,7 +174,7 @@ export default function NetworkSwitcher({
           sideOffset={8}
           aria-label="Available networks"
         >
-          {networks.map((network) => {
+          {resolvedNetworks.map((network) => {
             const isActive = currentNetwork.id === network.id;
             return (
               <DropdownMenuItem
@@ -136,7 +190,7 @@ export default function NetworkSwitcher({
                 )}
               >
                 <div className="flex items-center gap-2 w-full">
-                  <StellarIcon />
+                  {network.icon || <StellarIcon />}
                   <span className="text-sm" style={{ fontFamily: "General Sans, sans-serif" }}>
                     {network.name}
                   </span>
@@ -156,20 +210,44 @@ export default function NetworkSwitcher({
           })}
         </DropdownMenuContent>
       </DropdownMenu>
+      </div>{/* /triggerWrapperRef */}
 
       {/* ── Confirmation dialog ───────────────────────────────────────── */}
+      {/*
+       * aria-labelledby points to the DialogTitle so screen readers announce
+       * "Switch network?" as the dialog name when it opens (issue #343).
+       *
+       * aria-describedby points to the DialogDescription so the full warning
+       * text — including the target network name — is read after the title.
+       *
+       * Radix Dialog sets role="dialog" and manages focus automatically;
+       * focus moves to the first focusable element (Cancel) when it opens.
+       * onCloseAutoFocus returns focus to the DropdownMenuTrigger button so
+       * keyboard users land back on the control they originally activated.
+       */}
       <Dialog open={!!pendingNetwork} onOpenChange={(open) => { if (!open) cancelSwitch(); }}>
         <DialogContent
           className="bg-[#1A1A1A] border-[#242428] text-white max-w-sm"
           showCloseButton={false}
+          aria-labelledby="network-switcher-dialog-title"
+          aria-describedby="network-switcher-dialog-desc"
+          onCloseAutoFocus={returnFocusToTrigger}
         >
           <DialogHeader>
-            <DialogTitle className="text-white">Switch network?</DialogTitle>
-            <DialogDescription className="text-[#9CA3AF]">
+            <DialogTitle
+              id="network-switcher-dialog-title"
+              className="text-white"
+            >
+              Switch network?
+            </DialogTitle>
+            <DialogDescription
+              id="network-switcher-dialog-desc"
+              className="text-[#9CA3AF]"
+            >
               You are switching from{" "}
-              <span className="font-semibold text-white">{currentNetwork.name}</span>{" "}
+              <strong className="font-semibold text-white">{currentNetwork.name}</strong>{" "}
               to{" "}
-              <span className="font-semibold text-white">{pendingNetwork?.name}</span>.
+              <strong className="font-semibold text-white">{pendingNetwork?.name}</strong>.
               <br />
               <br />
               Your displayed balances and Stellar operations will reflect the

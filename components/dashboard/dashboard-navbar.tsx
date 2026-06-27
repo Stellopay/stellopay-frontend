@@ -4,10 +4,13 @@ import React from 'react';
 import Link from 'next/link';
 import { Bell, Moon, Search, Settings, Sun } from 'lucide-react';
 import { useTheme } from '@/context/theme-context';
-import { StellarIcon, StellOpayLogo } from '@/public/svg/svg';
+import { formatAddress, useWallet } from '@/context/wallet-context';
+import NetworkSwitcher from '@/components/common/network-switcher';
+import { StellOpayLogo } from '@/public/svg/svg';
 
 export default function DashboardNavbar() {
-    const { theme, toggleTheme } = useTheme();
+    const { theme, resolvedTheme, toggleTheme } = useTheme();
+    const { address, isConnected, connect, disconnect } = useWallet();
 
     return (
         <nav className="w-full h-20 px-6 lg:px-10 border-b border-zinc-200 dark:border-zinc-800 flex items-center justify-between bg-white dark:bg-[#0D0D0D] transition-colors duration-200 sticky top-0 z-50">
@@ -35,26 +38,9 @@ export default function DashboardNavbar() {
             </div>
 
             <div className="flex items-center gap-2 sm:gap-4">
-                <div className="hidden sm:flex items-center gap-2.5 px-3 py-1.5 rounded-lg border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900/50 cursor-pointer hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors group">
-                    <div className="text-zinc-600 dark:text-zinc-400 group-hover:text-zinc-900 dark:group-hover:text-white transition-colors">
-                        <StellarIcon />
-                    </div>
-                    <span className="text-sm font-medium text-zinc-700 dark:text-zinc-300">Stellar</span>
-                    <svg
-                        width="10"
-                        height="6"
-                        viewBox="0 0 10 6"
-                        fill="none"
-                        className="text-zinc-400 group-hover:text-zinc-600 dark:group-hover:text-zinc-300 transition-colors"
-                    >
-                        <path
-                            d="M1 1L5 5L9 1"
-                            stroke="currentColor"
-                            strokeWidth="1.5"
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                        />
-                    </svg>
+                <div className="hidden sm:flex">
+                    {/* Drives the shared wallet network through WalletProvider. */}
+                    <NetworkSwitcher variant="dashboard" />
                 </div>
 
                 <button
@@ -74,35 +60,54 @@ export default function DashboardNavbar() {
 
                 <button
                     onClick={toggleTheme}
-                    aria-label={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
+                    aria-label={theme === 'light' ? 'Switch to dark mode' : theme === 'dark' ? 'Switch to system mode' : 'Switch to light mode'}
                     className="p-2 rounded-lg text-zinc-500 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors cursor-pointer"
                 >
-                    {theme === 'dark' ? (
+                    {resolvedTheme === 'dark' ? (
                         <Sun size={20} strokeWidth={2} />
                     ) : (
                         <Moon size={20} strokeWidth={2} />
                     )}
                 </button>
 
-                <button className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 hover:opacity-90 transition-opacity cursor-pointer">
-                    <div className="w-5 h-5 rounded-md bg-zinc-800 dark:bg-zinc-100 flex items-center justify-center">
-                        <svg
-                            width="12"
-                            height="12"
-                            viewBox="0 0 24 24"
-                            fill="none"
-                            stroke="currentColor"
-                            strokeWidth="2"
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                        >
-                            <path d="M20 12V8H6a2 2 0 0 1-2-2c0-1.1.9-2 2-2h12v4" />
-                            <path d="M4 6v12c0 1.1.9 2 2 2h14v-4" />
-                            <path d="M18 12a2 2 0 0 0-2 2c0 1.1.9 2 2 2h4v-4h-4z" />
-                        </svg>
-                    </div>
-                    <span className="text-sm font-medium tracking-tight">0xGABC...F123</span>
-                </button>
+                {isConnected ? (
+                    <button
+                        type="button"
+                        onClick={disconnect}
+                        data-testid="dashboard-navbar-disconnect"
+                        aria-label={`Disconnect wallet ${formatAddress(address)}`}
+                        className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 hover:opacity-90 transition-opacity cursor-pointer"
+                    >
+                        <div className="w-5 h-5 rounded-md bg-zinc-800 dark:bg-zinc-100 flex items-center justify-center">
+                            <svg
+                                width="12"
+                                height="12"
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                stroke="currentColor"
+                                strokeWidth="2"
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                            >
+                                <path d="M20 12V8H6a2 2 0 0 1-2-2c0-1.1.9-2 2-2h12v4" />
+                                <path d="M4 6v12c0 1.1.9 2 2 2h14v-4" />
+                                <path d="M18 12a2 2 0 0 0-2 2c0 1.1.9 2 2 2h4v-4h-4z" />
+                            </svg>
+                        </div>
+                        <span className="text-sm font-medium tracking-tight font-mono" data-testid="dashboard-navbar-address">
+                            {formatAddress(address)}
+                        </span>
+                    </button>
+                ) : (
+                    <button
+                        type="button"
+                        onClick={() => connect()}
+                        data-testid="dashboard-navbar-connect"
+                        className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 hover:opacity-90 transition-opacity cursor-pointer"
+                    >
+                        <span className="text-sm font-medium tracking-tight">Connect Wallet</span>
+                    </button>
+                )}
             </div>
         </nav>
     );
