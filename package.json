@@ -13,7 +13,8 @@
     "test": "vitest run --coverage",
     "test:watch": "vitest",
     "prettier": "prettier --write .",
-    "test:e2e": "playwright test",
+    "test:e2e": "playwright test --project=chromium",
+    "test:a11y": "playwright test tests/a11y.spec.ts",
     "type-check": "tsc --noEmit",
     "test:e2e:settings": "playwright test tests/settings.spec.ts"
   },
