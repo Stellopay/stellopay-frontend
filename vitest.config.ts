@@ -38,6 +38,7 @@ export default defineConfig({
         "app/error.tsx",
         "app/global-error.tsx",
         "context/wallet-context.tsx",
+        "context/theme-context.tsx",
         "components/analytics/analytics-view.tsx",
         "components/analytics/client-analytics-view.tsx",
         "components/common/notification-panel.tsx",
