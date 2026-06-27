@@ -336,6 +336,24 @@ Target performance optimizations were applied across the landing page and dashbo
 | `/landing` (Pages Router) | Route Size | 64.1 kB | 26.1 kB | **-38.0 kB (-59.3%)** |
 | `/landing` (Pages Router) | First Load JS | 165 kB | 127 kB | **-38.0 kB (-23.0%)** |
 
+### Bundle Budget
+
+We maintain a CI-enforced bundle budget for key routes to ensure fast first-load performance.
+
+| Route | Budget | Current First Load JS |
+|-------|--------|-----------------------|
+| `/` (Landing) | 225 kB | 213 kB |
+| `/dashboard` | 180 kB | 165 kB |
+
+To run the bundle analyzer locally:
+```bash
+npm run analyze
+```
+
+#### Candidate Wins for Optimization
+- **Icon deduplication**: We currently have multiple icon libraries (`lucide-react`, `hugeicons`, `react-icons`). Consolidating all icons to `lucide-react` will significantly reduce the shared bundle size.
+- **Dynamic imports for Recharts**: Use `next/dynamic` for chart components in `AnalyticsViews` and `AnalyticsInsights` to move heavy visualization logic out of the critical path.
+
 ## Centralized Demo Data & Illustrative Stats
 
 To prevent hardcoded realistic PII (Personal Identifiable Information) and fabricated marketing trust metrics from being shipped inline in production components, this project uses a centralized demo-data configuration located at `lib/demo-data.ts`.
