@@ -9,7 +9,7 @@ import NetworkSwitcher from '@/components/common/network-switcher';
 import { StellOpayLogo } from '@/public/svg/svg';
 
 export default function DashboardNavbar() {
-    const { theme, toggleTheme } = useTheme();
+    const { theme, resolvedTheme, toggleTheme } = useTheme();
     const { address, isConnected, connect, disconnect } = useWallet();
 
     return (
@@ -60,10 +60,10 @@ export default function DashboardNavbar() {
 
                 <button
                     onClick={toggleTheme}
-                    aria-label={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
+                    aria-label={theme === 'light' ? 'Switch to dark mode' : theme === 'dark' ? 'Switch to system mode' : 'Switch to light mode'}
                     className="p-2 rounded-lg text-zinc-500 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors cursor-pointer"
                 >
-                    {theme === 'dark' ? (
+                    {resolvedTheme === 'dark' ? (
                         <Sun size={20} strokeWidth={2} />
                     ) : (
                         <Moon size={20} strokeWidth={2} />
