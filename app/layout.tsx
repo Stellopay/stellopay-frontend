@@ -83,7 +83,9 @@ export default function RootLayout({
                   stored = window.localStorage.getItem('theme');
                 } catch (e) {}
                 try {
-                  if (stored === 'dark' || (!stored && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+                  var prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+                  var useSystem = stored !== 'dark' && stored !== 'light';
+                  if (stored === 'dark' || (useSystem && prefersDark)) {
                     document.documentElement.classList.add('dark');
                   } else {
                     document.documentElement.classList.remove('dark');
