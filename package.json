@@ -7,12 +7,14 @@
     "preinstall": "node scripts/check-package-manager.js",
     "dev": "next dev --turbopack",
     "build": "next build",
+    "analyze": "ANALYZE=true next build",
     "start": "next start",
     "lint": "next lint",
     "test": "vitest run --coverage",
     "test:watch": "vitest",
     "prettier": "prettier --write .",
-    "test:e2e": "playwright test",
+    "test:e2e": "playwright test --project=chromium",
+    "test:a11y": "playwright test tests/a11y.spec.ts",
     "type-check": "tsc --noEmit",
     "test:e2e:settings": "playwright test tests/settings.spec.ts"
   },
@@ -44,6 +46,7 @@
   },
   "devDependencies": {
     "@axe-core/playwright": "^4.12.1",
+    "@next/bundle-analyzer": "^16.2.9",
     "@playwright/test": "^1.55.0",
     "@tailwindcss/postcss": "^4",
     "@testing-library/jest-dom": "^6.9.1",
