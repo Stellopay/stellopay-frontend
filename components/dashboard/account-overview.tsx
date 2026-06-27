@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useCallback, useMemo } from 'react';
 import AccountSummaryCard from './account-summary-card';
 import { summaryCardsData } from './summary-data';
 import { Wallet, BarChart3, ArrowRight, PieChart } from "lucide-react";
@@ -9,11 +9,29 @@ import { formatAddress, useWallet } from "@/context/wallet-context";
 export default function AccountOverview() {
   const { address, isConnected, connect } = useWallet();
 
-  const icons = [
-    <Wallet key="wallet" className="w-6 h-6 text-blue-600 dark:text-blue-400" />,
-    <BarChart3 key="chart" className="w-6 h-6 text-emerald-600 dark:text-emerald-400" />,
-    <PieChart key="pie" className="w-6 h-6 text-amber-600 dark:text-amber-400" />
-  ];
+  const formattedAddress = useMemo(() => formatAddress(address), [address]);
+  const handleConnect = useCallback(() => {
+    connect();
+  }, [connect]);
+
+  // Keep static icon/card render data stable across wallet context ticks.
+  const icons = useMemo(
+    () => [
+      <Wallet key="wallet" className="w-6 h-6 text-blue-600 dark:text-blue-400" />,
+      <BarChart3 key="chart" className="w-6 h-6 text-emerald-600 dark:text-emerald-400" />,
+      <PieChart key="pie" className="w-6 h-6 text-amber-600 dark:text-amber-400" />
+    ],
+    [],
+  );
+
+  const accountSummaryCards = useMemo(
+    () =>
+      summaryCardsData.map((card, idx) => ({
+        ...card,
+        icon: icons[idx],
+      })),
+    [icons],
+  );
 
   return (
     <div className="w-full h-full">
@@ -27,14 +45,14 @@ export default function AccountOverview() {
                 className="text-zinc-900 dark:text-white font-mono"
                 data-testid="account-overview-address"
               >
-                {formatAddress(address)}
+                {formattedAddress}
               </span>
               <span className="animate-bounce">👋</span>
             </>
           ) : (
             <button
               type="button"
-              onClick={() => connect()}
+              onClick={handleConnect}
               data-testid="account-overview-connect"
               className="text-base md:text-lg font-semibold px-4 py-2 rounded-lg bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 hover:opacity-90 transition-opacity cursor-pointer"
             >
@@ -59,11 +77,10 @@ export default function AccountOverview() {
 
       {/* Cards Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {summaryCardsData.map((card, idx) => (
+        {accountSummaryCards.map((card) => (
           <AccountSummaryCard
             key={card.title}
             {...card}
-            icon={icons[idx]}
           />
         ))}
       </div>
