@@ -40,6 +40,24 @@ function resolveTheme(preference: Theme): ResolvedTheme {
   return preference;
 }
 
+/**
+ * Safely reads the user's stored theme preference from localStorage.
+ * Only known values (`"light"`, `"dark"`, `"system"`) are accepted; anything
+ * else (missing, empty, or hostile) falls back to `"system"` so the OS
+ * preference drives the UI. Used to initialize state in sync with the
+ * pre-hydration FOUC script in the root layout.
+ *
+ * @returns The stored theme preference, or `"system"` as a safe default.
+ */
+export function getStoredTheme(): Theme {
+  try {
+    const stored = safeStorage.getItem("theme");
+    return isValidTheme(stored) ? stored : "system";
+  } catch {
+    return "system";
+  }
+}
+
 type ThemeContextValue = {
   /**
    * The user's stored preference (`"light"`, `"dark"`, or `"system"`).
@@ -67,9 +85,9 @@ export const ThemeProvider: React.FC<React.PropsWithChildren<{}>> = ({
   // Hydrate preference from storage on mount.
   useEffect(() => {
     try {
-      const stored = safeStorage.getItem("theme");
-      // Security: only accept known values; anything else falls back to "system".
-      const preference: Theme = isValidTheme(stored) ? stored : "system";
+      // Reuse the same resolution used by the pre-hydration FOUC script so the
+      // React state matches the class already applied to <html>.
+      const preference = getStoredTheme();
       setThemeState(preference);
       setResolvedTheme(resolveTheme(preference));
     } catch {
