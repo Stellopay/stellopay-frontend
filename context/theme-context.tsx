@@ -2,10 +2,56 @@
 import React, { createContext, useContext, useEffect, useState } from "react";
 import { safeStorage } from "@/utils/safeStorage";
 
-type Theme = "light" | "dark";
+/**
+ * The user's explicit theme preference.
+ *
+ * - `"light"` – always use light mode.
+ * - `"dark"`  – always use dark mode.
+ * - `"system"` – mirror the OS/browser `prefers-color-scheme` setting and
+ *   update live whenever it changes.
+ */
+export type Theme = "light" | "dark" | "system";
+
+/**
+ * The concrete theme actually applied to the document (`"light"` or `"dark"`).
+ * When the preference is `"system"` this reflects the current OS preference
+ * rather than the stored value.
+ */
+export type ResolvedTheme = "light" | "dark";
+
+/** Set of valid stored values. Anything else is rejected and falls back to `"system"`. */
+const VALID_THEMES = new Set<Theme>(["light", "dark", "system"]);
+
+function isValidTheme(value: unknown): value is Theme {
+  return typeof value === "string" && VALID_THEMES.has(value as Theme);
+}
+
+function getSystemPreference(): ResolvedTheme {
+  if (typeof window !== "undefined" && window.matchMedia) {
+    return window.matchMedia("(prefers-color-scheme: dark)").matches
+      ? "dark"
+      : "light";
+  }
+  return "light";
+}
+
+function resolveTheme(preference: Theme): ResolvedTheme {
+  if (preference === "system") return getSystemPreference();
+  return preference;
+}
 
 type ThemeContextValue = {
+  /**
+   * The user's stored preference (`"light"`, `"dark"`, or `"system"`).
+   * Persist this value to localStorage; do not use it to drive CSS classes.
+   */
   theme: Theme;
+  /**
+   * The concrete theme class applied to `<html>` (`"light"` or `"dark"`).
+   * Use this for any UI that needs to know the actual visible theme.
+   */
+  resolvedTheme: ResolvedTheme;
+  /** Cycles: light → dark → system → light … */
   toggleTheme: () => void;
   setTheme: (t: Theme) => void;
 };
@@ -15,41 +61,76 @@ const ThemeContext = createContext<ThemeContextValue | undefined>(undefined);
 export const ThemeProvider: React.FC<React.PropsWithChildren<{}>> = ({
   children,
 }) => {
-  const [theme, setThemeState] = useState<Theme>("light");
+  const [theme, setThemeState] = useState<Theme>("system");
+  const [resolvedTheme, setResolvedTheme] = useState<ResolvedTheme>("light");
 
+  // Hydrate preference from storage on mount.
   useEffect(() => {
     try {
       const stored = safeStorage.getItem("theme");
-      if (stored === "dark" || stored === "light") {
-        setThemeState(stored);
-      } else {
-        // prefer system dark
-        const prefersDark =
-          window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches;
-        setThemeState(prefersDark ? "dark" : "light");
-      }
-    } catch (e) {
-      // ignore
+      // Security: only accept known values; anything else falls back to "system".
+      const preference: Theme = isValidTheme(stored) ? stored : "system";
+      setThemeState(preference);
+      setResolvedTheme(resolveTheme(preference));
+    } catch {
+      // Storage unavailable – keep defaults.
     }
   }, []);
 
+  // Apply the resolved class to <html> and subscribe to OS changes when in
+  // "system" mode.
   useEffect(() => {
-    try {
-      const root = document.documentElement;
-      if (theme === "dark") {
+    const root = document.documentElement;
+
+    function applyResolved(resolved: ResolvedTheme) {
+      if (resolved === "dark") {
         root.classList.add("dark");
       } else {
         root.classList.remove("dark");
       }
+      setResolvedTheme(resolved);
+    }
+
+    // Apply immediately.
+    applyResolved(resolveTheme(theme));
+
+    // Persist the preference (including "system").
+    try {
       safeStorage.setItem("theme", theme);
-    } catch (e) {}
+    } catch {
+      // Ignore quota / privacy errors.
+    }
+
+    if (theme !== "system") {
+      // Not in system mode – no listener needed.
+      return;
+    }
+
+    // Subscribe to live OS preference changes.
+    const mql = window.matchMedia("(prefers-color-scheme: dark)");
+
+    const handleChange = (e: MediaQueryListEvent) => {
+      applyResolved(e.matches ? "dark" : "light");
+    };
+
+    mql.addEventListener("change", handleChange);
+    return () => {
+      mql.removeEventListener("change", handleChange);
+    };
   }, [theme]);
 
-  const toggleTheme = () => setThemeState((t) => (t === "dark" ? "light" : "dark"));
+  /** Cycles light → dark → system → light */
+  const toggleTheme = () =>
+    setThemeState((t) => {
+      if (t === "light") return "dark";
+      if (t === "dark") return "system";
+      return "light";
+    });
+
   const setTheme = (t: Theme) => setThemeState(t);
 
   return (
-    <ThemeContext.Provider value={{ theme, toggleTheme, setTheme }}>
+    <ThemeContext.Provider value={{ theme, resolvedTheme, toggleTheme, setTheme }}>
       {children}
     </ThemeContext.Provider>
   );
