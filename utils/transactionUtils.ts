@@ -41,6 +41,7 @@ export const filterTransactions = (
   selectedFilter: string,
   fromDate: string,
   toDate: string,
+  filterQuery = "",
 ): Transaction[] => {
   let filtered = transactions;
 
@@ -60,6 +61,16 @@ export const filterTransactions = (
   if (selectedFilter !== "All Transactions") {
     filtered = filtered.filter(
       (transaction) => transaction.type === selectedFilter,
+    );
+  }
+
+  const normalizedFilterQuery = filterQuery.trim().toLowerCase();
+  if (normalizedFilterQuery) {
+    filtered = filtered.filter(
+      (transaction) =>
+        transaction.type.toLowerCase().includes(normalizedFilterQuery) ||
+        transaction.status.toLowerCase().includes(normalizedFilterQuery) ||
+        transaction.address.toLowerCase().includes(normalizedFilterQuery),
     );
   }
 

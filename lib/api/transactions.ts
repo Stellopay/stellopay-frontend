@@ -91,7 +91,7 @@ const normalizeDateFilter = (
  */
 export async function getTransactions(
   params: GetTransactionsParams = {},
-  signal?: AbortSignal
+  signal?: AbortSignal,
 ): Promise<PaginatedTransactions> {
   const {
     filters = {},
@@ -101,6 +101,7 @@ export async function getTransactions(
 
   const {
     searchQuery = "",
+    filterQuery = "",
 
     selectedFilter = "All Transactions",
     fromDate = MOCK_FROM_DATE,
@@ -161,12 +162,12 @@ export async function getTransactions(
   }
 
   const filtered = filterTransactions(
-
     allTransactions,
     searchQuery,
     selectedFilter,
     safeFromDate,
     safeToDate,
+    filterQuery,
   );
 
   const sorted = sortTransactions(filtered, sortField, sortDirection);

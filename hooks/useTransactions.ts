@@ -30,7 +30,7 @@ interface UseTransactionsResult {
  * @param options - filters, page, and pageSize
  */
 export function useTransactions(
-  options: UseTransactionsOptions = {}
+  options: UseTransactionsOptions = {},
 ): UseTransactionsResult {
   const { filters, page = 1, pageSize = 6 } = options;
 
@@ -54,13 +54,11 @@ export function useTransactions(
     // commits by request identity.
     const latestRequestId = requestId;
 
-
     setIsLoading(true);
 
     setError(null);
 
     getTransactions({ filters, page, pageSize }, controller.signal)
-
       .then((result) => {
         if (controller.signal.aborted) return;
         if (requestId !== latestRequestId) return;
@@ -73,7 +71,7 @@ export function useTransactions(
         if (requestId !== latestRequestId) return;
 
         setError(
-          err instanceof Error ? err.message : "Failed to load transactions"
+          err instanceof Error ? err.message : "Failed to load transactions",
         );
 
         setIsLoading(false);
@@ -84,6 +82,7 @@ export function useTransactions(
     };
   }, [
     filters?.searchQuery,
+    filters?.filterQuery,
 
     filters?.selectedFilter,
     filters?.fromDate,

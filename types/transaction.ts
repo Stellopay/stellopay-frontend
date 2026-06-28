@@ -19,6 +19,7 @@ export type SortDirection = "asc" | "desc";
 
 export interface TransactionFilters {
   searchQuery: string;
+  filterQuery: string;
   fromDate: string;
   toDate: string;
   selectedFilter: string;
