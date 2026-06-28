@@ -75,7 +75,12 @@ test.describe("WalletProvider — connect/disconnect UX", () => {
   });
 });
 
-test.describe("WalletProvider — network selection drives shared state", () => {
+// Skipped: the placeholder EVM networks (Polygon/BSC/etc) were removed from
+// SUPPORTED_NETWORKS, leaving Stellar as the only network. There is no longer
+// a second network to switch to, so the cross-network selection + persistence
+// flow cannot be exercised end-to-end. Reinstate once real multichain support
+// adds back additional networks.
+test.describe.skip("WalletProvider — network selection drives shared state", () => {
   test("switching networks updates the navbar badge and persists across reloads", async ({
     page,
   }) => {

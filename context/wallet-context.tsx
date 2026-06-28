@@ -22,15 +22,13 @@ import type {
   WalletProviderProps,
 } from "@/types/wallet";
 
-// Networks exposed to the UI. Stellar lives first so first-time visitors see
-// the network the product is actually built on. Synthetic placeholders cover
-// the multichain story until real adapters land.
+// Networks exposed to the UI. Stellar is the only network the product is
+// actually built on, so it is the sole supported entry. The placeholder EVM
+// chains (ETH, Polygon, BSC, Arbitrum) were removed because they had no real
+// adapters behind them — they will be added back here once genuine multichain
+// support lands.
 export const SUPPORTED_NETWORKS: Network[] = [
   { id: "stellar", name: "Stellar" },
-  { id: "eth", name: "ETH" },
-  { id: "polygon", name: "Polygon" },
-  { id: "bsc", name: "BSC" },
-  { id: "arbitrum", name: "Arbitrum" },
 ];
 
 export const DEFAULT_NETWORK: Network = SUPPORTED_NETWORKS[0];

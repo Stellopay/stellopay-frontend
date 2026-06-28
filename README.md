@@ -318,6 +318,14 @@ queue up.
 - All third-party actions are pinned to commit SHAs, not mutable version tags.
 - The workflow requests only `contents: read` — no write access is granted.
 
+## Landing FAQ Copy
+
+The landing FAQ in [`components/landing/faq-section.tsx`](components/landing/faq-section.tsx)
+must stay aligned with StelloPay's Stellar product surface. Public copy should
+reference Stellar wallets such as Freighter, Albedo, and xBull; Stellar assets
+such as XLM and USDC on Stellar; and the active mainnet/testnet context. Avoid
+EVM-only wallet names, ETH asset claims, seed phrase handling claims, or
+unverifiable fee-savings guarantees.
 
 ## Performance Optimization & Code-Splitting
 
@@ -335,6 +343,24 @@ Target performance optimizations were applied across the landing page and dashbo
 |-------|--------|--------|-------|--------|
 | `/landing` (Pages Router) | Route Size | 64.1 kB | 26.1 kB | **-38.0 kB (-59.3%)** |
 | `/landing` (Pages Router) | First Load JS | 165 kB | 127 kB | **-38.0 kB (-23.0%)** |
+
+### Bundle Budget
+
+We maintain a CI-enforced bundle budget for key routes to ensure fast first-load performance.
+
+| Route | Budget | Current First Load JS |
+|-------|--------|-----------------------|
+| `/` (Landing) | 225 kB | 213 kB |
+| `/dashboard` | 180 kB | 165 kB |
+
+To run the bundle analyzer locally:
+```bash
+npm run analyze
+```
+
+#### Candidate Wins for Optimization
+- **Icon deduplication**: We currently have multiple icon libraries (`lucide-react`, `hugeicons`, `react-icons`). Consolidating all icons to `lucide-react` will significantly reduce the shared bundle size.
+- **Dynamic imports for Recharts**: Use `next/dynamic` for chart components in `AnalyticsViews` and `AnalyticsInsights` to move heavy visualization logic out of the critical path.
 
 ## Centralized Demo Data & Illustrative Stats
 
