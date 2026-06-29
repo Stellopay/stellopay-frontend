@@ -186,6 +186,12 @@ export default function MyComponent() {
 - `npm run test:e2e` runs the full Playwright suite under `tests/**/*.spec.ts` and `e2e/**/*.spec.ts` across **chromium**, **firefox**, and **webkit** against a local dev server.
 - Unit tests for `utils/*.ts` are colocated as `utils/<name>.test.ts` (e.g. [`utils/date-utils.test.ts`](utils/date-utils.test.ts)); Playwright specs live under `tests/*.spec.ts`.
 
+### Covered Flows
+
+- **Authentication**: Validation rules (email format, strong passwords matching), form state, and UI feedback for Login (`tests/auth-login.spec.ts`), Sign-up (`tests/auth-signup.spec.ts`), and Email Verification (`tests/verify-email.spec.ts`).
+- **Wallet**: Connect, disconnect, and network switching (`tests/wallet.spec.ts`).
+- **Dashboard**: Account overview, settings, and paginated transactions (`tests/dashboard.spec.ts`, `tests/settings.spec.ts`, `tests/pagination.spec.ts`).
+
 ### Date utilities
 
 All date parsing, formatting, and range-checking lives in a single module, [`utils/date-utils.ts`](utils/date-utils.ts), built on `date-fns` for deterministic, locale-independent output. Invalid input fails safely: `parseTransactionDate` returns `null` and `formatDate` returns `""` rather than throwing.
