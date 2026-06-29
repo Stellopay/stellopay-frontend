@@ -1,7 +1,12 @@
 "use client";
 
 import { useState, useMemo, useCallback } from "react";
-import type { SortField, TransactionFilters, Transaction, TransactionProps } from "@/types/transaction";
+import type {
+  SortField,
+  TransactionFilters,
+  Transaction,
+  TransactionProps,
+} from "@/types/transaction";
 import { useTransactions } from "@/hooks/useTransactions";
 import { TransactionTableSkeleton } from "@/components/ui/table-skeleton";
 import TransactionsHeader from "./transactions-header";
@@ -9,14 +14,20 @@ import TransactionsFilters from "./transactions-filters";
 import { TransactionsTable } from "./transactions-table";
 import TransactionsPagination from "./transactions-pagination";
 import { ErrorState } from "@/components/ui/error-state";
-import { TRANSACTIONS_PAGE_SIZE, getDefaultDateRange } from "./transactions-config";
+import {
+  TRANSACTIONS_PAGE_SIZE,
+  getDefaultDateRange,
+} from "./transactions-config";
 
 /** Map token symbol → icon path */
 const getTokenIcon = (token: string): string => {
   switch (token) {
-    case "USDC": return "/usdc-logo.png";
-    case "XLM":  return "/stellar-xlm-logo.png";
-    default:     return "/usd.png";
+    case "USDC":
+      return "/usdc-logo.png";
+    case "XLM":
+      return "/stellar-xlm-logo.png";
+    default:
+      return "/usd.png";
   }
 };
 
@@ -39,6 +50,7 @@ const toTransactionProps = (t: Transaction): TransactionProps => ({
 export default function TransactionsContent() {
   const [filters, setFilters] = useState<TransactionFilters>(() => ({
     searchQuery: "",
+    filterQuery: "",
     ...getDefaultDateRange(),
     selectedFilter: "All Transactions",
     sortField: "date",
@@ -55,15 +67,18 @@ export default function TransactionsContent() {
 
   const paginatedTransactions: TransactionProps[] = useMemo(
     () => (data?.data ?? []).map(toTransactionProps),
-    [data]
+    [data],
   );
 
   const updateFilter = useCallback(
-    <K extends keyof TransactionFilters>(key: K, value: TransactionFilters[K]) => {
+    <K extends keyof TransactionFilters>(
+      key: K,
+      value: TransactionFilters[K],
+    ) => {
       setFilters((prev) => ({ ...prev, [key]: value }));
       setCurrentPage(1);
     },
-    []
+    [],
   );
 
   const handleSort = useCallback((field: SortField) => {
@@ -71,7 +86,9 @@ export default function TransactionsContent() {
       ...prev,
       sortField: field,
       sortDirection:
-        prev.sortField === field && prev.sortDirection === "asc" ? "desc" : "asc",
+        prev.sortField === field && prev.sortDirection === "asc"
+          ? "desc"
+          : "asc",
     }));
     setCurrentPage(1);
   }, []);

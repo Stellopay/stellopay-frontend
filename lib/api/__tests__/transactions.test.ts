@@ -130,6 +130,29 @@ describe("getTransactions", () => {
     expect(result.total).toBe(0);
   });
 
+  it("filters by plain-text transaction filter query across status and address", async () => {
+    const failed = await getTransactions({
+      filters: { filterQuery: "failed" },
+      pageSize: 100,
+    });
+    expect(failed.total).toBeGreaterThan(0);
+    failed.data.forEach((t) =>
+      expect(t.status.toLowerCase()).toContain("failed"),
+    );
+
+    const address = failed.data[0]?.address.slice(0, 8);
+    expect(address).toBeTruthy();
+
+    const byAddress = await getTransactions({
+      filters: { filterQuery: address },
+      pageSize: 100,
+    });
+    expect(byAddress.total).toBeGreaterThan(0);
+    byAddress.data.forEach((t) =>
+      expect(t.address.toLowerCase()).toContain(address!.toLowerCase()),
+    );
+  });
+
   it("each transaction has required fields", async () => {
     const result = await getTransactions({ pageSize: 100 });
     result.data.forEach((t) => {
