@@ -2,10 +2,25 @@
 // Addresses follow Stellar's G-prefixed format. Only public material is
 // ever stored or logged. Secrets must never reach this layer.
 
+/**
+ * A Stellar network the app can connect to.
+ */
 export interface Network {
+  /** Stable machine-readable identifier, e.g. `"stellar"`, `"testnet"`. */
   id: string;
+  /** Human-readable label shown in the UI, e.g. `"Stellar"`. */
   name: string;
+  /**
+   * Optional React node icon for the network, shown in the NetworkSwitcher.
+   * Falls back to the StellarIcon SVG when not provided.
+   */
   icon?: React.ReactNode;
+  /**
+   * Stellar network passphrase used to sign transactions and select the
+   * correct Horizon/RPC endpoint. Optional for backward compatibility with
+   * older test fixtures and call sites.
+   */
+  passphrase?: string;
 }
 
 export interface WalletContextValue {
@@ -30,3 +45,6 @@ export interface WalletProviderProps {
   initialAddress?: string | null;
   initialNetwork?: Network;
 }
+
+/** localStorage key used to persist the user's active Stellar network. */
+export const WALLET_NETWORK_STORAGE_KEY = "stellopay.wallet.network";

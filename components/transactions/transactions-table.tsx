@@ -12,6 +12,7 @@ import { TransactionsTableProps } from "@/types/transaction";
 import { Badge } from "@/components/ui/badge";
 import Image from "next/image";
 import { Skeleton } from "@/components/ui/skeleton";
+import { getStatusColor } from "@/utils/transactionUtils";
 import { EmptyState } from "@/components/ui/empty-state";
 import { TRANSACTIONS_PAGE_SIZE } from "./transactions-config";
 
@@ -116,7 +117,7 @@ export function TransactionsTable({ transactions, isLoading = false }: Transacti
                   <TableCell className="py-4 px-6">
                     <Badge
                       aria-label={`Status: ${transaction.status}`}
-                      className={`${transaction.status === "Completed" ? "bg-[#102B19] text-[#04842E]" : transaction.status === "Pending" ? "bg-[#191919] text-[#9F6603]" : "bg-[#1A1A1A] text-[#B70B05]" }`}
+                      className={getStatusColor(transaction.status)}
                     >
                       <span className="text-sm">{transaction.status}</span>
                     </Badge>
