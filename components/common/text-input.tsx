@@ -28,13 +28,27 @@ const TextInput: React.FC<EnhancedTextInputProps> = ({
   const descriptionId = helperText ? `${fieldId}-description` : undefined;
   const errorId = error ? `${fieldId}-error` : undefined;
 
+  /**
+   * Handles input changes.
+   * For "number" types, it validates against a regex that allows partial
+   * and complete numeric values (including decimals and negative numbers)
+   * so that keystrokes aren't silently dropped during typing.
+   * Other input types are forwarded directly.
+   *
+   * SECURITY NOTE: This only provides UI-level validation to allow typing. 
+   * Numeric values must still be properly bounded and validated by consuming forms.
+   *
+   * @param event - The change event from the input element
+   */
   const handleChange = (event: ChangeEvent<HTMLInputElement>) => {
     const inputValue = event.target.value;
 
-    // If type is number, ensure only numeric input
-    if (type === "number" && /^[0-9]*$/.test(inputValue)) {
-      onChange(inputValue);
-    } else if (type === "text") {
+    if (type === "number") {
+      // Allow partial numeric states (e.g. "", "-", "0.", "-.5")
+      if (/^-?[0-9]*\.?[0-9]*$/.test(inputValue)) {
+        onChange(inputValue);
+      }
+    } else {
       onChange(inputValue);
     }
   };
@@ -50,6 +64,7 @@ const TextInput: React.FC<EnhancedTextInputProps> = ({
     <div className={cn("w-full space-y-2", className)}>
       {label && (
         <Label
+          htmlFor={fieldId}
           required={required}
           error={error}
           descriptionId={descriptionId}
@@ -85,9 +100,9 @@ const TextInput: React.FC<EnhancedTextInputProps> = ({
           aria-invalid={error ? "true" : "false"}
           aria-describedby={describedBy}
           aria-required={required}
-          // Disable number input spinner (this works for most modern browsers)
-          inputMode={type === "number" ? "numeric" : "text"}
-          pattern={type === "number" ? "[0-9]*" : undefined}
+          // Configure appropriate input mode and pattern for number variants on mobile keyboards
+          inputMode={type === "number" ? "decimal" : "text"}
+          pattern={type === "number" ? "^-?[0-9]*\\.?[0-9]*$" : undefined}
           // Disable spinner in Chrome, Firefox, Safari, etc.
           style={{
             WebkitAppearance: "none",

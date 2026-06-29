@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import ToggleCard from "@/components/common/toggle-card";
 import { Button } from "@/components/ui/button";
 import { FormMessage } from "@/components/ui/form";
@@ -65,6 +65,58 @@ export default function NotificationsSection({
     useState<NotificationSettingsState>(DEFAULT_NOTIFICATION_SETTINGS);
   const settings = controlledSettings ?? internalSettings;
   const [statusMessage, setStatusMessage] = useState("");
+  const [statusType, setStatusType] = useState<"success" | "error">("success");
+  const [isSaving, setIsSaving] = useState(false);
+
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem("notification_preferences");
+      if (stored) {
+        setInternalSettings(JSON.parse(stored));
+      }
+    } catch (e) {
+      // Ignore parse errors or disabled storage
+    }
+  }, []);
+
+  /**
+   * Persists the notification preferences to storage.
+   * Prioritizes a mock API base URL if available, falling back to localStorage.
+   * 
+   * SECURITY NOTE: Only safe boolean preferences are persisted.
+   * Do not attach PII or sensitive tokens in this client payload.
+   */
+  const handleSave = async () => {
+    setIsSaving(true);
+    setStatusMessage("");
+
+    try {
+      // Persist to safeStorage (localStorage)
+      localStorage.setItem("notification_preferences", JSON.stringify(settings));
+
+      // Mock API call
+      const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL;
+      if (baseUrl) {
+        const res = await fetch(`${baseUrl}/api/user/preferences/notifications`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(settings),
+        });
+        if (!res.ok) throw new Error("API failed");
+      } else {
+        // Fallback delay to simulate network UX
+        await new Promise((resolve) => setTimeout(resolve, 500));
+      }
+
+      setStatusType("success");
+      setStatusMessage("Notification preferences updated. Critical alerts remain prioritized.");
+    } catch (error) {
+      setStatusType("error");
+      setStatusMessage("Failed to save preferences. Please try again.");
+    } finally {
+      setIsSaving(false);
+    }
+  };
 
   const updateSetting = (
     field: keyof NotificationSettingsState,
@@ -174,21 +226,29 @@ export default function NotificationsSection({
             </p>
           </div>
           <Button
-            onClick={() =>
-              setStatusMessage(
-                "Notification preferences updated. Critical alerts remain prioritized.",
-              )
-            }
+            onClick={handleSave}
+            disabled={isSaving}
           >
-            Save notification settings
+            {isSaving ? "Saving..." : "Save notification settings"}
           </Button>
-          {statusMessage ? (
-            <div className="rounded-2xl border border-success/20 bg-success/10 px-4 py-3">
-              <FormMessage variant="success" className="text-success">
-                {statusMessage}
-              </FormMessage>
-            </div>
-          ) : null}
+          <div aria-live="polite" aria-atomic="true">
+            {statusMessage ? (
+              <div
+                className={`rounded-2xl border px-4 py-3 ${
+                  statusType === "success"
+                    ? "border-success/20 bg-success/10"
+                    : "border-destructive/20 bg-destructive/10"
+                }`}
+              >
+                <FormMessage
+                  variant={statusType}
+                  className={statusType === "success" ? "text-success" : "text-destructive"}
+                >
+                  {statusMessage}
+                </FormMessage>
+              </div>
+            ) : null}
+          </div>
         </CardContent>
       </Card>
     </div>
