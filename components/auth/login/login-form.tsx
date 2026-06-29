@@ -14,6 +14,7 @@ import {
 import { Separator } from "@/components/ui/separator";
 import { Loader2 } from "lucide-react";
 import { AuthSocialButtons } from "../auth-social-buttons";
+import { login, AuthError } from "@/lib/api/auth";
 import { loginSchema, LoginFormValues } from "@/types/auth";
 
 /**
@@ -43,18 +44,14 @@ export function LoginForm() {
     setIsLoading(true);
     setErrorMessage("");
     try {
-      // Simulate API call
-      await new Promise((resolve, reject) => setTimeout(() => {
-        // Simulate error for demonstration
-        if (_data.email === "error@example.com") {
-          reject(new Error("Invalid credentials"));
-        } else {
-          resolve(null);
-        }
-      }, 2000));
-      // Handle login logic here
-    } catch {
-      setErrorMessage("Invalid email or password. Please try again.");
+      await login(_data);
+      // Handle successful login redirect or state update here
+    } catch (error) {
+      if (error instanceof AuthError) {
+        setErrorMessage(error.message);
+      } else {
+        setErrorMessage("Invalid email or password. Please try again.");
+      }
     } finally {
       setIsLoading(false);
     }
