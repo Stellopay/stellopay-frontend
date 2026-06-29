@@ -1,108 +1,155 @@
 "use client";
 
-/**
- * WalletContext
- *
- * Provides the active Stellar network to the component tree and persists
- * the user's selection to localStorage under {@link WALLET_NETWORK_STORAGE_KEY}.
- *
- * Security: the persisted id is validated against {@link SUPPORTED_NETWORKS}
- * on every hydration. A stale EVM id (e.g. "eth", "polygon") or any unknown
- * value silently falls back to {@link DEFAULT_NETWORK} rather than crashing
- * or surfacing an invalid network to the UI.
- */
+// WalletProvider is the single source of truth for the connected wallet and
+// the active network. The navbar, NetworkSwitcher, dashboard address, and
+// future transaction surfaces all read from this provider via useWallet.
+//
+// Security: only the public Stellar G-address and the network id are ever
+// held in state or written to localStorage. Secret keys are never accepted
+// by connect() and never logged.
 
-import {
+import React, {
   createContext,
   useCallback,
   useContext,
   useEffect,
+  useMemo,
   useState,
-  type FC,
-  type ReactNode,
 } from "react";
-import {
-  DEFAULT_NETWORK,
-  SUPPORTED_NETWORKS,
-  WALLET_NETWORK_STORAGE_KEY,
-  type Network,
+import type {
+  Network,
+  WalletContextValue,
+  WalletProviderProps,
 } from "@/types/wallet";
 
-export type { Network };
-export { SUPPORTED_NETWORKS, DEFAULT_NETWORK };
+// Networks exposed to the UI. Stellar is the only network the product is
+// actually built on, so it is the sole supported entry. The placeholder EVM
+// chains (ETH, Polygon, BSC, Arbitrum) were removed because they had no real
+// adapters behind them — they will be added back here once genuine multichain
+// support lands.
+export const SUPPORTED_NETWORKS: Network[] = [
+  { id: "stellar", name: "Stellar" },
+];
 
-interface WalletContextValue {
-  /** The currently active Stellar network. */
-  activeNetwork: Network;
-  /** Switch to a different Stellar network and persist the selection. */
-  setActiveNetwork: (network: Network) => void;
-  /** Ordered list of all Stellar networks the app supports. */
-  supportedNetworks: readonly Network[];
+export const DEFAULT_NETWORK: Network = SUPPORTED_NETWORKS[0];
+
+// Legacy storage key kept for backward compatibility with older tests and
+// any call sites that imported it from this module before the rename.
+export const WALLET_NETWORK_STORAGE_KEY = "stellopay.wallet.network";
+
+const STORAGE_KEY_NETWORK = WALLET_NETWORK_STORAGE_KEY;
+
+const WalletContext = createContext<WalletContextValue | undefined>(undefined);
+
+// Synthetic Stellar-style address used by the demo connect flow. Real wallet
+// integrations will replace this with the address returned by the signer.
+const SYNTHETIC_ADDRESS = "GABCDEFGHIJKLMNOPQRSTUVWXYZ234567ABCDEFGHIJKLMNOPF123";
+
+// Best-effort, SSR-safe localStorage read. Mirrors the pattern in
+// context/theme-context.tsx and context/sidebar-context.tsx: never assume
+// window or storage exists, and swallow any access error so the provider
+// still renders in restricted environments (private mode, iframes).
+function readNetworkFromStorage(): Network | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const storage = window.localStorage;
+    if (!storage || typeof storage.getItem !== "function") return null;
+    const id = storage.getItem(STORAGE_KEY_NETWORK);
+    if (!id) return null;
+    return SUPPORTED_NETWORKS.find((n) => n.id === id) ?? null;
+  } catch {
+    return null;
+  }
 }
 
-const WalletContext = createContext<WalletContextValue | null>(null);
-
-/**
- * Map a raw localStorage string to a known network.
- * Returns {@link DEFAULT_NETWORK} for any unrecognised or null value —
- * this guards against stale EVM ids left over from a previous build.
- */
-function resolvePersistedNetwork(raw: string | null): Network {
-  if (!raw) return DEFAULT_NETWORK;
-  return SUPPORTED_NETWORKS.find((n) => n.id === raw) ?? DEFAULT_NETWORK;
+function writeNetworkToStorage(network: Network): void {
+  if (typeof window === "undefined") return;
+  try {
+    const storage = window.localStorage;
+    if (!storage || typeof storage.setItem !== "function") return;
+    storage.setItem(STORAGE_KEY_NETWORK, network.id);
+  } catch {
+    // Storage may be unavailable in restricted contexts. The provider
+    // still functions in memory, just without persistence.
+  }
 }
 
-/**
- * Wrap the component tree with `WalletProvider` to make
- * {@link useWallet} available to all descendants.
- */
-export const WalletProvider: FC<{ children: ReactNode }> = ({ children }) => {
-  const [activeNetwork, setActiveNetworkState] =
-    useState<Network>(DEFAULT_NETWORK);
+export const WalletProvider: React.FC<WalletProviderProps> = ({
+  children,
+  initialAddress = null,
+  initialNetwork,
+}) => {
+  const [address, setAddress] = useState<string | null>(initialAddress);
+  const [network, setNetworkState] = useState<Network>(
+    initialNetwork ?? DEFAULT_NETWORK,
+  );
 
-  // Hydrate from localStorage on the client; validate against the allow-list.
+  // Hydrate the network on the client. Running this in an effect (rather than
+  // in useState's initializer) keeps server and first client render in sync,
+  // avoiding the React hydration mismatch warning.
   useEffect(() => {
-    if (typeof window === "undefined") return;
-    try {
-      const raw = window.localStorage.getItem(WALLET_NETWORK_STORAGE_KEY);
-      setActiveNetworkState(resolvePersistedNetwork(raw));
-    } catch {
-      // localStorage unavailable (e.g. storage blocked in private browsing) — keep default.
+    if (initialNetwork) return;
+    const stored = readNetworkFromStorage();
+    if (stored && stored.id !== network.id) {
+      setNetworkState(stored);
     }
+  }, [initialNetwork, network.id]);
+
+  const setNetwork = useCallback((next: Network) => {
+    setNetworkState(next);
+    writeNetworkToStorage(next);
   }, []);
 
-  const setActiveNetwork = useCallback((network: Network) => {
-    // Accept only networks present in the allow-list.
-    const validated = SUPPORTED_NETWORKS.find((n) => n.id === network.id);
-    if (!validated) return;
-    setActiveNetworkState(validated);
-    try {
-      localStorage.setItem(WALLET_NETWORK_STORAGE_KEY, validated.id);
-    } catch {
-      // Storage write failure is non-fatal — state is still updated in memory.
+  const connect = useCallback((next?: string) => {
+    // Refuse anything that looks like a Stellar secret key. Secrets start
+    // with S followed by 55 base32 characters. This is defense in depth in
+    // case a caller misuses the public API.
+    if (next && /^S[A-Z2-7]{55}$/.test(next)) {
+      throw new Error(
+        "WalletProvider.connect rejected a value that looks like a Stellar secret key. Pass a public G-address instead.",
+      );
     }
+    setAddress(next ?? SYNTHETIC_ADDRESS);
   }, []);
+
+  const disconnect = useCallback(() => {
+    setAddress(null);
+  }, []);
+
+  const value = useMemo<WalletContextValue>(
+    () => ({
+      address,
+      isConnected: address !== null,
+      network,
+      setNetwork,
+      connect,
+      disconnect,
+    }),
+    [address, network, setNetwork, connect, disconnect],
+  );
 
   return (
-    <WalletContext.Provider
-      value={{
-        activeNetwork,
-        setActiveNetwork,
-        supportedNetworks: SUPPORTED_NETWORKS,
-      }}
-    >
-      {children}
-    </WalletContext.Provider>
+    <WalletContext.Provider value={value}>{children}</WalletContext.Provider>
   );
 };
 
-/**
- * Access the active Stellar network and the network-switcher function.
- *
- * @throws If called outside a {@link WalletProvider}.
- */
+// Read the wallet context. Throws a clear error when called outside of a
+// WalletProvider, which is the contract the issue calls out explicitly.
 export function useWallet(): WalletContextValue {
   const ctx = useContext(WalletContext);
-  if (!ctx) throw new Error("useWallet must be used within a WalletProvider");
+  if (!ctx) {
+    throw new Error(
+      "useWallet must be used within a WalletProvider. Wrap the tree in <WalletProvider> (see app/layout.tsx).",
+    );
+  }
   return ctx;
+}
+
+// Truncate a Stellar address for display: GABC...F123. Kept here so every
+// consumer formats it the same way without sprinkling slicing logic across
+// the tree.
+export function formatAddress(address: string | null): string {
+  if (!address) return "";
+  if (address.length <= 9) return address;
+  return `${address.slice(0, 4)}...${address.slice(-4)}`;
 }

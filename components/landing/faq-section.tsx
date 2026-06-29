@@ -12,26 +12,27 @@ interface FAQItem {
   answer: string;
 }
 
+/** Landing-page FAQ copy describing Stellar-specific wallet, asset, and fee expectations. */
 const faqData: FAQItem[] = [
   {
     question: "Do I need a crypto wallet?",
     answer:
-      "Yes, StelloPay requires you to connect a cryptocurrency wallet to send and receive payments. We support all major wallets including MetaMask, Trust Wallet, Coinbase Wallet, and more. Your wallet remains under your full control at all times.",
+      "Yes. StelloPay connects to Stellar wallets such as Freighter, Albedo, and xBull so you can approve payments on Stellar mainnet or testnet. StelloPay never asks for your seed phrase or private key.",
   },
   {
     question: "What are the supported currencies?",
     answer:
-      "StelloPay supports a wide range of popular cryptocurrencies and stablecoins, including USDC, USDT, ETH, and more. We are constantly adding support for new assets based on user feedback.",
+      "StelloPay focuses on Stellar assets such as XLM and USDC on Stellar. Supported assets can vary by network, so always confirm whether you are using Stellar mainnet or testnet before sending funds.",
   },
   {
     question: "Have any questions? We've Got Your Answers",
     answer:
-      "Our support team is available 24/7 to help you with any questions or issues you might have. You can reach out to us via email or our help center.",
+      "Our support team can help with Stellar wallet setup, supported assets, network selection, and payment questions. You can reach out to us via email or our help center.",
   },
   {
     question: "StelloPay charges lower fees than traditional services?",
     answer:
-      "Yes, StelloPay leverages blockchain technology to significantly reduce transaction costs compared to traditional payment processors. You can save up to 80% on international transfer fees.",
+      "Stellar network fees are typically fractions of a cent, which can make on-chain payments more cost-efficient than many traditional rails. Review any StelloPay service fees and the selected Stellar network before confirming a payment.",
   },
 ];
 

@@ -1,3 +1,5 @@
+import { passwordRuleValidators } from "@/types/auth";
+
 /**
  * Authentication utility functions
  */
@@ -17,9 +19,9 @@ export const checkPasswordRequirements = (
   password: string,
 ): PasswordRequirements => {
   return {
-    minLength: password.length >= 8,
-    uppercase: /[A-Z]/.test(password),
-    specialChar: /[@!#%$^&*()_+\-=[\]{};':"\\|,.<>/?]/.test(password),
+    minLength: passwordRuleValidators.minLength(password),
+    uppercase: passwordRuleValidators.uppercase(password),
+    specialChar: passwordRuleValidators.specialChar(password),
   };
 };
 

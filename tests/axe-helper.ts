@@ -1,4 +1,5 @@
 import AxeBuilder from "@axe-core/playwright";
+import type { Result } from "axe-core";
 import { expect, type Page } from "@playwright/test";
 
 /**
@@ -44,13 +45,7 @@ export interface RunAxeScanOptions {
   allowlist?: TriagedViolation[];
 }
 
-function formatViolation(violation: {
-  id: string;
-  impact?: string | null;
-  help: string;
-  helpUrl: string;
-  nodes: { target: string[] }[];
-}): string {
+function formatViolation(violation: Result): string {
   const targets = violation.nodes
     .slice(0, 3)
     .map((node) => node.target.join(" "))

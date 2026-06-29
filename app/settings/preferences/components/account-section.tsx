@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import { Camera, Loader2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
@@ -18,13 +18,44 @@ import DestructiveActionDialog from "./destructive-action-dialog";
 import { DEMO_PROFILE } from "@/lib/demo-data";
 import { isValidEmail } from "@/utils/authUtils";
 
-interface ProfileState {
+export interface ProfileState {
   firstName: string;
   lastName: string;
   displayName: string;
   email: string;
   timezone: string;
   currency: string;
+}
+
+/**
+ * Default profile values seeded from demo data. Exported so a parent surface
+ * (e.g. the settings summary cards) can own the same initial state when it
+ * lifts this section into a controlled component.
+ */
+export const DEFAULT_PROFILE: ProfileState = {
+  firstName: DEMO_PROFILE.firstName,
+  lastName: DEMO_PROFILE.lastName,
+  displayName: DEMO_PROFILE.displayName,
+  email: DEMO_PROFILE.email,
+  timezone: DEMO_PROFILE.timezone,
+  currency: DEMO_PROFILE.currency,
+};
+
+/** Number of profile fields that have a non-empty value. */
+export function countCompletedProfileFields(profile: ProfileState): number {
+  return (Object.values(profile) as string[]).filter(
+    (value) => value.trim().length > 0,
+  ).length;
+}
+
+/** Total number of profile fields tracked. */
+export function totalProfileFields(profile: ProfileState): number {
+  return Object.keys(profile).length;
+}
+
+/** A profile is "complete" once every tracked field is filled in. */
+export function isProfileComplete(profile: ProfileState): boolean {
+  return countCompletedProfileFields(profile) === totalProfileFields(profile);
 }
 
 interface StatusState {
@@ -60,18 +91,31 @@ const sectionMap = [
  * Renders user profile information, identity details, and regional settings.
  * Uses placeholder demo data pending full backend API integration.
  */
-export default function AccountSection() {
-  const [profile, setProfile] = useState<ProfileState>({
-    firstName: DEMO_PROFILE.firstName,
-    lastName: DEMO_PROFILE.lastName,
-    displayName: DEMO_PROFILE.displayName,
-    email: DEMO_PROFILE.email,
-    timezone: DEMO_PROFILE.timezone,
-    currency: DEMO_PROFILE.currency,
+interface AccountSectionProps {
+  /**
+   * Controlled profile state. When provided the component renders this value
+   * and reports edits through `onProfileChange`. When omitted the section
+   * manages its own internal state (standalone use).
+   */
+  profile?: ProfileState;
+  onProfileChange?: (next: ProfileState) => void;
+}
+
+export default function AccountSection({
+  profile: controlledProfile,
+  onProfileChange,
+}: AccountSectionProps = {}) {
+  const [internalProfile, setInternalProfile] =
+    useState<ProfileState>(DEFAULT_PROFILE);
+  const profile = controlledProfile ?? internalProfile;
+  const [status, setStatus] = useState<StatusState>({
+    message: "",
+    type: null,
   });
-  const [status, setStatus] = useState<StatusState>({ message: "", type: null });
   const [isSaving, setIsSaving] = useState(false);
   const [isEmailTouched, setIsEmailTouched] = useState(false);
+  const statusTimeoutRef = useRef<number | null>(null);
+  const isMountedRef = useRef(true);
 
   // Trim before validating so incidental whitespace can neither defeat
   // isValidEmail() nor end up persisted in a form the user never typed.
@@ -79,12 +123,41 @@ export default function AccountSection() {
   const isEmailValid = isValidEmail(normalizedEmail);
   const showEmailError = isEmailTouched && !isEmailValid;
 
-  const updateProfileField = (field: keyof ProfileState, value: string) => {
-    setProfile((currentProfile) => ({
-      ...currentProfile,
-      [field]: value,
-    }));
+  useEffect(() => {
+    return () => {
+      isMountedRef.current = false;
+      if (statusTimeoutRef.current) {
+        window.clearTimeout(statusTimeoutRef.current);
+      }
+    };
+  }, []);
+
+  const clearQueuedStatusReset = () => {
+    if (statusTimeoutRef.current) {
+      window.clearTimeout(statusTimeoutRef.current);
+      statusTimeoutRef.current = null;
+    }
   };
+
+  const queueStatusReset = () => {
+    clearQueuedStatusReset();
+    statusTimeoutRef.current = window.setTimeout(() => {
+      if (isMountedRef.current) {
+        setStatus({ message: "", type: null });
+      }
+      statusTimeoutRef.current = null;
+    }, 5000);
+  };
+
+  const updateProfileField = (field: keyof ProfileState, value: string) => {
+    const next: ProfileState = { ...profile, [field]: value };
+    if (onProfileChange) {
+      onProfileChange(next);
+    } else {
+      setInternalProfile(next);
+    }
+  };
+
 
   /**
    * Validates the email on blur and normalizes the field by trimming
@@ -93,12 +166,10 @@ export default function AccountSection() {
    */
   const handleEmailBlur = () => {
     setIsEmailTouched(true);
-    setProfile((currentProfile) => {
-      const trimmed = currentProfile.email.trim();
-      return trimmed === currentProfile.email
-        ? currentProfile
-        : { ...currentProfile, email: trimmed };
-    });
+    const trimmed = profile.email.trim();
+    if (trimmed !== profile.email) {
+      updateProfileField("email", trimmed);
+    }
   };
 
   /**
@@ -118,36 +189,43 @@ export default function AccountSection() {
     }
 
     if (normalizedEmail !== profile.email) {
-      setProfile((currentProfile) => ({
-        ...currentProfile,
-        email: normalizedEmail,
-      }));
+      updateProfileField("email", normalizedEmail);
     }
 
     setIsSaving(true);
     setStatus({ message: "", type: null });
+    clearQueuedStatusReset();
     try {
       // Simulate async API call
-      await new Promise((resolve, reject) => setTimeout(() => {
-        // Simulate occasional failure for testing
-        if (Math.random() > 0.8) {
-          reject(new Error("Failed to save"));
-        } else {
-          resolve(null);
-        }
-      }, 1500));
-      setStatus({
-        message: "Account profile changes are staged and ready for backend save.",
-        type: "success",
-      });
+      await new Promise((resolve, reject) =>
+        setTimeout(() => {
+          // Simulate occasional failure for testing
+          if (Math.random() > 0.8) {
+            reject(new Error("Failed to save"));
+          } else {
+            resolve(null);
+          }
+        }, 1500),
+      );
+      if (isMountedRef.current) {
+        setStatus({
+          message:
+            "Account profile changes are staged and ready for backend save.",
+          type: "success",
+        });
+      }
     } catch {
-      setStatus({
-        message: "Failed to save changes. Please try again.",
-        type: "error",
-      });
+      if (isMountedRef.current) {
+        setStatus({
+          message: "Failed to save changes. Please try again.",
+          type: "error",
+        });
+      }
     } finally {
-      setIsSaving(false);
-      setTimeout(() => setStatus({ message: "", type: null }), 5000);
+      if (isMountedRef.current) {
+        setIsSaving(false);
+        queueStatusReset();
+      }
     }
   };
 
@@ -369,7 +447,8 @@ export default function AccountSection() {
               confirmLabel="Confirm deactivation"
               onConfirm={() =>
                 setStatus({
-                  message: "Deactivation request captured. Keep this action gated until backend approval exists.",
+                  message:
+                    "Deactivation request captured. Keep this action gated until backend approval exists.",
                   type: "success",
                 })
               }

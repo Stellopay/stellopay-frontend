@@ -27,6 +27,7 @@ import { changePasswordSchema, ChangePasswordFormValues } from "@/types/auth";
 import { checkPasswordRequirements } from "@/utils/authUtils";
 import DestructiveActionDialog from "./destructive-action-dialog";
 import { DEMO_SECURITY } from "@/lib/demo-data";
+import { passwordPolicy, passwordSchema } from "@/types/auth";
 
 const sessions = [
   {
@@ -46,6 +47,41 @@ const sessions = [
 interface StatusState {
   message: string;
   type: "success" | "error" | null;
+}
+
+function getPasswordValidationMessages(
+  password: string,
+  confirmPassword: string,
+) {
+  const messages: string[] = [];
+
+  if (password.length === 0) {
+    return messages;
+  }
+
+  const parsedPassword = passwordSchema.safeParse(password);
+  if (!parsedPassword.success) {
+    messages.push(...parsedPassword.error.issues.map((issue) => issue.message));
+  }
+
+  if (password !== confirmPassword) {
+    messages.push("Passwords don't match");
+  }
+
+  return messages;
+}
+
+/** Default two-factor state, exported so a parent can own the same initial value. */
+export const DEFAULT_TWO_FACTOR_ENABLED = true;
+
+interface SecurityTabProps {
+  /**
+   * Controlled two-factor state. When provided the component renders this value
+   * and reports changes through `onTwoFactorEnabledChange`. When omitted the
+   * section manages its own internal state (standalone use).
+   */
+  twoFactorEnabled?: boolean;
+  onTwoFactorEnabledChange?: (next: boolean) => void;
 }
 
 /**
@@ -77,11 +113,27 @@ interface StatusState {
  *   the parameter is prefixed with `_` to make the intent explicit. The form
  *   is reset to empty strings on success to prevent values lingering in state.
  */
-export default function SecurityTab() {
-  const [twoFactorEnabled, setTwoFactorEnabled] = useState(true);
+export default function SecurityTab({
+  twoFactorEnabled: controlledTwoFactor,
+  onTwoFactorEnabledChange,
+}: SecurityTabProps = {}) {
+  const [internalTwoFactor, setInternalTwoFactor] = useState(
+    DEFAULT_TWO_FACTOR_ENABLED,
+  );
+  const twoFactorEnabled = controlledTwoFactor ?? internalTwoFactor;
+  const setTwoFactorEnabled = (next: boolean) => {
+    if (onTwoFactorEnabledChange) {
+      onTwoFactorEnabledChange(next);
+    } else {
+      setInternalTwoFactor(next);
+    }
+  };
   const [loginApprovalEnabled, setLoginApprovalEnabled] = useState(true);
   const [transferApprovalEnabled, setTransferApprovalEnabled] = useState(true);
-  const [status, setStatus] = useState<StatusState>({ message: "", type: null });
+  const [status, setStatus] = useState<StatusState>({
+    message: "",
+    type: null,
+  });
   const [isSaving, setIsSaving] = useState(false);
 
   const form = useForm<ChangePasswordFormValues>({
