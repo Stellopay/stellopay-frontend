@@ -1,5 +1,5 @@
 import { act, render, renderHook, screen } from "@testing-library/react";
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import React from "react";
 
 import {
@@ -9,6 +9,7 @@ import {
   formatAddress,
   useWallet,
 } from "@/context/wallet-context";
+import { WALLET_NETWORK_STORAGE_KEY } from "@/types/wallet";
 
 // Stellar is the only supported network now that the placeholder EVM chains
 // have been removed, so network-switching/persistence is exercised against it.
@@ -18,6 +19,53 @@ const STORAGE_KEY = "stellopay.wallet.network";
 function wrap(children: React.ReactNode) {
   return <WalletProvider>{children}</WalletProvider>;
 }
+
+// ─── Legacy SUPPORTED_NETWORKS shape tests (kept for regression coverage) ────
+
+describe("SUPPORTED_NETWORKS", () => {
+  it("includes Stellar", () => {
+    const ids = SUPPORTED_NETWORKS.map((n) => n.id);
+    expect(ids).toContain("stellar");
+  });
+
+  it("does not include any EVM chain ids", () => {
+    const ids = SUPPORTED_NETWORKS.map((n) => n.id);
+    for (const evmId of ["eth", "ethereum", "polygon", "bsc", "arbitrum"]) {
+      expect(ids).not.toContain(evmId);
+    }
+  });
+
+  it("does not include any EVM chain names", () => {
+    const names = SUPPORTED_NETWORKS.map((n) => n.name.toLowerCase());
+    for (const evmName of ["ethereum", "polygon", "bsc", "arbitrum", "eth"]) {
+      expect(names).not.toContain(evmName);
+    }
+  });
+});
+
+// ─── DEFAULT_NETWORK ─────────────────────────────────────────────────────────
+
+describe("DEFAULT_NETWORK", () => {
+  it("is Stellar", () => {
+    expect(DEFAULT_NETWORK.id).toBe("stellar");
+    expect(DEFAULT_NETWORK.name).toBe("Stellar");
+  });
+
+  it("is the first entry in SUPPORTED_NETWORKS", () => {
+    expect(DEFAULT_NETWORK).toEqual(SUPPORTED_NETWORKS[0]);
+  });
+});
+
+// ─── WALLET_NETWORK_STORAGE_KEY export ───────────────────────────────────────
+
+describe("WALLET_NETWORK_STORAGE_KEY", () => {
+  it("is exported from @/types/wallet", () => {
+    expect(typeof WALLET_NETWORK_STORAGE_KEY).toBe("string");
+    expect(WALLET_NETWORK_STORAGE_KEY.length).toBeGreaterThan(0);
+  });
+});
+
+// ─── WalletProvider ───────────────────────────────────────────────────────────
 
 describe("WalletProvider", () => {
   beforeEach(() => {
@@ -239,6 +287,27 @@ describe("WalletProvider storage edge cases", () => {
         });
       }).not.toThrow();
     });
+  });
+
+  it("does not crash when localStorage.getItem throws (render-based)", () => {
+    vi.spyOn(Storage.prototype, "getItem").mockImplementation(() => {
+      throw new Error("Storage unavailable");
+    });
+
+    function WalletConsumer() {
+      const { network } = useWallet();
+      return <span data-testid="network-id">{network.id}</span>;
+    }
+
+    expect(() =>
+      render(
+        <WalletProvider>
+          <WalletConsumer />
+        </WalletProvider>,
+      ),
+    ).not.toThrow();
+
+    vi.restoreAllMocks();
   });
 });
 

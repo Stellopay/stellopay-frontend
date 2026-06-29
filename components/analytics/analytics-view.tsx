@@ -3,11 +3,11 @@
 import React, { useState } from "react";
 import Image from "next/image";
 import { ChevronDown, ChevronUp, ChevronRight } from "lucide-react";
+import dynamic from "next/dynamic";
 
 import chart from "@/public/chart-up.png";
 import { Skeleton } from "@/components/ui/skeleton";
 import PaymentHistory from "@/components/dashboard/payment-history";
-import dynamic from "next/dynamic";
 
 const CardSkeleton = () => (
   <div className="w-full h-full flex items-end gap-2" aria-busy="true" aria-live="polite" role="status">
@@ -27,7 +27,6 @@ const AnalyticsChart = dynamic(() => import("./analytics-chart"), {
   ssr: false,
   loading: () => <CardSkeleton />,
 });
-
 /**
  * Data structure for an individual analytics data point.
  */
