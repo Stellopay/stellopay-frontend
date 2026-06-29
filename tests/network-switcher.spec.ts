@@ -82,8 +82,8 @@ test.describe.skip("NetworkSwitcher — confirmation dialog", () => {
     const trigger = page.locator('[aria-label*="Current network"]').first();
     await trigger.click();
 
-    const polygonItem = page.getByRole("menuitem", { name: /Polygon/i }).first();
-    await polygonItem.click();
+    const testnetItem = page.getByRole("menuitem", { name: /Testnet/i }).first();
+    await testnetItem.click();
 
     const dialog = page.getByRole("dialog");
     await expect(dialog).toBeVisible();
@@ -95,7 +95,7 @@ test.describe.skip("NetworkSwitcher — confirmation dialog", () => {
     const trigger = page.locator('[aria-label*="Current network"]').first();
     await trigger.click();
 
-    await page.getByRole("menuitem", { name: /Polygon/i }).first().click();
+    await page.getByRole("menuitem", { name: /Testnet/i }).first().click();
 
     const dialog = page.getByRole("dialog");
     await expect(dialog).toContainText("Stellar");
@@ -108,7 +108,7 @@ test.describe.skip("NetworkSwitcher — confirmation dialog", () => {
     const trigger = page.locator('[aria-label*="Current network"]').first();
     await trigger.click();
 
-    await page.getByRole("menuitem", { name: /Polygon/i }).first().click();
+    await page.getByRole("menuitem", { name: /Testnet/i }).first().click();
 
     const dialog = page.getByRole("dialog");
     await expect(dialog).toContainText(/balances/i);
@@ -123,7 +123,7 @@ test.describe.skip("NetworkSwitcher — confirmation dialog", () => {
     const trigger = page.locator('[aria-label*="Current network"]').first();
     await trigger.click();
 
-    await page.getByRole("menuitem", { name: /Polygon/i }).first().click();
+    await page.getByRole("menuitem", { name: /Testnet/i }).first().click();
 
     await page.getByRole("button", { name: /cancel/i }).click();
 
@@ -141,16 +141,16 @@ test.describe.skip("NetworkSwitcher — confirmation dialog", () => {
     const trigger = page.locator('[aria-label*="Current network"]').first();
     await trigger.click();
 
-    await page.getByRole("menuitem", { name: /Polygon/i }).first().click();
+    await page.getByRole("menuitem", { name: /Testnet/i }).first().click();
 
     await page.getByTestId("confirm-network-switch").click();
 
     // Dialog should be gone
     await expect(page.getByRole("dialog")).not.toBeVisible();
 
-    // Trigger now shows Polygon
+    // Trigger now shows Testnet
     const updatedTrigger = page.locator('[aria-label*="Current network"]').first();
-    await expect(updatedTrigger).toHaveAttribute("aria-label", /Polygon/i);
+    await expect(updatedTrigger).toHaveAttribute("aria-label", /Testnet/i);
   });
 });
 
@@ -161,12 +161,12 @@ test.describe.skip("NetworkSwitcher — rapid switching", () => {
 
     // Switch Stellar → Polygon
     await page.locator('[aria-label*="Current network"]').first().click();
-    await page.getByRole("menuitem", { name: /Polygon/i }).first().click();
+    await page.getByRole("menuitem", { name: /Testnet/i }).first().click();
     await page.getByTestId("confirm-network-switch").click();
 
-    // Switch Polygon → BSC
+    // Switch Testnet → Futurenet
     await page.locator('[aria-label*="Current network"]').first().click();
-    await page.getByRole("menuitem", { name: /BSC/i }).first().click();
+    await page.getByRole("menuitem", { name: /Futurenet/i }).first().click();
     await page.getByTestId("confirm-network-switch").click();
 
     // Switch BSC → Stellar
@@ -183,17 +183,17 @@ test.describe.skip("NetworkSwitcher — rapid switching", () => {
 
     // Confirm Stellar → Polygon
     await page.locator('[aria-label*="Current network"]').first().click();
-    await page.getByRole("menuitem", { name: /Polygon/i }).first().click();
+    await page.getByRole("menuitem", { name: /Testnet/i }).first().click();
     await page.getByTestId("confirm-network-switch").click();
 
-    // Start Polygon → BSC but cancel
+    // Start Testnet → Futurenet but cancel
     await page.locator('[aria-label*="Current network"]').first().click();
-    await page.getByRole("menuitem", { name: /BSC/i }).first().click();
+    await page.getByRole("menuitem", { name: /Futurenet/i }).first().click();
     await page.getByRole("button", { name: /cancel/i }).click();
 
-    // Should still be Polygon
+    // Should still be Testnet
     const trigger = page.locator('[aria-label*="Current network"]').first();
-    await expect(trigger).toHaveAttribute("aria-label", /Polygon/i);
+    await expect(trigger).toHaveAttribute("aria-label", /Testnet/i);
   });
 });
 

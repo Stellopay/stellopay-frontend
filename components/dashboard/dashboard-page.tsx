@@ -53,11 +53,11 @@ export default function Dashboard() {
     <div className='w-full min-h-screen bg-white dark:bg-[#0D0D0D] transition-colors duration-200'>
       <DashboardNavbar />
 
-      <main className='flex-1 p-6 lg:p-10 max-w-[1600px] mx-auto w-full space-y-10'>
+      <div className='flex-1 p-6 lg:p-10 max-w-[1600px] mx-auto w-full space-y-10'>
         <AccountOverview />
-        
+
         <QuickActions />
-        
+
 
         <AnalyticsInsights />
 
@@ -66,9 +66,9 @@ export default function Dashboard() {
           showNotifications={true}
           showDropdown={true}
         />
-        
+
         {/* <TransactionHistory /> */}
-      </main>
+      </div>
     </div>              
   )
 }
