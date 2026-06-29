@@ -112,21 +112,6 @@ The App Router uses two cooperating client boundaries.
 
 Coverage for `app/error.tsx` is gated by the same 95% thresholds as the rest of the suite via `vitest.config.ts`. See `app/error.test.tsx` for the unit coverage.
 
-## Learn More
-
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
-
 ## Project Structure
 
 ```
@@ -201,6 +186,12 @@ export default function MyComponent() {
 - `npm run test:e2e` runs the full Playwright suite under `tests/**/*.spec.ts` and `e2e/**/*.spec.ts` across **chromium**, **firefox**, and **webkit** against a local dev server.
 - Unit tests for `utils/*.ts` are colocated as `utils/<name>.test.ts` (e.g. [`utils/date-utils.test.ts`](utils/date-utils.test.ts)); Playwright specs live under `tests/*.spec.ts`.
 
+### Covered Flows
+
+- **Authentication**: Validation rules (email format, strong passwords matching), form state, and UI feedback for Login (`tests/auth-login.spec.ts`), Sign-up (`tests/auth-signup.spec.ts`), and Email Verification (`tests/verify-email.spec.ts`).
+- **Wallet**: Connect, disconnect, and network switching (`tests/wallet.spec.ts`).
+- **Dashboard**: Account overview, settings, and paginated transactions (`tests/dashboard.spec.ts`, `tests/settings.spec.ts`, `tests/pagination.spec.ts`).
+
 ### Date utilities
 
 All date parsing, formatting, and range-checking lives in a single module, [`utils/date-utils.ts`](utils/date-utils.ts), built on `date-fns` for deterministic, locale-independent output. Invalid input fails safely: `parseTransactionDate` returns `null` and `formatDate` returns `""` rather than throwing.
@@ -249,13 +240,19 @@ To keep the application's bundle light and ensure visual consistency, the projec
 
 ## CI Pipeline
 
-| Step | Command | Purpose |
-|------|---------|---------|
-| Install dependencies | `npm ci` | Reproducible install from lockfile |
-| Unit Tests | `npm run test` | Vitest utility/schema tests for auth, transaction, pagination, and date utils, plus auth schemas |
-| Lint | `npm run lint` | ESLint via `next lint` |
-| Type-check | `npm run type-check` | `tsc --noEmit` — catches type errors |
-| Build | `npm run build` | Full Next.js production build |
+Every pull request and push to `main` runs two jobs via `.github/workflows/ci.yml`:
+
+| Job | Step | Command | Purpose |
+|-----|------|---------|---------|
+| `lint-typecheck-build` | Install dependencies | `npm ci` | Reproducible install from lockfile |
+| | Unit Tests | `npm run test` | Vitest utility/schema tests for auth, transaction, pagination, and date utils, plus auth schemas |
+| | Lint | `npm run lint` | ESLint via `next lint` |
+| | Type-check | `npm run type-check` | `tsc --noEmit` — catches type errors |
+| | Build | `npm run build` | Full Next.js production build |
+| `playwright` | Install Playwright browsers | `npx playwright install --with-deps chromium` | Provision the Chromium runtime used by the suite |
+| | E2E + accessibility | `npx playwright test` | Full Playwright suite, including the axe-core a11y scans described in [Accessibility testing](#accessibility-testing) — a serious/critical violation fails this job |
+
+On failure, the `playwright` job uploads the HTML report as a build artifact (`playwright-report`, retained 7 days) so violations and traces can be inspected without re-running locally.
 
 ### Running a single browser locally
 
@@ -276,56 +273,6 @@ npx playwright test tests/wallet.spec.ts --project=firefox
 ### Retries
 
 Tests run with **0 retries** locally. In CI (`CI=true`) each test is retried up to **2 times** to absorb transient flakes.
-
-## Iconography
-
-To keep the application's bundle light and ensure visual consistency, the project consolidates all UI icons onto **Lucide React** (`lucide-react`) as the single primary icon set.
-
-### Guidelines
-- **Primary Set**: Use `lucide-react` for all UI icons.
-- **Custom / Brand Icons**: For brand logos or unique custom shapes (e.g., `StellOpayLogo`, `StellarIcon`), use raw SVG components located in [public/svg/svg.tsx](file:///home/ekwe/grantfox/stellopay-frontend/public/svg/svg.tsx) or local custom components.
-- **Restricted Libraries**: Do NOT import from `react-icons`, `@hugeicons/react`, or `@hugeicons/core-free-icons`.
-
-### Guardrails
-- **ESLint Rule**: The `no-restricted-imports` rule in [.eslintrc.json](file:///home/ekwe/grantfox/stellopay-frontend/.eslintrc.json) blocks imports from restricted packages.
-- **CI Guard Test**: [import-guard.test.ts](file:///home/ekwe/grantfox/stellopay-frontend/utils/import-guard.test.ts) scans all source files in `app/` and `components/` to verify no prohibited icon libraries are referenced.
-
-
-## CI
-
-The workflow at `.github/workflows/ci.yml` runs on every pull request and on
-pushes to `main`:
-
-1. **Install** — `npm ci`, with the npm dependency store cached by
-   `package-lock.json` hash via `actions/setup-node`'s built-in `cache: npm`.
-2. **Lint** — `npm run lint`.
-3. **Type-check** — `npm run type-check`.
-4. **Test with coverage gate** — `npm run test`, which runs `vitest run
-   --coverage`. The job fails if any metric (lines, functions, branches,
-   statements) drops below the 95% thresholds defined in `vitest.config.ts`.
-5. **Upload coverage report** — the `coverage/` directory (html, json, text)
-   is uploaded as a build artifact, available from the workflow run summary,
-   even when the job fails (`if: always()`).
-
-## Concurrency
-
-A `concurrency` group keyed on `github.ref` cancels any in-progress run for
-the same branch/PR when a new commit is pushed, so superseded runs don't
-queue up.
-
-## Security
-
-- All third-party actions are pinned to commit SHAs, not mutable version tags.
-- The workflow requests only `contents: read` — no write access is granted.
-
-## Landing FAQ Copy
-
-The landing FAQ in [`components/landing/faq-section.tsx`](components/landing/faq-section.tsx)
-must stay aligned with StelloPay's Stellar product surface. Public copy should
-reference Stellar wallets such as Freighter, Albedo, and xBull; Stellar assets
-such as XLM and USDC on Stellar; and the active mainnet/testnet context. Avoid
-EVM-only wallet names, ETH asset claims, seed phrase handling claims, or
-unverifiable fee-savings guarantees.
 
 ## Performance Optimization & Code-Splitting
 
