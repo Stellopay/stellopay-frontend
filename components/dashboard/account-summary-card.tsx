@@ -3,6 +3,7 @@
 import React from 'react';
 import { TrendingUp, TrendingDown } from "lucide-react";
 import { AccountSummaryCardProps } from './summary-data';
+import { RechartsMiniBarChart } from './RechartsMiniBarChart';
 
 export default function AccountSummaryCard({
   title,
@@ -48,16 +49,7 @@ export default function AccountSummaryCard({
         </div>
       </div>
 
-      {/* Mini Bar Chart */}
-      <div className="h-12 flex items-end gap-1.5 mt-2">
-        {chartData.map((data, idx) => (
-          <div 
-            key={idx}
-            className={`flex-1 rounded-t-sm ${chartColor} opacity-80 hover:opacity-100 transition-opacity`}
-            style={{ height: `${data.value}%` }}
-          />
-        ))}
-      </div>
+       <RechartsMiniBarChart data={chartData} color={chartColor} ariaLabel={`${title} mini chart`} height="3rem" />
     </div>
   );
 }

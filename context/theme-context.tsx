@@ -124,6 +124,9 @@ export const ThemeProvider: React.FC<React.PropsWithChildren<{}>> = ({
       return;
     }
 
+    // Guard: matchMedia may be absent in test stubs or non-standard environments.
+    if (!window.matchMedia) return;
+
     // Subscribe to live OS preference changes.
     const mql = window.matchMedia("(prefers-color-scheme: dark)");
 
