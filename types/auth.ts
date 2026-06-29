@@ -71,7 +71,7 @@ export const passwordSchema = z
  */
 export const signUpSchema = z
   .object({
-    fullName: z.string().min(2, {
+    fullName: z.string().trim().min(2, {
       message: "Full name must be at least 2 characters.",
     }),
     email: z.string().email({
@@ -100,5 +100,32 @@ export const loginSchema = z.object({
   rememberMe: z.boolean(),
 });
 
+/**
+ * Alias of {@link passwordSchema} kept for backward compatibility.
+ * Prefer `passwordSchema` in new code; `passwordPolicySchema` is retained
+ * so existing tests and call sites that reference it continue to compile.
+ */
+export const passwordPolicySchema = passwordSchema;
+
+/**
+ * Validates the change-password form in SecurityTab.
+ *
+ * The new password must satisfy {@link passwordSchema} (minimum 8
+ * characters, one uppercase, one special character) and the confirmation must
+ * match exactly. Neither field value is ever logged or persisted beyond the
+ * form state.
+ */
+export const changePasswordSchema = z
+  .object({
+    newPassword: passwordSchema,
+    confirmPassword: z.string(),
+  })
+  .refine((data) => data.newPassword === data.confirmPassword, {
+    message: "Passwords don't match.",
+    path: ["confirmPassword"],
+  });
+
 export type SignUpFormValues = z.infer<typeof signUpSchema>;
 export type LoginFormValues = z.infer<typeof loginSchema>;
+/** Inferred type for the change-password form. */
+export type ChangePasswordFormValues = z.infer<typeof changePasswordSchema>;

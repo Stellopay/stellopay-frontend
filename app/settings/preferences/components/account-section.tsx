@@ -14,7 +14,6 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { FormMessage } from "@/components/ui/form";
 import DestructiveActionDialog from "./destructive-action-dialog";
 import { DEMO_PROFILE } from "@/lib/demo-data";
 import { isValidEmail } from "@/utils/authUtils";
@@ -158,6 +157,7 @@ export default function AccountSection({
       setInternalProfile(next);
     }
   };
+
 
   /**
    * Validates the email on blur and normalizes the field by trimming
@@ -347,16 +347,14 @@ export default function AccountSection({
                   : "border-destructive/20 bg-destructive/10"
               }`}
             >
-              <FormMessage
-                variant={status.type === "success" ? "success" : "error"}
-                className={
-                  status.type === "success"
-                    ? "text-success"
-                    : "text-destructive"
-                }
+              <p
+                role="alert"
+                className={`text-sm ${
+                  status.type === "success" ? "text-success" : "text-destructive"
+                }`}
               >
                 {status.message}
-              </FormMessage>
+              </p>
             </div>
           )}
 
