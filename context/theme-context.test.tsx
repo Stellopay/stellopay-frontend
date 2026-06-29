@@ -1,7 +1,8 @@
 import { act, renderHook } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import React from "react";
-import { ThemeProvider, useTheme } from "@/context/theme-context";
+import { ThemeProvider, useTheme, getStoredTheme } from "@/context/theme-context";
+import { safeStorage } from "@/utils/safeStorage";
 
 // ---------------------------------------------------------------------------
 // matchMedia mock helpers
@@ -324,5 +325,63 @@ describe("useTheme outside provider", () => {
     expect(() => renderHook(() => useTheme())).toThrow(
       /useTheme must be used within ThemeProvider/,
     );
+  });
+});
+
+// ---------------------------------------------------------------------------
+
+describe("ThemeProvider – system mode, matchMedia unavailable", () => {
+  let originalMatchMedia: typeof window.matchMedia;
+
+  beforeEach(() => {
+    window.localStorage.clear();
+    window.localStorage.setItem("theme", "system");
+    originalMatchMedia = window.matchMedia;
+    Object.defineProperty(window, "matchMedia", {
+      writable: true,
+      value: undefined,
+    });
+  });
+
+  afterEach(() => {
+    window.localStorage.clear();
+    document.documentElement.classList.remove("dark");
+    Object.defineProperty(window, "matchMedia", {
+      writable: true,
+      value: originalMatchMedia,
+    });
+  });
+
+  it("resolves to 'light' when matchMedia is unavailable (SSR fallback)", () => {
+    const { result } = renderHook(() => useTheme(), { wrapper });
+    expect(result.current.theme).toBe("system");
+    expect(result.current.resolvedTheme).toBe("light");
+  });
+
+  it("does not add 'dark' class when matchMedia is unavailable", () => {
+    renderHook(() => useTheme(), { wrapper });
+    expect(document.documentElement.classList.contains("dark")).toBe(false);
+  });
+
+  it("does not register a listener when matchMedia is unavailable", () => {
+    // Should not throw; listener setup is skipped when matchMedia is absent.
+    expect(() => renderHook(() => useTheme(), { wrapper })).not.toThrow();
+  });
+});
+
+// ---------------------------------------------------------------------------
+
+describe("getStoredTheme – storage error handling", () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+    window.localStorage.clear();
+    document.documentElement.classList.remove("dark");
+  });
+
+  it("returns 'system' when safeStorage.getItem throws unexpectedly", () => {
+    vi.spyOn(safeStorage, "getItem").mockImplementationOnce(() => {
+      throw new Error("simulated unexpected storage error");
+    });
+    expect(getStoredTheme()).toBe("system");
   });
 });

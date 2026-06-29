@@ -33,7 +33,11 @@ export const SUPPORTED_NETWORKS: Network[] = [
 
 export const DEFAULT_NETWORK: Network = SUPPORTED_NETWORKS[0];
 
-const STORAGE_KEY_NETWORK = "stellopay.wallet.network";
+// Legacy storage key kept for backward compatibility with older tests and
+// any call sites that imported it from this module before the rename.
+export const WALLET_NETWORK_STORAGE_KEY = "stellopay.wallet.network";
+
+const STORAGE_KEY_NETWORK = WALLET_NETWORK_STORAGE_KEY;
 
 const WalletContext = createContext<WalletContextValue | undefined>(undefined);
 

@@ -4,7 +4,7 @@
  * NetworkSwitcher
  *
  * Lets the user switch between Stellar networks (Mainnet, Testnet,
- * Futurenet). Each network in {@link defaultNetworks} carries its public
+ * Futurenet). Each network in {@link SUPPORTED_NETWORKS} carries its public
  * passphrase so callers can map the selection to the correct Horizon/RPC
  * endpoint.
  *
@@ -15,7 +15,7 @@
  *   navigation; trigger now has an explicit aria-label describing the
  *   current network so screen readers announce it correctly
  * - No secrets or private keys are ever displayed — only public network
- *   material
+ *   passphrases
  *
  * Improvements over the original (issue #343):
  * - Confirmation dialog is associated with its title via `aria-labelledby`
