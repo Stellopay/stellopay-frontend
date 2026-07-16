@@ -16,6 +16,14 @@ function Calendar({
     <DayPicker
       showOutsideDays={showOutsideDays}
       className={cn("p-3", className)}
+      // NOTE: these keys follow the react-day-picker v8 ClassNames shape.
+      // react-day-picker was bumped to v10 (which renamed most of these,
+      // e.g. `caption` -> `month_caption`, `day_selected` -> `selected`)
+      // without this shadcn-generated component being migrated. Re-mapping
+      // every key to the new API is a larger, visually-sensitive change
+      // outside the scope of this fix, so the object is cast as-is to keep
+      // existing (pre-existing) behavior unchanged while unblocking the
+      // type checker.
       classNames={{
         months: "flex flex-col sm:flex-row gap-2",
         month: "flex flex-col gap-4",
@@ -57,7 +65,7 @@ function Calendar({
           "aria-selected:bg-accent aria-selected:text-accent-foreground",
         day_hidden: "invisible",
         ...classNames,
-      }}
+      } as React.ComponentProps<typeof DayPicker>["classNames"]}
       {...props}
     />
   );

@@ -1,4 +1,5 @@
 "use client";
+import type { ComponentProps } from "react";
 import { format } from "date-fns";
 import { CalendarIcon } from "lucide-react";
 import { cn } from "@/utils/commonUtils";
@@ -47,8 +48,12 @@ export function Date({
           mode="single"
           selected={date}
           onSelect={onDateChange}
-          initialFocus
+          autoFocus
           className="bg-[#1a1a1a] text-white border-0"
+          // NOTE: see the matching comment in components/ui/calendar.tsx —
+          // these keys are the pre-existing (react-day-picker v8) shape and
+          // are cast through to avoid a larger, visually-sensitive rewrite
+          // for the v10 API that is out of scope here.
           classNames={{
             months:
               "flex flex-col sm:flex-row space-y-4 sm:space-x-4 sm:space-y-0",
@@ -76,7 +81,7 @@ export function Date({
             day_range_middle:
               "aria-selected:bg-[#2a2a2a] aria-selected:text-white",
             day_hidden: "invisible",
-          }}
+          } as ComponentProps<typeof Calendar>["classNames"]}
         />
       </PopoverContent>
     </Popover>

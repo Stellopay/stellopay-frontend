@@ -191,7 +191,7 @@ export default function SupportTabs({
       setLastName("");
       setEmail("");
       setTextarea("");
-    } catch (error) {
+    } catch (_error) {
       setStatus("error");
       setStatusMessage("Failed to submit support request. Please try again later.");
     }

@@ -3,6 +3,7 @@ import {
   screen,
   fireEvent,
   waitFor,
+  act,
 } from "@testing-library/react";
 import { describe, expect, it, vi, afterEach, beforeEach } from "vitest";
 
@@ -435,7 +436,9 @@ describe("SecurityTab — loading/disabled state during submit", () => {
     await waitFor(() => expect(getSubmitButton()).not.toBeDisabled());
     fireEvent.click(getSubmitButton());
 
-    expect(screen.getByText(/saving\.\.\./i)).toBeInTheDocument();
+    await waitFor(() =>
+      expect(screen.getByText(/saving\.\.\./i)).toBeInTheDocument(),
+    );
   });
 
   it("disables the submit button while saving", async () => {
@@ -444,9 +447,13 @@ describe("SecurityTab — loading/disabled state during submit", () => {
     fillValidPasswords();
 
     await waitFor(() => expect(getSubmitButton()).not.toBeDisabled());
-    fireEvent.click(getSubmitButton());
+    // Capture the element before clicking: once saving starts, the button's
+    // label switches to "Saving...", so a fresh getByRole(name: /update
+    // password/i) query would no longer match it.
+    const submitButton = getSubmitButton();
+    fireEvent.click(submitButton);
 
-    expect(getSubmitButton()).toBeDisabled();
+    await waitFor(() => expect(submitButton).toBeDisabled());
   });
 
   it("disables both password inputs while saving", async () => {
@@ -457,8 +464,10 @@ describe("SecurityTab — loading/disabled state during submit", () => {
     await waitFor(() => expect(getSubmitButton()).not.toBeDisabled());
     fireEvent.click(getSubmitButton());
 
-    expect(getPasswordInput()).toBeDisabled();
-    expect(getConfirmInput()).toBeDisabled();
+    await waitFor(() => {
+      expect(getPasswordInput()).toBeDisabled();
+      expect(getConfirmInput()).toBeDisabled();
+    });
   });
 });
 
@@ -617,28 +626,26 @@ describe("SecurityTab — status message auto-clear", () => {
 
     fireEvent.click(getSubmitButton());
 
-    // Advance past the 1500ms simulated save
-    await vi.waitFor(async () => {
-      vi.advanceTimersByTime(1500);
+    // Advance past the 1500ms simulated save. `advanceTimersByTimeAsync`
+    // (unlike `advanceTimersByTime`) also flushes the microtask queue, so
+    // the resolved promise's state updates commit before we assert — and
+    // wrapping in `act` keeps React aware of that commit.
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(1500);
     });
 
-    // Flush state updates
-    await vi.waitFor(() =>
-      expect(
-        screen.queryByText(/password policy satisfied/i),
-      ).toBeInTheDocument(),
-    );
+    expect(
+      screen.getByText(/password policy satisfied/i),
+    ).toBeInTheDocument();
 
     // Advance past the 5000ms auto-clear
-    await vi.waitFor(async () => {
-      vi.advanceTimersByTime(5000);
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(5000);
     });
 
-    await vi.waitFor(() =>
-      expect(
-        screen.queryByText(/password policy satisfied/i),
-      ).not.toBeInTheDocument(),
-    );
+    expect(
+      screen.queryByText(/password policy satisfied/i),
+    ).not.toBeInTheDocument();
   });
 
   it("error message auto-clears after 5 s", async () => {
@@ -650,25 +657,19 @@ describe("SecurityTab — status message auto-clear", () => {
 
     fireEvent.click(getSubmitButton());
 
-    await vi.waitFor(async () => {
-      vi.advanceTimersByTime(1500);
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(1500);
     });
 
-    await vi.waitFor(() =>
-      expect(
-        screen.queryByText(/failed to save changes/i),
-      ).toBeInTheDocument(),
-    );
+    expect(screen.getByText(/failed to save changes/i)).toBeInTheDocument();
 
-    await vi.waitFor(async () => {
-      vi.advanceTimersByTime(5000);
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(5000);
     });
 
-    await vi.waitFor(() =>
-      expect(
-        screen.queryByText(/failed to save changes/i),
-      ).not.toBeInTheDocument(),
-    );
+    expect(
+      screen.queryByText(/failed to save changes/i),
+    ).not.toBeInTheDocument();
   });
 });
 

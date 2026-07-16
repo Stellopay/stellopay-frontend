@@ -80,7 +80,7 @@ export default function TransactionsHeader({
                 if (!toDateObj) return false;
                 return date > toDateObj;
               }}
-              initialFocus
+              autoFocus
             />
           </PopoverContent>
         </Popover>
@@ -115,7 +115,7 @@ export default function TransactionsHeader({
                 if (!fromDateObj) return false;
                 return date < fromDateObj;
               }}
-              initialFocus
+              autoFocus
             />
           </PopoverContent>
         </Popover>

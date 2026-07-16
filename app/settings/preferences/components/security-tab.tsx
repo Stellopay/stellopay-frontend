@@ -27,7 +27,6 @@ import { changePasswordSchema, ChangePasswordFormValues } from "@/types/auth";
 import { checkPasswordRequirements } from "@/utils/authUtils";
 import DestructiveActionDialog from "./destructive-action-dialog";
 import { DEMO_SECURITY } from "@/lib/demo-data";
-import { passwordPolicy, passwordSchema } from "@/types/auth";
 
 const sessions = [
   {
@@ -47,28 +46,6 @@ const sessions = [
 interface StatusState {
   message: string;
   type: "success" | "error" | null;
-}
-
-function getPasswordValidationMessages(
-  password: string,
-  confirmPassword: string,
-) {
-  const messages: string[] = [];
-
-  if (password.length === 0) {
-    return messages;
-  }
-
-  const parsedPassword = passwordSchema.safeParse(password);
-  if (!parsedPassword.success) {
-    messages.push(...parsedPassword.error.issues.map((issue) => issue.message));
-  }
-
-  if (password !== confirmPassword) {
-    messages.push("Passwords don't match");
-  }
-
-  return messages;
 }
 
 /** Default two-factor state, exported so a parent can own the same initial value. */

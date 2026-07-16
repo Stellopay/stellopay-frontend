@@ -74,7 +74,7 @@ export default function NotificationsSection({
       if (stored) {
         setInternalSettings(JSON.parse(stored));
       }
-    } catch (e) {
+    } catch (_e) {
       // Ignore parse errors or disabled storage
     }
   }, []);
@@ -110,7 +110,7 @@ export default function NotificationsSection({
 
       setStatusType("success");
       setStatusMessage("Notification preferences updated. Critical alerts remain prioritized.");
-    } catch (error) {
+    } catch (_error) {
       setStatusType("error");
       setStatusMessage("Failed to save preferences. Please try again.");
     } finally {
