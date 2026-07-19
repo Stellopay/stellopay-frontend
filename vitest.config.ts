@@ -30,6 +30,7 @@ export default defineConfig({
         "utils/authUtils.ts",
         "utils/date-utils.ts",
         "utils/formatUtils.ts",
+        "utils/navigationUtils.ts",
         "utils/transactionUtils.ts",
         "utils/paginationUtils.ts",
         "utils/stellarAddress.ts",
