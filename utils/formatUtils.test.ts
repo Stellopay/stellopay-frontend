@@ -12,17 +12,38 @@ describe("formatCurrency", () => {
   it("formats zero, positive, and negative amounts with an explicit sign policy", () => {
     expect(formatCurrency(0)).toBe("+$0.00");
     expect(formatCurrency(1234.5)).toBe("+$1234.50");
-    expect(formatCurrency(-1234.5)).toBe("$1234.50");
+    expect(formatCurrency(-1234.5)).toBe("-$1234.50");
   });
 
   it("supports custom currency symbols and decimal precision", () => {
     expect(formatCurrency(42, "USD ", 0)).toBe("+USD 42");
-    expect(formatCurrency(-0.125, "USDC ", 3)).toBe("USDC 0.125");
+    expect(formatCurrency(-0.125, "USDC ", 3)).toBe("-USDC 0.125");
   });
 
   it("rounds fractional values deterministically", () => {
     expect(formatCurrency(1.005)).toBe("+$1.00");
     expect(formatCurrency(1.999)).toBe("+$2.00");
+  });
+
+  it("formats negative amounts with minus sign before currency at various precisions", () => {
+    expect(formatCurrency(-1, "$", 0)).toBe("-$1");
+    expect(formatCurrency(-99.99)).toBe("-$99.99");
+    expect(formatCurrency(-0.001, "USD ", 3)).toBe("-USD 0.001");
+    expect(formatCurrency(-0.0001, "X", 4)).toBe("-X0.0001");
+    expect(formatCurrency(-1234567.89, "USDC ", 2)).toBe("-USDC 1234567.89");
+  });
+
+  it("preserves positive formatting unchanged alongside negative equivalents", () => {
+    expect(formatCurrency(0)).toBe("+$0.00");
+    expect(formatCurrency(0, "USD ", 0)).toBe("+USD 0");
+    expect(formatCurrency(0, "X", 4)).toBe("+X0.0000");
+    expect(formatCurrency(-0)).toBe("+$0.00");
+  });
+
+  it("handles small negative boundary values near zero", () => {
+    expect(formatCurrency(-0.001, "USDC ", 3)).toBe("-USDC 0.001");
+    expect(formatCurrency(-0.009, "USDC ", 3)).toBe("-USDC 0.009");
+    expect(formatCurrency(-0.0001, "USDC ", 4)).toBe("-USDC 0.0001");
   });
 });
 

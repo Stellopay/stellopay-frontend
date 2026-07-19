@@ -14,7 +14,7 @@ export const formatCurrency = (
   currency: string = "$",
   decimals: number = 2,
 ): string => {
-  const sign = amount >= 0 ? "+" : "";
+  const sign = amount >= 0 ? "+" : "-";
   return `${sign}${currency}${Math.abs(amount).toFixed(decimals)}`;
 };
 
