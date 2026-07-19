@@ -25,8 +25,14 @@ export default function ToggleCard({
   onToggle,
 }: ToggleCardProps) {
   return (
-    <div className="flex items-center justify-between gap-4 rounded-2xl border border-zinc-200/80 bg-white p-4 text-zinc-900 shadow-sm transition-all dark:border-white/10 dark:bg-white/5 dark:text-white">
-      <div className="space-y-1">
+    <div
+      aria-disabled={disabled || undefined}
+      className={cn(
+        "flex items-center justify-between gap-4 rounded-2xl border border-zinc-200/80 bg-white p-4 text-zinc-900 shadow-sm transition-all dark:border-white/10 dark:bg-white/5 dark:text-white",
+        disabled && "cursor-not-allowed",
+      )}
+    >
+      <div className={cn("space-y-1", disabled && "opacity-60")}>
         <div className="flex items-center gap-2">
           <span className="text-sm font-medium md:text-base">{title}</span>
           {badge ? (
