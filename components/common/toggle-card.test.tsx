@@ -40,13 +40,38 @@ describe('ToggleCard Accessibility', () => {
 
   it('does not trigger onToggle when disabled', () => {
     const handleToggle = vi.fn();
-    render(<ToggleCard title="Notifications" enabled={false} disabled={true} onToggle={handleToggle} />);
+    const { container } = render(
+      <ToggleCard title="Notifications" enabled={false} disabled={true} onToggle={handleToggle} />
+    );
     
     const button = screen.getByRole('switch');
     expect(button).toBeDisabled();
     
     fireEvent.click(button);
     expect(handleToggle).not.toHaveBeenCalled();
+    
+    // card container announces disabled state to assistive tech
+    expect(container.firstChild).toHaveAttribute('aria-disabled', 'true');
+  });
+
+  it('does not set aria-disabled when disabled is not provided', () => {
+    const { container } = render(
+      <ToggleCard title="Notifications" enabled={false} onToggle={vi.fn()} />
+    );
+    expect(container.firstChild).not.toHaveAttribute('aria-disabled');
+  });
+
+  it('applies disabled visual styling to the card', () => {
+    const { container } = render(
+      <ToggleCard title="Notifications" enabled={false} disabled={true} onToggle={vi.fn()} />
+    );
+    
+    // outer card gets cursor-not-allowed
+    expect(container.firstChild).toHaveClass('cursor-not-allowed');
+    
+    // content area gets reduced opacity
+    const contentArea = container.firstChild!.firstChild as HTMLElement;
+    expect(contentArea).toHaveClass('opacity-60');
   });
   
   it('handles rapid toggles properly', () => {
