@@ -1,7 +1,8 @@
-import React, { ChangeEvent } from "react";
+import React, { ChangeEvent, useState, useId, useMemo } from "react";
 import { EmailInputProps } from "@/types/ui";
 import { Label } from "@/components/ui/label";
 import { cn } from "@/utils/commonUtils";
+import { isValidEmail } from "@/utils/authUtils";
 
 interface EnhancedEmailInputProps extends EmailInputProps {
   label?: string;
@@ -11,6 +12,7 @@ interface EnhancedEmailInputProps extends EmailInputProps {
   disabled?: boolean;
   className?: string;
   placeholder?: string;
+  onBlur?: (event: React.FocusEvent<HTMLInputElement>) => void;
 }
 
 const EmailInput: React.FC<EnhancedEmailInputProps> = ({
@@ -23,27 +25,47 @@ const EmailInput: React.FC<EnhancedEmailInputProps> = ({
   disabled = false,
   className,
   placeholder = "example@email.com",
+  onBlur,
 }) => {
-  const fieldId = React.useId();
+  const [localError, setLocalError] = useState(false);
+  const fieldId = useId();
+
   const descriptionId = helperText ? `${fieldId}-description` : undefined;
   const errorId = error ? `${fieldId}-error` : undefined;
+  const localErrorId = localError ? `${fieldId}-local-error` : undefined;
 
   const handleChange = (event: ChangeEvent<HTMLInputElement>) => {
-    onChange(event.target.value);
+    const val = event.target.value;
+    onChange(val);
+    if (val.trim() === "" || isValidEmail(val)) {
+      setLocalError(false);
+    }
   };
 
-  const describedBy = React.useMemo(() => {
+  const handleBlur = (event: React.FocusEvent<HTMLInputElement>) => {
+    const isMalformed = value.trim() !== "" && !isValidEmail(value);
+    setLocalError(isMalformed);
+    if (onBlur) {
+      onBlur(event);
+    }
+  };
+
+  const describedBy = useMemo(() => {
     const ids = [];
-    if (descriptionId) ids.push(descriptionId);
+    if (descriptionId && !error) ids.push(descriptionId);
     if (errorId) ids.push(errorId);
+    if (localErrorId) ids.push(localErrorId);
     return ids.length > 0 ? ids.join(" ") : undefined;
-  }, [descriptionId, errorId]);
+  }, [descriptionId, errorId, localErrorId, error]);
+
+  const hasAnyError = error || localError;
 
   return (
     <div className={cn("w-full space-y-2", className)}>
       <Label
+        htmlFor={fieldId}
         required={required}
-        error={error}
+        error={hasAnyError}
         descriptionId={descriptionId}
         className="text-sm font-medium"
       >
@@ -52,7 +74,7 @@ const EmailInput: React.FC<EnhancedEmailInputProps> = ({
       <div
         className={cn(
           "flex items-center border rounded-md h-12 overflow-hidden transition-colors",
-          error ? "border-destructive ring-destructive/20" : "border-input",
+          hasAnyError ? "border-destructive ring-destructive/20" : "border-input",
           disabled && "opacity-50 cursor-not-allowed",
         )}
       >
@@ -63,9 +85,10 @@ const EmailInput: React.FC<EnhancedEmailInputProps> = ({
           placeholder={placeholder}
           value={value}
           onChange={handleChange}
+          onBlur={handleBlur}
           disabled={disabled}
           className="px-3 w-full bg-transparent focus:outline-none text-foreground"
-          aria-invalid={error ? "true" : "false"}
+          aria-invalid={hasAnyError ? "true" : "false"}
           aria-describedby={describedBy}
           aria-required={required}
           autoComplete="email"
@@ -84,6 +107,16 @@ const EmailInput: React.FC<EnhancedEmailInputProps> = ({
           aria-live="polite"
         >
           {helperText}
+        </p>
+      )}
+      {!error && localError && (
+        <p
+          id={localErrorId}
+          className="text-xs text-destructive"
+          role="alert"
+          aria-live="polite"
+        >
+          Please enter a valid email address
         </p>
       )}
     </div>
