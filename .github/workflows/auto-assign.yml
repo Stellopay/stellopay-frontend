@@ -1,0 +1,60 @@
+name: Auto-assign contributor on request
+
+on:
+  issue_comment:
+    types: [created]
+
+permissions:
+  issues: write
+
+jobs:
+  auto-assign:
+    if: github.event.issue.pull_request == null
+    runs-on: ubuntu-latest
+    steps:
+      - name: Assign commenter if they asked to work on this issue
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const MAX_ASSIGNED_PER_REPO = 6;
+            const body = (context.payload.comment.body || "").toLowerCase();
+            const trigger = /(^|\s)\/assign(\s|$)|\bi'?d like to work on this\b|\bi would like to work on this\b|\bi want to work on this\b|\bassign me\b|\bplease assign\b|\bcan i work on this\b|\bi'?ll take this\b|\bi'?m interested in (working on )?this\b/;
+            if (!trigger.test(body)) {
+              return;
+            }
+
+            const issue = context.payload.issue;
+            const commenter = context.payload.comment.user.login;
+
+            if (issue.assignees && issue.assignees.length > 0) {
+              // Already assigned (to this person or someone else) — stay quiet, avoid noisy duplicate comments.
+              return;
+            }
+
+            const { data: assignedOpen } = await github.rest.search.issuesAndPullRequests({
+              q: `repo:${context.repo.owner}/${context.repo.repo} type:issue state:open assignee:${commenter}`,
+            });
+
+            if (assignedOpen.total_count >= MAX_ASSIGNED_PER_REPO) {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: issue.number,
+                body: `Thanks for the interest, @${commenter}! You currently have ${assignedOpen.total_count} open issues assigned in this repo, which is the cap (${MAX_ASSIGNED_PER_REPO}) for this project. Please finish or release one before taking on another.`,
+              });
+              return;
+            }
+
+            await github.rest.issues.addAssignees({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: issue.number,
+              assignees: [commenter],
+            });
+
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: issue.number,
+              body: `Assigned @${commenter} to this issue via repo automation. Please open a PR referencing this issue (e.g. \`Closes #${issue.number}\`) when you're ready.`,
+            });
