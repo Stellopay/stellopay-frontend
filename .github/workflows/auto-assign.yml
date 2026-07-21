@@ -35,9 +35,10 @@ jobs:
               q: `repo:${context.repo.owner}/${context.repo.repo} type:issue state:open assignee:${commenter}`,
             });
 
-            // Only issues with NO pull request raised yet count against the cap —
-            // once a PR is up (any state), the assignee is clearly active and
-            // shouldn't be blocked from taking on more work while it's reviewed.
+            // Only issues with NO open-or-merged pull request count against the cap —
+            // a PR that's still open (in review) or already merged means the assignee
+            // is clearly active/delivering, so it shouldn't count. A PR that was closed
+            // WITHOUT merging represents abandoned work and still counts toward the cap.
             let uncoveredCount = 0;
             for (const item of assignedOpen.items) {
               const timeline = await github.rest.issues.listEventsForTimeline({
@@ -46,10 +47,16 @@ jobs:
                 issue_number: item.number,
                 per_page: 100,
               });
-              const hasPr = timeline.data.some(
-                (ev) => ev.event === "cross-referenced" && ev.source && ev.source.issue && ev.source.issue.pull_request
-              );
-              if (!hasPr) uncoveredCount++;
+              const hasActivePr = timeline.data.some((ev) => {
+                if (ev.event !== "cross-referenced" || !ev.source || !ev.source.issue || !ev.source.issue.pull_request) {
+                  return false;
+                }
+                const pr = ev.source.issue.pull_request;
+                const isMerged = !!pr.merged_at;
+                const isOpen = ev.source.issue.state === "open";
+                return isOpen || isMerged;
+              });
+              if (!hasActivePr) uncoveredCount++;
             }
 
             if (uncoveredCount >= MAX_ASSIGNED_PER_REPO) {
