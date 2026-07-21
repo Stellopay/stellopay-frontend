@@ -29,6 +29,7 @@ export default defineConfig({
         "hooks/useTransactions.ts",
         "hooks/useCountdown.ts",
         "utils/authUtils.ts",
+        "utils/clipboardUtils.ts",
         "utils/date-utils.ts",
         "utils/formatUtils.ts",
         "utils/navigationUtils.ts",
