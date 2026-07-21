@@ -35,12 +35,29 @@ jobs:
               q: `repo:${context.repo.owner}/${context.repo.repo} type:issue state:open assignee:${commenter}`,
             });
 
-            if (assignedOpen.total_count >= MAX_ASSIGNED_PER_REPO) {
+            // Only issues with NO pull request raised yet count against the cap —
+            // once a PR is up (any state), the assignee is clearly active and
+            // shouldn't be blocked from taking on more work while it's reviewed.
+            let uncoveredCount = 0;
+            for (const item of assignedOpen.items) {
+              const timeline = await github.rest.issues.listEventsForTimeline({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: item.number,
+                per_page: 100,
+              });
+              const hasPr = timeline.data.some(
+                (ev) => ev.event === "cross-referenced" && ev.source && ev.source.issue && ev.source.issue.pull_request
+              );
+              if (!hasPr) uncoveredCount++;
+            }
+
+            if (uncoveredCount >= MAX_ASSIGNED_PER_REPO) {
               await github.rest.issues.createComment({
                 owner: context.repo.owner,
                 repo: context.repo.repo,
                 issue_number: issue.number,
-                body: `Thanks for the interest, @${commenter}! You currently have ${assignedOpen.total_count} open issues assigned in this repo, which is the cap (${MAX_ASSIGNED_PER_REPO}) for this project. Please finish or release one before taking on another.`,
+                body: `Thanks for the interest, @${commenter}! You currently have ${uncoveredCount} assigned issues in this repo with no PR up yet, which is the cap (${MAX_ASSIGNED_PER_REPO}) for this project. Please open a PR for one of them (or release it) before taking on another — issues you've already submitted a PR for don't count against this.`,
               });
               return;
             }
