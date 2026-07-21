@@ -29,6 +29,13 @@ export interface WalletContextValue {
   address: string | null;
   isConnected: boolean;
   network: Network;
+  /**
+   * True when the wallet provider has reported a network that is not in
+   * SUPPORTED_NETWORKS.  Components should surface a warning (e.g. the
+   * NetworkSwitcher unsupported-network banner) when this is true rather
+   * than silently continuing with potentially wrong chain data.
+   */
+  isUnsupportedNetwork: boolean;
   // Switch the active network and persist the choice.
   setNetwork: (network: Network) => void;
   // Simulate a wallet connection by populating a synthetic Stellar address.
@@ -44,6 +51,31 @@ export interface WalletProviderProps {
   // disconnected and hydrates the network from localStorage on mount.
   initialAddress?: string | null;
   initialNetwork?: Network;
+  /**
+   * Optional external network-change event subscription hook.
+   *
+   * Real wallet SDKs (e.g. Freighter, WalletConnect) emit network-change
+   * events outside React's control.  Pass a function that subscribes to
+   * those events and calls `onNetworkChanged` with the new network id.
+   * The provider calls `subscribe` on mount and the returned cleanup
+   * function on unmount, mirroring the useEffect cleanup pattern.
+   *
+   * Example (Freighter):
+   * ```tsx
+   * <WalletProvider
+   *   subscribeToNetworkChanges={(onNetworkChanged) => {
+   *     const unsub = freighter.on("networkChanged", (id) => onNetworkChanged(id));
+   *     return unsub;
+   *   }}
+   * >
+   * ```
+   *
+   * When omitted (the default), no external subscription is set up and
+   * network state can only change through `setNetwork`.
+   */
+  subscribeToNetworkChanges?: (
+    onNetworkChanged: (networkId: string) => void,
+  ) => (() => void) | void;
 }
 
 /** localStorage key used to persist the user's active Stellar network. */

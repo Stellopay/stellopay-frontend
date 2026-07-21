@@ -78,11 +78,13 @@ export const WalletProvider: React.FC<WalletProviderProps> = ({
   children,
   initialAddress = null,
   initialNetwork,
+  subscribeToNetworkChanges,
 }) => {
   const [address, setAddress] = useState<string | null>(initialAddress);
   const [network, setNetworkState] = useState<Network>(
     initialNetwork ?? DEFAULT_NETWORK,
   );
+  const [isUnsupportedNetwork, setIsUnsupportedNetwork] = useState(false);
 
   // Hydrate the network on the client. Running this in an effect (rather than
   // in useState's initializer) keeps server and first client render in sync,
@@ -95,9 +97,45 @@ export const WalletProvider: React.FC<WalletProviderProps> = ({
     }
   }, [initialNetwork, network.id]);
 
+  // Subscribe to external provider network-change events (e.g. Freighter,
+  // WalletConnect).  When the wallet SDK reports a new network id we:
+  //   1. Look it up in SUPPORTED_NETWORKS.
+  //   2a. If found — update context state and persist, clear any prior
+  //       unsupported-network warning.
+  //   2b. If not found — set isUnsupportedNetwork=true so the UI can warn
+  //       the user without silently continuing on the wrong chain.
+  //
+  // Security note: this closes the gap where a user could be mid-transaction
+  // on the wrong network because the app didn't detect the provider switch.
+  useEffect(() => {
+    if (!subscribeToNetworkChanges) return;
+
+    const cleanup = subscribeToNetworkChanges((networkId: string) => {
+      const matched = SUPPORTED_NETWORKS.find((n) => n.id === networkId);
+      if (matched) {
+        setNetworkState(matched);
+        writeNetworkToStorage(matched);
+        setIsUnsupportedNetwork(false);
+      } else {
+        // Surface an unsupported-network warning without clearing the last
+        // known-good network — components can still read the previous value
+        // as context for an error message.
+        setIsUnsupportedNetwork(true);
+      }
+    });
+
+    return () => {
+      cleanup?.();
+    };
+  }, [subscribeToNetworkChanges]);
+
   const setNetwork = useCallback((next: Network) => {
+    const supported = SUPPORTED_NETWORKS.some((n) => n.id === next.id);
     setNetworkState(next);
-    writeNetworkToStorage(next);
+    setIsUnsupportedNetwork(!supported);
+    if (supported) {
+      writeNetworkToStorage(next);
+    }
   }, []);
 
   const connect = useCallback((next?: string) => {
@@ -121,11 +159,12 @@ export const WalletProvider: React.FC<WalletProviderProps> = ({
       address,
       isConnected: address !== null,
       network,
+      isUnsupportedNetwork,
       setNetwork,
       connect,
       disconnect,
     }),
-    [address, network, setNetwork, connect, disconnect],
+    [address, network, isUnsupportedNetwork, setNetwork, connect, disconnect],
   );
 
   return (

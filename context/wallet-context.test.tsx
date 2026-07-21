@@ -334,3 +334,237 @@ describe("WalletProvider initial props", () => {
     );
   });
 });
+
+// ─── Network-change event handling ───────────────────────────────────────────
+//
+// WalletProvider accepts a subscribeToNetworkChanges prop so wallet SDKs
+// (Freighter, WalletConnect, etc.) can push network-change events into the
+// context without requiring a manual reconnect.
+
+describe("WalletProvider – network-change event handling", () => {
+  beforeEach(() => {
+    window.localStorage.clear();
+  });
+
+  afterEach(() => {
+    window.localStorage.clear();
+  });
+
+  /**
+   * Builds a minimal event-emitter stand-in that records the callback
+   * registered by WalletProvider, letting tests fire it at will.
+   */
+  function makeNetworkEmitter() {
+    let _cb: ((networkId: string) => void) | null = null;
+    const subscribe = vi.fn((cb: (networkId: string) => void) => {
+      _cb = cb;
+      return () => { _cb = null; }; // cleanup
+    });
+    const emit = (networkId: string) => { _cb?.(networkId); };
+    return { subscribe, emit };
+  }
+
+  it("registers the subscription on mount", () => {
+    const { subscribe } = makeNetworkEmitter();
+    renderHook(() => useWallet(), {
+      wrapper: ({ children }) => (
+        <WalletProvider subscribeToNetworkChanges={subscribe}>
+          {children}
+        </WalletProvider>
+      ),
+    });
+    expect(subscribe).toHaveBeenCalledOnce();
+  });
+
+  it("calls the cleanup function returned by subscribeToNetworkChanges on unmount", () => {
+    const cleanup = vi.fn();
+    const subscribe = vi.fn(() => cleanup);
+    const { unmount } = renderHook(() => useWallet(), {
+      wrapper: ({ children }) => (
+        <WalletProvider subscribeToNetworkChanges={subscribe}>
+          {children}
+        </WalletProvider>
+      ),
+    });
+    unmount();
+    expect(cleanup).toHaveBeenCalledOnce();
+  });
+
+  it("updates network state when a supported network-change event fires", () => {
+    const { subscribe, emit } = makeNetworkEmitter();
+    const { result } = renderHook(() => useWallet(), {
+      wrapper: ({ children }) => (
+        <WalletProvider subscribeToNetworkChanges={subscribe}>
+          {children}
+        </WalletProvider>
+      ),
+    });
+
+    act(() => { emit("stellar"); });
+
+    expect(result.current.network.id).toBe("stellar");
+    expect(result.current.isUnsupportedNetwork).toBe(false);
+  });
+
+  it("persists the new network to localStorage when a supported network-change event fires", () => {
+    const { subscribe, emit } = makeNetworkEmitter();
+    renderHook(() => useWallet(), {
+      wrapper: ({ children }) => (
+        <WalletProvider subscribeToNetworkChanges={subscribe}>
+          {children}
+        </WalletProvider>
+      ),
+    });
+
+    act(() => { emit("stellar"); });
+
+    expect(window.localStorage.getItem(STORAGE_KEY)).toBe("stellar");
+  });
+
+  it("sets isUnsupportedNetwork=true when an unsupported network id is emitted", () => {
+    const { subscribe, emit } = makeNetworkEmitter();
+    const { result } = renderHook(() => useWallet(), {
+      wrapper: ({ children }) => (
+        <WalletProvider subscribeToNetworkChanges={subscribe}>
+          {children}
+        </WalletProvider>
+      ),
+    });
+
+    act(() => { emit("ethereum"); });
+
+    expect(result.current.isUnsupportedNetwork).toBe(true);
+  });
+
+  it("does not update the network id when an unsupported network is emitted", () => {
+    const { subscribe, emit } = makeNetworkEmitter();
+    const { result } = renderHook(() => useWallet(), {
+      wrapper: ({ children }) => (
+        <WalletProvider subscribeToNetworkChanges={subscribe}>
+          {children}
+        </WalletProvider>
+      ),
+    });
+
+    const previousId = result.current.network.id;
+    act(() => { emit("polygon"); });
+
+    // Network id must not change to an unsupported value.
+    expect(result.current.network.id).toBe(previousId);
+  });
+
+  it("clears isUnsupportedNetwork when switching back to a supported network", () => {
+    const { subscribe, emit } = makeNetworkEmitter();
+    const { result } = renderHook(() => useWallet(), {
+      wrapper: ({ children }) => (
+        <WalletProvider subscribeToNetworkChanges={subscribe}>
+          {children}
+        </WalletProvider>
+      ),
+    });
+
+    act(() => { emit("ethereum"); });
+    expect(result.current.isUnsupportedNetwork).toBe(true);
+
+    act(() => { emit("stellar"); });
+    expect(result.current.isUnsupportedNetwork).toBe(false);
+    expect(result.current.network.id).toBe("stellar");
+  });
+
+  it("does not subscribe when subscribeToNetworkChanges is not provided", () => {
+    // Simply verify the provider renders without error and isUnsupportedNetwork
+    // defaults to false when no subscription prop is given.
+    const { result } = renderHook(() => useWallet(), {
+      wrapper: ({ children }) => <WalletProvider>{children}</WalletProvider>,
+    });
+    expect(result.current.isUnsupportedNetwork).toBe(false);
+  });
+
+  it("handles a subscription that returns void (no cleanup) without throwing", () => {
+    const subscribe = vi.fn((_cb: (id: string) => void) => {
+      // intentionally returns void instead of a cleanup function
+    });
+    expect(() => {
+      const { unmount } = renderHook(() => useWallet(), {
+        wrapper: ({ children }) => (
+          <WalletProvider subscribeToNetworkChanges={subscribe}>
+            {children}
+          </WalletProvider>
+        ),
+      });
+      unmount();
+    }).not.toThrow();
+  });
+});
+
+// ─── isUnsupportedNetwork via setNetwork ─────────────────────────────────────
+
+describe("WalletProvider – isUnsupportedNetwork via setNetwork", () => {
+  beforeEach(() => {
+    window.localStorage.clear();
+  });
+
+  afterEach(() => {
+    window.localStorage.clear();
+  });
+
+  it("starts with isUnsupportedNetwork=false", () => {
+    const { result } = renderHook(() => useWallet(), {
+      wrapper: ({ children }) => wrap(children),
+    });
+    expect(result.current.isUnsupportedNetwork).toBe(false);
+  });
+
+  it("sets isUnsupportedNetwork=true when setNetwork is called with an unsupported network", () => {
+    const { result } = renderHook(() => useWallet(), {
+      wrapper: ({ children }) => wrap(children),
+    });
+
+    act(() => {
+      result.current.setNetwork({ id: "arbitrum", name: "Arbitrum" });
+    });
+
+    expect(result.current.isUnsupportedNetwork).toBe(true);
+  });
+
+  it("keeps isUnsupportedNetwork=false when setNetwork is called with a supported network", () => {
+    const { result } = renderHook(() => useWallet(), {
+      wrapper: ({ children }) => wrap(children),
+    });
+
+    act(() => {
+      result.current.setNetwork(STELLAR);
+    });
+
+    expect(result.current.isUnsupportedNetwork).toBe(false);
+  });
+
+  it("clears isUnsupportedNetwork when switching back to a supported network via setNetwork", () => {
+    const { result } = renderHook(() => useWallet(), {
+      wrapper: ({ children }) => wrap(children),
+    });
+
+    act(() => {
+      result.current.setNetwork({ id: "bsc", name: "BSC" });
+    });
+    expect(result.current.isUnsupportedNetwork).toBe(true);
+
+    act(() => {
+      result.current.setNetwork(STELLAR);
+    });
+    expect(result.current.isUnsupportedNetwork).toBe(false);
+  });
+
+  it("does not persist an unsupported network to localStorage", () => {
+    const { result } = renderHook(() => useWallet(), {
+      wrapper: ({ children }) => wrap(children),
+    });
+
+    act(() => {
+      result.current.setNetwork({ id: "arbitrum", name: "Arbitrum" });
+    });
+
+    // Unsupported networks must not be written to storage.
+    expect(window.localStorage.getItem(STORAGE_KEY)).toBeNull();
+  });
+});
