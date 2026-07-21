@@ -5,29 +5,11 @@ import { AuthSocialButtons } from "./auth-social-buttons";
 
 // next/image is a server-side Next.js component – replace it with a plain img
 // so tests run correctly in jsdom.
+// eslint-disable-next-line @next/next/no-img-element
 vi.mock("next/image", () => ({
+  // eslint-disable-next-line @next/next/no-img-element
   default: ({ alt }: { alt: string }) => <img alt={alt} />,
 }));
-
-// ─── Helper: keep a component "in-flight" ────────────────────────────────────
-//
-// The OAuth handlers inside AuthSocialButtons are currently TODO stubs, so
-// they resolve synchronously.  To test the in-flight loading state we inject
-// an async replacement via a wrapping component that exposes a controlled
-// promise.  Once the promise resolves/rejects the component returns to idle.
-
-interface WrapperProps {
-  onGoogle?: () => Promise<void>;
-  onApple?: () => Promise<void>;
-}
-
-// Re-export a version of the component whose provider callbacks are
-// replaceable so we can freeze the loading state at will.
-function ControllableAuthButtons({ onGoogle, onApple }: WrapperProps) {
-  // We test the real component's behaviour – no wrapping needed for most
-  // cases. This helper is only used for in-flight assertions.
-  return <AuthSocialButtons />;
-}
 
 // ─── Tests ───────────────────────────────────────────────────────────────────
 
