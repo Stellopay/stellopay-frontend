@@ -167,6 +167,35 @@ describe("getTransactions", () => {
   });
 });
 
+// ─── AbortSignal / AbortController support ────────────────────────────────────
+//
+// getTransactions accepts an optional AbortSignal.  A cancelled request must
+// throw a DOMException named "AbortError" so callers (e.g. useTransactions)
+// can distinguish intentional cancellations from real errors and avoid
+// committing stale state.
+
+describe("AbortSignal support", () => {
+  it("rejects with AbortError when signal is already aborted before the call", async () => {
+    const controller = new AbortController();
+    controller.abort();
+
+    await expect(
+      getTransactions({}, controller.signal),
+    ).rejects.toMatchObject({ name: "AbortError" });
+  });
+
+  it("resolves normally when a non-aborted signal is passed", async () => {
+    const controller = new AbortController();
+    const result = await getTransactions({ pageSize: 2 }, controller.signal);
+    expect(result.data).toHaveLength(2);
+  });
+
+  it("resolves normally when no signal is passed", async () => {
+    const result = await getTransactions({ pageSize: 2 });
+    expect(result.data).toHaveLength(2);
+  });
+});
+
 // The data layer applies an artificial delay only in development so the demo
 // UI exercises its loading states. These tests drive that branch with fake
 // timers to keep the suite fast while still covering the dev-only path.
@@ -201,6 +230,26 @@ describe("dev-only demo delay", () => {
     await vi.advanceTimersByTimeAsync(400);
     const items = await pending;
     expect(items.length).toBeGreaterThan(0);
+  });
+
+  it("rejects with AbortError when signal is aborted before the dev delay resolves", async () => {
+    const controller = new AbortController();
+
+    const pending = getTransactions({ pageSize: 2 }, controller.signal);
+
+    // Abort mid-delay, before the 400 ms timeout fires.
+    controller.abort();
+
+    await expect(pending).rejects.toMatchObject({ name: "AbortError" });
+  });
+
+  it("rejects with AbortError when signal is already aborted at call time (dev path)", async () => {
+    const controller = new AbortController();
+    controller.abort();
+
+    const pending = getTransactions({ pageSize: 2 }, controller.signal);
+    // No need to advance timers — the pre-abort check fires immediately.
+    await expect(pending).rejects.toMatchObject({ name: "AbortError" });
   });
 });
 

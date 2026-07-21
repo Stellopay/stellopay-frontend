@@ -26,6 +26,7 @@ export default defineConfig({
       provider: "v8",
       reporter: ["text", "json", "html"],
       include: [
+        "hooks/useTransactions.ts",
         "hooks/useCountdown.ts",
         "utils/authUtils.ts",
         "utils/date-utils.ts",
@@ -36,6 +37,7 @@ export default defineConfig({
         "utils/stellarAddress.ts",
         "utils/commonUtils.ts",
         "types/auth.ts",
+        "lib/api/transactions.ts",
         "app/error.tsx",
         "app/global-error.tsx",
         "context/wallet-context.tsx",
