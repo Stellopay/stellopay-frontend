@@ -15,6 +15,7 @@ jobs:
       - name: Assign commenter if they asked to work on this issue
         uses: actions/github-script@v7
         with:
+          github-token: ${{ secrets.MAINTAINER_GH_TOKEN }}
           script: |
             const MAX_ASSIGNED_PER_REPO = 6;
             const body = (context.payload.comment.body || "").toLowerCase();
@@ -80,5 +81,5 @@ jobs:
               owner: context.repo.owner,
               repo: context.repo.repo,
               issue_number: issue.number,
-              body: `Assigned @${commenter} to this issue. Please open a PR referencing this issue (e.g. \`Closes #${issue.number}\`) when you're ready.`,
+              body: `Assigned @${commenter} to this issue. Please open a PR referencing this issue (e.g. \`Closes #${issue.number}\`) when you're ready. If you have questions along the way, feel free to join our contributor chat: https://t.me/+vTbe0hOUKrFhNTJl`,
             });
