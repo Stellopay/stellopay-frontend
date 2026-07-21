@@ -73,5 +73,5 @@ jobs:
               owner: context.repo.owner,
               repo: context.repo.repo,
               issue_number: issue.number,
-              body: `Assigned @${commenter} to this issue via repo automation. Please open a PR referencing this issue (e.g. \`Closes #${issue.number}\`) when you're ready.`,
+              body: `Assigned @${commenter} to this issue. Please open a PR referencing this issue (e.g. \`Closes #${issue.number}\`) when you're ready.`,
             });
