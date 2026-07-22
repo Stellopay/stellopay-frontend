@@ -5,7 +5,9 @@ import { AuthSocialButtons } from "./auth-social-buttons";
 
 // next/image is a server-side Next.js component – replace it with a plain img
 // so tests run correctly in jsdom.
+// eslint-disable-next-line @next/next/no-img-element
 vi.mock("next/image", () => ({
+  // eslint-disable-next-line @next/next/no-img-element
   default: ({ alt }: { alt: string }) => <img alt={alt} />,
 }));
 
