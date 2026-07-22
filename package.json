@@ -35,7 +35,7 @@
     "date-fns": "^4.4.0",
     "framer-motion": "^12.42.0",
     "lucide-react": "^1.25.0",
-    "next": "15.3.8",
+    "next": "16.2.11",
     "next-auth": "^4.24.15",
     "react": "^19.2.8",
     "react-day-picker": "^10.0.1",
