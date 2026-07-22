@@ -41,6 +41,7 @@ export default defineConfig({
         "app/error.tsx",
         "app/global-error.tsx",
         "context/wallet-context.tsx",
+        "context/sidebar-context.tsx",
         "context/theme-context.tsx",
         "components/auth/auth-social-buttons.tsx",
         "components/analytics/analytics-view.tsx",
