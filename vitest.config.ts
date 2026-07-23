@@ -44,6 +44,7 @@ export default defineConfig({
         "context/wallet-context.tsx",
         "context/theme-context.tsx",
         "components/auth/auth-social-buttons.tsx",
+        "components/ui/calendar.tsx",
         "components/ui/empty-state.tsx",
         "components/analytics/analytics-view.tsx",
         "components/analytics/client-analytics-view.tsx",
