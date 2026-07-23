@@ -66,8 +66,18 @@ export function useTransactions(
         setIsLoading(false);
       })
       .catch((err: unknown) => {
-        // AbortError is expected during rapid filter/page changes.
-        if (controller.signal.aborted) return;
+        // AbortError is expected during rapid filter/page changes. Check the
+        // error's own name rather than `instanceof Error`/`instanceof
+        // Object` — jsdom's DOMException is a cross-realm object that fails
+        // both those checks despite being a real AbortError — and rather
+        // than only our controller's signal, since the underlying fetch can
+        // reject with AbortError before our `controller.abort()` cleanup
+        // call ever flips `signal.aborted`.
+        const isAbortError =
+          typeof err === "object" &&
+          err !== null &&
+          (err as { name?: unknown }).name === "AbortError";
+        if (controller.signal.aborted || isAbortError) return;
         if (requestId !== latestRequestId) return;
 
         setError(
