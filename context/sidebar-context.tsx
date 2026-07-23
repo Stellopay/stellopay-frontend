@@ -14,17 +14,20 @@ import type {
 } from "@/types/sidebar";
 
 const SidebarContext = createContext<SidebarContextProps | null>(null);
+const SIDEBAR_OPEN_STORAGE_KEY = "sidebarOpen";
 
 export const SidebarProvider: FC<SidebarProviderProps> = ({ children }) => {
   // Initialize with a default; hydrate from localStorage on the client.
   const [isSidebarOpen, setIsSidebarOpenState] = useState<boolean>(true);
+  const [hasHydratedSidebarState, setHasHydratedSidebarState] = useState(false);
 
   // Hydrate sidebar open state from localStorage on the client.
   useEffect(() => {
-    const savedState = safeStorage.getItem("sidebarOpen");
-    if (savedState !== null) {
+    const savedState = safeStorage.getItem(SIDEBAR_OPEN_STORAGE_KEY);
+    if (savedState === "true" || savedState === "false") {
       setIsSidebarOpenState(savedState === "true");
     }
+    setHasHydratedSidebarState(true);
   }, []);
 
   // Screen size tracking
@@ -49,10 +52,12 @@ export const SidebarProvider: FC<SidebarProviderProps> = ({ children }) => {
     return () => window.removeEventListener("resize", handleResize);
   }, []);
 
-  // Persist sidebar state to localStorage when it changes
+  // Do not overwrite a saved preference with the SSR-safe default before hydration.
   useEffect(() => {
-    safeStorage.setItem("sidebarOpen", isSidebarOpen.toString());
-  }, [isSidebarOpen]);
+    if (!hasHydratedSidebarState) return;
+
+    safeStorage.setItem(SIDEBAR_OPEN_STORAGE_KEY, isSidebarOpen.toString());
+  }, [hasHydratedSidebarState, isSidebarOpen]);
 
   const setSidebarOpen = (open: boolean) => {
     setIsSidebarOpenState(open);
