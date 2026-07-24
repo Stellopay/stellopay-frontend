@@ -45,6 +45,7 @@ export default defineConfig({
         "context/theme-context.tsx",
         "components/auth/auth-social-buttons.tsx",
         "components/ui/calendar.tsx",
+        "components/ui/dropdown-menu.tsx",
         "components/ui/empty-state.tsx",
         "components/ui/error-state.tsx",
         "components/analytics/analytics-view.tsx",
