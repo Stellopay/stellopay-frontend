@@ -6,16 +6,101 @@ import { DayPicker } from "react-day-picker";
 import { cn } from "@/utils/commonUtils";
 import { buttonVariants } from "@/components/ui/button";
 
+export interface CalendarProps extends React.ComponentProps<typeof DayPicker> {
+  /**
+   * Optional lower bound for selectable dates (inclusive).
+   *
+   * Any day strictly before `minDate` is visually disabled and cannot be
+   * selected via click or keyboard. When omitted the calendar is unconstrained
+   * at the lower end.
+   *
+   * @example
+   * // Prevent selecting dates before account creation
+   * <Calendar minDate={accountCreatedAt} ... />
+   */
+  minDate?: Date;
+  /**
+   * Optional upper bound for selectable dates (inclusive).
+   *
+   * Any day strictly after `maxDate` is visually disabled and cannot be
+   * selected via click or keyboard.  A common use-case is preventing the
+   * selection of future dates in a historical analytics filter:
+   *
+   * @example
+   * // Prevent selecting future dates
+   * <Calendar maxDate={new Date()} ... />
+   */
+  maxDate?: Date;
+}
+
+/**
+ * Normalises a `Date` to midnight (00:00:00.000) in local time so that
+ * comparisons are purely day-level and never affected by time components.
+ */
+function toDateOnly(d: Date): Date {
+  return new Date(d.getFullYear(), d.getMonth(), d.getDate());
+}
+
 function Calendar({
   className,
   classNames,
   showOutsideDays = true,
+  minDate,
+  maxDate,
+  disabled,
   ...props
-}: React.ComponentProps<typeof DayPicker>) {
+}: CalendarProps) {
+  /**
+   * Merge the caller-supplied `disabled` matcher with the minDate/maxDate
+   * bounds.  We normalise all dates to midnight so a `minDate` of e.g.
+   * `new Date()` (which includes a time component) does not accidentally
+   * disable today when comparing against the day-only values DayPicker uses.
+   *
+   * The merged function returns `true` (disabled) when ANY of the following
+   * holds:
+   *   1. The day is strictly before `minDate` (if provided).
+   *   2. The day is strictly after `maxDate` (if provided).
+   *   3. The caller's own `disabled` matcher returns `true` for the day.
+   */
+  const mergedDisabled = React.useMemo<
+    React.ComponentProps<typeof DayPicker>["disabled"]
+  >(() => {
+    const hasMin = minDate instanceof Date && !isNaN(minDate.getTime());
+    const hasMax = maxDate instanceof Date && !isNaN(maxDate.getTime());
+
+    if (!hasMin && !hasMax && !disabled) {
+      return undefined;
+    }
+
+    const minNorm = hasMin ? toDateOnly(minDate!) : null;
+    const maxNorm = hasMax ? toDateOnly(maxDate!) : null;
+
+    return (day: Date) => {
+      const dayNorm = toDateOnly(day);
+
+      if (minNorm && dayNorm < minNorm) return true;
+      if (maxNorm && dayNorm > maxNorm) return true;
+
+      if (typeof disabled === "function") return disabled(day);
+      if (disabled instanceof Date) return dayNorm.getTime() === toDateOnly(disabled).getTime();
+      if (Array.isArray(disabled)) {
+        return disabled.some((matcher) => {
+          if (matcher instanceof Date)
+            return dayNorm.getTime() === toDateOnly(matcher).getTime();
+          if (typeof matcher === "function") return matcher(day);
+          return false;
+        });
+      }
+
+      return false;
+    };
+  }, [minDate, maxDate, disabled]);
+
   return (
     <DayPicker
       showOutsideDays={showOutsideDays}
       className={cn("p-3", className)}
+      disabled={mergedDisabled}
       // NOTE: these keys follow the react-day-picker v8 ClassNames shape.
       // react-day-picker was bumped to v10 (which renamed most of these,
       // e.g. `caption` -> `month_caption`, `day_selected` -> `selected`)
