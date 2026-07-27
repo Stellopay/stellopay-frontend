@@ -1,10 +1,19 @@
 'use client';
 
-import React, { useCallback, useMemo } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import AccountSummaryCard from './account-summary-card';
-import { summaryCardsData } from './summary-data';
-import { Wallet, BarChart3, ArrowRight, PieChart } from "lucide-react";
+import { summaryCardsData, SummaryCardsSkeleton, AccountSummaryCardProps } from './summary-data';
+import { Wallet, BarChart3, ArrowRight, PieChart, AlertCircle, RefreshCw } from "lucide-react";
 import { formatAddress, useWallet } from "@/context/wallet-context";
+
+// ─── Loading / error state types ─────────────────────────────────────────────
+
+type SummaryState =
+  | { status: 'loading' }
+  | { status: 'success'; cards: AccountSummaryCardProps[] }
+  | { status: 'error'; message: string };
+
+// ─── Component ────────────────────────────────────────────────────────────────
 
 export default function AccountOverview() {
   const { address, isConnected, connect } = useWallet();
@@ -13,6 +22,9 @@ export default function AccountOverview() {
   const handleConnect = useCallback(() => {
     connect();
   }, [connect]);
+
+  // ── Data resolution ─────────────────────────────────────────────────────
+  const [summaryState, setSummaryState] = useState<SummaryState>({ status: 'loading' });
 
   // Keep static icon/card render data stable across wallet context ticks.
   const icons = useMemo(
@@ -24,14 +36,30 @@ export default function AccountOverview() {
     [],
   );
 
-  const accountSummaryCards = useMemo(
-    () =>
-      summaryCardsData.map((card, idx) => ({
-        ...card,
-        icon: icons[idx],
-      })),
-    [icons],
-  );
+  const loadSummary = useCallback(() => {
+    setSummaryState({ status: 'loading' });
+
+    // The data currently comes from a static module (summaryCardsData).
+    // This async wrapper keeps the loading/error contract intact so that
+    // when a real API replaces the static import the component needs no
+    // structural changes — only the Promise body changes.
+    Promise.resolve(summaryCardsData)
+      .then((data) => {
+        const cards = data.map((card, idx) => ({ ...card, icon: icons[idx] }));
+        setSummaryState({ status: 'success', cards });
+      })
+      .catch((err: unknown) => {
+        const message =
+          err instanceof Error ? err.message : 'Failed to load account summary.';
+        setSummaryState({ status: 'error', message });
+      });
+  }, [icons]);
+
+  useEffect(() => {
+    loadSummary();
+  }, [loadSummary]);
+
+  // ── Render ───────────────────────────────────────────────────────────────
 
   return (
     <div className="w-full h-full">
@@ -75,15 +103,45 @@ export default function AccountOverview() {
         </button>
       </div>
 
-      {/* Cards Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {accountSummaryCards.map((card) => (
-          <AccountSummaryCard
-            key={card.title}
-            {...card}
-          />
-        ))}
-      </div>
+      {/* Cards Grid — loading / error / success */}
+      {summaryState.status === 'loading' && (
+        <SummaryCardsSkeleton shade="dark" />
+      )}
+
+      {summaryState.status === 'error' && (
+        <div
+          role="alert"
+          data-testid="summary-error"
+          className="flex flex-col items-center justify-center gap-4 rounded-2xl border border-destructive/20 bg-destructive/5 px-6 py-10 text-center"
+        >
+          <AlertCircle className="h-8 w-8 text-destructive" aria-hidden="true" />
+          <p className="text-sm font-medium text-destructive">
+            {summaryState.message}
+          </p>
+          <button
+            type="button"
+            onClick={loadSummary}
+            className="inline-flex items-center gap-2 rounded-lg bg-zinc-900 dark:bg-white px-4 py-2 text-sm font-semibold text-white dark:text-zinc-900 hover:opacity-90 transition-opacity"
+          >
+            <RefreshCw className="h-4 w-4" aria-hidden="true" />
+            Retry
+          </button>
+        </div>
+      )}
+
+      {summaryState.status === 'success' && (
+        <div
+          data-testid="summary-cards-grid"
+          className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
+        >
+          {summaryState.cards.map((card) => (
+            <AccountSummaryCard
+              key={card.title}
+              {...card}
+            />
+          ))}
+        </div>
+      )}
 
       {/* Mobile Button */}
       <button className="sm:hidden w-full mt-6 flex items-center justify-center gap-2 px-4 py-3 bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 rounded-lg text-sm font-semibold shadow-lg cursor-pointer">
