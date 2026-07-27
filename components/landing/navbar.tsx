@@ -1,10 +1,11 @@
 "use client";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { useTheme } from "@/context/theme-context";
 import NetworkSwitcher from "@/components/common/network-switcher";
+import { safeStorage } from "@/utils/safeStorage";
 
 const navLinks = [
   { href: "/features", label: "Features" },
@@ -14,11 +15,28 @@ const navLinks = [
   { href: "/faq", label: "FAQ" },
   { href: "/dashboard", label: "Dashboard" },
 ];
+const MOBILE_NAV_STORAGE_KEY = "landingMobileNavOpen";
 
 export default function Navbar() {
   const pathname = usePathname() || "/";
   const { theme, resolvedTheme, toggleTheme } = useTheme();
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [hasHydratedMobileNav, setHasHydratedMobileNav] = useState(false);
+
+  useEffect(() => {
+    const storedState = safeStorage.getItem(MOBILE_NAV_STORAGE_KEY);
+    if (storedState === "true" || storedState === "false") {
+      setMobileOpen(storedState === "true");
+    }
+    setHasHydratedMobileNav(true);
+  }, []);
+
+  useEffect(() => {
+    // Avoid replacing a saved preference with the SSR-safe default before it restores.
+    if (!hasHydratedMobileNav) return;
+
+    safeStorage.setItem(MOBILE_NAV_STORAGE_KEY, mobileOpen.toString());
+  }, [hasHydratedMobileNav, mobileOpen]);
 
   const handleConnect = () => {
     // TODO: integrate wallet modal/connector here.
@@ -26,7 +44,7 @@ export default function Navbar() {
   };
 
   return (
-     <header className="fixed top-0 left-0 w-full z-40">
+    <header className="fixed top-0 left-0 w-full z-40">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-6">
         <div className="bg-white dark:bg-[#0b0b0b] rounded-2xl border border-[#E4E4E7] dark:border-[#27272A] shadow-lg dark:shadow-[0_8px_30px_rgba(0,0,0,0.6)] px-4 py-3">
           <div className="grid grid-cols-[auto_1fr_auto] items-center gap-4">
@@ -45,7 +63,7 @@ export default function Navbar() {
             </div>
 
             {/* Center: Nav links */}
-            <nav className="hidden md:flex items-center justify-center gap-8">
+            <nav className="hidden xl:flex items-center justify-center gap-8">
               {navLinks.map((l) => {
                 const active = pathname === l.href || pathname.startsWith(l.href + "/");
                 return (
@@ -87,7 +105,7 @@ export default function Navbar() {
 
               <button
                 onClick={handleConnect}
-                className={`hidden md:inline-flex items-center px-5 py-2 rounded-full font-medium transition-shadow shadow-sm ${
+                className={`hidden xl:inline-flex items-center px-5 py-2 rounded-full font-medium transition-shadow shadow-sm ${
                   resolvedTheme === "dark"
                     ? "bg-white text-black hover:opacity-95"
                     : "bg-black text-white hover:opacity-95"
@@ -97,7 +115,7 @@ export default function Navbar() {
               </button>
 
               <button
-                className="md:hidden p-2 rounded-md hover:bg-gray-100 dark:hover:bg-white/5"
+                className="xl:hidden p-2 rounded-md hover:bg-gray-100 dark:hover:bg-white/5"
                 aria-label={mobileOpen ? "Close menu" : "Open menu"}
                 aria-expanded={mobileOpen}
                 aria-controls="mobile-nav"
@@ -120,7 +138,11 @@ export default function Navbar() {
 
       {/* Mobile drawer */}
       {mobileOpen && (
-        <div id="mobile-nav" className="md:hidden fixed left-0 right-0 top-24 z-40" role="dialog" aria-label="Mobile navigation menu" aria-modal="false">
+        <nav
+          id="mobile-nav"
+          className="xl:hidden absolute left-0 right-0 top-full z-40 mt-2"
+          aria-label="Mobile navigation menu"
+        >
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="bg-white dark:bg-[#0b0b0b] border-b border-[#E4E4E7] dark:border-[#27272A] rounded-b-2xl py-4 space-y-2 px-4">
               {navLinks.map((l) => (
@@ -138,7 +160,7 @@ export default function Navbar() {
               </div>
             </div>
           </div>
-        </div>
+        </nav>
       )}
     </header>
   );
