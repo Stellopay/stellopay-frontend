@@ -123,4 +123,137 @@ describe("LoginForm", () => {
     expect(emailInput).toHaveAttribute("autoComplete", "email");
     expect(passwordInput).toHaveAttribute("autoComplete", "current-password");
   });
+
+  // ─── Show/hide password toggle ──────────────────────────────────────────────
+
+  it("renders the password field masked (type=password) by default", () => {
+    render(<LoginForm />);
+    const passwordInput = screen.getByPlaceholderText(/Enter your password/i);
+    expect(passwordInput).toHaveAttribute("type", "password");
+  });
+
+  it("renders the toggle button with aria-label 'Show password' when password is hidden", () => {
+    render(<LoginForm />);
+    const toggle = screen.getByRole("button", { name: /Show password/i });
+    expect(toggle).toBeInTheDocument();
+  });
+
+  it("clicking the toggle reveals the password (type switches to text)", async () => {
+    render(<LoginForm />);
+    const passwordInput = screen.getByPlaceholderText(/Enter your password/i);
+    const toggle = screen.getByRole("button", { name: /Show password/i });
+
+    expect(passwordInput).toHaveAttribute("type", "password");
+
+    await userEvent.click(toggle);
+
+    expect(passwordInput).toHaveAttribute("type", "text");
+  });
+
+  it("clicking the toggle a second time re-masks the password", async () => {
+    render(<LoginForm />);
+    const passwordInput = screen.getByPlaceholderText(/Enter your password/i);
+    const toggle = screen.getByRole("button", { name: /Show password/i });
+
+    await userEvent.click(toggle);
+    expect(passwordInput).toHaveAttribute("type", "text");
+
+    const hideToggle = screen.getByRole("button", { name: /Hide password/i });
+    await userEvent.click(hideToggle);
+
+    expect(passwordInput).toHaveAttribute("type", "password");
+  });
+
+  it("updates aria-label to 'Hide password' after revealing", async () => {
+    render(<LoginForm />);
+    const toggle = screen.getByRole("button", { name: /Show password/i });
+
+    await userEvent.click(toggle);
+
+    expect(screen.getByRole("button", { name: /Hide password/i })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /Show password/i })).not.toBeInTheDocument();
+  });
+
+  it("updates aria-label back to 'Show password' after re-masking", async () => {
+    render(<LoginForm />);
+    const toggle = screen.getByRole("button", { name: /Show password/i });
+
+    await userEvent.click(toggle);
+    await userEvent.click(screen.getByRole("button", { name: /Hide password/i }));
+
+    expect(screen.getByRole("button", { name: /Show password/i })).toBeInTheDocument();
+  });
+
+  it("toggle button is reachable via keyboard (Tab) and operable via Enter", async () => {
+    render(<LoginForm />);
+    const toggle = screen.getByRole("button", { name: /Show password/i });
+    const passwordInput = screen.getByPlaceholderText(/Enter your password/i);
+
+    // Focus the toggle directly and activate with keyboard
+    toggle.focus();
+    expect(toggle).toHaveFocus();
+
+    await userEvent.keyboard("{Enter}");
+    expect(passwordInput).toHaveAttribute("type", "text");
+  });
+
+  it("toggle button is operable via Space key", async () => {
+    render(<LoginForm />);
+    const toggle = screen.getByRole("button", { name: /Show password/i });
+    const passwordInput = screen.getByPlaceholderText(/Enter your password/i);
+
+    toggle.focus();
+    await userEvent.keyboard(" ");
+    expect(passwordInput).toHaveAttribute("type", "text");
+  });
+
+  it("clicking the toggle does not submit the form", async () => {
+    const mockLogin = vi.mocked(login).mockResolvedValue();
+    render(<LoginForm />);
+    const toggle = screen.getByRole("button", { name: /Show password/i });
+
+    await userEvent.click(toggle);
+
+    // Give any async submission a chance to fire
+    await new Promise((r) => setTimeout(r, 50));
+    expect(mockLogin).not.toHaveBeenCalled();
+  });
+
+  it("toggle button has type='button' (never submits the form implicitly)", () => {
+    render(<LoginForm />);
+    const toggle = screen.getByRole("button", { name: /Show password/i });
+    expect(toggle).toHaveAttribute("type", "button");
+  });
+
+  it("password value is preserved after toggling visibility", async () => {
+    render(<LoginForm />);
+    const passwordInput = screen.getByPlaceholderText(/Enter your password/i);
+    const toggle = screen.getByRole("button", { name: /Show password/i });
+
+    await userEvent.type(passwordInput, "S3cr3tPass!");
+
+    await userEvent.click(toggle);
+    expect(passwordInput).toHaveValue("S3cr3tPass!");
+
+    await userEvent.click(screen.getByRole("button", { name: /Hide password/i }));
+    expect(passwordInput).toHaveValue("S3cr3tPass!");
+  });
+
+  it("toggle is disabled when the form is in a loading state", async () => {
+    // Simulate a slow login so isLoading stays true long enough to assert
+    vi.mocked(login).mockImplementation(
+      () => new Promise((resolve) => setTimeout(resolve, 500))
+    );
+    render(<LoginForm />);
+
+    await userEvent.type(screen.getByPlaceholderText(/Enter your email/i), "user@example.com");
+    await userEvent.type(screen.getByPlaceholderText(/Enter your password/i), "Password123!");
+    await userEvent.click(screen.getByRole("button", { name: /Sign In/i }));
+
+    // While loading the toggle must be disabled
+    await waitFor(() => {
+      const toggle = screen.getByRole("button", { name: /Show password/i });
+      expect(toggle).toBeDisabled();
+    });
+  });
 });
