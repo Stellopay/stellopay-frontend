@@ -19,8 +19,8 @@ import DestructiveActionDialog from "./destructive-action-dialog";
 import { DEMO_WALLETS } from "@/lib/demo-data";
 import { useWallet, formatAddress } from "@/context/wallet-context";
 import { stellarAddressSchema } from "@/utils/stellarAddress";
-import { copyToClipboardWithTimeout } from "@/utils/clipboardUtils";
-import { Check, Copy, Loader2, Plus } from "lucide-react";
+import { copyToClipboardWithFeedback } from "@/utils/clipboardUtils";
+import { Check, Copy, Loader2, Plus, X } from "lucide-react";
 
 /**
  * Add-wallet form schema. The address is validated and normalized (trimmed,
@@ -180,6 +180,7 @@ export default function WalletsSection() {
               </div>
               <p className="mt-4 text-sm text-zinc-500 dark:text-zinc-400">
                 Address: {formatAddress(address)}
+                <CopyAddressButton address={address ?? ""} />
               </p>
             </div>
           ) : (
@@ -208,6 +209,7 @@ export default function WalletsSection() {
                 </div>
                 <p className="mt-4 text-sm text-zinc-500 dark:text-zinc-400">
                   Address: {wallet.address}
+                  <CopyAddressButton address={wallet.address} />
                 </p>
               </div>
             ))
@@ -382,13 +384,81 @@ function MetadataItem({ label, value }: { label: string; value: string }) {
   );
 }
 
+// ─── Copy feedback states ─────────────────────────────────────────────────────
+
+type CopyStatus = "idle" | "success" | "error";
+
+/**
+ * Inline copy-to-clipboard button with brief visual feedback.
+ *
+ * Uses {@link copyToClipboardWithFeedback} which tries the modern
+ * Clipboard API first and falls back to `execCommand` automatically.
+ * The full address is copied on demand and never rendered in the DOM.
+ *
+ * Feedback states:
+ * - idle    → Copy icon + "Copy" label
+ * - success → Check icon + "Copied" label (auto-resets after 2 s)
+ * - error   → X icon + "Failed" label (auto-resets after 3 s)
+ *
+ * @param address - The full address string to copy (may be longer than what
+ *   is displayed — the truncated form is the caller's responsibility).
+ */
+function CopyAddressButton({ address }: { address: string }) {
+  const [status, setStatus] = useState<CopyStatus>("idle");
+
+  const handleCopy = () => {
+    copyToClipboardWithFeedback(
+      address,
+      () => {
+        setStatus("success");
+        setTimeout(() => setStatus("idle"), 2000);
+      },
+      () => {
+        setStatus("error");
+        setTimeout(() => setStatus("idle"), 3000);
+      },
+    );
+  };
+
+  return (
+    <button
+      type="button"
+      onClick={handleCopy}
+      className="ml-2 inline-flex items-center gap-1 align-middle text-sm text-muted-foreground hover:text-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 rounded"
+      aria-label={
+        status === "success"
+          ? "Address copied"
+          : status === "error"
+            ? "Copy failed"
+            : "Copy wallet address"
+      }
+    >
+      {status === "success" ? (
+        <>
+          <Check className="h-4 w-4 text-emerald-500" aria-hidden="true" />
+          <span className="text-emerald-600 dark:text-emerald-400">Copied</span>
+        </>
+      ) : status === "error" ? (
+        <>
+          <X className="h-4 w-4 text-destructive" aria-hidden="true" />
+          <span className="text-destructive">Failed</span>
+        </>
+      ) : (
+        <>
+          <Copy className="h-4 w-4" aria-hidden="true" />
+          <span>Copy</span>
+        </>
+      )}
+    </button>
+  );
+}
+
 /**
  * Renders a validated wallet address with a truncated, copy-to-clipboard
  * affordance. Only the truncated form is shown; the full address is copied on
  * demand and never rendered in full.
  */
 function AddedWalletRow({ address }: { address: string }) {
-  const [copied, setCopied] = useState(false);
   const truncated = `${address.slice(0, 6)}…${address.slice(-4)}`;
 
   return (
@@ -402,24 +472,7 @@ function AddedWalletRow({ address }: { address: string }) {
       >
         {truncated}
       </span>
-      <button
-        type="button"
-        onClick={() => copyToClipboardWithTimeout(address, setCopied, 1500)}
-        className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground focus:outline-none"
-        aria-label="Copy wallet address"
-      >
-        {copied ? (
-          <>
-            <Check className="h-4 w-4 text-success" />
-            Copied
-          </>
-        ) : (
-          <>
-            <Copy className="h-4 w-4" />
-            Copy
-          </>
-        )}
-      </button>
+      <CopyAddressButton address={address} />
     </li>
   );
 }
