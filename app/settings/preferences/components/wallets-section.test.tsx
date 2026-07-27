@@ -1,10 +1,41 @@
-import { act, fireEvent, render, screen } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import React from "react";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi, beforeEach, afterEach } from "vitest";
 
 import { WalletProvider } from "@/context/wallet-context";
 import { DEMO_WALLETS } from "@/lib/demo-data";
 import WalletsSection from "./wallets-section";
+
+// ---------------------------------------------------------------------------
+// Clipboard API helpers
+// ---------------------------------------------------------------------------
+
+function mockClipboardSuccess() {
+  const writeText = vi.fn().mockResolvedValue(undefined);
+  Object.defineProperty(navigator, "clipboard", {
+    value: { writeText },
+    configurable: true,
+    writable: true,
+  });
+  return writeText;
+}
+
+function mockClipboardFailure() {
+  const writeText = vi.fn().mockRejectedValue(new Error("Permission denied"));
+  Object.defineProperty(navigator, "clipboard", {
+    value: { writeText },
+    configurable: true,
+    writable: true,
+  });
+  // Also make the execCommand fallback fail so the error path is exercised.
+  vi.spyOn(document, "execCommand").mockReturnValue(false);
+  return writeText;
+}
+
+// ---------------------------------------------------------------------------
+// Render helper
+// ---------------------------------------------------------------------------
 
 /** Render WalletsSection inside a real WalletProvider. */
 function renderWithWallet(initialAddress: string | null = null) {
@@ -118,5 +149,366 @@ describe("WalletsSection – disconnect via danger zone", () => {
     expect(screen.getAllByTestId("demo-wallet-card")).toHaveLength(
       DEMO_WALLETS.length,
     );
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Copy-to-clipboard — demo wallet cards
+// ---------------------------------------------------------------------------
+describe("WalletsSection – copy button on demo wallet cards", () => {
+  beforeEach(() => {
+    vi.useFakeTimers();
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+    vi.restoreAllMocks();
+  });
+
+  it("renders a copy button for every demo wallet card", () => {
+    mockClipboardSuccess();
+    renderWithWallet(null);
+
+    const cards = screen.getAllByTestId("demo-wallet-card");
+    for (const card of cards) {
+      expect(
+        within(card).getByRole("button", { name: /copy wallet address/i }),
+      ).toBeInTheDocument();
+    }
+  });
+
+  it("copy button has type='button' so it never submits a form", () => {
+    mockClipboardSuccess();
+    renderWithWallet(null);
+
+    const cards = screen.getAllByTestId("demo-wallet-card");
+    for (const card of cards) {
+      const btn = within(card).getByRole("button", {
+        name: /copy wallet address/i,
+      });
+      expect(btn).toHaveAttribute("type", "button");
+    }
+  });
+
+  it("calls clipboard.writeText with the full demo address on click", async () => {
+    const writeText = mockClipboardSuccess();
+    renderWithWallet(null);
+
+    const firstCard = screen.getAllByTestId("demo-wallet-card")[0];
+    const copyBtn = within(firstCard).getByRole("button", {
+      name: /copy wallet address/i,
+    });
+
+    await userEvent.click(copyBtn);
+
+    expect(writeText).toHaveBeenCalledWith(DEMO_WALLETS[0].address);
+  });
+
+  it("shows 'Copied' feedback after a successful copy", async () => {
+    mockClipboardSuccess();
+    renderWithWallet(null);
+
+    const firstCard = screen.getAllByTestId("demo-wallet-card")[0];
+    const copyBtn = within(firstCard).getByRole("button", {
+      name: /copy wallet address/i,
+    });
+
+    await userEvent.click(copyBtn);
+
+    expect(within(firstCard).getByText("Copied")).toBeInTheDocument();
+  });
+
+  it("updates aria-label to 'Address copied' after success", async () => {
+    mockClipboardSuccess();
+    renderWithWallet(null);
+
+    const firstCard = screen.getAllByTestId("demo-wallet-card")[0];
+    const copyBtn = within(firstCard).getByRole("button", {
+      name: /copy wallet address/i,
+    });
+
+    await userEvent.click(copyBtn);
+
+    expect(
+      within(firstCard).getByRole("button", { name: /address copied/i }),
+    ).toBeInTheDocument();
+  });
+
+  it("resets feedback back to idle after 2 seconds", async () => {
+    mockClipboardSuccess();
+    renderWithWallet(null);
+
+    const firstCard = screen.getAllByTestId("demo-wallet-card")[0];
+    await userEvent.click(
+      within(firstCard).getByRole("button", { name: /copy wallet address/i }),
+    );
+
+    expect(within(firstCard).getByText("Copied")).toBeInTheDocument();
+
+    await act(async () => {
+      vi.advanceTimersByTime(2000);
+    });
+
+    expect(within(firstCard).queryByText("Copied")).not.toBeInTheDocument();
+    expect(
+      within(firstCard).getByRole("button", { name: /copy wallet address/i }),
+    ).toBeInTheDocument();
+  });
+
+  it("shows 'Failed' feedback when the clipboard write fails", async () => {
+    mockClipboardFailure();
+    renderWithWallet(null);
+
+    const firstCard = screen.getAllByTestId("demo-wallet-card")[0];
+    await userEvent.click(
+      within(firstCard).getByRole("button", { name: /copy wallet address/i }),
+    );
+
+    await waitFor(() => {
+      expect(within(firstCard).getByText("Failed")).toBeInTheDocument();
+    });
+  });
+
+  it("updates aria-label to 'Copy failed' on failure", async () => {
+    mockClipboardFailure();
+    renderWithWallet(null);
+
+    const firstCard = screen.getAllByTestId("demo-wallet-card")[0];
+    await userEvent.click(
+      within(firstCard).getByRole("button", { name: /copy wallet address/i }),
+    );
+
+    await waitFor(() => {
+      expect(
+        within(firstCard).getByRole("button", { name: /copy failed/i }),
+      ).toBeInTheDocument();
+    });
+  });
+
+  it("resets failure feedback back to idle after 3 seconds", async () => {
+    mockClipboardFailure();
+    renderWithWallet(null);
+
+    const firstCard = screen.getAllByTestId("demo-wallet-card")[0];
+    await userEvent.click(
+      within(firstCard).getByRole("button", { name: /copy wallet address/i }),
+    );
+
+    await waitFor(() =>
+      expect(within(firstCard).getByText("Failed")).toBeInTheDocument(),
+    );
+
+    await act(async () => {
+      vi.advanceTimersByTime(3000);
+    });
+
+    expect(within(firstCard).queryByText("Failed")).not.toBeInTheDocument();
+    expect(
+      within(firstCard).getByRole("button", { name: /copy wallet address/i }),
+    ).toBeInTheDocument();
+  });
+
+  it("copy buttons for different demo wallets operate independently", async () => {
+    mockClipboardSuccess();
+    renderWithWallet(null);
+
+    const cards = screen.getAllByTestId("demo-wallet-card");
+    expect(cards.length).toBeGreaterThanOrEqual(2);
+
+    // Click only the second card's copy button.
+    await userEvent.click(
+      within(cards[1]).getByRole("button", { name: /copy wallet address/i }),
+    );
+
+    // Second card shows success; first card is still idle.
+    expect(within(cards[1]).getByText("Copied")).toBeInTheDocument();
+    expect(within(cards[0]).queryByText("Copied")).not.toBeInTheDocument();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Copy-to-clipboard — live wallet card
+// ---------------------------------------------------------------------------
+describe("WalletsSection – copy button on live wallet card", () => {
+  const LIVE_ADDRESS = "GABCDEFGHIJKLMNOPQRSTUVWXYZ234567ABCDEFGHIJKLMNOPF123";
+
+  beforeEach(() => {
+    vi.useFakeTimers();
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+    vi.restoreAllMocks();
+  });
+
+  it("renders a copy button on the live wallet card", () => {
+    mockClipboardSuccess();
+    renderWithWallet(LIVE_ADDRESS);
+
+    const liveCard = screen.getByTestId("live-wallet-card");
+    expect(
+      within(liveCard).getByRole("button", { name: /copy wallet address/i }),
+    ).toBeInTheDocument();
+  });
+
+  it("copies the full (non-truncated) live address to the clipboard", async () => {
+    const writeText = mockClipboardSuccess();
+    renderWithWallet(LIVE_ADDRESS);
+
+    const liveCard = screen.getByTestId("live-wallet-card");
+    await userEvent.click(
+      within(liveCard).getByRole("button", { name: /copy wallet address/i }),
+    );
+
+    expect(writeText).toHaveBeenCalledWith(LIVE_ADDRESS);
+  });
+
+  it("shows 'Copied' feedback after a successful copy on the live card", async () => {
+    mockClipboardSuccess();
+    renderWithWallet(LIVE_ADDRESS);
+
+    const liveCard = screen.getByTestId("live-wallet-card");
+    await userEvent.click(
+      within(liveCard).getByRole("button", { name: /copy wallet address/i }),
+    );
+
+    expect(within(liveCard).getByText("Copied")).toBeInTheDocument();
+  });
+
+  it("resets live card feedback back to idle after 2 seconds", async () => {
+    mockClipboardSuccess();
+    renderWithWallet(LIVE_ADDRESS);
+
+    const liveCard = screen.getByTestId("live-wallet-card");
+    await userEvent.click(
+      within(liveCard).getByRole("button", { name: /copy wallet address/i }),
+    );
+
+    await act(async () => {
+      vi.advanceTimersByTime(2000);
+    });
+
+    expect(within(liveCard).queryByText("Copied")).not.toBeInTheDocument();
+  });
+
+  it("shows 'Failed' feedback when the clipboard write fails on the live card", async () => {
+    mockClipboardFailure();
+    renderWithWallet(LIVE_ADDRESS);
+
+    const liveCard = screen.getByTestId("live-wallet-card");
+    await userEvent.click(
+      within(liveCard).getByRole("button", { name: /copy wallet address/i }),
+    );
+
+    await waitFor(() => {
+      expect(within(liveCard).getByText("Failed")).toBeInTheDocument();
+    });
+  });
+
+  it("full address is never rendered in the DOM (only truncated form shown)", () => {
+    mockClipboardSuccess();
+    renderWithWallet(LIVE_ADDRESS);
+
+    expect(screen.queryByText(LIVE_ADDRESS)).not.toBeInTheDocument();
+    // The truncated form is present.
+    expect(screen.getByText(/GABC\.\.\.F123/)).toBeInTheDocument();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Copy-to-clipboard — added wallet rows
+// ---------------------------------------------------------------------------
+describe("WalletsSection – copy button on added wallet rows", () => {
+  const VALID_ADDRESS = "GBZXN7PIRZGNMHGA7MUUUF4GWPY5AYPGZIXUNYL67X5TVLZN7CI6S2W";
+
+  beforeEach(() => {
+    vi.useFakeTimers();
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+    vi.restoreAllMocks();
+  });
+
+  /** Add a wallet via the "Add wallet" form. */
+  async function addWallet(address: string) {
+    const input = screen.getByPlaceholderText(/G… or M…/i);
+    await userEvent.clear(input);
+    await userEvent.type(input, address);
+    await userEvent.click(screen.getByRole("button", { name: /add wallet/i }));
+  }
+
+  it("renders a copy button on a newly added wallet row", async () => {
+    mockClipboardSuccess();
+    renderWithWallet(null);
+
+    await addWallet(VALID_ADDRESS);
+
+    const row = screen.getByTestId("added-wallet");
+    expect(
+      within(row).getByRole("button", { name: /copy wallet address/i }),
+    ).toBeInTheDocument();
+  });
+
+  it("copies the full address (not the truncated display) on click", async () => {
+    const writeText = mockClipboardSuccess();
+    renderWithWallet(null);
+
+    await addWallet(VALID_ADDRESS);
+
+    const row = screen.getByTestId("added-wallet");
+    await userEvent.click(
+      within(row).getByRole("button", { name: /copy wallet address/i }),
+    );
+
+    expect(writeText).toHaveBeenCalledWith(VALID_ADDRESS);
+  });
+
+  it("shows 'Copied' feedback after a successful copy", async () => {
+    mockClipboardSuccess();
+    renderWithWallet(null);
+
+    await addWallet(VALID_ADDRESS);
+
+    const row = screen.getByTestId("added-wallet");
+    await userEvent.click(
+      within(row).getByRole("button", { name: /copy wallet address/i }),
+    );
+
+    expect(within(row).getByText("Copied")).toBeInTheDocument();
+  });
+
+  it("resets feedback back to idle after 2 seconds", async () => {
+    mockClipboardSuccess();
+    renderWithWallet(null);
+
+    await addWallet(VALID_ADDRESS);
+
+    const row = screen.getByTestId("added-wallet");
+    await userEvent.click(
+      within(row).getByRole("button", { name: /copy wallet address/i }),
+    );
+
+    await act(async () => {
+      vi.advanceTimersByTime(2000);
+    });
+
+    expect(within(row).queryByText("Copied")).not.toBeInTheDocument();
+  });
+
+  it("shows 'Failed' feedback when the clipboard write fails", async () => {
+    mockClipboardFailure();
+    renderWithWallet(null);
+
+    await addWallet(VALID_ADDRESS);
+
+    const row = screen.getByTestId("added-wallet");
+    await userEvent.click(
+      within(row).getByRole("button", { name: /copy wallet address/i }),
+    );
+
+    await waitFor(() => {
+      expect(within(row).getByText("Failed")).toBeInTheDocument();
+    });
   });
 });
