@@ -55,4 +55,86 @@ describe("FAQSection", () => {
     expect(currenciesQuestion).toHaveAttribute("aria-expanded", "true");
     expect(screen.getByText(/XLM and USDC on Stellar/i)).toBeInTheDocument();
   });
+
+  describe("keyboard navigation", () => {
+    it("ArrowDown moves focus to the next header, wrapping from last to first", () => {
+      render(<FAQSection />);
+
+      const buttons = screen.getAllByRole("button", { name: /\?|wallet|currencies|questions|fees/i });
+      // get all 4 accordion header buttons by their questions
+      const [btn0, btn1, btn2, btn3] = [
+        screen.getByRole("button", { name: /Do I need a crypto wallet/i }),
+        screen.getByRole("button", { name: /What are the supported currencies/i }),
+        screen.getByRole("button", { name: /Have any questions/i }),
+        screen.getByRole("button", { name: /StelloPay charges lower fees/i }),
+      ];
+
+      btn0.focus();
+      fireEvent.keyDown(btn0, { key: "ArrowDown" });
+      expect(document.activeElement).toBe(btn1);
+
+      fireEvent.keyDown(btn1, { key: "ArrowDown" });
+      expect(document.activeElement).toBe(btn2);
+
+      fireEvent.keyDown(btn2, { key: "ArrowDown" });
+      expect(document.activeElement).toBe(btn3);
+
+      // wrap from last to first
+      fireEvent.keyDown(btn3, { key: "ArrowDown" });
+      expect(document.activeElement).toBe(btn0);
+    });
+
+    it("ArrowUp moves focus to the previous header, wrapping from first to last", () => {
+      render(<FAQSection />);
+
+      const btn0 = screen.getByRole("button", { name: /Do I need a crypto wallet/i });
+      const btn1 = screen.getByRole("button", { name: /What are the supported currencies/i });
+      const btn3 = screen.getByRole("button", { name: /StelloPay charges lower fees/i });
+
+      btn1.focus();
+      fireEvent.keyDown(btn1, { key: "ArrowUp" });
+      expect(document.activeElement).toBe(btn0);
+
+      // wrap from first to last
+      fireEvent.keyDown(btn0, { key: "ArrowUp" });
+      expect(document.activeElement).toBe(btn3);
+    });
+
+    it("Home moves focus to the first header", () => {
+      render(<FAQSection />);
+
+      const btn0 = screen.getByRole("button", { name: /Do I need a crypto wallet/i });
+      const btn3 = screen.getByRole("button", { name: /StelloPay charges lower fees/i });
+
+      btn3.focus();
+      fireEvent.keyDown(btn3, { key: "Home" });
+      expect(document.activeElement).toBe(btn0);
+    });
+
+    it("End moves focus to the last header", () => {
+      render(<FAQSection />);
+
+      const btn0 = screen.getByRole("button", { name: /Do I need a crypto wallet/i });
+      const btn3 = screen.getByRole("button", { name: /StelloPay charges lower fees/i });
+
+      btn0.focus();
+      fireEvent.keyDown(btn0, { key: "End" });
+      expect(document.activeElement).toBe(btn3);
+    });
+
+    it("arrow keys do not toggle the accordion open/close state", () => {
+      render(<FAQSection />);
+
+      const btn0 = screen.getByRole("button", { name: /Do I need a crypto wallet/i });
+
+      // first item starts open
+      expect(btn0).toHaveAttribute("aria-expanded", "true");
+
+      btn0.focus();
+      fireEvent.keyDown(btn0, { key: "ArrowDown" });
+
+      // still open — arrow key only moves focus, not toggle
+      expect(btn0).toHaveAttribute("aria-expanded", "true");
+    });
+  });
 });

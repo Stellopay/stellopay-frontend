@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Plus, Minus } from "lucide-react";
 import { cn } from "@/utils/commonUtils";
@@ -40,10 +40,14 @@ const AccordionItem = ({
   item,
   isOpen,
   onToggle,
+  buttonRef,
+  onKeyDown,
 }: {
   item: FAQItem;
   isOpen: boolean;
   onToggle: () => void;
+  buttonRef: React.RefObject<HTMLButtonElement>;
+  onKeyDown: (e: React.KeyboardEvent<HTMLButtonElement>) => void;
 }) => {
   return (
     <div
@@ -55,7 +59,9 @@ const AccordionItem = ({
       )}
     >
       <button
+        ref={buttonRef}
         onClick={onToggle}
+        onKeyDown={onKeyDown}
         className="w-full flex items-center justify-between p-6 md:p-8 text-left focus:outline-none"
         aria-expanded={isOpen}
       >
@@ -101,9 +107,40 @@ const AccordionItem = ({
 
 export default function FAQSection() {
   const [openIndex, setOpenIndex] = useState<number | null>(0);
+  const buttonRefs = useRef<Array<React.RefObject<HTMLButtonElement>>>(
+    faqData.map(() => React.createRef<HTMLButtonElement>()),
+  );
 
   const toggleAccordion = (index: number) => {
     setOpenIndex(openIndex === index ? null : index);
+  };
+
+  const handleKeyDown = (
+    e: React.KeyboardEvent<HTMLButtonElement>,
+    index: number,
+  ) => {
+    const last = faqData.length - 1;
+    let target: number | null = null;
+
+    switch (e.key) {
+      case "ArrowDown":
+        target = index < last ? index + 1 : 0;
+        break;
+      case "ArrowUp":
+        target = index > 0 ? index - 1 : last;
+        break;
+      case "Home":
+        target = 0;
+        break;
+      case "End":
+        target = last;
+        break;
+      default:
+        return;
+    }
+
+    e.preventDefault();
+    buttonRefs.current[target].current?.focus();
   };
 
   return (
@@ -134,6 +171,8 @@ export default function FAQSection() {
               item={item}
               isOpen={openIndex === index}
               onToggle={() => toggleAccordion(index)}
+              buttonRef={buttonRefs.current[index]}
+              onKeyDown={(e) => handleKeyDown(e, index)}
             />
           ))}
         </div>

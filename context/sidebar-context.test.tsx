@@ -3,6 +3,7 @@
  *
  * Coverage targets:
  *  - Hydration from safeStorage ("true" / "false" / null / malformed)
+ *  - No default write before a persisted value finishes hydrating
  *  - isMobile toggling across the 768 px breakpoint via resize events
  *  - Persistence to safeStorage on open/close
  *  - Resize listener cleanup on unmount
@@ -74,8 +75,19 @@ describe("SidebarProvider – hydration", () => {
     vi.spyOn(safeStorage, "getItem").mockReturnValue("malformed-value");
 
     const { result } = renderHook(() => useSidebar(), { wrapper });
-    // "malformed-value" !== "true" → treated as false by the === comparison
-    expect(result.current.isSidebarOpen).toBe(false);
+    expect(result.current.isSidebarOpen).toBe(true);
+  });
+
+  it("does not write the default state before restoring a saved closed state", () => {
+    vi.spyOn(safeStorage, "getItem").mockReturnValue("false");
+    const setItemSpy = vi
+      .spyOn(safeStorage, "setItem")
+      .mockImplementation(() => {});
+
+    renderHook(() => useSidebar(), { wrapper });
+
+    expect(setItemSpy).toHaveBeenCalledTimes(1);
+    expect(setItemSpy).toHaveBeenCalledWith("sidebarOpen", "false");
   });
 });
 

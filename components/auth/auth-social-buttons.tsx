@@ -32,8 +32,9 @@ export function AuthSocialButtons() {
       } else if (provider === "apple") {
         // TODO: integrate Apple authentication.
       }
-    } catch {
-      // Re-enable buttons on failure so the user can retry.
+    } finally {
+      // Re-enable buttons once the flow settles, whether it succeeded,
+      // failed, or (as with the TODO stubs today) did nothing at all.
       setLoadingProvider(null);
     }
   };
