@@ -4,6 +4,7 @@ import Image from 'next/image'
 import { ArrowRight, CircleCheck, Shield, Sparkles, Wallet, Zap } from 'lucide-react'
 import stellar from '../../public/stellar.png'
 import skartnet from '../../public/StarknetIcon.png'
+import { useReducedMotion } from '@/hooks/useReducedMotion'
 
 
 interface Info {
@@ -57,19 +58,28 @@ const InfoCard = ({children} : {children: React.ReactNode}) => {
  * Hero component rendering the top section of the landing page.
  * Implements optimized Next.js Image components for network logo assets
  * with explicit sizing to secure visual stability (CLS reduction) above the fold.
+ *
+ * Respects `prefers-reduced-motion: reduce` — decorative blur orbs and
+ * rotated floating cards are hidden when the user has opted out of motion.
+ * All content remains fully visible and functional either way.
  */
 const Hero = () => {
+  const reducedMotion = useReducedMotion()
+
   return (
     <section
       aria-label="Hero — The Future of Payroll on Blockchain"
       className='w-full min-h-screen text-[#09090B] dark:text-[#FAFAFA] flex items-center justify-center bg-white dark:bg-black relative'
     >
 
-      <div className='absolute z-3 bg-gradient-to-br from-[#10B981] to-[#00000000] w-64.5 h-64.5 lg:w-99 lg:h-99 rounded-full opacity-20 lg:opacity-10 blur-3xl top-[80%] lg:top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2'></div>
-
-      <div className='absolute z-3 bg-gradient-to-br from-[#3B82F6] to-[#00000000] w-73.5 h-73.5 lg:w-99 lg:h-99 rounded-full opacity-20 lg:opacity-10 blur-3xl top-[10%] lg:top-[45%] left-[55%] lg:left-[45%] -translate-x-[45%] -translate-y-[45%]'></div>
-
-      <div className='absolute z-3 bg-gradient-to-br from-[#8B5CF6] to-[#00000000]  w-68 h-68 lg:w-121 lg:h-121 rounded-full opacity-20 lg:opacity-10 blur-3xl lg:top-[53%] left-[40%] lg:left-[53%] -translate-x-[53%] -translate-y-[53%] top-[25%]'></div>
+      {/* Decorative gradient orbs — hidden when reduced-motion is preferred */}
+      {!reducedMotion && (
+        <>
+          <div className='absolute z-3 bg-gradient-to-br from-[#10B981] to-[#00000000] w-64.5 h-64.5 lg:w-99 lg:h-99 rounded-full opacity-20 lg:opacity-10 blur-3xl top-[80%] lg:top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2' aria-hidden="true"></div>
+          <div className='absolute z-3 bg-gradient-to-br from-[#3B82F6] to-[#00000000] w-73.5 h-73.5 lg:w-99 lg:h-99 rounded-full opacity-20 lg:opacity-10 blur-3xl top-[10%] lg:top-[45%] left-[55%] lg:left-[45%] -translate-x-[45%] -translate-y-[45%]' aria-hidden="true"></div>
+          <div className='absolute z-3 bg-gradient-to-br from-[#8B5CF6] to-[#00000000]  w-68 h-68 lg:w-121 lg:h-121 rounded-full opacity-20 lg:opacity-10 blur-3xl lg:top-[53%] left-[40%] lg:left-[53%] -translate-x-[53%] -translate-y-[53%] top-[25%]' aria-hidden="true"></div>
+        </>
+      )}
 
       <div className='h-full w-full flex flex-col lg:flex-row items-center justify-center font-[var(--font-sans)] lg:p-5 gap-12 lg:gap-6 my-30'>
 
@@ -131,8 +141,8 @@ const Hero = () => {
 
         {/* main card */}
         <div className='flex flex-col lg:border-2 w-[90%] md:w-[70%]  lg:max-w-176 lg:max-h-168.5 h-auto items-center justify-between gap-6 lg:gap-3 rounded-xl border-[1.34px] relative group border-[#e4e4e7] dark:border-[#27272A] min-h-12.5 p-6 bg-[#FFFFFF] dark:bg-[#18181B]' style={{boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)'}}>
-          {/* top floating card */}
-          <div className='border-[1.47px] w-22.5 lg:w-23.5 h-22.25 lg:h-23.25 border-[#e4e4e7] dark:border-[#27272A] absolute z-2 bg-[#FFFFFF] dark:bg-[#18181B] rounded-[16px] -top-4 -right-4.5 flex flex-col justify-between items-center p-4 shadow-2xl lg:border-2 transform rotate-8 dark:rotate-4' style={{boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)'}}>
+          {/* top floating card — rotation disabled when reduced-motion is preferred */}
+          <div className={`border-[1.47px] w-22.5 lg:w-23.5 h-22.25 lg:h-23.25 border-[#e4e4e7] dark:border-[#27272A] absolute z-2 bg-[#FFFFFF] dark:bg-[#18181B] rounded-[16px] -top-4 -right-4.5 flex flex-col justify-between items-center p-4 shadow-2xl lg:border-2 transform ${reducedMotion ? '' : 'rotate-8 dark:rotate-4'}`} style={{boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)'}}>
             <p className='text-[#09090B] dark:text-[#FAFAFA] text-3xl font-bold'>
               8
             </p>
@@ -141,8 +151,8 @@ const Hero = () => {
               Payrolls
             </p>
           </div>
-          {/* bottom floating card */}
-          <div className='border-[1.47px] w-20 lg:w-20.5 h-22.25 lg:h-22.75 border-[#e4e4e7] dark:border-[#27272A] absolute z-2 bg-[#FFFFFF] dark:bg-[#18181B] rounded-[16px] -bottom-7 -left-4 flex flex-col justify-between items-center p-4.5 lg:border-2 transform -rotate-8 dark:rotate-0' style={{boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)'}}>
+          {/* bottom floating card — rotation disabled when reduced-motion is preferred */}
+          <div className={`border-[1.47px] w-20 lg:w-20.5 h-22.25 lg:h-22.75 border-[#e4e4e7] dark:border-[#27272A] absolute z-2 bg-[#FFFFFF] dark:bg-[#18181B] rounded-[16px] -bottom-7 -left-4 flex flex-col justify-between items-center p-4.5 lg:border-2 transform ${reducedMotion ? '' : '-rotate-8 dark:rotate-0'}`} style={{boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)'}}>
             <p className='text-[#09090B] dark:text-[#FAFAFA] text-3xl font-bold'>
               2s
             </p>
