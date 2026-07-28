@@ -48,6 +48,7 @@ export default defineConfig({
         "components/analytics/analytics-view.tsx",
         "components/analytics/client-analytics-view.tsx",
         "components/common/notification-panel.tsx",
+        "components/common/app-layout.tsx",
         "components/ui/pagination.tsx",
       ],
       exclude: [
