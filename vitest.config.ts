@@ -38,6 +38,7 @@ export default defineConfig({
         "utils/stellarAddress.ts",
         "utils/commonUtils.ts",
         "types/auth.ts",
+        "types/wallet.ts",
         "lib/api/transactions.ts",
         "app/error.tsx",
         "app/global-error.tsx",
@@ -55,6 +56,7 @@ export default defineConfig({
         "components/common/search-bar.tsx",
         "components/ui/pagination.tsx",
         "components/dashboard/account-summary-card.tsx",
+        "components/dashboard/transaction-history.tsx",
       ],
       exclude: [
         "**/*.test.{ts,tsx}",

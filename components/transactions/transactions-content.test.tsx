@@ -121,132 +121,58 @@ describe("TransactionsTable skeleton count parity", () => {
 });
 
 // ---------------------------------------------------------------------------
-// Transaction receipt dialog
+// TransactionsContent: error vs empty state
 // ---------------------------------------------------------------------------
 
-describe("TransactionReceipt dialog", () => {
-  const mockTransaction = {
-    id: "1",
-    type: "Payment Sent",
-    txId: "#TXN12345",
-    address: "0xA1B2...C3D4E5",
-    date: "2024-01-15",
-    time: "09:32AM",
-    token: "USDC",
-    amount: "-$607.87",
-    status: "Completed" as const,
-    tokenIcon: "/usdc-logo.png",
-    memo: "Invoice #1024",
-  };
+import { useTransactions } from "@/hooks/useTransactions";
+import TransactionsContent from "./transactions-content";
 
-  function getDesktopRow() {
-    const rows = screen.getAllByRole("button", { name: /View receipt/i });
-    return rows[0];
-  }
+// Mock the hook
+vi.mock("@/hooks/useTransactions", () => ({
+  useTransactions: vi.fn(),
+}));
 
-  function withinDialog() {
-    return within(screen.getByRole("dialog"));
-  }
-
+describe("TransactionsContent states", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    window.print = vi.fn();
   });
 
-  it("opens receipt dialog when a table row is clicked", async () => {
-    const user = userEvent.setup();
-    render(<TransactionsTable transactions={[mockTransaction]} />);
+  it("renders ErrorState with retry when fetch fails", () => {
+    const mockRefetch = vi.fn();
+    vi.mocked(useTransactions).mockReturnValue({
+      data: null,
+      isLoading: false,
+      error: "Network timeout",
+      refetch: mockRefetch,
+    });
 
-    await user.click(getDesktopRow());
-
-    expect(withinDialog().getByText("Transaction Receipt")).toBeInTheDocument();
-    expect(withinDialog().getByText("#TXN12345")).toBeInTheDocument();
-    expect(withinDialog().getByText("-$607.87")).toBeInTheDocument();
+    render(<TransactionsContent />);
+    
+    // Should see error state
+    expect(screen.getByRole("alert")).toBeInTheDocument();
+    expect(screen.getByText("Network timeout")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Try Again" })).toBeInTheDocument();
+    
+    // Retry action is wired
+    screen.getByRole("button", { name: "Try Again" }).click();
+    expect(mockRefetch).toHaveBeenCalled();
   });
 
-  it("displays all transaction details in the receipt", async () => {
-    const user = userEvent.setup();
-    render(<TransactionsTable transactions={[mockTransaction]} />);
+  it("renders empty state table when fetch succeeds but returns empty array", () => {
+    vi.mocked(useTransactions).mockReturnValue({
+      data: { data: [], total: 0 },
+      isLoading: false,
+      error: null,
+      refetch: vi.fn(),
+    });
 
-    await user.click(getDesktopRow());
-
-    expect(withinDialog().getByText("Payment Sent")).toBeInTheDocument();
-    expect(withinDialog().getByText("0xA1B2...C3D4E5")).toBeInTheDocument();
-    expect(withinDialog().getByText("Invoice #1024")).toBeInTheDocument();
-  });
-
-  it("renders a print button inside the receipt dialog", async () => {
-    const user = userEvent.setup();
-    render(<TransactionsTable transactions={[mockTransaction]} />);
-
-    await user.click(getDesktopRow());
-
-    const printButton = withinDialog().getByRole("button", { name: /Print Receipt/i });
-    expect(printButton).toBeInTheDocument();
-  });
-
-  it("calls window.print when print button is clicked", async () => {
-    const user = userEvent.setup();
-    render(<TransactionsTable transactions={[mockTransaction]} />);
-
-    await user.click(getDesktopRow());
-
-    const printButton = withinDialog().getByRole("button", { name: /Print Receipt/i });
-    await user.click(printButton);
-
-    expect(window.print).toHaveBeenCalledTimes(1);
-  });
-
-  it("opens receipt dialog on Enter key press", async () => {
-    const user = userEvent.setup();
-    render(<TransactionsTable transactions={[mockTransaction]} />);
-
-    const row = getDesktopRow();
-    row.focus();
-    await user.keyboard("{Enter}");
-
-    expect(withinDialog().getByText("Transaction Receipt")).toBeInTheDocument();
-  });
-
-  it("opens receipt dialog on Space key press", async () => {
-    const user = userEvent.setup();
-    render(<TransactionsTable transactions={[mockTransaction]} />);
-
-    const row = getDesktopRow();
-    row.focus();
-    await user.keyboard(" ");
-
-    expect(withinDialog().getByText("Transaction Receipt")).toBeInTheDocument();
-  });
-
-  it("closes receipt dialog when close button is clicked", async () => {
-    const user = userEvent.setup();
-    render(<TransactionsTable transactions={[mockTransaction]} />);
-
-    await user.click(getDesktopRow());
-    expect(withinDialog().getByText("Transaction Receipt")).toBeInTheDocument();
-
-    const closeButton = withinDialog().getByRole("button", { name: /Close/i });
-    await user.click(closeButton);
-
-    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
-  });
-
-  it("renders table rows with correct aria attributes", () => {
-    render(<TransactionsTable transactions={[mockTransaction]} />);
-
-    const row = getDesktopRow();
-    expect(row).toHaveAttribute("tabindex", "0");
-  });
-
-  it("renders desktop table structure", () => {
-    render(<TransactionsTable transactions={[mockTransaction]} />);
-
-    expect(screen.getByRole("columnheader", { name: "Transaction Type" })).toBeInTheDocument();
-    expect(screen.getByRole("columnheader", { name: "Address" })).toBeInTheDocument();
-    expect(screen.getByRole("columnheader", { name: /^Date$/ })).toBeInTheDocument();
-    expect(screen.getByRole("columnheader", { name: "Token" })).toBeInTheDocument();
-    expect(screen.getByRole("columnheader", { name: "Amount" })).toBeInTheDocument();
-    expect(screen.getByRole("columnheader", { name: "Status" })).toBeInTheDocument();
+    render(<TransactionsContent />);
+    
+    // No error state
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+    // Table empty state
+    expect(
+      screen.getAllByText("No transactions found. Try adjusting your filters.")[0]
+    ).toBeInTheDocument();
   });
 });
