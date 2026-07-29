@@ -79,6 +79,8 @@ export interface TransactionsFiltersProps {
   onSort: (field: SortField, options?: { shiftKey?: boolean }) => void;
   /** Opens the advanced filter panel. */
   onAdvancedFilterToggle?: () => void;
+  /** Optional debounce delay for search input */
+  debounceMs?: number;
   /** Whether any advanced filters (amount range, counterparty) are active. */
   hasAdvancedFilters?: boolean;
 }
