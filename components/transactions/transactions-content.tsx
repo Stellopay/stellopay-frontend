@@ -9,6 +9,7 @@ import type {
   TransactionProps,
 } from "@/types/transaction";
 import { useTransactions } from "@/hooks/useTransactions";
+import { getTransactions, MAX_TRANSACTION_PAGE_SIZE } from "@/lib/api";
 import { TransactionTableSkeleton } from "@/components/ui/table-skeleton";
 import TransactionsHeader from "./transactions-header";
 import TransactionsFilters from "./transactions-filters";
@@ -19,6 +20,11 @@ import AdvancedFilterPanel, {
   type AdvancedFilterValues,
 } from "./advanced-filter-panel";
 import FilterChips, { type FilterChip } from "./filter-chips";
+import CsvExportToolbar from "./transactions-export-toolbar";
+import {
+  generateTransactionsCsv,
+  downloadCsvContent,
+} from "@/utils/csvUtils";
 import {
   TRANSACTIONS_PAGE_SIZE,
   getDefaultDateRange,
@@ -109,6 +115,76 @@ export default function TransactionsContent() {
     () => (data?.data ?? []).map(toTransactionProps),
     [data],
   );
+
+  // ── CSV Export state ────────────────────────────────────────────────────
+  const [exportPreviewCount, setExportPreviewCount] = useState<number | null>(
+    null,
+  );
+  const [isLoadingPreview, setIsLoadingPreview] = useState(false);
+  const [isExporting, setIsExporting] = useState(false);
+
+  /** Fetch the count of rows matching a given date range (independent of pagination). */
+  const handlePreviewRequest = useCallback(
+    async (dateRange: { fromDate: string; toDate: string }) => {
+      setIsLoadingPreview(true);
+      try {
+        const result = await getTransactions({
+          filters: {
+            fromDate: dateRange.fromDate,
+            toDate: dateRange.toDate,
+            selectedFilter: "All Transactions",
+          },
+          page: 1,
+          pageSize: MAX_TRANSACTION_PAGE_SIZE,
+        });
+        setExportPreviewCount(result.total);
+      } catch (err) {
+        console.error("Failed to fetch export preview:", err);
+        setExportPreviewCount(null);
+      } finally {
+        setIsLoadingPreview(false);
+      }
+    },
+    [],
+  );
+
+  /** Fetch all matching rows for the date range and trigger CSV download. */
+  const handleExport = useCallback(
+    async (
+      selectedColumns: string[],
+      dateRange: { fromDate: string; toDate: string },
+    ) => {
+      setIsExporting(true);
+      try {
+        const result = await getTransactions({
+          filters: {
+            fromDate: dateRange.fromDate,
+            toDate: dateRange.toDate,
+            selectedFilter: "All Transactions",
+          },
+          page: 1,
+          pageSize: MAX_TRANSACTION_PAGE_SIZE,
+        });
+        const displayRows = result.data.map(toTransactionProps);
+        const csvContent = generateTransactionsCsv(
+          displayRows,
+          selectedColumns,
+        );
+        const filename = `transactions-${dateRange.fromDate}_to_${dateRange.toDate}.csv`;
+        downloadCsvContent(filename, csvContent);
+      } catch (err) {
+        console.error("Failed to export transactions:", err);
+      } finally {
+        setIsExporting(false);
+      }
+    },
+    [],
+  );
+
+  /** Reset export preview when the export toolbar dialog closes. */
+  const handleExportDialogClose = useCallback(() => {
+    setExportPreviewCount(null);
+  }, []);
 
   const updateFilter = useCallback(
     <K extends keyof TransactionFilters>(
@@ -264,17 +340,29 @@ export default function TransactionsContent() {
     setCurrentPage(1);
   }, []);
 
-
-
   return (
     <div className="min-h-screen text-white mt-4">
       <div className="w-full max-w-7xl mx-auto mb-4">
-        <TransactionsHeader
-          fromDate={filters.fromDate}
-          toDate={filters.toDate}
-          onFromDateChange={(date) => updateFilter("fromDate", date)}
-          onToDateChange={(date) => updateFilter("toDate", date)}
-        />
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between px-6 py-4 bg-[#1a0c1d] mb-4 rounded-lg">
+          <TransactionsHeader
+            fromDate={filters.fromDate}
+            toDate={filters.toDate}
+            onFromDateChange={(date) => updateFilter("fromDate", date)}
+            onToDateChange={(date) => updateFilter("toDate", date)}
+          />
+          <div className="flex items-center gap-3 mt-4 lg:mt-0">
+            <CsvExportToolbar
+              previewCount={exportPreviewCount}
+              isLoadingPreview={isLoadingPreview}
+              onPreviewRequest={handlePreviewRequest}
+              onExport={handleExport}
+              isExporting={isExporting}
+              defaultFromDate={filters.fromDate}
+              defaultToDate={filters.toDate}
+              onDialogClose={handleExportDialogClose}
+            />
+          </div>
+        </div>
 
         <div className="px-4 sm:px-6 lg:px-8 bg-[#160f17] pt-3 border-[#2D2D2D] border rounded-xl">
           <TransactionsFilters
