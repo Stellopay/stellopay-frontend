@@ -1,221 +1,117 @@
-import React, { useCallback, useEffect, useRef, useState } from "react";
-import { BellIcon, ChevronRight } from "lucide-react";
+"use client";
+
+import React, { useState, useRef, useEffect } from "react";
+import { Bell, Check, Trash2, RotateCcw, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { IconBell } from "@/components/icons/bell-fill-icon";
-import { NotificationProps } from "@/types/ui";
-import { NotificationItem } from "@/types/notification-item";
-import { Skeleton } from "@/components/ui/skeleton";
 
-interface NotificationPanelProps extends NotificationProps {
-  isLoading?: boolean;
-  onNotificationClick?: (notification: NotificationItem) => void;
-  onClose?: () => void;
+export interface NotificationItem {
+  id: string;
+  title: string;
+  message: string;
+  timestamp: string;
+  read: boolean;
 }
 
-/**
- * Renders the bell-trigger header shared by all panel states.
- */
-function NotificationPanelHeader() {
-  return (
-    <div className="flex justify-between items-center mb-4">
-      <div className="flex items-center gap-3">
-        <Button
-          aria-label="Notifications"
-          className="bg-[#121212] border border-[#2E2E2E] cursor-pointer hover:bg-inherit "
-          size="icon"
-        >
-          <BellIcon />
-        </Button>
+const DEFAULT_NOTIFICATIONS: NotificationItem[] = [
+  {
+    id: "notif-1",
+    title: "Payment Received",
+    message: "You received $250.00 from Alex Morgan.",
+    timestamp: "5m ago",
+    read: false,
+  },
+  {
+    id: "notif-2",
+    title: "Account Security",
+    message: "New sign-in detected from Chrome on macOS.",
+    timestamp: "1h ago",
+    read: false,
+  },
+  {
+    id: "notif-3",
+    title: "Payout Completed",
+    message: "Your weekly payout of $1,240.00 was processed.",
+    timestamp: "1d ago",
+    read: true,
+  },
+];
 
-        <span>Notifications</span>
-      </div>
-      <Button className="bg-[#12121266] border border-[#2E2E2E] cursor-pointer px-2! hover:bg-inherit">
-        <p className="text-[#E5E5E5] font-light">View All</p>
-        <ChevronRight />
-      </Button>
-    </div>
-  );
+export interface NotificationPanelProps {
+  initialNotifications?: NotificationItem[];
+  undoDurationMs?: number;
 }
 
-/**
- * Accessible empty state shown when there are no notifications to display.
- */
-function NotificationPanelEmptyState() {
-  return (
-    <div className="flex flex-col items-center justify-center gap-2 py-8 text-center">
-      <div className="relative w-[24px] h-[24px] flex items-center justify-center bg-[#0D0D0D80]/50 border border-[#2E2E2E] rounded-sm">
-        <IconBell />
-      </div>
-      <p className="font-light text-[#E5E5E5] text-sm">
-        You&apos;re all caught up
-      </p>
-      <p className="text-xs text-[#505050]">No new notifications right now.</p>
-    </div>
-  );
-}
+export default function NotificationPanel({
+  initialNotifications = DEFAULT_NOTIFICATIONS,
+  undoDurationMs = 5000,
+}: NotificationPanelProps) {
+  const [notifications, setNotifications] = useState<NotificationItem[]>(initialNotifications);
+  const [clearedBackup, setClearedBackup] = useState<NotificationItem[] | null>(null);
+  const [showToast, setShowToast] = useState(false);
+  const undoTimerRef = useRef<NodeJS.Timeout | null>(null);
 
-/**
- * Displays the user's notifications panel.
- *
- * Renders a loading skeleton while `isLoading` is true, an accessible
- * empty state when `notifications` is empty, and otherwise the list of
- * notifications keyed by their stable `id` (never array index).
- *
- * The notification list implements the **listbox** keyboard pattern
- * (WAI-ARIA roving tabindex):
- *   - Arrow Up / Arrow Down  → move focus between items (wraps)
- *   - Home / End             → jump to first / last item
- *   - Enter / Space          → activate the focused notification
- *   - Escape                 → close the panel and return focus to the
- *                              bell trigger button
- *
- * Notification `title` and `message` are rendered as plain text children,
- * never via `dangerouslySetInnerHTML`, so they cannot inject markup.
- *
- * Props
- * -----
- * - `onNotificationClick` – callback invoked when a notification is
- *   activated via click, Enter, or Space.
- * - `onClose` – callback invoked when Escape is pressed, after focus
- *   has been returned to the bell trigger button.
- */
-const NotificationPanel = ({
-  className: _className,
-  notifications,
-  isLoading = false,
-  onNotificationClick,
-  onClose,
-}: NotificationPanelProps) => {
-  const [focusedIndex, setFocusedIndex] = useState(0);
-  const containerRef = useRef<HTMLDivElement>(null);
-  const itemRefs = useRef<(HTMLDivElement | null)[]>([]);
+  const clearTimer = () => {
+    if (undoTimerRef.current) {
+      clearTimeout(undoTimerRef.current);
+      undoTimerRef.current = null;
+    }
+  };
+
+  const handleMarkAllRead = () => {
+    setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
+  };
+
+  const handleClearAll = () => {
+    if (notifications.length === 0) return;
+    clearTimer();
+    setClearedBackup([...notifications]);
+    setNotifications([]);
+    setShowToast(true);
+
+    undoTimerRef.current = setTimeout(() => {
+      setShowToast(false);
+      setClearedBackup(null);
+    }, undoDurationMs);
+  };
+
+  const handleUndo = () => {
+    if (clearedBackup) {
+      setNotifications([...clearedBackup]);
+      setClearedBackup(null);
+      setShowToast(false);
+      clearTimer();
+    }
+  };
+
+  const handleDismissToast = () => {
+    setShowToast(false);
+    setClearedBackup(null);
+    clearTimer();
+  };
+
+  const handleMarkRead = (id: string) => {
+    setNotifications((prev) =>
+      prev.map((n) => (n.id === id ? { ...n, read: true } : n))
+    );
+  };
 
   useEffect(() => {
-    itemRefs.current = itemRefs.current.slice(0, notifications.length);
-    setFocusedIndex(0);
-  }, [notifications.length]);
-
-  const focusItem = useCallback((index: number) => {
-    const item = itemRefs.current[index];
-    if (item) {
-      item.focus();
-      setFocusedIndex(index);
-    }
+    return () => clearTimer();
   }, []);
 
-  const handleListKeyDown = useCallback(
-    (e: React.KeyboardEvent<HTMLDivElement>) => {
-      switch (e.key) {
-        case "ArrowDown": {
-          e.preventDefault();
-          const next =
-            focusedIndex < notifications.length - 1 ? focusedIndex + 1 : 0;
-          focusItem(next);
-          break;
-        }
-        case "ArrowUp": {
-          e.preventDefault();
-          const prev =
-            focusedIndex > 0 ? focusedIndex - 1 : notifications.length - 1;
-          focusItem(prev);
-          break;
-        }
-        case "Home": {
-          e.preventDefault();
-          if (notifications.length > 0) focusItem(0);
-          break;
-        }
-        case "End": {
-          e.preventDefault();
-          if (notifications.length > 0)
-            focusItem(notifications.length - 1);
-          break;
-        }
-        case "Escape": {
-          e.preventDefault();
-          const trigger =
-            containerRef.current?.querySelector<HTMLButtonElement>(
-              '[aria-label="Notifications"]',
-            );
-          trigger?.focus();
-          onClose?.();
-          break;
-        }
-      }
-    },
-    [focusedIndex, notifications.length, focusItem, onClose],
-  );
-
-  const handleItemKeyDown = useCallback(
-    (
-      e: React.KeyboardEvent<HTMLDivElement>,
-      notification: NotificationItem,
-    ) => {
-      if (e.key === "Enter" || e.key === " ") {
-        e.preventDefault();
-        onNotificationClick?.(notification);
-      }
-    },
-    [onNotificationClick],
-  );
-
-  if (isLoading) {
-    return (
-      <div className="bg-[#0D0D0D80] bg-opacity-50 border border-[#2D2D2D] max-w-[400px] rounded-xl p-4 text-[#E5E5E5]">
-        <div className="flex justify-between items-center mb-4">
-          <div className="flex items-center gap-3">
-            <Skeleton className="w-10 h-10 rounded-md" />
-            <Skeleton className="h-5 w-24" />
-          </div>
-          <Skeleton className="h-8 w-20 rounded-md" />
-        </div>
-
-        <div className="flex flex-col gap-4">
-          {Array.from({ length: 3 }).map((_, index) => (
-            <div
-              key={index}
-              className="bg-[#12121266] bg-opacity-40 border border-[#2D2D2D] rounded-lg p-3 px-5 flex justify-between items-center"
-            >
-              <div className="grid gap-2 flex-1">
-                <Skeleton className="h-4 w-32" />
-                <Skeleton className="h-3 w-48" />
-              </div>
-              <Skeleton className="w-6 h-6 rounded-sm" />
-            </div>
-          ))}
-        </div>
-      </div>
-    );
-  }
+  const unreadCount = notifications.filter((n) => !n.read).length;
 
   return (
-    <div
-      ref={containerRef}
-      className="bg-[#0D0D0D80] bg-opacity-50 border border-[#2D2D2D] max-w-[400px] rounded-xl p-4 text-[#E5E5E5]"
-    >
-      <NotificationPanelHeader />
-
-      {notifications.length === 0 ? (
-        <NotificationPanelEmptyState />
-      ) : (
-        <div
-          role="listbox"
-          aria-label="Notifications list"
-          className="flex flex-col gap-4"
-          onKeyDown={handleListKeyDown}
-        >
-          {notifications.map((notification, index) => (
-            <div
-              key={notification.id}
-              ref={(el) => {
-                itemRefs.current[index] = el;
-              }}
-              role="option"
-              aria-selected={focusedIndex === index}
-              tabIndex={focusedIndex === index ? 0 : -1}
-              className="bg-[#12121266] bg-opacity-40 border border-[#2D2D2D] rounded-lg p-3 px-5 flex justify-between items-center cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-[#D7E0EF]"
-              onKeyDown={(e) => handleItemKeyDown(e, notification)}
-              onClick={() => onNotificationClick?.(notification)}
+    <div className="relative w-full max-w-sm sm:max-w-md md:max-w-lg mx-auto rounded-xl border border-border bg-card p-4 shadow-lg text-card-foreground">
+      {/* Header Controls */}
+      <div className="flex items-center justify-between pb-3 border-b border-border">
+        <div className="flex items-center space-x-2">
+          <Bell className="h-5 w-5 text-primary" aria-hidden="true" />
+          <h2 className="text-lg font-semibold tracking-tight">Notifications</h2>
+          {unreadCount > 0 && (
+            <span
+              className="px-2 py-0.5 text-xs font-semibold rounded-full bg-primary/10 text-primary dark:bg-primary/20"
+              aria-label={`${unreadCount} unread notifications`}
             >
               <div className="grid gap-1">
                 <p className="font-light text-[#E5E5E5] text-sm">
@@ -224,6 +120,14 @@ const NotificationPanel = ({
                 <p className="text-xs text-[#505050] truncate">
                   {notification.message}
                 </p>
+                {notification.read && notification.readAt && (
+                  <p className="text-[10px] text-[#505050] mt-1">
+                    Read: {new Date(notification.readAt).toLocaleString(undefined, {
+                      dateStyle: 'medium',
+                      timeStyle: 'short'
+                    })}
+                  </p>
+                )}
               </div>
               <div className="relative w-[24px] h-[24px] flex items-center justify-center bg-[#0D0D0D80]/50 border border-[#2E2E2E] rounded-sm">
                 <IconBell />
@@ -231,12 +135,58 @@ const NotificationPanel = ({
                   <div className="absolute top-2 right-[7px] w-1 h-1 bg-[#EB6945] rounded-full" />
                 )}
               </div>
+              {!item.read && (
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => handleMarkRead(item.id)}
+                  className="h-6 w-6 shrink-0 rounded-full hover:bg-primary/10 text-primary"
+                  aria-label={`Mark ${item.title} as read`}
+                >
+                  <Check className="h-3.5 w-3.5" aria-hidden="true" />
+                </Button>
+              )}
             </div>
-          ))}
+          ))
+        )}
+      </div>
+
+      {/* Undo Toast Banner */}
+      {showToast && (
+        <div
+          role="status"
+          aria-live="assertive"
+          className="mt-3 p-3 rounded-lg bg-foreground text-background dark:bg-card dark:text-card-foreground dark:border dark:border-border flex items-center justify-between shadow-md transition-all animate-in fade-in slide-in-from-bottom-2"
+        >
+          <div className="flex items-center space-x-2 min-w-0">
+            <Trash2 className="h-4 w-4 shrink-0 text-destructive" aria-hidden="true" />
+            <span className="text-xs font-medium truncate">
+              Notifications cleared.
+            </span>
+          </div>
+          <div className="flex items-center space-x-1 shrink-0">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleUndo}
+              className="h-7 px-2 text-xs font-semibold bg-background text-foreground hover:bg-muted dark:bg-primary dark:text-primary-foreground focus-visible:ring-2 focus-visible:ring-ring"
+              aria-label="Undo clear all notifications"
+            >
+              <RotateCcw className="h-3 w-3 mr-1" aria-hidden="true" />
+              Undo
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={handleDismissToast}
+              className="h-7 w-7 rounded-full text-muted-foreground hover:text-foreground"
+              aria-label="Dismiss notification undo message"
+            >
+              <X className="h-3.5 w-3.5" aria-hidden="true" />
+            </Button>
+          </div>
         </div>
       )}
     </div>
   );
-};
-
-export default NotificationPanel;
+}

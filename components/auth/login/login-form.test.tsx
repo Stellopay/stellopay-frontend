@@ -1,16 +1,24 @@
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { LoginForm } from "./login-form";
-import { login, AuthError } from "@/lib/api/auth";
+import { login, sendMagicLink, AuthError } from "@/lib/api/auth";
+
+const mockPush = vi.fn();
+vi.mock("next/navigation", () => ({
+  useRouter: () => ({ push: mockPush }),
+}));
 
 // Mock the auth api adapter
 vi.mock("@/lib/api/auth", () => ({
   login: vi.fn(),
+  sendMagicLink: vi.fn(),
   AuthError: class AuthError extends Error {
-    constructor(message: string) {
+    kind: string;
+    constructor(message: string, kind: string = "invalid_credentials") {
       super(message);
       this.name = "AuthError";
+      this.kind = kind;
     }
   },
 }));
@@ -45,6 +53,12 @@ describe("LoginForm", () => {
     vi.clearAllMocks();
     mockStore.clear();
   });
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  // ─── Password sign-in ──────────────────────────────────────────────────
 
   it("submits the form with provided values and calls login adapter (rememberMe: true)", async () => {
     const mockLogin = vi.mocked(login).mockResolvedValue();
@@ -136,17 +150,18 @@ describe("LoginForm", () => {
     });
   });
 
-  it("secures credentials by not logging them and retaining autoComplete properties", () => {
+  it("secures credentials by not logging them and retaining autoComplete and inputMode properties", () => {
     render(<LoginForm />);
 
     const emailInput = screen.getByPlaceholderText(/Enter your email/i);
     const passwordInput = screen.getByPlaceholderText(/Enter your password/i);
 
     expect(emailInput).toHaveAttribute("autoComplete", "email");
+    expect(emailInput).toHaveAttribute("inputMode", "email");
     expect(passwordInput).toHaveAttribute("autoComplete", "current-password");
   });
 
-  // ─── Show/hide password toggle ──────────────────────────────────────────────
+  // ─── Show/hide password toggle ──────────────────────────────────────────
 
   it("renders the password field masked (type=password) by default", () => {
     render(<LoginForm />);
@@ -295,6 +310,60 @@ describe("LoginForm", () => {
     });
   });
 
+  // ─── Network/server error state ──────────────────────────────────────────
+
+  it("shows a network-error message with a retry action for a network AuthError", async () => {
+    vi.mocked(login).mockRejectedValue(
+      new AuthError("Unable to connect. Please check your internet connection and try again.", "network")
+    );
+    render(<LoginForm />);
+
+    await userEvent.type(screen.getByPlaceholderText(/Enter your email/i), "user@example.com");
+    await userEvent.type(screen.getByPlaceholderText(/Enter your password/i), "Password123!");
+    await userEvent.click(screen.getByRole("button", { name: /Sign In/i }));
+
+    await waitFor(() => {
+      expect(screen.getByRole("alert")).toHaveTextContent(/unable to connect/i);
+    });
+    expect(screen.getByRole("button", { name: /Retry/i })).toBeInTheDocument();
+  });
+
+  it("does not show a retry action for an invalid-credentials AuthError", async () => {
+    vi.mocked(login).mockRejectedValue(
+      new AuthError("Invalid email or password. Please try again.", "invalid_credentials")
+    );
+    render(<LoginForm />);
+
+    await userEvent.type(screen.getByPlaceholderText(/Enter your email/i), "wrong@example.com");
+    await userEvent.type(screen.getByPlaceholderText(/Enter your password/i), "WrongPassword1!");
+    await userEvent.click(screen.getByRole("button", { name: /Sign In/i }));
+
+    await waitFor(() => {
+      expect(screen.getByRole("alert")).toHaveTextContent(/invalid email or password/i);
+    });
+    expect(screen.queryByRole("button", { name: /Retry/i })).not.toBeInTheDocument();
+  });
+
+  it("clicking retry re-submits the form", async () => {
+    const mockLogin = vi
+      .mocked(login)
+      .mockRejectedValueOnce(new AuthError("Unable to connect. Please try again.", "network"))
+      .mockResolvedValueOnce();
+    render(<LoginForm />);
+
+    await userEvent.type(screen.getByPlaceholderText(/Enter your email/i), "user@example.com");
+    await userEvent.type(screen.getByPlaceholderText(/Enter your password/i), "Password123!");
+    await userEvent.click(screen.getByRole("button", { name: /Sign In/i }));
+
+    const retryButton = await screen.findByRole("button", { name: /Retry/i });
+    await userEvent.click(retryButton);
+
+    await waitFor(() => {
+      expect(mockLogin).toHaveBeenCalledTimes(2);
+    });
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+  });
+
   // ─── Remember me persistence ─────────────────────────────────────────────
 
   it("persists the email via safeStorage when rememberMe is checked on login", async () => {
@@ -371,6 +440,124 @@ describe("LoginForm", () => {
     render(<LoginForm />);
     const emailInput = screen.getByPlaceholderText(/Enter your email/i);
     expect(emailInput).toHaveValue("");
+  });
+
+  // ─── Magic-link sign-in ────────────────────────────────────────────────
+
+  it("renders sign-in method tabs with Password and Send Link options", () => {
+    render(<LoginForm />);
+    expect(
+      screen.getByRole("tab", { name: /password/i }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("tab", { name: /send link/i }),
+    ).toBeInTheDocument();
+  });
+
+  it("password tab is selected by default", () => {
+    render(<LoginForm />);
+    const passwordTab = screen.getByRole("tab", { name: /password/i });
+    expect(passwordTab).toHaveAttribute("aria-selected", "true");
+  });
+
+  it("switching to Send Link tab shows the magic-link form", async () => {
+    render(<LoginForm />);
+    const sendLinkTab = screen.getByRole("tab", { name: /send link/i });
+    await userEvent.click(sendLinkTab);
+
+    expect(
+      screen.getByText(/send you a one-time sign-in link/i),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: /send login link/i }),
+    ).toBeInTheDocument();
+  });
+
+  it("magic-link form sends a magic link when submitted with a valid email", async () => {
+    const mockSendMagicLink = vi.mocked(sendMagicLink).mockResolvedValue();
+    render(<LoginForm />);
+
+    // Switch to magic-link tab
+    await userEvent.click(screen.getByRole("tab", { name: /send link/i }));
+
+    const emailInput = screen.getByPlaceholderText(/Enter your email/i);
+    const submitButton = screen.getByRole("button", { name: /send login link/i });
+
+    await userEvent.type(emailInput, "user@example.com");
+    await userEvent.click(submitButton);
+
+    await waitFor(() => {
+      expect(mockSendMagicLink).toHaveBeenCalledWith("user@example.com");
+    });
+
+    // Should show the "Check your email" confirmation
+    expect(screen.getByText(/check your email/i)).toBeInTheDocument();
+    expect(screen.getByText(/user@example.com/i)).toBeInTheDocument();
+  });
+
+  it("magic-link confirmation shows a resend button with cooldown", async () => {
+    vi.mocked(sendMagicLink).mockResolvedValue();
+    render(<LoginForm />);
+
+    await userEvent.click(screen.getByRole("tab", { name: /send link/i }));
+    await userEvent.type(
+      screen.getByPlaceholderText(/Enter your email/i),
+      "user@example.com",
+    );
+    await userEvent.click(screen.getByRole("button", { name: /send login link/i }));
+
+    await waitFor(() => {
+      expect(screen.getByText(/check your email/i)).toBeInTheDocument();
+    });
+
+    // Resend button should show cooldown
+    expect(screen.getByRole("button", { name: /resend/i })).toBeInTheDocument();
+  });
+
+  it("magic-link error shows an alert message", async () => {
+    vi.mocked(sendMagicLink).mockRejectedValue(
+      new AuthError("Could not send login link."),
+    );
+    render(<LoginForm />);
+
+    await userEvent.click(screen.getByRole("tab", { name: /send link/i }));
+    await userEvent.type(
+      screen.getByPlaceholderText(/Enter your email/i),
+      "bad@example.com",
+    );
+    await userEvent.click(screen.getByRole("button", { name: /send login link/i }));
+
+    await waitFor(() => {
+      expect(screen.getByRole("alert")).toHaveTextContent(
+        /could not send login link/i,
+      );
+    });
+  });
+
+  it("navigating back from magic-link confirmation goes to password sign-in", async () => {
+    vi.mocked(sendMagicLink).mockResolvedValue();
+    render(<LoginForm />);
+
+    await userEvent.click(screen.getByRole("tab", { name: /send link/i }));
+    await userEvent.type(
+      screen.getByPlaceholderText(/Enter your email/i),
+      "user@example.com",
+    );
+    await userEvent.click(screen.getByRole("button", { name: /send login link/i }));
+
+    await waitFor(() => {
+      expect(screen.getByText(/check your email/i)).toBeInTheDocument();
+    });
+
+    // Click "Back to password sign-in"
+    await userEvent.click(
+      screen.getByRole("button", { name: /back to password sign-in/i }),
+    );
+
+    // Should show the password form again
+    expect(
+      screen.getByRole("button", { name: /sign in/i }),
+    ).toBeInTheDocument();
   });
 
   // ─── Accessibility: aria-live, aria-describedby & focus ─────────────────
@@ -452,5 +639,25 @@ describe("LoginForm", () => {
     await waitFor(() => {
       expect(document.activeElement).toBe(passwordInput);
     });
+  });
+
+  // ─── Magic-link: tab accessibility ──────────────────────────────────────
+
+  it("sign-in method tabs have proper ARIA roles and labels", () => {
+    render(<LoginForm />);
+
+    const tablist = screen.getByRole("tablist");
+    expect(tablist).toHaveAttribute("aria-label", "Sign-in method");
+
+    const tabs = screen.getAllByRole("tab");
+    expect(tabs).toHaveLength(2);
+    expect(tabs[0]).toHaveAttribute("aria-controls", "password-signin-panel");
+    expect(tabs[1]).toHaveAttribute("aria-controls", "magic-link-signin-panel");
+  });
+
+  it("active tab panel has proper aria-labelledby linking back to its tab", () => {
+    render(<LoginForm />);
+    const panel = screen.getByRole("tabpanel");
+    expect(panel).toHaveAttribute("aria-labelledby", "password-signin-tab");
   });
 });
