@@ -5,8 +5,8 @@ import Link from "next/link";
 import EmailInput from "@/components/common/email-input";
 import TextareaInput from "@/components/common/text-area-input";
 import TextInput from "@/components/common/text-input";
-import Button from "@/components/common/button";
-import { Clock3, ContactRound, Mail, Phone } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Clock3, ContactRound, Loader2, Mail, Phone } from "lucide-react";
 import React, { useState } from "react";
 import { SupportTabsProps } from "@/types/ui";
 import { z } from "zod";
@@ -372,11 +372,20 @@ export default function SupportTabs({
             )}
 
             <Button
-              text="Send Message"
-              fill={true}
+              type="submit"
+              size="lg"
+              className="w-full"
               disabled={isButtonDisabled}
-              loading={status === "loading"}
-            />
+            >
+              {status === "loading" ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Loading...
+                </>
+              ) : (
+                "Send Message"
+              )}
+            </Button>
           </form>
         </div>
       )}
