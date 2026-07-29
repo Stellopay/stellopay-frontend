@@ -48,6 +48,7 @@ export interface ToggleCardProps {
 export interface NotificationProps {
   className?: string;
   notifications: import("./notification-item").NotificationItem[];
+  onMarkAllAsRead?: () => void;
 }
 
 export interface AppLayoutProps {
