@@ -1,7 +1,7 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useForm } from "react-hook-form";
+import { useForm, type FieldErrors } from "react-hook-form";
 import { useState } from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
@@ -44,6 +44,20 @@ export function LoginForm() {
       rememberMe: !!rememberedEmail,
     },
   });
+
+  /** Focus the first field that failed validation so screen-reader users
+   *  can correct it without manually navigating back to the top of the form. */
+  function onValidationError(errors: FieldErrors<LoginFormValues>) {
+    const firstErrorField = Object.keys(errors)[0] as keyof LoginFormValues;
+    if (firstErrorField) {
+      // Exclude hidden inputs (e.g. the native checkbox behind Radix) so
+      // focus always lands on a visible, interactive element.
+      const element = document.querySelector<HTMLElement>(
+        `[name="${firstErrorField}"]:not([type="hidden"])`,
+      );
+      element?.focus();
+    }
+  }
 
   async function onSubmit(_data: LoginFormValues) {
     setIsLoading(true);
@@ -105,7 +119,7 @@ export function LoginForm() {
       {/* Form */}
       <Form {...form}>
         <form
-          onSubmit={form.handleSubmit(onSubmit)}
+          onSubmit={form.handleSubmit(onSubmit, onValidationError)}
           className="flex flex-col gap-4"
           noValidate
         >

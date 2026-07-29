@@ -117,3 +117,60 @@ describe("TransactionsTable skeleton count parity", () => {
     expect(dataRows.length).toBe(TRANSACTIONS_PAGE_SIZE);
   });
 });
+
+// ---------------------------------------------------------------------------
+// TransactionsContent: error vs empty state
+// ---------------------------------------------------------------------------
+
+import { useTransactions } from "@/hooks/useTransactions";
+import TransactionsContent from "./transactions-content";
+
+// Mock the hook
+vi.mock("@/hooks/useTransactions", () => ({
+  useTransactions: vi.fn(),
+}));
+
+describe("TransactionsContent states", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it("renders ErrorState with retry when fetch fails", () => {
+    const mockRefetch = vi.fn();
+    vi.mocked(useTransactions).mockReturnValue({
+      data: null,
+      isLoading: false,
+      error: "Network timeout",
+      refetch: mockRefetch,
+    });
+
+    render(<TransactionsContent />);
+    
+    // Should see error state
+    expect(screen.getByRole("alert")).toBeInTheDocument();
+    expect(screen.getByText("Network timeout")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Try Again" })).toBeInTheDocument();
+    
+    // Retry action is wired
+    screen.getByRole("button", { name: "Try Again" }).click();
+    expect(mockRefetch).toHaveBeenCalled();
+  });
+
+  it("renders empty state table when fetch succeeds but returns empty array", () => {
+    vi.mocked(useTransactions).mockReturnValue({
+      data: { data: [], total: 0 },
+      isLoading: false,
+      error: null,
+      refetch: vi.fn(),
+    });
+
+    render(<TransactionsContent />);
+    
+    // No error state
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+    // Table empty state
+    expect(
+      screen.getAllByText("No transactions found. Try adjusting your filters.")[0]
+    ).toBeInTheDocument();
+  });
+});
