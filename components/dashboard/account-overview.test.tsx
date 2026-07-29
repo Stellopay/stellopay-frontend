@@ -457,3 +457,278 @@ describe("AccountOverview – error state", () => {
     expect(screen.queryByTestId("summary-error")).not.toBeInTheDocument();
   });
 });
+
+// ---------------------------------------------------------------------------
+// Copy-address affordance — CopyAddressButton inside the welcome heading
+// ---------------------------------------------------------------------------
+describe("AccountOverview – copy address button", () => {
+  const LIVE_ADDRESS = "GABCDEFGHIJKLMNOPQRSTUVWXYZ234567ABCDEFGHIJKLMNOPF123";
+
+  function mockClipboardSuccess() {
+    const writeText = vi.fn().mockResolvedValue(undefined);
+    Object.defineProperty(navigator, "clipboard", {
+      value: { writeText },
+      configurable: true,
+      writable: true,
+    });
+    return writeText;
+  }
+
+  function mockClipboardFailure() {
+    const writeText = vi.fn().mockRejectedValue(new Error("Permission denied"));
+    Object.defineProperty(navigator, "clipboard", {
+      value: { writeText },
+      configurable: true,
+      writable: true,
+    });
+    vi.spyOn(document, "execCommand").mockReturnValue(false);
+    return writeText;
+  }
+
+  function renderConnected() {
+    return render(
+      <WalletProvider initialAddress={LIVE_ADDRESS}>
+        <AccountOverview />
+      </WalletProvider>,
+    );
+  }
+
+  beforeEach(() => {
+    vi.useFakeTimers();
+    window.localStorage.clear();
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+    vi.restoreAllMocks();
+    window.localStorage.clear();
+  });
+
+  // ── Presence ──────────────────────────────────────────────────────────────
+
+  it("renders the copy button when the wallet is connected", () => {
+    mockClipboardSuccess();
+    renderConnected();
+
+    expect(
+      screen.getByRole("button", { name: /copy wallet address/i }),
+    ).toBeInTheDocument();
+  });
+
+  it("does not render the copy button when the wallet is disconnected", () => {
+    render(
+      <WalletProvider initialAddress={null}>
+        <AccountOverview />
+      </WalletProvider>,
+    );
+
+    expect(
+      screen.queryByTestId("copy-address-button"),
+    ).not.toBeInTheDocument();
+  });
+
+  it("copy button has type='button' so it never submits a form", () => {
+    mockClipboardSuccess();
+    renderConnected();
+
+    expect(screen.getByTestId("copy-address-button")).toHaveAttribute(
+      "type",
+      "button",
+    );
+  });
+
+  // ── Clipboard interaction ─────────────────────────────────────────────────
+
+  it("calls clipboard.writeText with the full non-truncated address on click", async () => {
+    const writeText = mockClipboardSuccess();
+    renderConnected();
+
+    await act(async () => {
+      fireEvent.click(screen.getByTestId("copy-address-button"));
+    });
+
+    expect(writeText).toHaveBeenCalledWith(LIVE_ADDRESS);
+  });
+
+  it("does not render the full address in the DOM (only truncated form shown)", () => {
+    mockClipboardSuccess();
+    renderConnected();
+
+    // Full address must never appear in the visible DOM.
+    expect(screen.queryByText(LIVE_ADDRESS)).not.toBeInTheDocument();
+    // Truncated form is present.
+    expect(screen.getByTestId("account-overview-address")).toHaveTextContent(
+      "GABC...F123",
+    );
+  });
+
+  // ── Success feedback ──────────────────────────────────────────────────────
+
+  it("shows 'Copied' text after a successful copy", async () => {
+    mockClipboardSuccess();
+    renderConnected();
+
+    await act(async () => {
+      fireEvent.click(screen.getByTestId("copy-address-button"));
+    });
+
+    expect(screen.getByText("Copied")).toBeInTheDocument();
+  });
+
+  it("updates aria-label to 'Address copied' after success", async () => {
+    mockClipboardSuccess();
+    renderConnected();
+
+    await act(async () => {
+      fireEvent.click(screen.getByTestId("copy-address-button"));
+    });
+
+    expect(
+      screen.getByRole("button", { name: /address copied/i }),
+    ).toBeInTheDocument();
+  });
+
+  it("populates the aria-live announcement region with success text", async () => {
+    mockClipboardSuccess();
+    renderConnected();
+
+    await act(async () => {
+      fireEvent.click(screen.getByTestId("copy-address-button"));
+    });
+
+    expect(screen.getByTestId("copy-address-announcement")).toHaveTextContent(
+      "Wallet address copied to clipboard.",
+    );
+  });
+
+  it("resets feedback back to idle after 2 seconds", async () => {
+    mockClipboardSuccess();
+    renderConnected();
+
+    await act(async () => {
+      fireEvent.click(screen.getByTestId("copy-address-button"));
+    });
+
+    expect(screen.getByText("Copied")).toBeInTheDocument();
+
+    await act(async () => {
+      vi.advanceTimersByTime(2000);
+    });
+
+    expect(screen.queryByText("Copied")).not.toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: /copy wallet address/i }),
+    ).toBeInTheDocument();
+  });
+
+  it("clears the aria-live announcement after the idle reset", async () => {
+    mockClipboardSuccess();
+    renderConnected();
+
+    await act(async () => {
+      fireEvent.click(screen.getByTestId("copy-address-button"));
+    });
+
+    await act(async () => {
+      vi.advanceTimersByTime(2000);
+    });
+
+    expect(
+      screen.getByTestId("copy-address-announcement"),
+    ).toHaveTextContent("");
+  });
+
+  // ── Error feedback ────────────────────────────────────────────────────────
+
+  it("shows 'Failed' text when the clipboard write fails", async () => {
+    mockClipboardFailure();
+    renderConnected();
+
+    await act(async () => {
+      fireEvent.click(screen.getByTestId("copy-address-button"));
+    });
+
+    await waitFor(() => {
+      expect(screen.getByText("Failed")).toBeInTheDocument();
+    });
+  });
+
+  it("updates aria-label to failure text when the clipboard write fails", async () => {
+    mockClipboardFailure();
+    renderConnected();
+
+    await act(async () => {
+      fireEvent.click(screen.getByTestId("copy-address-button"));
+    });
+
+    await waitFor(() => {
+      expect(
+        screen.getByRole("button", { name: /copy failed/i }),
+      ).toBeInTheDocument();
+    });
+  });
+
+  it("populates the aria-live announcement region with error text on failure", async () => {
+    mockClipboardFailure();
+    renderConnected();
+
+    await act(async () => {
+      fireEvent.click(screen.getByTestId("copy-address-button"));
+    });
+
+    await waitFor(() => {
+      expect(
+        screen.getByTestId("copy-address-announcement"),
+      ).toHaveTextContent("Failed to copy address. Please try again.");
+    });
+  });
+
+  it("resets error feedback back to idle after 3 seconds", async () => {
+    mockClipboardFailure();
+    renderConnected();
+
+    await act(async () => {
+      fireEvent.click(screen.getByTestId("copy-address-button"));
+    });
+
+    await waitFor(() =>
+      expect(screen.getByText("Failed")).toBeInTheDocument(),
+    );
+
+    await act(async () => {
+      vi.advanceTimersByTime(3000);
+    });
+
+    expect(screen.queryByText("Failed")).not.toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: /copy wallet address/i }),
+    ).toBeInTheDocument();
+  });
+
+  // ── Accessibility ─────────────────────────────────────────────────────────
+
+  it("the aria-live region has role='status' and aria-atomic='true'", () => {
+    mockClipboardSuccess();
+    renderConnected();
+
+    const region = screen.getByTestId("copy-address-announcement");
+    expect(region).toHaveAttribute("role", "status");
+    expect(region).toHaveAttribute("aria-live", "polite");
+    expect(region).toHaveAttribute("aria-atomic", "true");
+  });
+
+  it("the copy button is keyboard-operable via Enter key", async () => {
+    const writeText = mockClipboardSuccess();
+    renderConnected();
+
+    await act(async () => {
+      fireEvent.keyDown(screen.getByTestId("copy-address-button"), {
+        key: "Enter",
+        code: "Enter",
+      });
+      fireEvent.click(screen.getByTestId("copy-address-button"));
+    });
+
+    expect(writeText).toHaveBeenCalled();
+  });
+});
