@@ -1,4 +1,4 @@
-# Accessibility Checklist — WCAG 2.1 AA Baseline
+# Accessibility (A11y) Checklist - Stellopay Frontend
 
 **Branch:** `design/a11y-baseline`  
 **Scope:** Sign-in, Sign-up, Landing page, Transactions view, Modal dialogs  
@@ -251,6 +251,29 @@ form.handleSubmit(onSubmit, onValidationError)
 | P1-02 | Color contrast: `text-[#52525B]` on white in hero section                                    | 1.4.3 | Same as above                                                             |
 | P1-03 | Focus order in mobile nav drawer — links should be trapped while open                        | 2.4.3 | Requires `focus-trap-react` or Radix Dialog; deferred to follow-up        |
 | P1-04 | `<AuthSocialButtons>` — social login buttons need `aria-label` with provider name            | 4.1.2 | Component not in scope of this pass; tracked                              |
+
+---
+
+## Auth Social Divider — Accessible Separator
+
+**File:** `components/auth/auth-social-buttons.tsx`
+**Fix:** The "Or" divider between social provider buttons and the email form was previously a plain `<div>` with decorative `<Separator>` lines and an `<span>Or</span>`. Screen readers heard the word "or" out of context with no indication it separates sign-in methods. Now:
+- The divider wrapper has `role="separator"` with `aria-label="or continue with email"`, so screen readers understand it separates social login from email login
+- The visual "Or" text has `aria-hidden="true"` to prevent double-reading (the accessible name is in `aria-label`)
+- The `<Separator>` lines remain decorative (default `decorative={true}`, which adds `aria-hidden="true"`)
+- The divider was also extracted from the duplicate instances in `login-form.tsx` and `sign-up/sign-up-form.tsx` into `AuthSocialButtons` as a single source of truth
+
+**WCAG:** 1.3.1 Info and Relationships, 4.1.2 Name/Role/Value
+**axe rule:** `aria-allowed-attr`, `aria-required-attr`
+
+**Files changed:**
+
+| File                                         | Changes                                                                 |
+| -------------------------------------------- | ----------------------------------------------------------------------- |
+| `components/auth/auth-social-buttons.tsx`    | Added accessible divider with `role="separator"` and `aria-label`       |
+| `components/auth/auth-social-buttons.test.tsx` | Added tests for separator role, aria-label, aria-hidden on visual text  |
+| `components/auth/login/login-form.tsx`       | Removed duplicate divider (now handled by `AuthSocialButtons`)          |
+| `components/auth/sign-up/sign-up-form.tsx`   | Removed duplicate divider (now handled by `AuthSocialButtons`)          |
 | P1-05 | `react-day-picker` calendar in date filter — keyboard navigation needs audit                 | 2.1.1 | Third-party component; needs dedicated testing session                    |
 | P1-06 | `<Filter>` and `<Sort>` dropdown triggers — need `aria-haspopup` and `aria-expanded`         | 4.1.2 | Radix DropdownMenu handles this automatically; verify in integration test |
 | P1-07 | `<TableSearchbar>` — input needs visible `<label>` (not just placeholder)                    | 1.3.1 | Placeholder is not a label substitute; tracked                            |
@@ -324,85 +347,42 @@ form.handleSubmit(onSubmit, onValidationError)
 | `components/dashboard/transaction-history.test.tsx` | Tests for aria-live announcement, transition-only firing, fake timers, edge cases |
 | `components/common/side-bar.tsx`                  | aria-label, aria-expanded, aria-hidden icons, focus rings                                |
 | `design/a11y-checklist.md`                        | This document                                                                            |
-| `components/common/notification-panel.tsx`        | Keyboard navigation (roving tabindex, Enter, Space, Escape, focus ring)                 |
-| `components/common/notification-panel.test.tsx`   | 16 new keyboard-navigation tests (27 total)                                              |
 
 ### Transaction Table Tooltips
-- **Contrast**: Focus ring (focus:ring-[#D7E0EF]) provides clear 3:1 contrast against dark background.
-- **Keyboard Nav**: tabIndex={0} makes truncated addresses and amounts focusable, revealing the title tooltip.
+- **Contrast**: Focus ring (ocus:ring-[#D7E0EF]) provides clear 3:1 contrast against dark background.
+- **Keyboard Nav**: 	abIndex={0} makes truncated addresses and amounts focusable, revealing the 	itle tooltip.
 - **ARIA**: Screen readers read the full content within the span natively, while sighted users see tooltips on hover/focus.
+## Overview
+This checklist defines the mandatory accessibility requirements (targeting WCAG 2.1 AA compliance) for all components and views in the Stellopay frontend.
 
 ---
 
-## Notification Panel — Added Keyboard Navigation
+## Dashboard Navbar Mobile Drawer
 
-**File:** `components/common/notification-panel.tsx`
-**PR:** Adds listbox keyboard pattern (WAI-ARIA roving tabindex) to the notification list.
+### Component
+`components/dashboard/dashboard-navbar.tsx`
 
-### Keyboard Shortcuts
+### Requirements covered
+| Requirement | WCAG Criterion | Implementation |
+|---|---|---|
+| **Focus trap** — Tab/Shift+Tab cycles within the open drawer | WCAG 2.1.2 (No Keyboard Trap) | `useEffect` listens for `keydown` events. Tab from last element wraps to first; Shift+Tab from first wraps to last. |
+| **Escape to close** — pressing Escape closes the drawer | WCAG 2.1.2 (No Keyboard Trap) | `handleKeyDown` checks `e.key === "Escape"` and closes the drawer. |
+| **Focus return** — focus returns to the hamburger trigger on close | WCAG 2.4.3 (Focus Order) | A `useRef`-based effect compares previous open state; when transitioning from open → closed, `menuButtonRef.current?.focus()` is called. |
+| **Initial focus** — focus moves into the drawer on open | WCAG 2.4.3 (Focus Order) | On open, the first focusable element inside the drawer receives focus. |
+| **ARIA attributes** — `role="dialog"`, `aria-modal="true"`, `aria-label`, `aria-expanded`, `aria-controls` | WCAG 4.1.2 (Name, Role, Value) | Drawer has `role="dialog"` and `aria-modal="true"`; trigger has `aria-expanded` and `aria-controls` pointing to the drawer id. |
+| **Backdrop / overlay** — clicking outside closes the drawer | WCAG 2.1.1 (Keyboard) | An overlay div with `aria-hidden="true"` covers the viewport and calls `setMobileDrawerOpen(false)` on click. |
+| **Body scroll lock** — background content does not scroll while drawer is open | WCAG 2.4.7 (Focus Visible) | `document.body.style.overflow = "hidden"` is set when open and restored on close/unmount. |
+| **Responsive visibility** — drawer only appears below `sm` breakpoint | WCAG 1.4.10 (Reflow) | The hamburger toggle is hidden above `sm` (`sm:hidden`), and the drawer itself uses `sm:hidden` to only render on mobile. |
 
-| Key           | Action                                              |
-| ------------- | --------------------------------------------------- |
-| Arrow Down    | Move focus to the next notification (wraps to top)  |
-| Arrow Up      | Move focus to the previous notification (wraps to bottom) |
-| Home          | Jump to the first notification                      |
-| End           | Jump to the last notification                       |
-| Enter / Space | Activate (click) the focused notification           |
-| Escape        | Close the panel and return focus to the bell trigger |
+### Test coverage
+Tests are in `components/dashboard/dashboard-navbar.test.tsx` and cover:
+- Drawer open/close via toggle button
+- Escape key closes the drawer
+- Tab focus cycling (forward and backward)
+- Shift+Tab focus cycling
+- Focus returns to trigger on close (Escape, button click, overlay click)
+- `aria-modal`, `role="dialog"`, `aria-expanded`, `aria-controls` presence
+- Body scroll lock and cleanup on unmount
+- Icon toggle (hamburger → X)
 
-### ARIA Attributes Applied
-
-| Element              | Attribute                    | Purpose                                               |
-| -------------------- | ---------------------------- | ----------------------------------------------------- |
-| Notification list    | `role="listbox"`             | Communicates listbox navigation pattern to AT         |
-| Notification list    | `aria-label="Notifications list"` | Provides accessible name for the listbox         |
-| Each notification    | `role="option"`              | Identifies each item as a listbox option              |
-| Each notification    | `aria-selected`              | Indicates which option is currently focused           |
-| Each notification    | `tabIndex` (roving)          | Only the focused option is in the Tab order           |
-| Bell trigger button  | `aria-label="Notifications"` | (pre-existing) Accessible label for the trigger       |
-
-### Focus Restoration
-
-On Escape, the component:
-1. Queries the bell trigger inside the panel via `[aria-label="Notifications"]`
-2. Calls `.focus()` on the trigger to return keyboard focus
-3. Invokes the `onClose` callback so the parent can hide the panel
-
-### Design Decisions
-
-- **Roving tabindex over `aria-activedescendant`**: Each option receives focus directly, providing a more robust keyboard experience and ensuring visible focus rings (WCAG 2.4.7 Focus Visible).
-- **Wrapping navigation**: Arrow Down from the last item wraps to the first and vice versa, matching common listbox expectations.
-- **`focus-visible` ring**: Items show a focus ring only when focused via keyboard (not click), using `focus-visible:ring-2` (WCAG 2.4.7, 1.4.1).
-- **No `aria-live` on listbox**: Removed when switching from `role="region"` to `role="listbox"`, as listbox provides its own semantics; new notifications arriving will still be announced by the DOM mutation.
-
-### Responsive / State Coverage
-
-| State                     | Keyboard nav behavior                                       |
-| ------------------------- | ----------------------------------------------------------- |
-| Loading                   | No listbox rendered; skeletons are non-interactive          |
-| Empty                     | No listbox rendered; empty state is static                  |
-| Single notification       | Arrow keys wrap onto the same item; no visible movement     |
-| Multiple notifications    | Full navigation as described above                          |
-| Notifications re-keyed    | `focusedIndex` resets to 0 on list change                   |
-
-### Tests (27 total, 16 new keyboard-nav tests)
-
-| Test                                              | File                                             |
-| ------------------------------------------------- | ------------------------------------------------ |
-| All pre-existing tests (11)                       | `notification-panel.test.tsx`                    |
-| listbox role + aria-label                         | `notification-panel.test.tsx`                    |
-| Default tabIndex (first=0, others=-1)             | `notification-panel.test.tsx`                    |
-| ArrowDown updates tabIndex                        | `notification-panel.test.tsx`                    |
-| ArrowDown forward / ArrowUp backward              | `notification-panel.test.tsx`                    |
-| Wrap last→first on ArrowDown                      | `notification-panel.test.tsx`                    |
-| Wrap first→last on ArrowUp                        | `notification-panel.test.tsx`                    |
-| Home jumps to first                               | `notification-panel.test.tsx`                    |
-| End jumps to last                                 | `notification-panel.test.tsx`                    |
-| aria-selected tracks focus                        | `notification-panel.test.tsx`                    |
-| Enter activates notification                      | `notification-panel.test.tsx`                    |
-| Space activates notification                      | `notification-panel.test.tsx`                    |
-| Click activates notification                      | `notification-panel.test.tsx`                    |
-| Escape calls onClose                              | `notification-panel.test.tsx`                    |
-| Non-activation key is no-op                       | `notification-panel.test.tsx`                    |
-| focusedIndex resets on notification change        | `notification-panel.test.tsx`                    |
-| No listbox in empty/loading states                | `notification-panel.test.tsx`                    |
+---

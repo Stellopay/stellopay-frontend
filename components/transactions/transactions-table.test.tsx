@@ -263,6 +263,21 @@ describe("TransactionsTable — empty and loading states", () => {
     // Skeleton rows still produce <tr> elements
     expect(screen.getAllByRole("row").length).toBeGreaterThan(1);
   });
+
+  it("renders with logical spacing properties in RTL direction", () => {
+    render(
+      <div dir="rtl">
+        <TransactionsTable transactions={mockTransactions} />
+      </div>
+    );
+
+    expect(screen.getByText("Deposit")).toBeInTheDocument();
+    expect(screen.getByText("#1")).toBeInTheDocument();
+
+    const addressElements = screen.getAllByTitle("0x1234567890abcdef1234567890abcdef1234567890abcdef");
+    expect(addressElements.length).toBeGreaterThan(0);
+    expect(addressElements[0]).toHaveClass("-ms-1");
+  });
 });
 
 

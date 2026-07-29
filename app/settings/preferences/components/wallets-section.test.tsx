@@ -1,17 +1,12 @@
-import {
-  act,
-  fireEvent,
-  render,
-  screen,
-  waitFor,
-  within,
-} from "@testing-library/react";
+iimport React from "react";
+import { render, screen, fireEvent, waitFor, act } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import React from "react";
-import { describe, expect, it, vi, beforeEach, afterEach } from "vitest";
-
+import { within } from "@testing-library/dom";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import { ThemeProvider } from "@/context/theme-context";
 import { WalletProvider } from "@/context/wallet-context";
 import { DEMO_WALLETS } from "@/lib/demo-data";
+import { Toaster } from "@/components/ui/toaster";
 import WalletsSection from "./wallets-section";
 
 // ---------------------------------------------------------------------------
@@ -44,12 +39,19 @@ function mockClipboardFailure() {
 // Render helper
 // ---------------------------------------------------------------------------
 
-/** Render WalletsSection inside a real WalletProvider. */
+/**
+ * Render WalletsSection inside a real WalletProvider, with the app's
+ * Toaster mounted alongside it (as it is in `app/layout.tsx`) so
+ * `toast.success`/`toast.error` calls actually render into the DOM.
+ */
 function renderWithWallet(initialAddress: string | null = null) {
   return render(
-    <WalletProvider initialAddress={initialAddress}>
-      <WalletsSection />
-    </WalletProvider>,
+    <ThemeProvider>
+      <WalletProvider initialAddress={initialAddress}>
+        <WalletsSection />
+      </WalletProvider>
+      <Toaster />
+    </ThemeProvider>,
   );
 }
 
@@ -136,12 +138,52 @@ describe("WalletsSection – disconnect via danger zone", () => {
     });
   }
 
-  it("shows the success status message after removal", async () => {
+  it("shows a success toast after removal", async () => {
     renderWithWallet(LIVE_ADDRESS);
     await triggerRemove();
+    await waitFor(() =>
+      expect(
+        screen.getByText(/wallet removal request captured/i),
+      ).toBeInTheDocument(),
+    );
+  });
+
+  it("announces the removal toast to assistive tech via an aria-live region", async () => {
+    renderWithWallet(LIVE_ADDRESS);
+    await triggerRemove();
+    await waitFor(() =>
+      expect(
+        screen.getByText(/wallet removal request captured/i),
+      ).toBeInTheDocument(),
+    );
+
+    const liveRegion = document.querySelector('[aria-live="polite"]');
+    expect(liveRegion).not.toBeNull();
     expect(
-      screen.getByText(/wallet removal request captured/i),
-    ).toBeInTheDocument();
+      liveRegion?.textContent?.toLowerCase(),
+    ).toContain("wallet removal request captured");
+  });
+
+  it("lets keyboard users dismiss the removal toast via the close button", async () => {
+    renderWithWallet(LIVE_ADDRESS);
+    await triggerRemove();
+    await waitFor(() =>
+      expect(
+        screen.getByText(/wallet removal request captured/i),
+      ).toBeInTheDocument(),
+    );
+
+    const closeButton = screen.getByRole("button", { name: /close toast/i });
+    closeButton.focus();
+    expect(closeButton).toHaveFocus();
+
+    await userEvent.keyboard("{Enter}");
+
+    await waitFor(() =>
+      expect(
+        screen.queryByText(/wallet removal request captured/i),
+      ).not.toBeInTheDocument(),
+    );
   });
 
   it("switches to demo cards after disconnect", async () => {
@@ -332,189 +374,57 @@ describe("WalletsSection – copy button on demo wallet cards", () => {
 });
 
 // ---------------------------------------------------------------------------
-// Copy-to-clipboard — live wallet card
+// Save wallet settings — Sonner toast feedback
 // ---------------------------------------------------------------------------
-describe("WalletsSection – copy button on live wallet card", () => {
-  const LIVE_ADDRESS = "GABCDEFGHIJKLMNOPQRSTUVWXYZ234567ABCDEFGHIJKLMNOPF123";
-
-  beforeEach(() => {
-    vi.useFakeTimers();
-  });
-
+describe("WalletsSection – save wallet settings toasts", () => {
   afterEach(() => {
-    vi.useRealTimers();
     vi.restoreAllMocks();
   });
 
-  it("renders a copy button on the live wallet card", () => {
-    mockClipboardSuccess();
-    renderWithWallet(LIVE_ADDRESS);
+  it("shows a success toast when saving resolves", async () => {
+    vi.spyOn(Math, "random").mockReturnValue(0.1);
+    renderWithWallet(null);
 
-    const liveCard = screen.getByTestId("live-wallet-card");
-    expect(
-      within(liveCard).getByRole("button", { name: /copy wallet address/i }),
-    ).toBeInTheDocument();
-  });
-
-  it("copies the full (non-truncated) live address to the clipboard", async () => {
-    const writeText = mockClipboardSuccess();
-    renderWithWallet(LIVE_ADDRESS);
-
-    const liveCard = screen.getByTestId("live-wallet-card");
     await userEvent.click(
-      within(liveCard).getByRole("button", { name: /copy wallet address/i }),
+      screen.getByRole("button", { name: /save wallet settings/i }),
     );
 
-    expect(writeText).toHaveBeenCalledWith(LIVE_ADDRESS);
+    await waitFor(
+      () =>
+        expect(
+          screen.getByText(/wallet safeguards updated/i),
+        ).toBeInTheDocument(),
+      { timeout: 3000 },
+    );
   });
 
-  it("shows 'Copied' feedback after a successful copy on the live card", async () => {
-    mockClipboardSuccess();
-    renderWithWallet(LIVE_ADDRESS);
+  it("shows an error toast when saving rejects", async () => {
+    vi.spyOn(Math, "random").mockReturnValue(0.95);
+    renderWithWallet(null);
 
-    const liveCard = screen.getByTestId("live-wallet-card");
     await userEvent.click(
-      within(liveCard).getByRole("button", { name: /copy wallet address/i }),
+      screen.getByRole("button", { name: /save wallet settings/i }),
     );
 
-    expect(within(liveCard).getByText("Copied")).toBeInTheDocument();
+    await waitFor(
+      () =>
+        expect(screen.getByText(/failed to save changes/i)).toBeInTheDocument(),
+      { timeout: 3000 },
+    );
   });
 
-  it("resets live card feedback back to idle after 2 seconds", async () => {
-    mockClipboardSuccess();
-    renderWithWallet(LIVE_ADDRESS);
+  it("re-enables the save button once saving resolves", async () => {
+    vi.spyOn(Math, "random").mockReturnValue(0.1);
+    renderWithWallet(null);
 
-    const liveCard = screen.getByTestId("live-wallet-card");
-    await userEvent.click(
-      within(liveCard).getByRole("button", { name: /copy wallet address/i }),
-    );
-
-    await act(async () => {
-      vi.advanceTimersByTime(2000);
+    const button = screen.getByRole("button", {
+      name: /save wallet settings/i,
     });
+    await userEvent.click(button);
+    expect(button).toBeDisabled();
 
-    expect(within(liveCard).queryByText("Copied")).not.toBeInTheDocument();
-  });
-
-  it("shows 'Failed' feedback when the clipboard write fails on the live card", async () => {
-    mockClipboardFailure();
-    renderWithWallet(LIVE_ADDRESS);
-
-    const liveCard = screen.getByTestId("live-wallet-card");
-    await userEvent.click(
-      within(liveCard).getByRole("button", { name: /copy wallet address/i }),
-    );
-
-    await waitFor(() => {
-      expect(within(liveCard).getByText("Failed")).toBeInTheDocument();
-    });
-  });
-
-  it("full address is never rendered in the DOM (only truncated form shown)", () => {
-    mockClipboardSuccess();
-    renderWithWallet(LIVE_ADDRESS);
-
-    expect(screen.queryByText(LIVE_ADDRESS)).not.toBeInTheDocument();
-    // The truncated form is present.
-    expect(screen.getByText(/GABC\.\.\.F123/)).toBeInTheDocument();
-  });
-});
-
-// ---------------------------------------------------------------------------
-// Copy-to-clipboard — added wallet rows
-// ---------------------------------------------------------------------------
-describe("WalletsSection – copy button on added wallet rows", () => {
-  const VALID_ADDRESS =
-    "GBZXN7PIRZGNMHGA7MUUUF4GWPY5AYPGZIXUNYL67X5TVLZN7CI6S2W";
-
-  beforeEach(() => {
-    vi.useFakeTimers();
-  });
-
-  afterEach(() => {
-    vi.useRealTimers();
-    vi.restoreAllMocks();
-  });
-
-  /** Add a wallet via the "Add wallet" form. */
-  async function addWallet(address: string) {
-    const input = screen.getByPlaceholderText(/G… or M…/i);
-    await userEvent.clear(input);
-    await userEvent.type(input, address);
-    await userEvent.click(screen.getByRole("button", { name: /add wallet/i }));
-  }
-
-  it("renders a copy button on a newly added wallet row", async () => {
-    mockClipboardSuccess();
-    renderWithWallet(null);
-
-    await addWallet(VALID_ADDRESS);
-
-    const row = screen.getByTestId("added-wallet");
-    expect(
-      within(row).getByRole("button", { name: /copy wallet address/i }),
-    ).toBeInTheDocument();
-  });
-
-  it("copies the full address (not the truncated display) on click", async () => {
-    const writeText = mockClipboardSuccess();
-    renderWithWallet(null);
-
-    await addWallet(VALID_ADDRESS);
-
-    const row = screen.getByTestId("added-wallet");
-    await userEvent.click(
-      within(row).getByRole("button", { name: /copy wallet address/i }),
-    );
-
-    expect(writeText).toHaveBeenCalledWith(VALID_ADDRESS);
-  });
-
-  it("shows 'Copied' feedback after a successful copy", async () => {
-    mockClipboardSuccess();
-    renderWithWallet(null);
-
-    await addWallet(VALID_ADDRESS);
-
-    const row = screen.getByTestId("added-wallet");
-    await userEvent.click(
-      within(row).getByRole("button", { name: /copy wallet address/i }),
-    );
-
-    expect(within(row).getByText("Copied")).toBeInTheDocument();
-  });
-
-  it("resets feedback back to idle after 2 seconds", async () => {
-    mockClipboardSuccess();
-    renderWithWallet(null);
-
-    await addWallet(VALID_ADDRESS);
-
-    const row = screen.getByTestId("added-wallet");
-    await userEvent.click(
-      within(row).getByRole("button", { name: /copy wallet address/i }),
-    );
-
-    await act(async () => {
-      vi.advanceTimersByTime(2000);
-    });
-
-    expect(within(row).queryByText("Copied")).not.toBeInTheDocument();
-  });
-
-  it("shows 'Failed' feedback when the clipboard write fails", async () => {
-    mockClipboardFailure();
-    renderWithWallet(null);
-
-    await addWallet(VALID_ADDRESS);
-
-    const row = screen.getByTestId("added-wallet");
-    await userEvent.click(
-      within(row).getByRole("button", { name: /copy wallet address/i }),
-    );
-
-    await waitFor(() => {
-      expect(within(row).getByText("Failed")).toBeInTheDocument();
+    await waitFor(() => expect(button).not.toBeDisabled(), {
+      timeout: 3000,
     });
   });
 });

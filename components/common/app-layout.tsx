@@ -4,10 +4,14 @@ import type React from "react";
 import { SideBar } from "./side-bar";
 import Navbar from "@/components/common/navbar";
 import useSidebar from "@/context/sidebar-context";
+import { useGlobalShortcuts } from "@/hooks/useGlobalShortcuts";
 import { AppLayoutProps } from "@/types/ui";
 
 export default function AppLayout({ children }: AppLayoutProps) {
   const { isSidebarOpen, isMobile } = useSidebar();
+
+  // Enable global keyboard shortcuts (g + d/t/s) for navigation
+  useGlobalShortcuts();
 
   return (
     <div className="relative h-screen overflow-hidden">

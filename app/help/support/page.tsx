@@ -2,15 +2,23 @@
 
 import FaqCard from "@/components/common/faq-card";
 import SupportTabs from "@/components/common/support-tabs";
+import TicketStatusWidget from "@/components/help-support/ticket-status-widget";
 import { CircleHelp } from "lucide-react";
 import { useState } from "react";
+import { getDemoSupportTickets } from "@/lib/demo-data-support";
 
 const SupportPage = () => {
   const [activeTab, setActiveTab] = useState("Client FAQ");
+  const supportTickets = getDemoSupportTickets();
 
   return (
     <>
       <div className="min-h-screen p-4 sm:p-6 gap-6 text-white flex flex-col">
+        {/* Support Tickets Status Widget - always visible */}
+        <div className="w-full">
+          <TicketStatusWidget tickets={supportTickets} isLoading={false} />
+        </div>
+
         {/* Shared Tabs Component with FAQ content as children */}
         <SupportTabs activeTab={activeTab} setActiveTab={setActiveTab}>
           {/* FAQ Content - only shows when "Client FAQ" tab is active */}
