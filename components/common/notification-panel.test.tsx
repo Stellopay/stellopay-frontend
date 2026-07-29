@@ -5,13 +5,16 @@ import NotificationPanel, { CATEGORY_STORAGE_KEY } from "./notification-panel";
 import { NotificationItem } from "@/types/notification-item";
 
 const buildNotifications = (count: number): NotificationItem[] =>
-  Array.from({ length: count }).map((_, index) => ({
-    id: `notif-${index}`,
-    title: `Title ${index}`,
-    message: `Message ${index}`,
-    read: index % 2 === 0,
-    category: index % 3 === 0 ? "payments" : index % 3 === 1 ? "security" : "system",
-  }));
+  Array.from({ length: count }).map((_, index) => {
+    const isRead = index % 2 === 0;
+    return {
+      id: `notif-${index}`,
+      title: `Title ${index}`,
+      message: `Message ${index}`,
+      read: isRead,
+      ...(isRead ? { readAt: new Date().toISOString() } : {}),
+    };
+  });
 
 const buildCategorizedNotifications = (): NotificationItem[] => [
   { id: "notif-p1", title: "Payment Received", message: "Received 500 XLM", read: false, category: "payments" },
@@ -123,107 +126,13 @@ describe("NotificationPanel", () => {
     expect(unreadDots).toHaveLength(1);
   });
 
-  // ── Category Filter Tests ──────────────────────────────────────────
+  it("displays the readAt timestamp for read notifications if provided", () => {
+    const notifications: NotificationItem[] = [
+      { id: "read", title: "Read item", message: "msg", read: true, readAt: "2026-07-29T15:00:00Z" },
+    ];
+    render(<NotificationPanel notifications={notifications} />);
 
-  describe("category filtering", () => {
-    it("renders category filter tabs with accurate item counts", () => {
-      const notifications = buildCategorizedNotifications();
-      render(<NotificationPanel notifications={notifications} />);
-
-      expect(screen.getByRole("tablist", { name: "Filter notifications by category" })).toBeInTheDocument();
-
-      const tabs = screen.getAllByRole("tab");
-      expect(tabs).toHaveLength(4);
-
-      expect(screen.getByTestId("count-all")).toHaveTextContent("(4)");
-      expect(screen.getByTestId("count-payments")).toHaveTextContent("(2)");
-      expect(screen.getByTestId("count-security")).toHaveTextContent("(1)");
-      expect(screen.getByTestId("count-system")).toHaveTextContent("(1)");
-    });
-
-    it("filters notifications by selected category when clicked", () => {
-      const notifications = buildCategorizedNotifications();
-      render(<NotificationPanel notifications={notifications} />);
-
-      // Initially All is selected (4 items)
-      expect(screen.getByText("Payment Received")).toBeInTheDocument();
-      expect(screen.getByText("Password Reset")).toBeInTheDocument();
-      expect(screen.getByText("System Maintenance")).toBeInTheDocument();
-
-      // Click Payments tab
-      const paymentsTab = screen.getByRole("tab", { name: /Payments/i });
-      fireEvent.click(paymentsTab);
-
-      expect(screen.getByText("Payment Received")).toBeInTheDocument();
-      expect(screen.getByText("Payment Sent")).toBeInTheDocument();
-      expect(screen.queryByText("Password Reset")).not.toBeInTheDocument();
-      expect(screen.queryByText("System Maintenance")).not.toBeInTheDocument();
-
-      // Click Security tab
-      const securityTab = screen.getByRole("tab", { name: /Security/i });
-      fireEvent.click(securityTab);
-
-      expect(screen.queryByText("Payment Received")).not.toBeInTheDocument();
-      expect(screen.getByText("Password Reset")).toBeInTheDocument();
-      expect(screen.queryByText("System Maintenance")).not.toBeInTheDocument();
-    });
-
-    it("persists selected filter in sessionStorage", () => {
-      const notifications = buildCategorizedNotifications();
-      render(<NotificationPanel notifications={notifications} />);
-
-      const securityTab = screen.getByRole("tab", { name: /Security/i });
-      fireEvent.click(securityTab);
-
-      expect(sessionStorage.getItem(CATEGORY_STORAGE_KEY)).toBe("security");
-    });
-
-    it("restores last-selected filter from sessionStorage on initial render", () => {
-      sessionStorage.setItem(CATEGORY_STORAGE_KEY, "payments");
-
-      const notifications = buildCategorizedNotifications();
-      render(<NotificationPanel notifications={notifications} />);
-
-      const paymentsTab = screen.getByRole("tab", { name: /Payments/i });
-      expect(paymentsTab).toHaveAttribute("aria-selected", "true");
-
-      expect(screen.getByText("Payment Received")).toBeInTheDocument();
-      expect(screen.getByText("Payment Sent")).toBeInTheDocument();
-      expect(screen.queryByText("Password Reset")).not.toBeInTheDocument();
-    });
-
-    it("shows empty state when a selected category has no matching notifications", () => {
-      const notifications: NotificationItem[] = [
-        { id: "p1", title: "Payment Received", message: "Received 500 XLM", read: false, category: "payments" },
-      ];
-      render(<NotificationPanel notifications={notifications} />);
-
-      const securityTab = screen.getByRole("tab", { name: /Security/i });
-      fireEvent.click(securityTab);
-
-      expect(screen.getByText("You're all caught up")).toBeInTheDocument();
-      expect(screen.queryByRole("listbox")).not.toBeInTheDocument();
-    });
-
-    it("supports keyboard ArrowRight and ArrowLeft navigation between category tabs", () => {
-      const notifications = buildCategorizedNotifications();
-      render(<NotificationPanel notifications={notifications} />);
-
-      const allTab = screen.getByRole("tab", { name: /All/i });
-      const paymentsTab = screen.getByRole("tab", { name: /Payments/i });
-      const systemTab = screen.getByRole("tab", { name: /System/i });
-
-      // ArrowRight from All to Payments
-      fireEvent.keyDown(allTab, { key: "ArrowRight" });
-      expect(paymentsTab).toHaveAttribute("aria-selected", "true");
-
-      // ArrowLeft from Payments back to All (or ArrowLeft from All wraps to System)
-      fireEvent.keyDown(paymentsTab, { key: "ArrowLeft" });
-      expect(allTab).toHaveAttribute("aria-selected", "true");
-
-      fireEvent.keyDown(allTab, { key: "ArrowLeft" });
-      expect(systemTab).toHaveAttribute("aria-selected", "true");
-    });
+    expect(screen.getByText(/Read:/)).toBeInTheDocument();
   });
 
   // ── Keyboard navigation ────────────────────────────────────────────

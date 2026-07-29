@@ -482,3 +482,7 @@ Examples must not include real secrets, tokens, or addresses. Always use placeho
 ## Local Accessibility Testing Guide
 Before opening a pull request, please ensure your changes comply with our accessibility guidelines (targeting WCAG 2.1 AA compliance).
 Refer to the full manual and automated criteria in [design/a11y-checklist.md](design/a11y-checklist.md).
+
+## Notifications Data Model
+
+The `NotificationItem` type tracks notification state. It is critical to set the `readAt` timestamp field (ISO string) the first time a notification transitions from unread (`read: false`) to read (`read: true`). This ensures the UI can surface exactly when the user actually saw the item, supporting future audit logs and a more informative user experience.
