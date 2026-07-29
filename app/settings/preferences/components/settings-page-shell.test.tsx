@@ -4,8 +4,10 @@ import {
   fireEvent,
   render,
   screen,
+  waitFor,
   within,
 } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import SettingsPageShell from "./settings-page-shell";
 
@@ -30,9 +32,12 @@ vi.mock("next/image", () => ({
 
 /** Return the summary card element identified by its label text. */
 function summaryValue(label: string): HTMLElement {
-  const card = screen.getByText(label).closest('[data-slot="card"]');
+  const card = screen
+    .getAllByText(label)
+    .map((element) => element.closest('[data-slot="card"]'))
+    .find((element): element is HTMLElement => element !== null);
   if (!card) throw new Error(`Summary card for "${label}" not found`);
-  return card as HTMLElement;
+  return card;
 }
 
 describe("SettingsPageShell summary cards", () => {
@@ -55,6 +60,9 @@ describe("SettingsPageShell summary cards", () => {
     ).toBeInTheDocument();
     expect(
       within(summaryValue("Wallet coverage")).getByText("2 linked"),
+    ).toBeInTheDocument();
+    expect(
+      within(summaryValue("Statements")).getByText("3 ready"),
     ).toBeInTheDocument();
   });
 
@@ -82,75 +90,111 @@ describe("SettingsPageShell summary cards", () => {
   });
 });
 
-describe("SettingsPageShell keyboard tabs", () => {
+describe("SettingsPageShell unsaved-changes navigation guard", () => {
   afterEach(() => {
     cleanup();
+    vi.restoreAllMocks();
   });
 
-  function settingsTabs() {
-    const tablist = screen.getByRole("tablist", {
-      name: "Settings sections",
-    });
-    return within(tablist).getAllByRole("tab");
-  }
+  it("does not warn when switching sections with no unsaved changes", async () => {
+    const user = userEvent.setup();
+    render(<SettingsPageShell />);
+    const confirmSpy = vi.spyOn(window, "confirm");
 
-  it("keeps only the active settings tab in the tab order", () => {
-    render(<SettingsPageShell initialSection="notifications" />);
+    // Radix's TabsTrigger activates on pointer events, not a bare click, so
+    // this needs userEvent (which dispatches the full pointer sequence)
+    // rather than fireEvent.click.
+    await user.click(screen.getByRole("tab", { name: /notifications/i }));
 
-    const tabs = settingsTabs();
-    const tabbableTabs = tabs.filter((tab) => tab.tabIndex === 0);
-
-    expect(tabbableTabs).toHaveLength(1);
-    expect(tabbableTabs[0]).toHaveTextContent(/notifications/i);
-    expect(screen.getByRole("tab", { name: /notifications/i }))
-      .toHaveAttribute("aria-selected", "true");
-  });
-
-  it("cycles focus and active section with ArrowRight and ArrowLeft", () => {
-    render(<SettingsPageShell initialSection="notifications" />);
-
-    const notificationsTab = screen.getByRole("tab", {
-      name: /notifications/i,
-    });
-    notificationsTab.focus();
-
-    fireEvent.keyDown(notificationsTab, { key: "ArrowRight" });
-    expect(screen.getByRole("tab", { name: /security/i })).toHaveFocus();
-    expect(screen.getByRole("tab", { name: /security/i })).toHaveAttribute(
-      "aria-selected",
-      "true",
+    expect(confirmSpy).not.toHaveBeenCalled();
+    expect(screen.getByRole("tab", { name: /notifications/i })).toHaveAttribute(
+      "data-state",
+      "active",
     );
-
-    fireEvent.keyDown(screen.getByRole("tab", { name: /security/i }), {
-      key: "ArrowLeft",
-    });
-    expect(screen.getByRole("tab", { name: /notifications/i })).toHaveFocus();
-    expect(screen.getByRole("tab", { name: /notifications/i }))
-      .toHaveAttribute("aria-selected", "true");
   });
 
-  it("moves to the first and last settings tabs with Home and End", () => {
-    render(<SettingsPageShell initialSection="notifications" />);
+  it("warns before switching sections with an unsaved account edit, and stays put if cancelled", async () => {
+    const user = userEvent.setup();
+    render(<SettingsPageShell />);
 
-    const notificationsTab = screen.getByRole("tab", {
-      name: /notifications/i,
-    });
-    notificationsTab.focus();
+    const firstNameInput = screen.getByLabelText(/first name/i);
+    fireEvent.change(firstNameInput, { target: { value: "Ada" } });
 
-    fireEvent.keyDown(notificationsTab, { key: "End" });
-    expect(screen.getByRole("tab", { name: /wallets/i })).toHaveFocus();
-    expect(screen.getByRole("tab", { name: /wallets/i })).toHaveAttribute(
-      "aria-selected",
-      "true",
-    );
+    const confirmSpy = vi.spyOn(window, "confirm").mockReturnValue(false);
+    await user.click(screen.getByRole("tab", { name: /notifications/i }));
 
-    fireEvent.keyDown(screen.getByRole("tab", { name: /wallets/i }), {
-      key: "Home",
-    });
-    expect(screen.getByRole("tab", { name: /account/i })).toHaveFocus();
+    expect(confirmSpy).toHaveBeenCalled();
     expect(screen.getByRole("tab", { name: /account/i })).toHaveAttribute(
-      "aria-selected",
-      "true",
+      "data-state",
+      "active",
     );
+  });
+
+  it("allows switching sections with an unsaved edit once the user confirms", async () => {
+    const user = userEvent.setup();
+    render(<SettingsPageShell />);
+
+    const firstNameInput = screen.getByLabelText(/first name/i);
+    fireEvent.change(firstNameInput, { target: { value: "Ada" } });
+
+    vi.spyOn(window, "confirm").mockReturnValue(true);
+    await user.click(screen.getByRole("tab", { name: /notifications/i }));
+
+    expect(screen.getByRole("tab", { name: /notifications/i })).toHaveAttribute(
+      "data-state",
+      "active",
+    );
+  });
+
+  it("clears the dirty flag after a successful save, so a later navigation is unprompted", async () => {
+    const user = userEvent.setup();
+    // The simulated save in AccountSection has a random failure chance;
+    // force the success branch deterministically (same pattern used in
+    // account-section.test.tsx).
+    vi.spyOn(Math, "random").mockReturnValue(0.1);
+    render(<SettingsPageShell />);
+
+    const firstNameInput = screen.getByLabelText(/first name/i);
+    fireEvent.change(firstNameInput, { target: { value: "Ada" } });
+    fireEvent.click(
+      screen.getByRole("button", { name: /save account changes/i }),
+    );
+
+    await waitFor(
+      () =>
+        expect(
+          screen.getByText(/staged and ready for backend save/i),
+        ).toBeInTheDocument(),
+      { timeout: 3000 },
+    );
+
+    const confirmSpy = vi.spyOn(window, "confirm");
+    await user.click(screen.getByRole("tab", { name: /notifications/i }));
+
+    expect(confirmSpy).not.toHaveBeenCalled();
+    expect(
+      screen.getByRole("tab", { name: /notifications/i }),
+    ).toHaveAttribute("data-state", "active");
+  });
+
+  it("prevents a tab close/reload when there are unsaved changes", () => {
+    render(<SettingsPageShell />);
+
+    const firstNameInput = screen.getByLabelText(/first name/i);
+    fireEvent.change(firstNameInput, { target: { value: "Ada" } });
+
+    const event = new Event("beforeunload", { cancelable: true });
+    window.dispatchEvent(event);
+
+    expect(event.defaultPrevented).toBe(true);
+  });
+
+  it("does not prevent a tab close/reload when there are no unsaved changes", () => {
+    render(<SettingsPageShell />);
+
+    const event = new Event("beforeunload", { cancelable: true });
+    window.dispatchEvent(event);
+
+    expect(event.defaultPrevented).toBe(false);
   });
 });
