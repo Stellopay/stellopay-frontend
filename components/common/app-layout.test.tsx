@@ -1,18 +1,28 @@
 /**
- * Unit tests for the skip-to-content link in AppLayout.
+ * Unit tests for AppLayout.
  *
  * Covers:
+ *  Skip-to-content link (WCAG 2.4.1)
+ *  ────────────────────────────────
  *  - Skip link is the first focusable element in the DOM.
  *  - Skip link href points to #main-content.
  *  - Main content region has id="main-content" and tabIndex={-1}.
  *  - Skip link is visually hidden at rest (has "sr-only" class).
  *  - Activating the skip link (Enter key) moves focus to #main-content.
  *
+ *  Shortcut Help Modal integration
+ *  ────────────────────────────────
+ *  - Modal is not visible on initial render.
+ *  - Pressing '?' opens the shortcut help modal.
+ *  - Pressing '?' again closes the modal (toggle).
+ *  - Pressing '?' while an input is focused does NOT open the modal.
+ *  - Pressing Escape closes the open modal.
+ *
  * The sidebar context is mocked so the test is isolated from the context
  * provider; we only need the layout structure.
  */
 
-import { render, screen } from "@testing-library/react";
+import { render, screen, fireEvent } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { vi, describe, it, expect, beforeEach } from "vitest";
 
@@ -116,5 +126,88 @@ describe("AppLayout — skip-to-content link (WCAG 2.4.1)", () => {
   it("children are rendered inside the main content region", () => {
     const main = document.getElementById("main-content") as HTMLElement;
     expect(main).toHaveTextContent("Page content");
+  });
+});
+
+// ── Shortcut Help Modal — integration ─────────────────────────────────────────
+
+describe("AppLayout — shortcut help modal integration", () => {
+  it("shortcut help modal is not visible on initial render", () => {
+    renderLayout();
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+  });
+
+  it("pressing '?' opens the shortcut help modal", () => {
+    renderLayout();
+    fireEvent.keyDown(window, { key: "?" });
+    expect(screen.getByRole("dialog")).toBeInTheDocument();
+    expect(
+      screen.getByRole("heading", { name: /keyboard shortcuts/i }),
+    ).toBeInTheDocument();
+  });
+
+  it("pressing '?' twice toggles the modal closed", async () => {
+    renderLayout();
+
+    // Open
+    fireEvent.keyDown(window, { key: "?" });
+    expect(screen.getByRole("dialog")).toBeInTheDocument();
+
+    // Close — Radix Dialog animates out; after the second keydown the state
+    // is closed, so Radix stops rendering the dialog content.
+    fireEvent.keyDown(window, { key: "?" });
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+  });
+
+  it("pressing '?' while an <input> is focused does NOT open the modal", () => {
+    renderLayout();
+
+    // Create a focused input to simulate typing context
+    const input = document.createElement("input");
+    document.body.appendChild(input);
+    input.focus();
+
+    fireEvent.keyDown(window, { key: "?" });
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+
+    // Cleanup
+    document.body.removeChild(input);
+  });
+
+  it("pressing '?' while a <textarea> is focused does NOT open the modal", () => {
+    renderLayout();
+
+    const textarea = document.createElement("textarea");
+    document.body.appendChild(textarea);
+    textarea.focus();
+
+    fireEvent.keyDown(window, { key: "?" });
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+
+    document.body.removeChild(textarea);
+  });
+
+  it("pressing Escape closes the open modal", async () => {
+    const user = userEvent.setup();
+    renderLayout();
+
+    // Open the modal
+    fireEvent.keyDown(window, { key: "?" });
+    expect(screen.getByRole("dialog")).toBeInTheDocument();
+
+    // Escape should close it (Radix Dialog default behaviour)
+    await user.keyboard("{Escape}");
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+  });
+
+  it("clicking the modal close button closes the modal", async () => {
+    const user = userEvent.setup();
+    renderLayout();
+
+    fireEvent.keyDown(window, { key: "?" });
+    const closeBtn = screen.getByRole("button", { name: /close/i });
+    await user.click(closeBtn);
+
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
   });
 });
