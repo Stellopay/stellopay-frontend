@@ -547,10 +547,15 @@ Backend Integration: These structures are designed to be easily replaced by back
 Metadata and Open Graph Architecture
 Route-level metadata is defined across application routes in the Next.js App Router to ensure optimal SEO, canonical URLs, and distinct social preview cards (Open Graph / Twitter).
 
-Metadata Configurations
-Root Layout (app/layout.tsx): Defines root default title templates, fallback description, global site name, and default dynamic /opengraph-image preview card.
-Dashboard (app/dashboard/layout.tsx): Configures route title, description, canonical URL (https://stellopay.com/dashboard), custom Open Graph image (/dashboard-preview.jpg), and private route robots: { index: false, follow: false } directives.
-Transactions (app/transactions/layout.tsx): Configures route title, description, canonical URL (https://stellopay.com/transactions), Open Graph image (/opengraph-image), and robots: { index: false, follow: false } directives.
-Settings & Preferences (app/settings/preferences/layout.tsx): Configures route title, description, canonical URL (https://stellopay.com/settings/preferences), Open Graph image (/opengraph-image), and robots: { index: false, follow: false } directives.
-Testing and Validation
-All metadata exports are covered by unit tests in app/metadata.test.ts to verify uniqueness of titles/descriptions, correct canonical URLs, Open Graph parameters, and fallback logic.
+### Metadata Configurations
+
+- **Root Layout (`app/layout.tsx`)**: Defines root default title templates, fallback description, global site name, default dynamic `/opengraph-image` preview card, and links the Web App Manifest.
+- **Web App Manifest (`public/manifest.json`)**: Configures PWA installation parameters (name, theme color, background color, display mode), and specifies generated adaptive/maskable icons located in `public/icons/`.
+- **Dashboard (`app/dashboard/layout.tsx`)**: Configures route title, description, canonical URL (`https://stellopay.com/dashboard`), custom Open Graph image (`/dashboard-preview.jpg`), and private route `robots: { index: false, follow: false }` directives.
+- **Transactions (`app/transactions/layout.tsx`)**: Configures route title, description, canonical URL (`https://stellopay.com/transactions`), Open Graph image (`/opengraph-image`), and `robots: { index: false, follow: false }` directives.
+- **Settings & Preferences (`app/settings/preferences/layout.tsx`)**: Configures route title, description, canonical URL (`https://stellopay.com/settings/preferences`), Open Graph image (`/opengraph-image`), and `robots: { index: false, follow: false }` directives.
+
+### Testing and Validation
+
+All metadata exports are covered by unit tests in `app/metadata.test.ts` to verify uniqueness of titles/descriptions, correct canonical URLs, Open Graph parameters, and fallback logic.
+
