@@ -7,7 +7,7 @@ import TextareaInput from "@/components/common/text-area-input";
 import TextInput from "@/components/common/text-input";
 import Button from "@/components/common/button";
 import { Clock3, ContactRound, Mail, Phone } from "lucide-react";
-import React, { useState } from "react";
+import React, { useState, useRef } from "react";
 import { SupportTabsProps } from "@/types/ui";
 import { z } from "zod";
 
@@ -73,6 +73,12 @@ export default function SupportTabs({
     textarea?: string;
   }>({});
 
+  // Refs for focus management on validation failure
+  const firstNameRef = useRef<HTMLInputElement>(null);
+  const lastNameRef = useRef<HTMLInputElement>(null);
+  const emailRef = useRef<HTMLInputElement>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+
   React.useEffect(() => {
     setIsButtonDisabled(
       !(email && firstName && lastName && textarea) || status === "loading",
@@ -132,9 +138,74 @@ export default function SupportTabs({
   };
 
   /**
+   * Validates a single field using Zod schema and sets error if invalid.
+   * Called on blur to provide real-time validation feedback.
+   *
+   * @param fieldName - The name of the field to validate
+   * @param value - The value of the field
+   */
+  const validateFieldOnBlur = (
+    fieldName: keyof typeof errors,
+    value: string,
+  ): void => {
+    try {
+      // Create a schema for just this field
+      const fieldSchema = contactSchema.pick({
+        [fieldName]: true,
+      });
+
+      fieldSchema.parse({ [fieldName]: value });
+      // If validation passes, clear the error
+      setErrors((prev) => ({ ...prev, [fieldName]: undefined }));
+    } catch (err) {
+      // If validation fails, set the error
+      if (err instanceof z.ZodError) {
+        const issue = err.issues[0];
+        setErrors((prev) => ({
+          ...prev,
+          [fieldName]: issue.message,
+        }));
+      }
+    }
+  };
+
+  /**
+   * Handles blur event for first name field.
+   * Validates the field and sets error if invalid.
+   */
+  const handleFirstNameBlur = (): void => {
+    validateFieldOnBlur("firstName", firstName);
+  };
+
+  /**
+   * Handles blur event for last name field.
+   * Validates the field and sets error if invalid.
+   */
+  const handleLastNameBlur = (): void => {
+    validateFieldOnBlur("lastName", lastName);
+  };
+
+  /**
+   * Handles blur event for email field.
+   * Validates the field and sets error if invalid.
+   */
+  const handleEmailBlur = (): void => {
+    validateFieldOnBlur("email", email);
+  };
+
+  /**
+   * Handles blur event for textarea field.
+   * Validates the field and sets error if invalid.
+   */
+  const handleTextareaBlur = (): void => {
+    validateFieldOnBlur("textarea", textarea);
+  };
+
+  /**
    * Form submission handler.
    * Validates values against the zod schema, sets validation errors,
    * manages loading/success/error feedback, and makes the API call.
+   * On validation failure, focuses the first invalid field for accessibility.
    *
    * @param event - The React form submit event
    */
@@ -158,6 +229,11 @@ export default function SupportTabs({
     const validationResult = contactSchema.safeParse(data);
     if (!validationResult.success) {
       const fieldErrors: Record<string, string> = {};
+      const fieldOrder = ["firstName", "lastName", "email", "textarea"];
+      const firstInvalidField = fieldOrder.find((field) =>
+        validationResult.error.issues.some((issue) => issue.path[0] === field),
+      );
+
       validationResult.error.issues.forEach((issue) => {
         const path = issue.path[0] as string;
         if (path) {
@@ -165,6 +241,17 @@ export default function SupportTabs({
         }
       });
       setErrors(fieldErrors);
+
+      // Focus the first invalid field for accessibility (keyboard navigation)
+      if (firstInvalidField === "firstName" && firstNameRef.current) {
+        firstNameRef.current.focus();
+      } else if (firstInvalidField === "lastName" && lastNameRef.current) {
+        lastNameRef.current.focus();
+      } else if (firstInvalidField === "email" && emailRef.current) {
+        emailRef.current.focus();
+      } else if (firstInvalidField === "textarea" && textareaRef.current) {
+        textareaRef.current.focus();
+      }
       return;
     }
 
@@ -329,6 +416,7 @@ export default function SupportTabs({
                 placeholder="Maya"
                 label="First Name"
                 onChange={handleFirstNameChange}
+                onBlur={handleFirstNameBlur}
                 value={firstName}
                 error={!!errors.firstName}
                 helperText={errors.firstName}
@@ -337,6 +425,7 @@ export default function SupportTabs({
                 placeholder="Sullivan"
                 label="Last Name"
                 onChange={handleLastNameChange}
+                onBlur={handleLastNameBlur}
                 value={lastName}
                 error={!!errors.lastName}
                 helperText={errors.lastName}
@@ -345,6 +434,7 @@ export default function SupportTabs({
 
             <EmailInput
               onChange={handleEmailChange}
+              onBlur={handleEmailBlur}
               value={email}
               error={!!errors.email}
               helperText={errors.email}
@@ -354,6 +444,7 @@ export default function SupportTabs({
               label="We would like to hear from you"
               placeholder="Describe your issue in detail"
               onChange={handleTextareaChange}
+              onBlur={handleTextareaBlur}
               value={textarea}
               error={!!errors.textarea}
               helperText={errors.textarea}
