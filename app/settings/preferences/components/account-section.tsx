@@ -1,123 +1,22 @@
 'use client';
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
+import Image from "next/image";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
-import { DestructiveActionDialog } from "./destructive-action-dialog";
-import { OAuthCallbackError } from "@/lib/api/auth";
-
-export interface ProfileState {
-  firstName: string;
-  lastName: string;
-  displayName: string;
-  email: string;
-  timezone: string;
-  currency: string;
-}
-
-/**
- * Default profile values seeded from demo data. Exported so a parent surface
- * (e.g. the settings summary cards) can own the same initial state when it
- * lifts this section into a controlled component.
- */
-export const DEFAULT_PROFILE: ProfileState = {
-  firstName: DEMO_PROFILE.firstName,
-  lastName: DEMO_PROFILE.lastName,
-  displayName: DEMO_PROFILE.displayName,
-  email: DEMO_PROFILE.email,
-  timezone: DEMO_PROFILE.timezone,
-  currency: DEMO_PROFILE.currency,
-};
-
-/** Number of profile fields that have a non-empty value. */
-export function countCompletedProfileFields(profile: ProfileState): number {
-  return (Object.values(profile) as string[]).filter(
-    (value) => value.trim().length > 0,
-  ).length;
-}
-
-/** Total number of profile fields tracked. */
-export function totalProfileFields(profile: ProfileState): number {
-  return Object.keys(profile).length;
-}
-
-/** A profile is "complete" once every tracked field is filled in. */
-export function isProfileComplete(profile: ProfileState): boolean {
-  return countCompletedProfileFields(profile) === totalProfileFields(profile);
-}
-
-interface StatusState {
-  message: string;
-  type: "success" | "error" | null;
-}
-
-const sectionMap = [
-  {
-    label: "Account",
-    description: "Profile, identity, and region defaults.",
-    badge: "Core",
-  },
-  {
-    label: "Notifications",
-    description: "Transaction alerts and delivery channels.",
-    badge: "Alerts",
-  },
-  {
-    label: "Security",
-    description: "Password, verification, and sessions.",
-    badge: "Protected",
-  },
-  {
-    label: "Wallets",
-    description: "Connected wallets and transfer safeguards.",
-    badge: "2 linked",
-  },
-];
-
-/**
- * AccountSection component.
- * Renders user profile information, identity details, and regional settings.
- * Uses placeholder demo data pending full backend API integration.
- */
-interface AccountSectionProps {
-  /**
-   * Controlled profile state. When provided the component renders this value
-   * and reports edits through `onProfileChange`. When omitted the section
-   * manages its own internal state (standalone use).
-   */
-  profile?: ProfileState;
-  onProfileChange?: (next: ProfileState) => void;
-  /**
-   * Called with the final saved profile once a save succeeds, so a parent
-   * tracking a dirty/unsaved-changes flag can clear it. Not called on
-   * validation failure or a simulated save error.
-   */
-  onSaved?: (saved: ProfileState) => void;
-}
-
-export default function AccountSection({
-  profile: controlledProfile,
-  onProfileChange,
-  onSaved,
-}: AccountSectionProps = {}) {
-  const [internalProfile, setInternalProfile] =
-    useState<ProfileState>(DEFAULT_PROFILE);
-  const profile = controlledProfile ?? internalProfile;
-  const [status, setStatus] = useState<StatusState>({
-    message: "",
-    type: null,
-  });
-  const [isSaving, setIsSaving] = useState(false);
-  const [isEmailTouched, setIsEmailTouched] = useState(false);
-  const statusTimeoutRef = useRef<number | null>(null);
-  const isMountedRef = useRef(true);
-
-  // Trim before validating so incidental whitespace can neither defeat
-  // isValidEmail() nor end up persisted in a form the user never typed.
-  const normalizedEmail = profile.email.trim();
-  const isEmailValid = isValidEmail(normalizedEmail);
-  const showEmailError = isEmailTouched && !isEmailValid;
+import { Label } from "@/components/ui/label";
+import { Badge } from "@/components/ui/badge";
+import { Separator } from "@/components/ui/separator";
+import { saveProfile } from "@/lib/api/profile";
+import { toast } from "sonner";
+import {
+  User,
+  Upload,
+  Save,
+  Loader2,
+  CheckCircle2,
+  AlertCircle,
+} from "lucide-react";
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -160,6 +59,21 @@ export function totalProfileFields(): number {
 const ALLOWED_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
 const MAX_AVATAR_SIZE = 5 * 1024 * 1024; // 5 MB
 
+const PROFILE_FIELDS: Array<{
+  key: keyof ProfileData;
+  label: string;
+  type?: string;
+}> = [
+  { key: 'firstName', label: 'First Name' },
+  { key: 'lastName', label: 'Last Name' },
+  { key: 'displayName', label: 'Display Name' },
+  { key: 'email', label: 'Email', type: 'email' },
+  { key: 'timezone', label: 'Timezone' },
+  { key: 'currency', label: 'Currency' },
+  { key: 'legalEntity', label: 'Legal Entity' },
+  { key: 'billingCountry', label: 'Billing Country' },
+];
+
 // ─── Component ──────────────────────────────────────────────────────────────
 
 interface AccountSectionProps {
@@ -171,7 +85,7 @@ export default function AccountSection({
   profile,
   onProfileChange,
 }: AccountSectionProps) {
-  // Last-known-good snapshot so we can roll back on a failed save.
+  // Snapshot captured at mount time for rollback on save failure.
   const lastSavedProfile = useRef<ProfileData>({ ...profile });
 
   const [isSaving, setIsSaving] = useState(false);
@@ -191,8 +105,6 @@ export default function AccountSection({
   const [marketing, setMarketing] = useState(false);
 
   // Restore previously saved cookie preferences from localStorage on mount.
-  // The try-catch guards against environments where localStorage is unavailable
-  // (SSR, tests with restrictive globals, or disabled storage).
   useEffect(() => {
     try {
       const savedPreferences = localStorage.getItem(
@@ -208,43 +120,67 @@ export default function AccountSection({
     }
   }, []);
 
+  // ── Handlers ─────────────────────────────────────────────────────────────
+
+  const updateField = (key: keyof ProfileData, value: string) => {
+    onProfileChange({ ...profile, [key]: value });
+  };
+
+  const handleSave = async () => {
     setIsSaving(true);
-    setStatus({ message: "", type: null });
-    clearQueuedStatusReset();
+    setSaveStatus('saving');
+    setSaveError(null);
+
     try {
-      // Simulate async API call
-      await new Promise((resolve, reject) =>
-        setTimeout(() => {
-          // Simulate occasional failure for testing
-          if (Math.random() > 0.8) {
-            reject(new Error("Failed to save"));
-          } else {
-            resolve(null);
-          }
-        }, 1500),
-      );
-      if (isMountedRef.current) {
-        setStatus({
-          message:
-            "Account profile changes are staged and ready for backend save.",
-          type: "success",
-        });
-        onSaved?.({ ...profile, email: normalizedEmail });
-      }
-    } catch {
-      if (isMountedRef.current) {
-        setStatus({
-          message: "Failed to save changes. Please try again.",
-          type: "error",
-        });
-      }
+      await saveProfile(profile);
+      // Update the last-known-good snapshot on successful save
+      lastSavedProfile.current = { ...profile };
+      setSaveStatus('success');
+      toast.success('Profile saved successfully.');
+    } catch (err) {
+      setSaveStatus('error');
+      setSaveError('Failed to save profile. Please try again.');
+      // Roll back to last known good state (captured at mount or last success)
+      onProfileChange({ ...lastSavedProfile.current });
+      toast.error('Changes reverted due to an error.');
     } finally {
-      if (isMountedRef.current) {
-        setIsSaving(false);
-        queueStatusReset();
-      }
+      setIsSaving(false);
     }
   };
+
+  const handleAvatarUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setAvatarError(null);
+    setAvatarSuccess(null);
+
+    // Validate file type
+    if (!ALLOWED_IMAGE_TYPES.includes(file.type)) {
+      setAvatarError('Please select a valid image file (JPEG, PNG, GIF, or WebP).');
+      return;
+    }
+
+    // Validate file size
+    if (file.size > MAX_AVATAR_SIZE) {
+      setAvatarError('File size must be less than 5MB.');
+      return;
+    }
+
+    // Valid file — show success and preview
+    setAvatarSuccess('Photo staged for upload.');
+    const url = URL.createObjectURL(file);
+    setPreviewUrl(url);
+  };
+
+  const handleSaveCookiePreferences = () => {
+    localStorage.setItem(
+      'stellopay_cookie_preferences',
+      JSON.stringify({ essential: true, analytics, marketing }),
+    );
+  };
+
+  // ── Render ───────────────────────────────────────────────────────────────
 
   return (
     <div className="space-y-6">
@@ -265,7 +201,7 @@ export default function AccountSection({
         </div>
 
         <div className="grid gap-5 sm:grid-cols-2">
-          {profileFields.map(({ key, label, type }) => (
+          {PROFILE_FIELDS.map(({ key, label, type }) => (
             <div key={key} className="space-y-2">
               <Label htmlFor={key}>{label}</Label>
               <Input
@@ -304,7 +240,7 @@ export default function AccountSection({
               <Image
                 src={previewUrl}
                 alt="Avatar preview"
-                fill
+                fill="true"
                 className="object-cover"
                 data-testid="avatar-preview-image"
               />
@@ -502,25 +438,4 @@ export default function AccountSection({
       </div>
     </div>
   );
-};
-
-interface AccountSectionProps {
-  profile: any;
-  onProfileChange: (profile: any) => void;
 }
-
-interface DeletionDialogProps {
-  title: string;
-  description: string;
-  impactItems: string[];
-  confirmationToken: string;
-  confirmationLabel: string;
-  confirmLabel: string;
-  onConfirm: () => void;
-}
-
-const getConfirmationError = (value: string, token: string): string | null => {
-  if (value === token) return null;
-  if (value.trim() === token) return 'Remove extra spaces — type exactly "${token}"';
-  if (value.toLowerCase() === token.toLowerCase()) return 'Check capitalization — type exactly "${token}"';
-  return 'The text doesn

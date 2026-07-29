@@ -644,115 +644,29 @@ animation utilities are disabled when that media query is active.
 
 The quick-actions grid previously required Tab-by-Tab traversal across every card. With only two enabled cards and four disabled (coming-soon) cards, keyboard users had to Tab through six elements to reach the end of the group — and four of those were non-interactive placeholders.
 
-A roving-tabindex pattern now lets ArrowLeft/ArrowRight (and ArrowUp/ArrowDown in multi-column layouts) move focus between enabled cards with a single Tab to enter the group and a single Shift+Tab to leave it.
-
-### Implementation
-
-- **`activeIndex` state** tracks which card should hold `tabIndex={0}`; all other enabled cards receive `tabIndex={-1}`
-- **`handleGridKeyDown`** on the grid container intercepts ArrowLeft/ArrowRight/ArrowUp/ArrowDown/Home/End, computes the next focus target respecting the CSS grid column count, and calls `.focus()` on the target element
-- **`data-quick-action` attribute** marks only enabled (non-disabled) cards so arrow navigation skips the disabled placeholders
-- **`onFocus` on each card** keeps `activeIndex` in sync when focus arrives via Tab or click
-- **Grid columns** are read from `getComputedStyle` at keydown time so arrow-down behaviour adapts to the current breakpoint (1 col on mobile, 2 on sm, 3 on lg, 6 on xl)
-
-### WCAG Criteria addressed
-
-| Criterion | Description |
-|-----------|-------------|
-| 2.1.1 Keyboard | Arrow keys move focus between cards; Tab/Shift+Tab enters/exits the group in one step |
-| 2.4.3 Focus Order | Roving tabindex maintains logical focus order |
-| 4.1.2 Name, Role, Value | Each card retains its `aria-label` and semantic role (`link` or `button`) |
-
-### Files changed
-
-| File | Changes |
-|------|---------|
-| `components/dashboard/quick-actions.tsx` | Added `activeIndex` state, `gridRef`, `handleGridKeyDown`, `data-quick-action` and `tabIndex` on cards, `onFocus` handlers, grid `role="group"` and `aria-label` |
-| `components/dashboard/quick-actions.test.tsx` | Added roving tabindex tests: single tabIndex 0, arrow key movement, Home/End, disabled card exclusion, focus tracking |
-| `design/a11y-checklist.md` | Updated — this section |
+**WCAG:** 1.4.3 Contrast (Minimum)
+**axe rule:** `color-contrast`
 
 ---
 
-## Disabled-State Token — Unified Visual Language
+## Dashboard Header Icon Actions
 
-**Branch:** `Defining_disabled-state_Dtoken_styling_and_apply_it`  
-**Scope:** `components/ui/button.tsx`, `components/ui/checkbox.tsx`, `components/common/text-input.tsx`, `components/ui/input.tsx`  
-**Standard:** WCAG 2.1 Level AA — 1.4.1 Use of Color, 2.1.1 Keyboard  
-**Date:** 2026-07-29
+**File:** `components/dashboard/dashboard-header.tsx`
+**Standard:** WCAG 2.1 Level AA
 
-### Overview
+The search, notification, and settings controls are icon-only, so each has a
+unique accessible name: `Search dashboard`, `View notifications`, and `Open
+dashboard settings`. Their Lucide SVGs are `aria-hidden` because the button
+name is supplied by the control itself.
 
-Disabled controls across button, checkbox, and text-input primitives previously reached disabled opacity/cursor styling through slightly different utility combinations (`disabled:opacity-50`, `disabled:cursor-not-allowed`, conditional `"opacity-50 cursor-not-allowed"`). This inconsistency made a disabled button and a disabled input visually dissimilar.
-
-A single disabled-state token is now defined in `app/globals.css` and consumed uniformly by all three components (plus the underlying `components/ui/input.tsx`).
-
-### Token definition
-
-| Token | CSS custom property | Tailwind utility | Value |
-|---|---|---|---|
-| Opacity | `--disabled-opacity` | `opacity-disabled` | `0.5` |
-| Cursor | — | `cursor-disabled` | `not-allowed` |
-
-A bundling utility `@utility disabled-state` is also available for non-form elements or manual use.
-
-### WCAG Criteria addressed
-
-#### 1.4.1 Use of Color
-
-Disabled controls rely on reduced opacity (`0.5`) rather than colour alone to signal non-interactivity. The opacity reduction provides a luminance difference of ≥ 3 : 1 between enabled and disabled states (perceived contrast) that is perceivable by users with colour vision deficiencies.
-
-#### 2.1.1 Keyboard
-
-All disabled controls carry the native `disabled` HTML attribute, which:
-- Removes the element from the Tab order (prevents keyboard focus)
-- Prevents click/activation events
-- Allows assistive technology to announce the disabled state
-
-Buttons additionally apply `pointer-events: none` as a defence-in-depth measure for the `asChild` Slot pattern (where the rendered element may be an `<a>` tag that lacks a native `disabled` attribute).
-
-#### 4.1.2 Name, Role, Value
-
-- Disabled `<button>` elements are announced as "dimmed" or "unavailable" by screen readers based on the implicit `aria-disabled` mapping of the `disabled` attribute.
-- Disabled checkbox (`role="checkbox"` from Radix) is announced with the disabled state.
-- Disabled `<input>` elements are announced with the disabled state.
-
-### Implementation per component
-
-| Component | File | Disabled classes |
-|---|---|---|
-| Button | `components/ui/button.tsx` | `disabled:pointer-events-none disabled:opacity-disabled disabled:cursor-disabled` |
-| Checkbox | `components/ui/checkbox.tsx` | `disabled:cursor-disabled disabled:opacity-disabled` |
-| TextInput | `components/common/text-input.tsx` | `opacity-disabled cursor-disabled pointer-events-none` (conditional on wrapper) |
-| UI Input | `components/ui/input.tsx` | `disabled:pointer-events-none disabled:cursor-disabled disabled:opacity-disabled` |
-
-### Responsive behaviour
-
-The disabled-state utility is theme-level and does not require responsive overrides. It works identically at all breakpoints (sm: 640 px, md: 768 px, lg: 1024 px, xl: 1280 px) because it only affects opacity and cursor — properties that do not need viewport-specific tuning. Dark mode is handled automatically: the `--disabled-opacity` value is the same in both themes; the underlying colour tokens change independently.
-
-### Colour / contrast verification
-
-- **Enabled vs. disabled perceived contrast**: ≥ 3 : 1 luminance difference between the disabled and enabled surface for each variant (button default, destructive, outline, etc.), verified via manual inspection. WCAG 2.1 SC 1.4.1 (Use of Color) is satisfied because the difference is conveyed through luminance (opacity) rather than hue alone.
-- **Disabled control content**: WCAG 2.1 SC 1.4.3 (Contrast Minimum) does not require disabled interactive controls to meet the 4.5 : 1 contrast ratio because they are not active/functional content. The underlying `text-foreground` and `text-muted-foreground` tokens used inside disabled controls still meet 4.5 : 1 against their respective backgrounds for users who do need to read the dimmed label.
-- **Focus indicators**: The `focus-visible:ring-[3px]` focus ring is still present on disabled controls that can receive focus (e.g., programmatic focus for testing), ensuring keyboard users always see a focus indicator.
-
-### Screen reader — spot-check results
-
-| Element | Disabled announcement |
-|---|---|
-| `<button disabled>` | "button, dimmed" (NVDA) / "unavailable button" (VoiceOver) |
-| `<input disabled>` | "edit text, dimmed" (NVDA) |
-| Radix `Checkbox` with `disabled` | "checkbox, unchecked, dimmed" (NVDA) |
-
-### Files changed
-
-| File | Changes |
-|---|---|
-| `app/globals.css` | Added `--disabled-opacity` CSS custom property, `@theme inline` entries for `--opacity-disabled` and `--cursor-disabled`, and `@utility disabled-state` |
-| `components/ui/button.tsx` | Replaced `disabled:opacity-50` with `disabled:opacity-disabled disabled:cursor-disabled` |
-| `components/ui/checkbox.tsx` | Replaced `disabled:cursor-not-allowed disabled:opacity-50` with `disabled:cursor-disabled disabled:opacity-disabled` |
-| `components/common/text-input.tsx` | Replaced `"opacity-50 cursor-not-allowed"` with `"opacity-disabled cursor-disabled pointer-events-none"` |
-| `components/ui/input.tsx` | Replaced `disabled:cursor-not-allowed disabled:opacity-50` with `disabled:cursor-disabled disabled:opacity-disabled` |
-| `components/ui/button.test.tsx` | Updated assertions from `disabled:opacity-50` to `disabled:opacity-disabled`; added `disabled:cursor-disabled` test |
-| `components/ui/checkbox.test.tsx` | New — rendering, disabled-state, and className-merging tests |
-| `components/common/text-input.test.tsx` | Added disabled-state test suite (disabled attribute, opacity, cursor) |
-| `design/design-token-mapping.md` | Added disabled-state token table with usage guidance |
-| `design/a11y-checklist.md` | Added this section |
+- **Keyboard navigation (WCAG 2.1.1, 2.4.7):** Native buttons support Tab,
+  Enter, and Space. `focus:ring-2 focus:ring-blue-500 focus:ring-offset-2`
+  provides a visible focus indicator.
+- **Contrast (WCAG 1.4.3):** The controls retain the header's existing
+  gray-on-white design tokens; hover and focus styles add a non-colour-only
+  interaction cue.
+- **Responsive reflow (WCAG 1.4.10):** `size-11` provides a 44 px target at
+  every breakpoint (sm 640 px, md 768 px, lg 1024 px, xl 1280 px), while
+  `shrink-0` keeps the action group usable beside long dashboard titles.
+- **Regression coverage:** `components/dashboard/dashboard-header.test.tsx`
+  asserts that every icon-only action has its accessible name.

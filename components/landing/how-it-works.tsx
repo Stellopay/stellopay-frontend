@@ -1,6 +1,7 @@
 "use client";
 
 import React from "react";
+import Image from "next/image";
 import { UserPlus, Wallet, Send } from "lucide-react";
 import { motion } from "framer-motion";
 import { useReducedMotion } from "@/hooks/useReducedMotion";
@@ -13,6 +14,7 @@ const steps = [
     description:
       "Link your preferred crypto wallet in seconds. We support all major wallets including MetaMask, Trust Wallet, and more.",
     icon: UserPlus,
+    imageSrc: "/landing/step-connect.svg",
     iconGradient: "bg-gradient-to-br from-[#83A7FF] to-[#83A7FF]/50",
     dotColor: "bg-[#83A7FF]",
     progressColor: "bg-[#83A7FF]",
@@ -23,6 +25,7 @@ const steps = [
     description:
       "Send payments instantly to anyone, anywhere. Choose from multiple cryptocurrencies with live conversion rates.",
     icon: Wallet,
+    imageSrc: "/landing/step-payment.svg",
     iconGradient: "bg-gradient-to-br from-[#C4F49F] to-[#C4F49F]/50",
     dotColor: "bg-[#C4F49F]",
     progressColor: "bg-[#C4F49F]",
@@ -33,6 +36,7 @@ const steps = [
     description:
       "Recipients get funds instantly in their preferred local currency with automatic conversion at competitive rates.",
     icon: Send,
+    imageSrc: "/landing/step-receive.svg",
     iconGradient: "bg-gradient-to-br from-[#393A9F] to-[#393A9F]/50",
     dotColor: "bg-[#393A9F]",
     progressColor: "bg-[#393A9F]",
@@ -96,6 +100,16 @@ const HowItWorks = () => {
               <div className="absolute -top-1.5 left-1/2 -translate-x-1/2 w-3 h-3 rounded-full flex items-center justify-center bg-white dark:bg-[#1C1C1C]">
                 <div className={`size-2 rounded-full ${step.dotColor}`} />
               </div>
+
+              {/* Illustration */}
+              <Image
+                src={step.imageSrc}
+                alt=""
+                width={140}
+                height={140}
+                className="mx-auto mb-4 w-35 h-35"
+                aria-hidden="true"
+              />
 
               {/* Large Background Step Number */}
               <div className="text-8xl font-bold text-gray-100 dark:text-gray-800 mb-6 select-none">

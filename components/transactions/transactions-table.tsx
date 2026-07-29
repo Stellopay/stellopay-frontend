@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import {
   Table,
   TableBody,
@@ -11,17 +12,63 @@ import {
 } from "@/components/ui/table";
 import { TransactionsTableProps, TransactionProps } from "@/types/transaction";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import Image from "next/image";
+import Link from "next/link";
 import { Skeleton } from "@/components/ui/skeleton";
 import { TransactionTableSkeleton } from "@/components/ui/table-skeleton";
-import { getStatusColor } from "@/utils/transactionUtils";
+import { getStatusColor, getStatusIcon } from "@/utils/transactionUtils";
 import { truncateStellarAddress } from "@/utils/stellarAddress";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Checkbox } from "@/components/ui/checkbox";
 import { TRANSACTIONS_PAGE_SIZE } from "./transactions-config";
-import { useRef, type KeyboardEvent } from "react";
 import { DownloadReceiptButton } from "./download-receipt-button";
-import { Dialog, DialogContent } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import { ExternalLink } from "lucide-react";
+import { safeStorage } from "@/utils/safeStorage";
+
+// ── Density configuration ───────────────────────────────────────────────────
+
+type TableDensity = "compact" | "comfortable" | "spacious";
+
+const DENSITY_STORAGE_KEY = "transactions-table-density";
+
+interface DensityStyle {
+  head: string;
+  cell: string;
+  skeleton: string;
+}
+
+const DENSITY_CONFIG: Record<TableDensity, DensityStyle> = {
+  compact: {
+    head: "py-2 px-3 text-xs",
+    cell: "py-2 px-3 text-xs",
+    skeleton: "py-2 px-3",
+  },
+  comfortable: {
+    head: "py-3 px-4 text-sm",
+    cell: "py-3 px-4 text-sm",
+    skeleton: "py-3 px-4",
+  },
+  spacious: {
+    head: "py-4 px-5 text-sm",
+    cell: "py-4 px-5 text-sm",
+    skeleton: "py-4 px-5",
+  },
+};
+
+const DENSITY_OPTIONS: Array<{ value: TableDensity; label: string }> = [
+  { value: "compact", label: "Compact" },
+  { value: "comfortable", label: "Comfortable" },
+  { value: "spacious", label: "Spacious" },
+];
 
 interface TransactionsTablePropsExtended extends TransactionsTableProps {
   isLoading?: boolean;
@@ -57,6 +104,8 @@ function TransactionQuickViewDialog({
 }) {
   if (!transaction) return null;
 
+  const StatusIcon = getStatusIcon(transaction.status);
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
@@ -80,6 +129,7 @@ function TransactionQuickViewDialog({
               aria-label={`Status: ${transaction.status}`}
               className={getStatusColor(transaction.status)}
             >
+              <StatusIcon className="size-4" aria-hidden="true" />
               <span className="text-sm">{transaction.status}</span>
             </Badge>
           </DialogTitle>
@@ -250,10 +300,12 @@ export function TransactionsTable({
   onSelectRow,
   onSelectAll,
 }: TransactionsTablePropsExtended) {
-  const [selectedTransaction, setSelectedTransaction] = useState<TransactionsTablePropsExtended["transactions"][number] | null>(null);
+  const [selectedTransaction, setSelectedTransaction] = useState<TransactionProps | null>(null);
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const triggerRef = useRef<HTMLButtonElement | null>(null);
 
   const openReceipt = useCallback(
-    (transaction: TransactionsTablePropsExtended["transactions"][number]) => {
+    (transaction: TransactionProps) => {
       setSelectedTransaction(transaction);
     },
     [],
@@ -479,7 +531,9 @@ export function TransactionsTable({
                 </TableCell>
               </TableRow>
             ) : (
-              transactions.map((transaction, index) => (
+              transactions.map((transaction, index) => {
+                const StatusIcon = getStatusIcon(transaction.status);
+                return (
                 <TableRow
                   key={transaction.id ?? index}
                   className="border border-[#2D2D2D]"
@@ -528,6 +582,7 @@ export function TransactionsTable({
                       aria-label={`Status: ${transaction.status}`}
                       className={getStatusColor(transaction.status)}
                     >
+                      <StatusIcon className="size-4" aria-hidden="true" />
                       <span className="text-sm">{transaction.status}</span>
                     </Badge>
                   </TableCell>
@@ -562,7 +617,9 @@ export function TransactionsTable({
             />
           </div>
         ) : (
-          transactions.map((transaction, index) => (
+          transactions.map((transaction, index) => {
+            const StatusIcon = getStatusIcon(transaction.status);
+            return (
             <button
               key={index}
               type="button"
@@ -586,15 +643,11 @@ export function TransactionsTable({
                   </p>
                 </div>
                 <Badge
-                  variant={
-                    transaction.status === "Completed"
-                      ? "default"
-                      : transaction.status === "Pending"
-                        ? "secondary"
-                        : "destructive"
-                  }
+                  aria-label={`Status: ${transaction.status}`}
+                  className={getStatusColor(transaction.status)}
                 >
-                  {transaction.status}
+                  <StatusIcon className="size-4" aria-hidden="true" />
+                  <span className="text-sm">{transaction.status}</span>
                 </Badge>
               </div>
               <div className="mt-2 grid grid-cols-2 gap-2">
@@ -625,7 +678,8 @@ export function TransactionsTable({
                 </div>
               </div>
             </button>
-          ))
+            );
+          })
         )}
       </div>
 

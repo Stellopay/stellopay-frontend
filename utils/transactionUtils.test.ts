@@ -8,6 +8,7 @@ import {
   formatAmount,
   formatTransactionDate,
   getStatusColor,
+  sortAndFilterTransactions,
   sortTransactions,
   sortTransactionsMulti,
   STATUS_COLOR_PALETTE,
@@ -1092,6 +1093,8 @@ describe("sortTransactionsMulti", () => {
     const result = sortTransactionsMulti(tiebreakerTestData, configs);
     const ids = result.map((t) => t.id);
 
+    // Within "Completed" group: completed-2 (abs(-100)=100) comes before completed-1 (abs(-250)=250) by amount asc
+    // Then "Pending" group
     // Primary sort: status asc → "Completed" before "Pending"
     // Tiebreaker: amount asc by absolute value → abs(-100)=100 < abs(-250)=250
     // so completed-2 sorts before completed-1
@@ -1225,5 +1228,102 @@ describe("getStatusColor", () => {
 
     expect(getStatusColor(maliciousStatus)).toBe(UNKNOWN_STATUS_COLOR);
     expect(getStatusColor(maliciousStatus)).not.toContain(maliciousStatus);
+  });
+});
+
+describe("sortAndFilterTransactions", () => {
+  it("applies the full filter → sort pipeline in a single call", () => {
+    const result = sortAndFilterTransactions(
+      transactions,
+      "",
+      "All Transactions",
+      fixtureStartDate,
+      fixtureEndDate,
+      "",
+      undefined,
+      undefined,
+      undefined,
+      [{ field: "date" as const, direction: "asc" as const }],
+    );
+
+    expect(result.map((t) => t.id)).toEqual([
+      "boundary-start",
+      "march-received",
+      "april-swap",
+      "april-sent",
+      "boundary-end",
+    ]);
+  });
+
+  it("returns the same array reference for identical arguments (memoization)", () => {
+    const args: Parameters<typeof sortAndFilterTransactions> = [
+      transactions,
+      "stellar",
+      "All Transactions",
+      fixtureStartDate,
+      fixtureEndDate,
+      "",
+      undefined,
+      undefined,
+      undefined,
+      [{ field: "date" as const, direction: "desc" as const }],
+    ];
+
+    const first = sortAndFilterTransactions(...args);
+    const second = sortAndFilterTransactions(...args);
+
+    // Same arguments must return the exact same array reference
+    expect(first).toBe(second);
+  });
+
+  it("returns a new array when arguments differ", () => {
+    const result1 = sortAndFilterTransactions(
+      transactions,
+      "",
+      "All Transactions",
+      fixtureStartDate,
+      fixtureEndDate,
+      "",
+      undefined,
+      undefined,
+      undefined,
+      [{ field: "date" as const, direction: "asc" as const }],
+    );
+
+    const result2 = sortAndFilterTransactions(
+      transactions,
+      "stellar",
+      "All Transactions",
+      fixtureStartDate,
+      fixtureEndDate,
+      "",
+      undefined,
+      undefined,
+      undefined,
+      [{ field: "date" as const, direction: "asc" as const }],
+    );
+
+    // Different arguments must return different arrays
+    expect(result1).not.toBe(result2);
+    expect(result1).not.toEqual(result2);
+  });
+
+  it("does not mutate the original transaction array", () => {
+    const originalOrder = transactions.map((t) => t.id);
+
+    sortAndFilterTransactions(
+      transactions,
+      "",
+      "Payment Sent",
+      fixtureStartDate,
+      fixtureEndDate,
+      "",
+      undefined,
+      undefined,
+      undefined,
+      [{ field: "amount", direction: "desc" }],
+    );
+
+    expect(transactions.map((t) => t.id)).toEqual(originalOrder);
   });
 });

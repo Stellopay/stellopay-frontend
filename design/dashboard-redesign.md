@@ -1,392 +1,267 @@
-# Typography System: Line-Height & Letter-Spacing Scale (#764)
+# Dashboard Redesign
 
-This document specifies the tokenized typographic scale mapping for the **Clash Display**, **General Sans**, and **Inter** font family stacks across StelloPay landing and dashboard surfaces.
+Main Figma Design Workspace:
 
-## Typography Scale Matrix
-
-| Role | Utility Class | Font Family | Size | Line Height (Leading) | Letter Spacing (Tracking) | Usage Surface |
-| :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-| **Display 2XL** | `.text-display-2xl` | Clash Display | 72px (`4.5rem`) | 1.05 | `-0.03em` | Hero main headlines |
-| **Display XL** | `.text-display-xl` | Clash Display | 60px (`3.75rem`) | 1.1 | `-0.025em` | Major section headers |
-| **Heading LG** | `.text-heading-lg` | Clash Display | 36px (`2.25rem`) | 1.2 | `-0.02em` | Dashboard section titles |
-| **Heading MD** | `.text-heading-md` | Clash Display | 24px (`1.5rem`) | 1.25 | `-0.015em` | Card & modal titles |
-| **Body LG** | `.text-body-lg` | General Sans / Inter | 18px (`1.125rem`) | 1.6 | `-0.01em` | Lead paragraphs |
-| **Body MD** | `.text-body-md` | General Sans / Inter | 16px (`1rem`) | 1.5 | `0em` | Standard interface copy |
-| **Caption SM** | `.text-caption-sm` | Inter | 14px (`0.875rem`) | 1.43 | `+0.01em` | Table headers & captions |
-
-### Feature Overview
-
-**Metric Picker Dialog**
-- Accessible button (Settings icon + "Customize" label on desktop, icon-only on mobile)
-- Modal dialog showing all 4 available metrics from the catalog
-- Multi-select UI with clear visual feedback (blue highlight for selected)
-- Maximum 4 metrics enforced at UI level (disabled state when limit reached)
-- Real-time feedback: warning messages for empty selection and max-limit states
-- Reset and Save buttons to persist changes
-
-**Metric Catalog**
-The following metrics are available for selection:
-1. **Total Volume** - TrendingUp icon, blue theme (`text-[#2563EB]`, `bg-[#EFF6FF]`)
-2. **Avg. Transaction** - DollarSign icon, green theme (`text-[#16A34A]`, `bg-[#F0FDF4]`)
-3. **Success Rate** - Activity icon, purple theme (`text-[#7C3AED]`, `bg-[#F5F3FF]`)
-4. **Active Wallets** - Wallet icon, orange theme (`text-[#EA580C]`, `bg-[#FFF7ED]`)
-
-Each metric in the catalog includes:
-- A unique `id` (e.g., "total-volume")
-- Icon component from lucide-react
-- Display label (e.g., "Total Volume")
-- Formatted value (e.g., "$847.5K")
-- Change indicator (e.g., "+12.5%")
-- Semantic color tokens for light/dark modes
-
-**Persistence & Defaults**
-
-- **Storage Key**: `"stellopay.kpi-preferences"` (follows dot-namespace convention)
-- **Storage Format**: JSON array of metric IDs, e.g., `["total-volume", "success-rate"]`
-- **Default (First-Time Users)**: All 4 metrics are shown in catalog order
-- **Hydration Pattern**:
-  1. On component mount, `useEffect` reads from `safeStorage` (SSR-safe, returns `null` on error)
-  2. Sets `hasHydrated` flag to avoid overwriting on SSR mismatches
-  3. Renders picker only after hydration completes
-- **Persistence After Change**: 
-  1. When user clicks "Save Changes" in the picker, selected IDs are written to localStorage
-  2. On next visit, those metrics are restored
-  3. Fallback to defaults if storage contains malformed data or empty arrays
-
-**Card Rendering & Ordering**
-
-- Cards are rendered in the order they appear in the metric catalog, filtered by selected IDs
-- Visual design (icon, colors, layout) remains unchanged from the original fixed set
-- Grid layout: responsive 1-col (mobile), 2-col (tablet), 4-col (desktop) using Tailwind breakpoints (`sm:`, `lg:`)
-- Each card maintains hover effects (shadow increase, icon scale 110%)
-
-### Accessibility (WCAG 2.1 AA)
-
-**Keyboard Navigation**
-- Customize button fully keyboard operable: `Tab` to focus, `Enter` to open dialog
-- Inside picker dialog:
-  - `Tab` navigates between metric items
-  - `Space` / `Enter` toggles selection of a metric
-  - `Tab` to Reset / Save buttons
-  - `Enter` to activate buttons
-  - `Escape` closes dialog (via Radix Dialog primitive)
-- Focus is trapped within the modal and returned to the trigger button on close
-
-**ARIA Attributes**
-- Customize button: `aria-label="Customize metrics"` for screen readers
-- Metric selection items: `aria-pressed="true|false"` to indicate selection state
-- Dialog: `role="dialog"` and `aria-modal="true"` (via Radix DialogPrimitive)
-- Metric icons: `aria-hidden="true"` (decorative, not read)
-- Selected checkmark: Indicates selection state visually for all users
-
-**Color Contrast**
-- Selected metric: Blue highlight (`bg-blue-50` light / `dark:bg-blue-900/20`) with sufficient contrast against text
-- Disabled metrics: `opacity-50` to clearly indicate unavailable state, meets minimum contrast
-- Warning messages: Amber for "no selection", blue for "max selected" – both have WCAG AA contrast
-- Dark mode support: All colors defined with `dark:` variants using semantic CSS variables
-
-**Visual Indicators**
-- Check icon appears next to selected metrics
-- Disabled metrics have reduced opacity (50%)
-- Hover states for interactive items (color change, cursor change)
-- Clear button states: Save disabled when no metrics selected, enabled otherwise
-
-### Responsive Behavior
-
-**Dialog Presentation**
-- Desktop (lg+): Centered modal dialog (`DialogContent` with `sm:max-w-md`)
-- Mobile (< 640px): Full-width responsive wrapper, auto-scrolls if content exceeds viewport
-- Customize button: Icon + "Customize" text on desktop (`hidden sm:inline`), icon only on mobile
-
-**Grid Layout**
-- After metric selection saved:
-  - `grid-cols-1` (mobile < 640px): 1 card per row
-  - `sm:grid-cols-2` (640px - 1023px): 2 cards per row
-  - `lg:grid-cols-4` (1024px+): 4 cards per row (full row when fewer selected)
-- Gap: `gap-6` (1.5rem) maintained across all breakpoints
-- No regression: existing responsive behavior preserved
-
-### Design Tokens & Styling Consistency
-
-**Color System (Light Mode)**
-- Background: `bg-white` (section), `bg-zinc-50` (picker trigger)
-- Text: `text-zinc-900` (primary), `text-zinc-500` (secondary)
-- Borders: `border-zinc-200`
-- Selected state: Blue (`bg-blue-50`, `border-blue-300`, `text-blue-600`)
-- Disabled state: Same base but with `opacity-50`
-
-**Color System (Dark Mode)**
-- Background: `dark:bg-[#111111]` (section), `dark:bg-zinc-900/50` (picker trigger)
-- Text: `dark:text-white` (primary), `dark:text-zinc-400` (secondary)
-- Borders: `dark:border-zinc-800`
-- Selected state: `dark:bg-blue-900/20`, `dark:border-blue-700/50`, `dark:text-blue-400`
-- Disabled state: Same with `opacity-50`
-
-**Spacing & Typography**
-- Button padding: `px-4 py-2` for triggers, `px-3 py-2` for dialog buttons
-- Border radius: `rounded-xl` (12px, matching card design)
-- Font weight: `font-bold` for titles, `font-semibold` for metric labels, `font-medium` for buttons
-- Font size: `text-sm` for button text, `text-xs` for secondary info
-
-**Transitions**
-- All interactive elements: `transition-colors` or `transition-all` for smooth state changes
-- Hover effects: Background color, button shadow
-- Dialog open/close: Via Radix `DialogContent` animations (fade-in/out, zoom effects)
-
-### Data Sources & Backend Integration
-
-The metric catalog is currently static/demo data. To connect to real backend data:
-
-1. **Fetch function per metric**: Each metric should have a corresponding data-fetch function
-2. **Data structure**: Values, changes, and error states are managed at the data layer (not in the component)
-3. **Current implementation**: The component accepts `kpis` prop for injection (backward compatible)
-
-**Recommended Extension**
-```typescript
-// Add a hook to fetch metric data
-async function fetchMetricData(metricId: string) {
-  // Call API based on metricId
-  // Return { value, change, icon, label }
-}
-```
-
-### State Management & Hydration
-
-**Component State**
-- `timeRange`: Selected time period (stored locally, not persisted)
-- `selectedMetricIds`: Array of chosen metric IDs (persisted to localStorage)
-- `hasHydrated`: Flag to prevent SSR mismatch overwrites
-- `dropdownOpen`: Time range dropdown visibility
-
-**Hydration Flow**
-1. Component mounts with `selectedMetricIds = []` and `hasHydrated = false`
-2. First `useEffect` runs:
-   - Calls `safeStorage.getItem(STORAGE_KEY)`
-   - Parses JSON (with try/catch for malformed data)
-   - Sets `selectedMetricIds` and `hasHydrated = true`
-3. Second `useEffect` watches `selectedMetricIds` and `hasHydrated`:
-   - Only writes to storage when `hasHydrated === true` (prevents premature writes)
-   - Serializes array to JSON and stores
-
-This pattern matches the existing sidebar and theme context patterns in the codebase.
-
-### Testing Coverage
-
-**Unit Tests** (`analytics-insights.test.tsx`)
-
-*Default Rendering*
-- ✓ Shows all 4 metrics when localStorage is empty (first-time users)
-- ✓ Renders header, time range selector, customize button, view all link
-
-*Persistence*
-- ✓ Reads and restores saved metric IDs from localStorage
-- ✓ Fallback to defaults on malformed JSON
-- ✓ Fallback to defaults on empty array
-- ✓ Persists new selections to localStorage after Save
-
-*Picker Dialog*
-- ✓ Customize button opens/closes dialog
-- ✓ All 4 metrics displayed with correct labels, values, icons
-- ✓ Currently selected metrics show check marks
-- ✓ Reset button reverts to default selection
-
-*Selection Constraints*
-- ✓ Up to 4 metrics can be selected
-- ✓ Selection UI disables when 4 metrics selected (not in picker)
-- ✓ Warning message shown at max capacity
-- ✓ Warning message shown when no metrics selected
-- ✓ Save button disabled when no metrics selected
-
-*Keyboard Accessibility*
-- ✓ Tab navigation through metric items
-- ✓ Space/Enter toggles selection
-- ✓ Tab to Reset/Save buttons
-- ✓ Enter activates button actions
-- ✓ Escape closes dialog
-
-*Edge Cases*
-- ✓ Handles SSR context (typeof window === "undefined")
-- ✓ Handles localStorage unavailable (privacy mode, quota exceeded)
-- ✓ Handles missing metric IDs gracefully (filters to available metrics)
-- ✓ Respects time range selection independently of metric changes
-
-*Responsive & Dark Mode*
-- ✓ Grid renders at sm/md/lg/xl breakpoints
-- ✓ Dark mode classes applied correctly
-- ✓ Customizable button text hidden on mobile
-
-### Known Limitations
-
-- **Fixed Catalog**: Metrics are currently hardcoded; expanding the catalog requires code changes
-- **No Drag-to-Reorder**: Metrics are ordered by catalog sequence, not freely repositionable. This is acceptable for accessibility (drag-and-drop is inherently harder for keyboard/screen-reader users)
-- **No API Connection**: Currently uses demo/static data; real data fetching requires backend integration
-
-## Error States vs Empty States
-
-The Transactions list component distinguishes between an empty result (e.g. no transactions matching the selected filters) and a network or server error.
-
-- **Empty State**: Rendered via the `TransactionsTable` empty message (`No transactions found. Try adjusting your filters.`).
-- **Error State**: Rendered using the `<ErrorState />` UI component which displays the actual error message or a generic "Failed to load transactions." It also provides a "Try Again" button.
-
-### Route-Scoped Error Boundaries (`app/transactions/error.tsx`, `app/settings/preferences/error.tsx`)
-
-Both routes now have dedicated App Router error segments that catch render errors locally, preventing them from bubbling to the generic `app/error.tsx`. Each boundary uses the shared `components/ui/error-state.tsx` component and provides:
-
-- **Event ID placeholder** (`digest` mapped through `eventId` prop) — visible reference for support debugging.
-- **Retry action** (`reset()` wired to the retry button) — allows users to recover without leaving the route.
-- **Report-issue link** (`/help/support` by default) — accessible link for escalation.
-
-These boundaries mirror the existing `app/dashboard/error.tsx` pattern (console logging of digest, dev-only message rendering, accessible `main` wrapper with `role="alert"` and `aria-live="assertive"`).
-
-### Responsive Behavior
-
-- **sm (640px)**: Container uses full width with `px-6`; content stays centered.
-- **md (768px)**: `max-w-md` keeps the error card readable without excessive line length.
-- **lg (1024px)** and **xl (1280px)**: The `min-h-[60vh]` wrapper ensures vertical centering across larger viewports.
-
-The design tokens (`bg-background`, `text-foreground`, `text-red-500`, rounded-xl, `max-w-md`) remain consistent across breakpoints.
-
-### Accessibility Notes (WCAG 2.1 AA)
-
-- **Contrast**: The ErrorState uses a `text-red-500` icon and `text-white` text on a `bg-red-900/10` background which exceeds minimum contrast requirements.
-- **Keyboard Nav**: The "Try Again" button is fully keyboard navigable. Focus order is maintained.
-- **ARIA**: The `ErrorState` component utilizes `role="alert"` and `aria-live="assertive"` so screen readers can proactively announce network failures. Loading/Retrying indicators use `aria-hidden="true"` on non-text elements and `aria-label` or `aria-disabled` where appropriate to ensure status is accurately conveyed.
-- **New props**: `eventId` is rendered in a `<code>` block with `aria-label` describing the reference; the report link uses `aria-label="Report this issue"` so screen readers announce purpose clearly.
+https://www.figma.com/design/TzFU3lyfPfsM4Jzh6rXGzl/Stellopay-Dashboard-Redesign?node-id=2067-1817&t=PZ6D5lwLGX9gwnOJ-1
 
 ---
 
-## Motion Duration & Easing Tokens (#758)
+## Account Overview — Copy Address Affordance
 
-### Token Scale
+**Branch:** `feat/account-overview-copy-address-feedback`
 
-| Token      | Value | Use Case                                | Example Components               |
-| :--------- | :---- | :-------------------------------------- | :------------------------------- |
-| `fast`     | 200ms | Micro-interactions (hover, tap, focus)  | Sidebar logo fade, toggle button |
-| `base`     | 300ms | Standard UI transitions                 | FAQ accordion expand/collapse    |
-| `slow`     | 500ms | Entrance / scroll-reveal animations     | Hero section, how-it-works steps |
-| `xslow`    | 600ms | Layout animations, spring-like movement | Nav-link active indicator        |
+### What was added
 
-### Easing Curves
+The `AccountOverview` welcome heading now includes an inline **Copy** button
+immediately after the truncated wallet address. The button provides clear,
+accessible confirmation that the copy operation succeeded (or failed) before
+the user can trigger it a second time.
 
-| Curve       | Cubic Bézier                        | Use Case                    |
-| :---------- | :---------------------------------- | :-------------------------- |
-| `easeOut`   | `cubic-bezier(0.16, 1, 0.3, 1)`    | Entrance animations         |
-| `easeInOut` | `cubic-bezier(0.65, 0, 0.35, 1)`   | UI toggle / accordion       |
-
-### Transition Presets (`lib/motion.ts`)
-
-Exported framer-motion transition objects that combine duration + easing:
-
-```typescript
-transition.fast   // { duration: 0.2, ease: [0.16, 1, 0.3, 1] }
-transition.base   // { duration: 0.3, ease: [0.65, 0, 0.35, 1] }
-transition.slow   // { duration: 0.5, ease: [0.16, 1, 0.3, 1] }
-transition.spring // { type: "spring", bounce: 0.2, duration: 0.6 }
+```
+Welcome back,  GABC...F123  [Copy ⎘]  👋
+                             ↑
+                  idle / copied / error
 ```
 
-### Variant Presets
+### Component: `CopyAddressButton`
 
-| Variant               | Behavior                           |
-| :-------------------- | :--------------------------------- |
-| `variants.fadeOnly`   | Opacity 0 → 1 (no transform)       |
-| `variants.fadeSlideUp`| Opacity 0 + y:20 → Opacity 1 + y:0 |
+A private sub-component declared in
+`components/dashboard/account-overview.tsx`. It is **not exported** because it
+is only needed in this one location; the wallets-settings surface keeps its own
+equivalent.
 
-### Reduced Motion
+#### States
 
-The `resolveVariants(prefersReduced, delay?)` helper returns `fadeOnly` (zero-duration) when the user has `prefers-reduced-motion: reduce`, and animated `fadeSlideUp` variants otherwise.
+| State    | Button label | Icon     | Colour tokens                          | aria-label              |
+|----------|-------------|----------|----------------------------------------|-------------------------|
+| `idle`   | Copy        | Copy ⎘   | `text-zinc-500 dark:text-zinc-400`     | "Copy wallet address"   |
+| `copied` | Copied      | Check ✓  | `text-emerald-600 dark:text-emerald-400` | "Address copied"        |
+| `error`  | Failed      | X ✗      | `text-destructive`                     | "Copy failed — try again" |
 
-### Migrated Components
+#### Timing
 
-| Component                                 | Before (inline)         | After (token)              |
-| :---------------------------------------- | :---------------------- | :------------------------- |
-| `components/landing/how-it-works.tsx`     | `duration: 0.5, easeOut`| `duration.slow, easing.easeOut` |
-| `components/landing/feature-card-grid.tsx`| `duration: 0.5, easeOut`| `duration.slow, easing.easeOut` |
-| `components/landing/faq-section.tsx`      | `duration: 0.3, easeInOut` | `duration.base, easing.easeInOut` |
-| `components/common/nav-link.tsx`          | `spring, bounce: 0.2, duration: 0.6` | `transition.spring` |
-| `components/landing/hero.tsx`             | N/A (no framer-motion)  | `resolveVariants()` with `duration.slow` |
-| `components/common/side-bar.tsx`          | CSS `duration-200`      | `transition.fast` via framer-motion |
+- `copied` → `idle`: **2 000 ms** (driven by `copyToClipboardWithTimeout`).
+- `error` → `idle`: **3 000 ms** (driven by a local `setTimeout`).
+
+#### Clipboard strategy
+
+Uses `copyToClipboardWithTimeout` from `utils/clipboardUtils.ts` (spec
+requirement). That utility:
+
+1. Tries `navigator.clipboard.writeText` (modern async Clipboard API,
+   HTTPS / localhost only).
+2. Falls back to `document.execCommand('copy')` (synchronous legacy, works in
+   non-secure contexts and older browsers).
+3. On total failure calls `window.alert()`.
+
+`CopyAddressButton` intercepts the `window.alert` call for the duration of the
+handler to suppress the blocking dialog and set the `error` state instead.
+`window.alert` is **always restored** — both on the happy path (early restore
+after `setCopied(true)`) and after the Promise settles.
+
+The **full address** is copied to the clipboard. The truncated form
+(`GABC...F123`) is the only representation ever rendered in the DOM.
 
 ### Accessibility (WCAG 2.1 AA)
 
-- **Reduced Motion**: All motion-enabled components check `useReducedMotion()` and disable non-essential movement when the OS-level `prefers-reduced-motion: reduce` is set.
-- **No Content Loss**: Hidden decorative elements (gradient orbs, rotating cards) remain visually hidden without animation; all content stays accessible and functional.
-- **Focus Management**: Sidebar open/close preserves focus order and returns focus to `#main-content` on close (handled in `AppLayout`).
-- **Contrast**: All transition elements use the existing color token system with `dark:` variants for sufficient contrast.
+| Criterion | Implementation |
+|---|---|
+| **Perceivable** | `aria-label` updates on each state transition so the button's accessible name always reflects the current action. |
+| **Operable** | The button is a native `<button type="button">`, fully keyboard-operable (Tab to focus, Enter/Space to activate). Focus ring: `focus-visible:ring-2 focus-visible:ring-zinc-400`. |
+| **Understandable** | An `aria-live="polite"` + `aria-atomic="true"` `role="status"` region (`data-testid="copy-address-announcement"`) announces the copy result to screen readers without interrupting ongoing speech. The region is visually hidden (`sr-only`) and does not shift layout. |
+| **Robust** | Icons carry `aria-hidden="true"` — meaning is conveyed through the button label and the live region. The button itself never contains only an icon. |
+
+Colour contrast (Tailwind design tokens, both light and dark):
+
+| Element | Foreground | Background | Estimated ratio |
+|---|---|---|---|
+| Idle button text | `zinc-500` (#71717a) | `white` (#ffffff) | ≈ 4.6 : 1 ✓ |
+| Copied state | `emerald-600` (#059669) | `white` (#ffffff) | ≈ 4.5 : 1 ✓ |
+| Failed state | `destructive` (CSS var, ~`#dc2626`) | `white` (#ffffff) | ≈ 5.9 : 1 ✓ |
+| Dark idle | `zinc-400` (#a1a1aa) | `#111111` | ≈ 6.2 : 1 ✓ |
+| Dark copied | `emerald-400` (#34d399) | `#111111` | ≈ 7.5 : 1 ✓ |
+
+### Responsive behaviour
+
+The button is an `inline-flex` element inside the existing `flex-wrap` heading.
+At all breakpoints (sm 640 → xl 1280) it wraps naturally with the address span
+when space is constrained. No breakpoint-specific markup was added.
+
+### Tests
+
+New describe block: **"AccountOverview – copy address button"** in
+`components/dashboard/account-overview.test.tsx`.
+
+Coverage:
+
+| Category | Tests |
+|---|---|
+| Presence | Button rendered when connected; absent when disconnected; `type="button"` |
+| Clipboard | Writes full address; truncated form is the only DOM text |
+| Success feedback | "Copied" text; aria-label update; live region; 2 s auto-reset; live region clears |
+| Error feedback | "Failed" text; aria-label update; live region; 3 s auto-reset |
+| Accessibility | `role="status"`, `aria-live="polite"`, `aria-atomic="true"`; keyboard Enter |
+
+Run the suite:
+
+```bash
+npx vitest run components/dashboard/account-overview.test.tsx --coverage.enabled=false
+```
 
 ---
 
-## Card Elevation / Shadow Scale (#759)
+## Drag-and-Drop Widget Reordering
 
-### Token Definition
+**Branch:** `feature/dashboard-widget-reordering`
 
-A 4-step elevation scale defined as CSS custom properties in `app/globals.css` and exposed as Tailwind v4 utility classes via `@theme inline`.
+**Issue:** #886 — Add drag-and-drop widget reordering (persisted to localStorage).
 
-| Token | Tailwind Class | Light value | Dark value | Elevation intent |
-| :---- | :------------- | :---------- | :--------- | :--------------- |
-| `--elevation-1` / `--shadow-elevation-1` | `shadow-elevation-1` | `0 1px 2px 0 rgb(0 0 0 / 0.03), 0 1px 1px 0 rgb(0 0 0 / 0.02)` | `0 1px 3px 0 rgb(0 0 0 / 0.4), 0 1px 2px -1px rgb(0 0 0 / 0.3)` | Static / default cards |
-| `--elevation-2` / `--shadow-elevation-2` | `shadow-elevation-2` | `0 4px 6px -1px rgb(0 0 0 / 0.05), 0 2px 4px -2px rgb(0 0 0 / 0.03)` | `0 4px 6px -1px rgb(0 0 0 / 0.5), 0 2px 4px -2px rgb(0 0 0 / 0.4)` | Hoverable / interactive cards |
-| `--elevation-3` / `--shadow-elevation-3` | `shadow-elevation-3` | `0 10px 15px -3px rgb(0 0 0 / 0.08), 0 4px 6px -4px rgb(0 0 0 / 0.04)` | `0 10px 15px -3px rgb(0 0 0 / 0.55), 0 4px 6px -4px rgb(0 0 0 / 0.45)` | Floating panels (popovers, dropdowns) |
-| `--elevation-4` / `--shadow-elevation-4` | `shadow-elevation-4` | `0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.05)` | `0 20px 25px -5px rgb(0 0 0 / 0.65), 0 8px 10px -6px rgb(0 0 0 / 0.5)` | Modals / dialogs |
+### What was added
 
-### Component-to-elevation mapping
+Users can now reorder the five dashboard widgets by either:
 
-| Component | Default elevation | Hover / interactive elevation |
-| :-------- | :---------------- | :---------------------------- |
-| `Card` (`components/ui/card.tsx`) | 1 (static) | N/A (use interactive wrapper if needed) |
-| `AccountSummaryCard` (`components/dashboard/account-summary-card.tsx`) | 1 | 2 (`hover:shadow-elevation-2`) |
-| `SummaryCardSkeleton` (`components/dashboard/summary-data.tsx`) | 1 | N/A (skeleton) |
-| `TransactionHistory` (`components/dashboard/transaction-history.tsx`) | 1 | N/A |
-| `QuickTransfer` (`components/dashboard/quick-transfer.tsx`) | 1 | N/A |
-| `AnalyticsInsights` section wrapper | 1 | N/A |
-| `AnalyticsInsights` KPI cards | 1 | 2 (`hover:shadow-elevation-2`) |
-| `QuickActions` section wrapper | 1 | N/A |
-| `QuickActions` interactive cards | 1 | 2 (`hover:shadow-elevation-2`) |
-| `DashboardPage` section | 1 | N/A |
-| `<DropdownMenuContent>`, `<PopoverContent>` | 3 (floating) | N/A |
-| `<DialogContent>`, `<CoachMarkOverlay>` | 4 (modal) | N/A |
+1. **Drag and drop** using the grip handle (⠿ icon) in the top bar of each widget.
+2. **Keyboard Move Up / Move Down** buttons in the same top bar.
 
-### Usage
+The chosen order is persisted to `localStorage` via `safeStorage.ts` and restored on the next visit.
 
-```tsx
-// Default static card (elevation 1)
-<Card>Content</Card>
+### Widgets
 
-// Custom elevation
-<Card elevation={2}>Interactive card</Card>
-<Card elevation={3}>Floating panel</Card>
+The dashboard renders five widgets in a vertical sortable list:
 
-// Hoverable card pattern (elevation 1 → 2)
-<div className="shadow-elevation-1 hover:shadow-elevation-2 transition-shadow">
-  ...
-</div>
+| ID | Component | Tour Ref |
+|---|---|---|
+| `account-overview` | `AccountOverview` | `accountSummaryRef` |
+| `quick-transfer` | `QuickTransfer` | — |
+| `quick-actions` | `QuickActions` | `quickActionsRef` |
+| `analytics-insights` | `AnalyticsInsights` (dynamic) | `analyticsInsightsRef` |
+| `client-analytics` | `ClientAnalyticsView` | `clientAnalyticsRef` |
+
+### Persistence
+
+- **Storage key:** `stellopay_dashboard_widget_order` (in `STORAGE_KEYS`).
+- **Format:** `JSON.stringify([...WidgetId[]])`.
+- **Hydration flow:**
+  1. On mount, `safeStorage.getWidgetOrder()` is called.
+  2. If a valid array of 5 known widget IDs is returned, it replaces the default order.
+  3. If the saved value is `null`, malformed, wrong length, or contains unknown IDs, the default order is used.
+  4. After hydration sets `hasHydrated = true`, every subsequent order change is persisted via `useEffect`.
+
+### Components
+
+#### `WidgetId` type and constants
+
+```ts
+type WidgetId = "account-overview" | "quick-transfer" | "quick-actions"
+              | "analytics-insights" | "client-analytics";
 ```
 
-### Accessibility
+Exported from `dashboard-page.tsx`:
+- `WIDGET_IDS` — default-order array (`WidgetId[]`).
+- `WIDGET_LABELS` — human-readable label map (`Record<WidgetId, string>`).
 
-- **Contrast**: Shadows are purely decorative (`content` layer per WCAG 1.4.1). No information is conveyed through shadow alone.
-- **Reduced motion**: The `transition-shadow` duration (default 150-300 ms) is not animated when `prefers-reduced-motion: reduce` is set because Tailwind's `transition-*` utilities are disabled by the browser.
-- **Dark mode**: Dark-mode shadow values are defined via `.dark` CSS variables, selected to provide sufficient depth on dark surfaces without creating high-contrast artifacts.
+#### `WidgetDragHandle`
 
-### Validation criteria
+Renders a top bar with:
+- **Drag handle button** (left): GripVertical icon + widget label; spreads `listeners` from `useSortable`. `aria-roledescription="sortable"`.
+- **Move Up / Move Down buttons** (right): chevron icons; disabled at list boundaries. Wrapped in a `role="group"` with an accessible label.
 
-1. Every `<Card>` usage either omits `elevation` (defaults to 1) or explicitly sets a valid value.
-2. Dashboard summary cards transition from `shadow-elevation-1` → `shadow-elevation-2` on hover.
-3. No raw `shadow-sm`/`shadow-md`/hand-rolled `boxShadow` remains in migrated components.
-4. Dark-mode shadows are deeper (higher opacity) to maintain legibility on dark backgrounds.
-5. All existing tests pass without modification (elevation is additive, not breaking).
+#### `SortableWidget`
 
-### Migrated files
+Wrapper around each widget using `useSortable` from `@dnd-kit/sortable`. Applies `transform`/`transition` CSS for smooth drag animations. Reduces opacity (`opacity-60`) while dragging. Forwards the tour ref to the inner content.
 
-| File | Changes |
-| :--- | :------ |
-| `app/globals.css` | Added `--elevation-1` through `--elevation-4` CSS vars in `:root` and `.dark`, plus `@theme inline` entries |
-| `components/ui/card.tsx` | Added `elevation` prop (1-4) mapping to `shadow-elevation-*` classes |
-| `components/ui/card.test.tsx` | New test suite verifying `elevation` prop behaviour |
-| `components/dashboard/account-summary-card.tsx` | `shadow-sm` → `shadow-elevation-1`, `hover:shadow-md` → `hover:shadow-elevation-2` |
-| `components/dashboard/summary-data.tsx` | `shadow-sm` → `shadow-elevation-1` |
-| `components/dashboard/transaction-history.tsx` | `shadow-sm` → `shadow-elevation-1` |
-| `components/dashboard/quick-transfer.tsx` | `shadow-sm` → `shadow-elevation-1` |
-| `components/dashboard/quick-actions.tsx` | `shadow-sm` → `shadow-elevation-1`, `hover:shadow-md` → `hover:shadow-elevation-2` |
-| `components/dashboard/analytics-insights.tsx` | `shadow-sm` → `shadow-elevation-1`, `hover:shadow-md` → `hover:shadow-elevation-2` |
-| `components/dashboard/dashboard-page.tsx` | `shadow-sm` → `shadow-elevation-1` |
-| `design/dashboard-redesign.md` | Added this section |
+#### `DashboardDragOverlay`
+
+Shown as a drag preview while the user is dragging. Renders a simplified card with the widget label.
+
+#### `Dashboard` (modified)
+
+- Replaces the hardcoded widget order with a `widgetOrder` state array.
+- Renders widgets inside a `DndContext` + `SortableContext` with `verticalListSortingStrategy`.
+- `PointerSensor` with `activationConstraint: { distance: 8 }` prevents accidental drags.
+- `handleMove(id, direction)` callback for Move Up/Down buttons uses the same `arrayMove` logic as drag-and-drop.
+- `DndContext.onDragEnd` updates `widgetOrder` and persists via `safeStorage`.
+
+### Sensors
+
+Only a `PointerSensor` is configured (no `KeyboardSensor`). Keyboard accessibility is handled entirely by the Move Up / Move Down buttons (native `<button>` elements), which are simpler and more discoverable than @dnd-kit's keyboard drag activation.
+
+### Accessibility (WCAG 2.1 AA)
+
+| Criterion | Implementation |
+|---|---|
+| **Perceivable** | Drag handle has `aria-roledescription="sortable"` and `aria-label="Drag {widget} to reorder"`. Move buttons have `aria-label="Move {widget} up/down"`. The sortable container has `role="list"` with `aria-label="Dashboard widgets"`. Each widget has `role="listitem"` and `aria-label="{widget} widget"`. |
+| **Operable** | All controls are native `<button>` elements, fully keyboard-operable. Move Up/Down buttons are disabled at boundaries. Drag handle is focusable with visible `focus-visible:ring-2` ring. |
+| **Understandable** | Consistent layout: drag handle + label on left, move buttons on right. API is `arrayMove` — order always reflects the last user action. |
+| **Robust** | GripVertical, ChevronUp, ChevronDown icons carry `aria-hidden="true"`. |
+| **Contrast** | Uses existing Zinc design tokens (400/600 with hover states). Focus ring uses `zinc-900` (light) / `white` (dark) at 2px width. |
+
+### Refs / Tour compatibility
+
+The four refs used by `DashboardTour` (`accountSummaryRef`, `quickActionsRef`, `analyticsInsightsRef`, `clientAnalyticsRef`) are stored in a `refMap` keyed by widget ID. Each `SortableWidget` forwards the appropriate ref to the inner `<div>` wrapping the widget content. Refs follow the DOM when widgets are reordered, so the tour highlights remain correct.
+
+### Tests
+
+**File:** `components/dashboard/dashboard-page.test.tsx` (20 tests).
+
+| Category | Tests |
+|---|---|
+| **Render** | Navbar, all 5 widgets, tour overlay, correct layout |
+| **Default order** | Widgets render in `WIDGET_IDS` order |
+| **Move buttons** | 5 up buttons, 5 down buttons; first up disabled; last down disabled |
+| **Move down** | Clicks first move-down, checks item swapped |
+| **Move up** | Moves down then up, checks return to original |
+| **Persistence** | `safeStorage.setWidgetOrder` called after move with updated order |
+| **Restore** | Custom order from `getWidgetOrder` is rendered on mount |
+| **Fallback** | Null, truncated, and invalid localStorage values fall to default |
+| **Drag handles** | 5 handles with correct `aria-roledescription` |
+| **Props** | `isLoading` passed to ClientAnalyticsView; `recentRecipients` to QuickTransfer |
+| **Save default** | Default order is persisted when no saved order exists |
+
+### Pre-existing bug fix
+
+The `DashboardTour` import was missing from the original file (`dashboard-page.tsx`). Added `import { DashboardTour } from "@/components/dashboard/dashboard-tour"`. Also added missing `FileText`, `Wallet`, `Shield`, `Settings`, `Clock3`, `ChevronRight` icon imports from `lucide-react`, `Link` from `next/link`, `useTransactions` from `@/hooks/useTransactions`, and `Transaction` type from `@/types/transaction` — all used by the `RecentActivityFeed` component but previously undeclared.
+
+No test changes were needed for these fixes; the existing test suite was not exercising `RecentActivityFeed`.
+
+---
+
+## Empty-State & Error-State Audit
+
+**Branch:** `refactor/dashboard-empty-state-adoption`
+
+### What was done
+
+Audited all four dashboard widgets and migrated ad hoc empty/error states onto
+the shared `components/ui/empty-state.tsx` and `components/ui/error-state.tsx`
+primitives.
+
+### Changes per widget
+
+| Widget | Was | Now |
+|---|---|---|
+| **Account Overview** | Ad-hoc `<div role="alert">` with `AlertCircle` + `RefreshCw` + "Retry" button | `<ErrorState title="Failed to Load" … onRetry={…} />` from `error-state.tsx` |
+| **Payment History** | Already used shared `EmptyState` / `ErrorState` | No changes needed |
+| **Analytics Insights** | No empty state when all KPIs deselected (unreachable via UI, defensive only) | Added `<EmptyState title="No Metrics Selected" … />` behind `visibleKPIs.length === 0 && hasHydrated` |
+| **Client Analytics** | No empty/error states (chart library handles its own) | No changes needed |
+
+### Theme-aware fix
+
+Both `error-state.tsx` and `empty-state.tsx` had hardcoded dark-only colors
+(e.g. `text-white` on `bg-red-900/10` — invisible in light mode). Fixed by
+adding `dark:` variants with light-appropriate defaults.
+
+### Tests
+
+| File | Change |
+|---|---|
+| `components/dashboard/account-overview.test.tsx` | Replaced `getByTestId("summary-error")` with `getByRole("alert")`; changed button query from `/retry/i` to `/try again/i` |
+| `components/dashboard/analytics-insights.test.tsx` | Added test verifying `EmptyState` renders when saved IDs don't match any known metric |
+
+Run the suites:
+
+```bash
+npx vitest run components/dashboard/account-overview.test.tsx --no-coverage
+npx vitest run components/dashboard/analytics-insights.test.tsx --no-coverage
+npx vitest run components/dashboard/dashboard-page.test.tsx --no-coverage
+```

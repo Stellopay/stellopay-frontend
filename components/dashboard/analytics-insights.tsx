@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/utils/commonUtils";
 import { safeStorage } from "@/utils/safeStorage";
+import { EmptyState } from "@/components/ui/empty-state";
 import {
   Dialog,
   DialogContent,
@@ -391,44 +392,51 @@ export function AnalyticsInsights({
         </div>
       </div>
 
-      {/* KPI Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-        {visibleKPIs.map((item) => {
-          const Icon = item.icon;
-          return (
-            <div
-              key={item.id}
-              className={cn(
-                "rounded-2xl border p-5 flex flex-col group hover:shadow-elevation-2 transition-all",
-                "bg-zinc-50/50 dark:bg-zinc-900/30 border-zinc-100 dark:border-zinc-800/50",
-              )}
-            >
-              <div className="flex items-start justify-between gap-2">
-                <div
-                  className={cn(
-                    "flex items-center justify-center w-12 h-12 rounded-xl shrink-0 transition-transform group-hover:scale-110",
-                    item.iconBg,
-                    item.iconColor,
-                  )}
-                >
-                  <Icon className="h-6 w-6" aria-hidden />
+      {/* KPI Cards or empty state */}
+      {visibleKPIs.length === 0 && hasHydrated ? (
+        <EmptyState
+          title="No Metrics Selected"
+          description="Select at least one metric to display using the Customize button above."
+        />
+      ) : (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+          {visibleKPIs.map((item) => {
+            const Icon = item.icon;
+            return (
+              <div
+                key={item.id}
+                className={cn(
+                  "rounded-2xl border p-5 flex flex-col group hover:shadow-md transition-all",
+                  "bg-zinc-50/50 dark:bg-zinc-900/30 border-zinc-100 dark:border-zinc-800/50",
+                )}
+              >
+                <div className="flex items-start justify-between gap-2">
+                  <div
+                    className={cn(
+                      "flex items-center justify-center w-12 h-12 rounded-xl shrink-0 transition-transform group-hover:scale-110",
+                      item.iconBg,
+                      item.iconColor,
+                    )}
+                  >
+                    <Icon className="h-6 w-6" aria-hidden />
+                  </div>
+                  <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-emerald-50 dark:bg-emerald-500/10">
+                    <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400">
+                      {item.change}
+                    </span>
+                  </div>
                 </div>
-                <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-emerald-50 dark:bg-emerald-500/10">
-                  <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400">
-                    {item.change}
-                  </span>
-                </div>
+                <p className="text-3xl font-bold text-zinc-900 dark:text-white mt-4 tracking-tight">
+                  {item.value}
+                </p>
+                <p className="text-sm font-bold text-zinc-400 dark:text-zinc-500 mt-1 uppercase tracking-wider">
+                  {item.label}
+                </p>
               </div>
-              <p className="text-3xl font-bold text-zinc-900 dark:text-white mt-4 tracking-tight">
-                {item.value}
-              </p>
-              <p className="text-sm font-bold text-zinc-400 dark:text-zinc-500 mt-1 uppercase tracking-wider">
-                {item.label}
-              </p>
-            </div>
-          );
-        })}
-      </div>
+            );
+          })}
+        </div>
+      )}
     </section>
   );
 }
