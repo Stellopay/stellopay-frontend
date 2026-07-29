@@ -7,10 +7,113 @@ on:
     branches: [main]
 
 jobs:
-  ci:
-    name: Lint, build, and test
+  # ---------------------------------------------------------------------------
+  # Job 1 – lint, type-check, unit tests, and production build
+  # ---------------------------------------------------------------------------
+  lint-typecheck-build:
+    name: Lint, type-check, unit tests, and build
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: CI green
-        run: echo "CI temporarily scoped to smoke check while build/test failures are triaged."
+
+      - name: Set up Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Unit tests (Vitest + coverage)
+        run: npm run test
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Type-check
+        run: npm run type-check
+
+      - name: Build
+        run: npm run build
+
+  # ---------------------------------------------------------------------------
+  # Job 2 – Playwright E2E, accessibility, and visual regression
+  #
+  # Visual regression notes
+  # ─────────────────────────────────────────────────────────────────────────
+  # Snapshots committed to tests/__snapshots__/ serve as the pixel-accurate
+  # baselines. Playwright compares every toHaveScreenshot() call against the
+  # committed PNG and fails if the diff exceeds the tolerances configured in
+  # playwright.config.ts:
+  #
+  #   maxDiffPixelRatio: 0.01  (≤ 1 % of total pixels may differ)
+  #   threshold:         0.15  (per-pixel colour distance, 0–1 scale)
+  #
+  # On failure the job uploads three artefacts so the diff is reviewable
+  # without re-running locally:
+  #
+  #   playwright-report          – full HTML report with annotated diffs
+  #   visual-regression-diffs    – only the *-actual.png / *-diff.png files
+  #   visual-regression-snapshots– the committed baselines (*-expected.png)
+  #
+  # To intentionally update baselines after an approved design change, see
+  # CONTRIBUTING.md § "Visual Regression Baselines".
+  # ---------------------------------------------------------------------------
+  playwright:
+    name: Playwright – E2E, a11y, and visual regression
+    runs-on: ubuntu-latest
+    needs: lint-typecheck-build
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps chromium
+
+      - name: Run Playwright tests (E2E + a11y + visual regression)
+        run: npx playwright test
+        env:
+          CI: "true"
+
+      # Upload the full HTML report on every run (pass or fail) so diffs and
+      # traces are available for 7 days without re-running locally.
+      - name: Upload Playwright HTML report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: playwright-report/
+          retention-days: 7
+
+      # Upload *only* the visual diff artefacts (actual + diff images) when the
+      # job fails — these are the files that reveal what changed visually.
+      - name: Upload visual regression diffs
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: visual-regression-diffs
+          # Playwright writes <snapshot-name>-actual.png and
+          # <snapshot-name>-diff.png next to the committed baseline on failure.
+          path: |
+            __snapshots__/**/*-actual.png
+            __snapshots__/**/*-diff.png
+          retention-days: 7
+
+      # Upload the committed baselines alongside the diffs so reviewers can
+      # compare expected vs actual side-by-side without checking out the branch.
+      - name: Upload visual regression baselines (expected)
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: visual-regression-baselines
+          path: __snapshots__/
+          retention-days: 7

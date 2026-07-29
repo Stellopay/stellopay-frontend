@@ -246,6 +246,93 @@ long text, and responsive checks at `sm` 640px, `md` 768px, `lg` 1024px, and
   ```
   Runs TypeScript compiler (`tsc --noEmit`) to verify types without building.
 
+## Visual Regression Baselines
+
+The dashboard (and any other route covered by `toHaveScreenshot()`) has pixel-accurate baseline images committed to `__snapshots__/` (repo root). Playwright compares every screenshot assertion against these files in CI and fails if the pixel diff exceeds the configured tolerance.
+
+### Tolerance settings (playwright.config.ts)
+
+| Setting              | Value | Meaning |
+| -------------------- | ----- | ------- |
+| `maxDiffPixelRatio`  | 0.01  | At most 1 % of total pixels may differ before a test fails. Absorbs sub-pixel antialiasing variation across machines. |
+| `threshold`          | 0.15  | Per-pixel colour distance tolerance on a 0–1 scale. Forgives minor gamma / rendering differences between OS versions. |
+
+### Breakpoints covered
+
+| Name | Viewport width | Height |
+| ---- | -------------- | ------ |
+| sm   | 640 px         | 900 px |
+| md   | 768 px         | 900 px |
+| lg   | 1024 px        | 900 px |
+| xl   | 1280 px        | 900 px |
+
+Both light and dark modes are captured at each breakpoint, plus a third "skeleton / loading" snapshot that verifies the UI during the 1 500 ms simulated loading delay.
+
+### How to update baselines after an approved design change
+
+When a deliberate UI change causes screenshot assertions to fail, follow this workflow:
+
+1. **Get design sign-off first.** Baseline updates are permanent history — do not regenerate them to silence a failing test before the change is approved.
+
+2. **Run the update command** against the Chromium project only (the project used in CI):
+
+   ```bash
+   npx playwright test tests/dashboard.spec.ts --update-snapshots --project=chromium
+   ```
+
+   To update all snapshots across every browser project at once:
+
+   ```bash
+   npx playwright test --update-snapshots
+   ```
+
+3. **Review the diff before committing.** Playwright writes the new PNG files to `__snapshots__/`. Open the files side-by-side (or use `git diff --stat`) to confirm only the intended pixels changed.
+
+4. **Commit the updated baselines with the design change** in the same PR, not as a separate "fix screenshots" commit. Keeping the visual change and its baseline together makes git blame useful.
+
+   ```bash
+   git add tests/__snapshots__/
+   git commit -m "test: update dashboard visual baselines for <design-change>"
+   ```
+
+5. **Reference the design ticket** in the PR description so reviewers know the baseline change was expected.
+
+### Running visual regression tests locally
+
+```bash
+# Run only the visual regression suite (Chromium, fast):
+npx playwright test tests/dashboard.spec.ts --project=chromium
+
+# Run with the browser visible to inspect rendering:
+npx playwright test tests/dashboard.spec.ts --project=chromium --headed
+
+# Open the last HTML report (includes annotated diffs):
+npx playwright show-report
+```
+
+### Interpreting a CI failure
+
+When the `playwright` CI job fails because of a visual diff:
+
+1. Open the **`playwright-report`** artefact from the failed run (retained 7 days). The HTML report shows a three-panel diff: expected / actual / diff overlay.
+2. Download **`visual-regression-diffs`** for the raw `*-actual.png` and `*-diff.png` files if you need to inspect them locally.
+3. Download **`visual-regression-baselines`** for the committed `*-expected.png` files to compare side-by-side.
+4. If the diff is an unintended regression, revert the offending style change and re-push. If it is an intentional design change, follow the "How to update baselines" workflow above.
+
+### Adding visual regression to a new route
+
+1. Import and call `toHaveScreenshot()` in your spec file, following the pattern in `tests/dashboard.spec.ts`.
+2. Generate the initial baselines locally:
+
+   ```bash
+   npx playwright test tests/<your-spec>.spec.ts --update-snapshots --project=chromium
+   ```
+
+3. Commit the generated PNG files under `__snapshots__/`.
+4. Open a PR — CI will compare future runs against the committed baselines automatically.
+
+---
+
 ## Branching, Commits, and PRs
 
 1. **Branch Naming**: Use descriptive branch names like `feat/feature-name`, `fix/bug-name`, or `docs/doc-update`.
