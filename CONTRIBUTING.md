@@ -479,6 +479,39 @@ For example, when testing an unsaved changes guard, ensure the test:
 ### Security Notes
 
 Examples must not include real secrets, tokens, or addresses. Always use placeholder domains (e.g., `example.com`) and redacted addresses in your tests and mockups.
-## Local Accessibility Testing Guide
-Before opening a pull request, please ensure your changes comply with our accessibility guidelines (targeting WCAG 2.1 AA compliance).
-Refer to the full manual and automated criteria in [design/a11y-checklist.md](design/a11y-checklist.md).
+
+## Navbar Active Route Management (#785)
+
+The application navbar (`components/common/navbar.tsx`) derives active route styling from `usePathname()` via `next/navigation`.
+
+### Standards & Guidelines
+- **Single Source of Truth**: Never persist active route state in local component state (`useState`).
+- **In-Page Nav Sync**: Dynamic URL updates from inline links automatically re-render active navbar indicators.
+- **Accessibility (WCAG 2.1 AA)**:
+  - Active navigation links receive `aria-current="page"`.
+  - Color contrast (`bg-primary/10 text-primary`) meets minimum requirements across light/dark modes.
+  - Mobile dropdown drawer includes complete `aria-expanded` and `aria-controls` bindings.
+
+## Navbar Active Route Management (#785)
+
+The application navbar (`components/common/navbar.tsx`) derives active route styling from `usePathname()` via `next/navigation`.
+
+### Standards & Guidelines
+- **Single Source of Truth**: Never persist active route state in local component state (`useState`).
+- **In-Page Nav Sync**: Dynamic URL updates from inline links automatically re-render active navbar indicators.
+- **Accessibility (WCAG 2.1 AA)**:
+  - Active navigation links receive `aria-current="page"`.
+  - Color contrast (`bg-primary/10 text-primary`) meets minimum requirements across light/dark modes.
+  - Mobile dropdown drawer includes complete `aria-expanded` and `aria-controls` bindings.
+
+## Navbar Active Route Management (#785)
+
+The application navbar (`components/common/navbar.tsx`) derives active route styling from `usePathname()` via `next/navigation`.
+
+### Standards & Guidelines
+- **Single Source of Truth**: Never persist active route state in local component state (`useState`).
+- **In-Page Nav Sync**: Dynamic URL updates from inline links automatically re-render active navbar indicators.
+- **Accessibility (WCAG 2.1 AA)**:
+  - Active navigation links receive `aria-current="page"`.
+  - Color contrast (`bg-primary/10 text-primary`) meets minimum requirements across light/dark modes.
+  - Mobile dropdown drawer includes complete `aria-expanded` and `aria-controls` bindings.
