@@ -4,6 +4,11 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { LoginForm } from "./login-form";
 import { login, sendMagicLink, AuthError } from "@/lib/api/auth";
 
+const mockPush = vi.fn();
+vi.mock("next/navigation", () => ({
+  useRouter: () => ({ push: mockPush }),
+}));
+
 // Mock the auth api adapter
 vi.mock("@/lib/api/auth", () => ({
   login: vi.fn(),
