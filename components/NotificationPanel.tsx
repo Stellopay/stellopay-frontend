@@ -1,9 +1,18 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, useCallback, useRef, useEffect } from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import type { NotificationItem } from "@/types/NotificationItem";
+
+/** Threshold above which the notification list switches to virtualized rendering. */
+const VIRTUALIZATION_THRESHOLD = 20;
+
+/** Estimated height in pixels of a single notification row. */
+const ITEM_HEIGHT = 72;
+
+/** Number of extra items to render above/below the visible range as a buffer. */
+const OVERSCAN = 3;
 
 const MOCK_NOTIFICATIONS: NotificationItem[] = [
   {
@@ -37,14 +46,71 @@ export default function NotificationPanel() {
   const [notifications, setNotifications] =
     useState<NotificationItem[]>(MOCK_NOTIFICATIONS);
 
+  const listRef = useRef<HTMLUListElement>(null);
+  const [scrollTop, setScrollTop] = useState(0);
+  const [containerHeight, setContainerHeight] = useState(0);
+
   const unreadCount = useMemo(
     () => notifications.filter((n) => !n.read).length,
     [notifications]
   );
 
+  const shouldVirtualize = notifications.length > VIRTUALIZATION_THRESHOLD;
+
   const markAllAsRead = () => {
     setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
   };
+
+  const handleScroll = useCallback(() => {
+    if (listRef.current) {
+      setScrollTop(listRef.current.scrollTop);
+    }
+  }, []);
+
+  // Measure container height when the panel opens (deferred to next paint
+  // so the DOM layout is settled before we read clientHeight).
+  useEffect(() => {
+    if (!open) return;
+    const raf = requestAnimationFrame(() => {
+      if (listRef.current) {
+        setContainerHeight(listRef.current.clientHeight);
+      }
+    });
+    return () => cancelAnimationFrame(raf);
+  }, [open]);
+
+  // Virtualized range calculations
+  const virtualRange = useMemo(() => {
+    if (!shouldVirtualize) {
+      return { start: 0, end: notifications.length };
+    }
+
+    const startIndex = Math.max(
+      0,
+      Math.floor(scrollTop / ITEM_HEIGHT) - OVERSCAN,
+    );
+    const endIndex = Math.min(
+      notifications.length,
+      Math.ceil((scrollTop + containerHeight) / ITEM_HEIGHT) + OVERSCAN,
+    );
+
+    return { start: startIndex, end: endIndex };
+  }, [shouldVirtualize, notifications.length, scrollTop, containerHeight]);
+
+  // Notification item renderer shared by both modes
+  const renderItem = useCallback(
+    (n: NotificationItem) => (
+      <li
+        key={n.id}
+        className={`p-3 text-sm ${n.read ? "bg-background" : "bg-muted"}`}
+        style={shouldVirtualize ? { height: ITEM_HEIGHT } : undefined}
+      >
+        <p className="font-medium">{n.title}</p>
+        <p className="text-muted-foreground">{n.message}</p>
+      </li>
+    ),
+    [shouldVirtualize]
+  );
 
   return (
     <div className="relative">
@@ -76,20 +142,40 @@ export default function NotificationPanel() {
             </Button>
           </div>
 
-          <ul className="max-h-80 overflow-y-auto divide-y">
-            {notifications.slice(0, 5).map((n) => (
-              <li
-                key={n.id}
-                className={`p-3 text-sm ${n.read ? "bg-background" : "bg-muted"}`}
-              >
-                <p className="font-medium">{n.title}</p>
-                <p className="text-muted-foreground">{n.message}</p>
-              </li>
-            ))}
-            {notifications.length === 0 && (
-              <li className="p-4 text-sm text-muted-foreground text-center">
-                No notifications
-              </li>
+          <ul
+            ref={listRef}
+            onScroll={handleScroll}
+            className="max-h-80 overflow-y-auto divide-y"
+            role="list"
+          >
+            {shouldVirtualize ? (
+              <>
+                {/* Top spacer for virtualized scroll height */}
+                <li
+                  style={{ height: virtualRange.start * ITEM_HEIGHT }}
+                  aria-hidden="true"
+                />
+                {notifications
+                  .slice(virtualRange.start, virtualRange.end)
+                  .map(renderItem)}
+                {/* Bottom spacer for virtualized scroll height */}
+                <li
+                  style={{
+                    height:
+                      (notifications.length - virtualRange.end) * ITEM_HEIGHT,
+                  }}
+                  aria-hidden="true"
+                />
+              </>
+            ) : (
+              <>
+                {notifications.map(renderItem)}
+                {notifications.length === 0 && (
+                  <li className="p-4 text-sm text-muted-foreground text-center">
+                    No notifications
+                  </li>
+                )}
+              </>
             )}
           </ul>
 

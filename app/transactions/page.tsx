@@ -7,10 +7,9 @@ import { TransactionsTable } from "@/components/transactions/transactions-table"
 import TransactionsPagination from "@/components/transactions/transactions-pagination";
 import TableSearchbar from "@/components/transactions/table-searchbar";
 import Filter from "@/components/transactions/filter";
-import Sort from "@/components/transactions/sort";
 import { TransactionTableSkeleton } from "@/components/ui/table-skeleton";
 import { useTransactions } from "@/hooks/useTransactions";
-import type { SortField, SortConfig, TransactionProps } from "@/types/transaction";
+import type { TransactionProps, SortField, SortDirection } from "@/types/transaction";
 import { isDateInRange } from "@/utils/date-utils";
 
 const getTokenIcon = (token: string): string => {
@@ -35,10 +34,19 @@ const Transactions = () => {
   const [maxAmount, setMaxAmount] = useState<number | undefined>(undefined);
   const [startDate, setStartDate] = useState<Date | undefined>(undefined);
   const [endDate, setEndDate] = useState<Date | undefined>(undefined);
-  const [sortConfigs, setSortConfigs] = useState<SortConfig[]>([
-    { field: "date", direction: "desc" },
-  ]);
+  const [sortField, setSortField] = useState<SortField>("date");
+  const [sortDirection, setSortDirection] = useState<SortDirection>("desc");
   const itemsPerPage = 6;
+
+  const handleSort = (field: SortField) => {
+    if (field === sortField) {
+      setSortDirection((d) => (d === "asc" ? "desc" : "asc"));
+    } else {
+      setSortField(field);
+      setSortDirection("asc");
+    }
+    setCurrentPage(1);
+  };
 
   // Reset to page 1 whenever filters change
   useEffect(() => {
@@ -46,7 +54,7 @@ const Transactions = () => {
   }, [searchParams, filterParams, startDate, endDate, minAmount, maxAmount]);
 
   const { data, isLoading, error } = useTransactions({
-    filters: { searchQuery: searchParams, filterQuery: filterParams, minAmount, maxAmount },
+    filters: { searchQuery: searchParams, filterQuery: filterParams, sortField, sortDirection },
     page: 1,
     pageSize: 1000, // fetch all so we can client-side date filter (same as original)
   });
@@ -87,6 +95,9 @@ const Transactions = () => {
         endDate={endDate}
         onStartDateChange={setStartDate}
         onEndDateChange={setEndDate}
+        sortField={sortField}
+        sortDirection={sortDirection}
+        onSort={handleSort}
       />
 
       <div className="container mx-auto py-8 px-8">
@@ -140,33 +151,6 @@ const Transactions = () => {
             <div className="flex items-center gap-2">
               <TableSearchbar onSearch={setSearchParams} />
               <Filter value={filterParams} onChange={setFilterParams} />
-              <Sort
-                sortConfigs={sortConfigs}
-                onSort={(field, options) => {
-                  setSortConfigs((prev) => {
-                    const primary = prev[0];
-                    if (options?.shiftKey && primary && primary.field !== field) {
-                      const secondary = prev[1];
-                      if (secondary?.field === field) {
-                        return [
-                          { field: primary.field, direction: primary.direction },
-                          { field, direction: secondary.direction === "asc" ? "desc" : "asc" },
-                        ];
-                      }
-                      return [
-                        { field: primary.field, direction: primary.direction },
-                        { field, direction: "asc" },
-                      ];
-                    }
-                    const isSameField = primary?.field === field;
-                    const newDirection = isSameField && primary?.direction === "asc" ? "desc" : "asc";
-                    return [{ field, direction: newDirection }];
-                  });
-                }}
-                onClearSecondarySort={() =>
-                  setSortConfigs((prev) => [prev[0]])
-                }
-              />
             </div>
           </div>
 

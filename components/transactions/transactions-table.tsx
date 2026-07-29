@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import {
   Table,
   TableBody,
@@ -11,7 +12,9 @@ import {
 } from "@/components/ui/table";
 import { TransactionsTableProps, TransactionProps } from "@/types/transaction";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import Image from "next/image";
+import Link from "next/link";
 import { Skeleton } from "@/components/ui/skeleton";
 import { TransactionTableSkeleton } from "@/components/ui/table-skeleton";
 import { getStatusColor, getStatusIcon } from "@/utils/transactionUtils";
@@ -19,9 +22,53 @@ import { truncateStellarAddress } from "@/utils/stellarAddress";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Checkbox } from "@/components/ui/checkbox";
 import { TRANSACTIONS_PAGE_SIZE } from "./transactions-config";
-import { useRef, type KeyboardEvent } from "react";
 import { DownloadReceiptButton } from "./download-receipt-button";
-import { Dialog, DialogContent } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import { ExternalLink } from "lucide-react";
+import { safeStorage } from "@/utils/safeStorage";
+
+// ── Density configuration ───────────────────────────────────────────────────
+
+type TableDensity = "compact" | "comfortable" | "spacious";
+
+const DENSITY_STORAGE_KEY = "transactions-table-density";
+
+interface DensityStyle {
+  head: string;
+  cell: string;
+  skeleton: string;
+}
+
+const DENSITY_CONFIG: Record<TableDensity, DensityStyle> = {
+  compact: {
+    head: "py-2 px-3 text-xs",
+    cell: "py-2 px-3 text-xs",
+    skeleton: "py-2 px-3",
+  },
+  comfortable: {
+    head: "py-3 px-4 text-sm",
+    cell: "py-3 px-4 text-sm",
+    skeleton: "py-3 px-4",
+  },
+  spacious: {
+    head: "py-4 px-5 text-sm",
+    cell: "py-4 px-5 text-sm",
+    skeleton: "py-4 px-5",
+  },
+};
+
+const DENSITY_OPTIONS: Array<{ value: TableDensity; label: string }> = [
+  { value: "compact", label: "Compact" },
+  { value: "comfortable", label: "Comfortable" },
+  { value: "spacious", label: "Spacious" },
+];
 
 interface TransactionsTablePropsExtended extends TransactionsTableProps {
   isLoading?: boolean;
@@ -253,10 +300,12 @@ export function TransactionsTable({
   onSelectRow,
   onSelectAll,
 }: TransactionsTablePropsExtended) {
-  const [selectedTransaction, setSelectedTransaction] = useState<TransactionsTablePropsExtended["transactions"][number] | null>(null);
+  const [selectedTransaction, setSelectedTransaction] = useState<TransactionProps | null>(null);
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const triggerRef = useRef<HTMLButtonElement | null>(null);
 
   const openReceipt = useCallback(
-    (transaction: TransactionsTablePropsExtended["transactions"][number]) => {
+    (transaction: TransactionProps) => {
       setSelectedTransaction(transaction);
     },
     [],

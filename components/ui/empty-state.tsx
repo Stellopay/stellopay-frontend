@@ -81,17 +81,17 @@ export function EmptyState({
     <div
       role="status"
       aria-live="polite"
-      className="flex flex-col items-center justify-center p-8 text-center border border-[#2D2D2D] bg-[#111111] rounded-xl"
+      className="flex flex-col items-center justify-center p-8 text-center border border-zinc-200 dark:border-[#2D2D2D] bg-zinc-50 dark:bg-[#111111] rounded-xl"
     >
       <div className="text-zinc-400 mb-4">
         {icon || <Inbox className="w-10 h-10" aria-hidden="true" />}
       </div>
-      <h3 className="text-lg font-semibold text-white mb-2">{title}</h3>
-      <p className="text-sm text-zinc-400 max-w-md mb-6">{description}</p>
+      <h3 className="text-lg font-semibold text-zinc-900 dark:text-white mb-2">{title}</h3>
+      <p className="text-sm text-zinc-600 dark:text-zinc-400 max-w-md mb-6">{description}</p>
       {resolvedAction && (
         <button
           onClick={resolvedAction.onClick}
-          className="px-4 py-2 bg-[#2D2D2D] hover:bg-[#3A3A3A] transition-colors text-white text-sm font-medium rounded-lg"
+          className="px-4 py-2 bg-zinc-900 dark:bg-[#2D2D2D] hover:bg-zinc-800 dark:hover:bg-[#3A3A3A] transition-colors text-white text-sm font-medium rounded-lg"
         >
           {resolvedAction.label}
         </button>

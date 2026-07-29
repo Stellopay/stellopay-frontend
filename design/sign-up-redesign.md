@@ -139,6 +139,90 @@ Tests in `components/auth/sign-up/sign-up-form.test.tsx` cover:
 
 ---
 
+---
+
+## Forgot-Password Enumeration Safety
+
+### Overview
+
+The forgot-password flow (`app/auth/forgot-password/`) is designed to prevent user enumeration. Regardless of whether the submitted email matches an existing account, the client always renders **identical** confirmation copy. This prevents attackers from probing the endpoint to discover registered email addresses.
+
+### Implementation
+
+#### API Layer (`lib/api/auth.ts`)
+
+The `sendPasswordResetEmail()` function:
+- POSTs to `/auth/forgot-password`
+- On **2xx** responses: returns successfully (no distinction exposed)
+- On **4xx** responses: **swallows the error** silently — the client never learns whether the email was found
+- On **5xx** responses: throws an `AuthError` with `kind: "network"` (user-facing connectivity message only)
+
+```typescript
+// lib/api/auth.ts — enumeration-safe forgot-password
+if (!response.ok) {
+  if (response.status >= 500) {
+    throw new AuthError("We're having trouble reaching our servers. Please try again.", "network");
+  }
+  // Intentionally swallow 4xx responses — the client must never
+  // distinguish between "email exists" and "email not found".
+}
+```
+
+#### Confirmation Copy
+
+The confirmation screen always displays the same generic message:
+
+> **Check your email**
+> If an account exists for this email, you will receive a password reset link shortly.
+
+No account-specific details (e.g. "We sent a link to user@example.com") are ever rendered.
+
+### Accessibility (WCAG 2.1 AA)
+
+| Concern | Implementation |
+|---------|---------------|
+| Confirmation announcement | `<div role="status" aria-live="polite">` wraps the confirmation content |
+| Error announcement | `<div role="alert" aria-live="polite">` for error states |
+| Resend cooldown | Button is disabled during cooldown, with `aria-label` describing remaining seconds |
+| Focus management | Form fields use standard HTML autofocus via `autoComplete` and `inputMode` |
+| Keyboard navigation | All interactive elements are native `<button>` and `<a>` elements |
+| Link to sign in | "Back to sign in" link returns to `/auth/login` |
+
+### Responsive Behavior
+
+| Breakpoint | Layout |
+|------------|--------|
+| `sm` (640px) | Single-column, centered |
+| `md` (768px) | Single-column, centered with showcase below |
+| `lg` (1024px) | Two-column: form + showcase side-by-side |
+| `xl` (1280px) | Same as lg with max-width constraint |
+
+### Test Coverage
+
+Tests in `components/auth/forgot-password/forgot-password-form.test.tsx` cover:
+
+| Test | Scenario |
+|------|----------|
+| Renders form elements | Email input + submit button present |
+| Email validation | Invalid email shows "Please enter a valid email address." |
+| Generic confirmation on success | API returns 2xx → confirmation shown |
+| Generic confirmation on 4xx | API returns 4xx → still shows confirmation (never reveals "not found") |
+| Network error (5xx) | Server error shows connectivity message |
+| Unexpected error | Generic "An error occurred" message |
+| Loading state | Button shows spinner and "Sending..." text |
+| Back navigation | User can return to form from confirmation |
+| ARIA live region | `role="status"` with `aria-live="polite"` on confirmation |
+| Resend cooldown | Button disabled with countdown after first send |
+| Sign-in link | "Back to sign in" href points to `/auth/login` |
+| Form autocomplete | `autoComplete="email"` and `inputMode="email"` on email input |
+| Error role | `role="alert"` on error messages |
+
+### Future Considerations
+
+- Rate-limiting should be implemented server-side on `/auth/forgot-password` to prevent abuse
+- The server should use a constant-time comparison / response path for registered vs. unregistered emails
+- Logging should record the request without exposing whether an account exists (log the email but not whether it matched)
+
 ## Email Typo Suggestion
 
 ### Overview
