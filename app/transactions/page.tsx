@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo, useCallback } from "react";
 import TransactionHeader from "@/components/dashboard/transaction-header";
 import { TransactionsTable } from "@/components/transactions/transactions-table";
 import TransactionsPagination from "@/components/transactions/transactions-pagination";
@@ -9,7 +9,7 @@ import Filter from "@/components/transactions/filter";
 import Sort from "@/components/transactions/sort";
 import { TransactionTableSkeleton } from "@/components/ui/table-skeleton";
 import { useTransactions } from "@/hooks/useTransactions";
-import type { TransactionProps } from "@/types/transaction";
+import type { SortField, SortConfig, TransactionProps } from "@/types/transaction";
 import { isDateInRange } from "@/utils/date-utils";
 
 const getTokenIcon = (token: string): string => {
@@ -31,6 +31,9 @@ const Transactions = () => {
   const [maxAmount, setMaxAmount] = useState<number | undefined>(undefined);
   const [startDate, setStartDate] = useState<Date | undefined>(undefined);
   const [endDate, setEndDate] = useState<Date | undefined>(undefined);
+  const [sortConfigs, setSortConfigs] = useState<SortConfig[]>([
+    { field: "date", direction: "desc" },
+  ]);
   const itemsPerPage = 6;
 
   // Reset to page 1 whenever filters change
@@ -132,15 +135,34 @@ const Transactions = () => {
 
             <div className="flex items-center gap-2">
               <TableSearchbar onSearch={setSearchParams} />
-              <Filter 
-                value={filterParams} 
-                onChange={setFilterParams} 
-                minAmount={minAmount}
-                maxAmount={maxAmount}
-                onMinAmountChange={setMinAmount}
-                onMaxAmountChange={setMaxAmount}
+              <Filter value={filterParams} onChange={setFilterParams} />
+              <Sort
+                sortConfigs={sortConfigs}
+                onSort={(field, options) => {
+                  setSortConfigs((prev) => {
+                    const primary = prev[0];
+                    if (options?.shiftKey && primary && primary.field !== field) {
+                      const secondary = prev[1];
+                      if (secondary?.field === field) {
+                        return [
+                          { field: primary.field, direction: primary.direction },
+                          { field, direction: secondary.direction === "asc" ? "desc" : "asc" },
+                        ];
+                      }
+                      return [
+                        { field: primary.field, direction: primary.direction },
+                        { field, direction: "asc" },
+                      ];
+                    }
+                    const isSameField = primary?.field === field;
+                    const newDirection = isSameField && primary?.direction === "asc" ? "desc" : "asc";
+                    return [{ field, direction: newDirection }];
+                  });
+                }}
+                onClearSecondarySort={() =>
+                  setSortConfigs((prev) => [prev[0]])
+                }
               />
-              <Sort />
             </div>
           </div>
 
