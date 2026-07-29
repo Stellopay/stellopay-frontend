@@ -119,7 +119,7 @@ describe("NotificationPanel", () => {
   describe("keyboard navigation", () => {
     it("applies listbox role and aria-label to the notification list", () => {
       render(<NotificationPanel notifications={buildNotifications(3)} />);
-
+#602
       expect(
         screen.getByRole("listbox", { name: "Notifications list" }),
       ).toBeInTheDocument();
