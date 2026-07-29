@@ -1,8 +1,47 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import { DEMO_PROFILE } from "@/lib/demo-data";
 
-export const AccountSection: React.FC = () => {
+// ─── Profile data types & defaults ───────────────────────────────────────────
+
+export interface ProfileData {
+  firstName: string;
+  lastName: string;
+  displayName: string;
+  email: string;
+  timezone: string;
+  currency: string;
+  legalEntity: string;
+  billingCountry: string;
+}
+
+export const DEFAULT_PROFILE: ProfileData = DEMO_PROFILE;
+
+export function isProfileComplete(profile: ProfileData): boolean {
+  return countCompletedProfileFields(profile) === totalProfileFields(profile);
+}
+
+export function countCompletedProfileFields(profile: ProfileData): number {
+  return Object.values(profile).filter(
+    (value) => typeof value === "string" && value.trim().length > 0,
+  ).length;
+}
+
+export function totalProfileFields(_profile: ProfileData): number {
+  return Object.keys(DEFAULT_PROFILE).length;
+}
+
+// ─── AccountSection component ─────────────────────────────────────────────────
+
+interface AccountSectionProps {
+  /** Controlled profile state from parent (settings shell). */
+  profile?: ProfileData;
+  /** Called when the profile is edited. */
+  onProfileChange?: (next: ProfileData) => void;
+}
+
+export const AccountSection: React.FC<AccountSectionProps> = (_props) => {
   const [analytics, setAnalytics] = useState<boolean>(false);
   const [marketing, setMarketing] = useState<boolean>(false);
 
@@ -78,3 +117,5 @@ export const AccountSection: React.FC = () => {
     </section>
   );
 };
+
+export default AccountSection;
