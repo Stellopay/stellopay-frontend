@@ -189,6 +189,52 @@
 
 ---
 
+## Login Form — Per-field Validation Error Announcements
+
+**File:** `components/auth/login/login-form.tsx`  
+**Fix:** Added per-field zod validation error announcements and focus management for the login form.
+
+### aria-live Implementation
+
+Each `FormMessage` component (used by `FormFieldInput` and `FormFieldPassword`) renders with `role="alert"` and `aria-live="polite"` when a zod validation error is present. This is handled by the shared `FormMessage` component in `components/ui/form.tsx`. When the user submits the form with invalid data, each field's error message appears as a live region and is automatically announced by screen readers.
+
+### aria-describedby Linkage
+
+`FormControl` (via Radix Slot) automatically wires `aria-describedby` on each `<input>` to both the field's description (`formDescriptionId`) and its error message (`formMessageId`). This ensures screen readers announce the associated error message when the input receives focus.
+
+```tsx
+// In FormControl (components/ui/form.tsx):
+aria-describedby={!error ? `${formDescriptionId}` : `${formDescriptionId} ${formMessageId}`}
+```
+
+### Keyboard Focus Behavior
+
+After a failed form submission, the `onValidationError` callback iterates over `FieldErrors` to find the first field that failed validation and programmatically focuses it via `document.querySelector`. This prevents screen-reader and keyboard-only users from having to manually navigate back to the top of the form to correct errors.
+
+```tsx
+function onValidationError(errors: FieldErrors<LoginFormValues>) {
+  const firstErrorField = Object.keys(errors)[0] as keyof LoginFormValues;
+  if (firstErrorField) {
+    const element = document.querySelector<HTMLElement>(`[name="${firstErrorField}"]`);
+    element?.focus();
+  }
+}
+
+// Wired via handleSubmit's second argument:
+form.handleSubmit(onSubmit, onValidationError)
+```
+
+### Accessibility Considerations
+
+- **WCAG 2.4.3 (Focus Order)**: The first invalid field receives focus, preserving a logical focus order.
+- **WCAG 4.1.3 (Status Messages)**: Each field error is rendered with `role="alert"` and `aria-live="polite"`, ensuring screen readers announce validation failures without moving focus away from the corrected field.
+- **WCAG 1.3.1 (Info and Relationships)**: `aria-describedby` links each input to its error message, establishing a programmatic relationship.
+- **No duplicate announcements**: Each field has its own `FormMessage` live region; multiple simultaneous errors produce individual announcements.
+
+**axe rules:** `aria-live-region-content`, `aria-required-attr`, `label`
+
+---
+
 ## P1 Issues — Ticketed (not in this PR)
 
 | #     | Issue                                                                                        | WCAG  | Rationale for deferral                                                    |
