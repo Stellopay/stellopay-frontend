@@ -162,3 +162,16 @@ Frontend implementation can reference the Figma file for:
 
 **Figma File:** [\[Link to Figma\]](https://www.figma.com/design/Ntcbc8bESxTjkb0bT4ilLW/Stellopay---Help-Support-Page-Redesign?node-id=0-1&t=CPUyDeLZZiDXFXJv-1)  
 **Last Updated:** January 29, 2026
+
+---
+
+## Technical Enhancements
+
+### Account Management Loading Skeleton
+To prevent layout shift and visible reflows, a loading skeleton was added for the `accountManagement` section (`app/help/support/accountManagement/loading.tsx`).
+- **Structural Parity:** Mirrors the precise flexbox layout, padding, heading styles, and paragraph layouts of the real article content (`page.tsx`).
+- **Accessibility:** 
+  - Integrates ARIA attributes (`aria-busy="true"`, `aria-live="polite"`, `aria-label`) to ensure assistive technologies can parse the loading state seamlessly.
+  - Interactive elements (like the search bar) are appropriately marked as disabled.
+- **Dark/Light Modes:** The skeleton component inherently supports both light and dark variations depending on the current token context (e.g. `shade="light"` for active tabs).
+- **Responsive Validated:** Tested across sm (640), md (768), lg (1024), and xl (1280) breakpoints.
