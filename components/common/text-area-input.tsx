@@ -10,6 +10,7 @@ interface EnhancedTextareaInputProps extends TextareaInputProps {
   disabled?: boolean;
   className?: string;
   resize?: boolean;
+  onBlur?: (event: React.FocusEvent<HTMLTextAreaElement>) => void;
 }
 
 const TextareaInput: React.FC<EnhancedTextareaInputProps> = ({
@@ -25,6 +26,7 @@ const TextareaInput: React.FC<EnhancedTextareaInputProps> = ({
   disabled = false,
   className,
   resize = false,
+  onBlur,
 }) => {
   const fieldId = React.useId();
   const descriptionId = helperText ? `${fieldId}-description` : undefined;
@@ -45,6 +47,7 @@ const TextareaInput: React.FC<EnhancedTextareaInputProps> = ({
     <div className={cn("w-full space-y-2", className)}>
       {label && (
         <Label
+          htmlFor={fieldId}
           required={required}
           error={error}
           descriptionId={descriptionId}
@@ -71,6 +74,7 @@ const TextareaInput: React.FC<EnhancedTextareaInputProps> = ({
           placeholder={placeholder}
           value={value}
           onChange={handleChange}
+          onBlur={onBlur}
           rows={rows}
           disabled={disabled}
           className={cn(
