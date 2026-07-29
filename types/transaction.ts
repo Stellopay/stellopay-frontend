@@ -39,10 +39,6 @@ export interface TransactionFilters {
   /** Ordered list of sort criteria. The first entry is the primary sort,
    *  the second (if present) is the secondary (tiebreaker) sort, etc. */
   sortConfigs: SortConfig[];
-  /** Minimum transaction amount filter (absolute value). */
-  minAmount?: number;
-  /** Maximum transaction amount filter (absolute value). */
-  maxAmount?: number;
   /** Counterparty address filter (partial match). */
   counterparty?: string;
 }
