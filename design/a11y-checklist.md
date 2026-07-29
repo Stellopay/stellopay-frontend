@@ -1,4 +1,4 @@
-# Accessibility Checklist — WCAG 2.1 AA Baseline
+# Accessibility (A11y) Checklist - Stellopay Frontend
 
 **Branch:** `design/a11y-baseline`  
 **Scope:** Sign-in, Sign-up, Landing page, Transactions view, Modal dialogs  
@@ -352,3 +352,5 @@ form.handleSubmit(onSubmit, onValidationError)
 - **Contrast**: Focus ring (ocus:ring-[#D7E0EF]) provides clear 3:1 contrast against dark background.
 - **Keyboard Nav**: 	abIndex={0} makes truncated addresses and amounts focusable, revealing the 	itle tooltip.
 - **ARIA**: Screen readers read the full content within the span natively, while sighted users see tooltips on hover/focus.
+## Overview
+This checklist defines the mandatory accessibility requirements (targeting WCAG 2.1 AA compliance) for all components and views in the Stellopay frontend.

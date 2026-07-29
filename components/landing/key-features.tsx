@@ -42,8 +42,8 @@ export const KeyFeatures = () => {
           security.
         </p>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 justify-center items-start mx-auto">
-          {features.map((feature) => (
-            <FeatureCard key={feature.title} {...feature} />
+          {features.map((feature, index) => (
+            <FeatureCard key={feature.title} {...feature} priority={index === 0} />
           ))}
         </div>
       </div>
