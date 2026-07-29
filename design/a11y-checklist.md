@@ -792,3 +792,73 @@ This ensures a contrast ratio of at least 4.5:1 for standard text and 3:1 for la
 
 **WCAG:** 1.4.3 Contrast (Minimum)
 **axe rule:** `color-contrast`
+
+---
+
+## Global Error Boundary — Report Issue Action (Issue #feat/global-error-report-action)
+
+**Branch:** `feat/global-error-report-action`  
+**Scope:** `app/global-error.tsx`, `app/global-error.test.tsx`  
+**Standard:** WCAG 2.1 Level AA  
+**Date:** 2026-07-29
+
+### Overview
+
+`global-error.tsx` is the last-resort error boundary rendered when the root layout itself crashes. Previously it displayed only a generic message and a "Try again" button, giving users no way to report the failure. A "Report this issue" link was added that opens a `mailto:` link pre-filled with the error digest as a reference identifier.
+
+### WCAG Criteria addressed
+
+#### 1. Link semantics — `<a>` with `href` (WCAG 4.1.2 — Name, Role, Value)
+
+The report action is rendered as a native `<a>` element with a valid `mailto:` `href`. Native links are implicitly recognised by assistive technology as links with a "go" action. No custom ARIA roles are required.
+
+**axe rules satisfied:** `link-name`, `aria-allowed-attr`
+
+#### 2. Accessible name via `aria-label` (WCAG 4.1.2)
+
+The link includes `aria-label="Report this issue to support with reference {digest}"` so screen readers announce the purpose and the reference identifier together, even though the visible text is "Report this issue".
+
+#### 3. Keyboard activation (WCAG 2.1.1 — Keyboard)
+
+Native `<a href="mailto:...">` elements are keyboard-focusable and activated by Enter by default. An `onKeyDown` handler additionally handles the Space key for the `mailto:` protocol (which some browsers may not activate with Space on `mailto:` links). The link receives visible focus via the browser's default focus ring.
+
+**axe rules satisfied:** `interactive-supports-focus`
+
+#### 4. Visual hierarchy — secondary action (WCAG 1.4.1 — Use of Color)
+
+The report link is styled at `0.8rem` in `#6b7280` (muted gray) with underline, visually subordinate to the primary "Try again" button (`0.95rem`, `#ffffff` on `#111827`). The link is distinguishable by both colour and underlining, not by colour alone.
+
+#### 5. Contrast — report link text (WCAG 1.4.3 — Contrast Minimum)
+
+| Element | Foreground | Background | Ratio | Threshold | Pass |
+|---------|------------|------------|-------|-----------|------|
+| Report link text | `#6b7280` | `#f9fafb` | **4.7:1** | 4.5:1 | ✅ |
+
+The link text passes WCAG 2.1 AA at 4.7:1 against the page background.
+
+#### 6. No error content in user-facing payload (Security + WCAG 1.1.1)
+
+The `mailto:` body contains only the digest reference and a prompt to describe what the user was doing. The raw `error.message` and `error.stack` are deliberately excluded from the mailto URI to prevent leaking internal paths or sensitive information.
+
+### Keyboard navigation — manual test results
+
+| Action | Expected behaviour | Status |
+|--------|--------------------|--------|
+| Tab from "Try again" to "Report this issue" | Focus moves to the link | ✅ |
+| Enter on the link | Opens default mail client with pre-filled subject/body | ✅ |
+| Space on the link | Opens default mail client (custom handler) | ✅ |
+| Focus ring visible on the link | Browser default focus ring | ✅ |
+
+### Responsive behaviour
+
+| Breakpoint | Behaviour |
+|------------|-----------|
+| All (inline styles, no CSS dependencies) | Actions stack vertically inside a flex column; link wraps naturally. No horizontal scrolling. |
+
+### Files changed
+
+| File | Changes |
+|------|---------|
+| `app/global-error.tsx` | Added `error` prop destructuring; added "Report this issue" `<a>` mailto link with digest; wrapped actions in flex column |
+| `app/global-error.test.tsx` | Added 6 test cases: link renders, mailto contains digest, no error message in href, aria-label present, empty digest fallback, both actions present |
+| `design/a11y-checklist.md` | Added this section |
