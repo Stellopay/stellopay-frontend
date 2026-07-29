@@ -408,57 +408,39 @@ animation utilities are disabled when that media query is active.
 
 ---
 
-## Help CTA Section Focus Ring (`components/landing/help-cta-section.tsx`)
+## Quick Actions Roving Tabindex — Arrow-Key Navigation
 
-**Branch:** `a11y/help-cta-focus-ring`
-**Scope:** Help CTA section buttons  
-**Standard:** WCAG 2.1 Level AA  
+**Branch:** `a11y/quick-actions-arrow-nav`
+**Scope:** `components/dashboard/quick-actions.tsx`
+**Standard:** WCAG 2.1 Level AA
 **Date:** 2026-07-29
 
-### Focus Visibility
-- [x] Both CTA buttons use `focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px]` consistent with the shared `--ring` design token defined in `app/globals.css` and the base `Button` component in `components/ui/button.tsx`.
-- [x] No hardcoded focus ring colors — focus ring appearance is derived from CSS custom properties (`--ring`) which adapt to light and dark themes automatically.
-- [x] The `outline-none` utility (inherited from the base `Button` variant) suppresses the browser default outline in favor of the explicit ring.
-- [x] All existing `contrast-more:` utility classes on the primary CTA preserved.
+### Overview
 
-### Contrast (3:1 Focus Ring)
-- [x] Light mode: `--ring: oklch(70.9% 0.00008 271.152)` against the white (`#ffffff`) section background — exceeds 3:1 contrast ratio.
-- [x] Dark mode: `--ring: oklch(55.553% 0.00006 271.152)` against the `#040404` section background — exceeds 3:1 contrast ratio.
+The quick-actions grid previously required Tab-by-Tab traversal across every card. With only two enabled cards and four disabled (coming-soon) cards, keyboard users had to Tab through six elements to reach the end of the group — and four of those were non-interactive placeholders.
 
-### Keyboard Navigation
-- [x] Both CTAs are reachable via Tab in logical DOM order: "Contact Support" (primary) → "Visit Help Center" (secondary).
-- [x] Shift+Tab reverses focus in the expected order.
-- [x] The "Visit Help Center" CTA renders as a semantic `<a>` (via `asChild` + `Link`), providing native link keyboard behavior (Enter to follow).
+A roving-tabindex pattern now lets ArrowLeft/ArrowRight (and ArrowUp/ArrowDown in multi-column layouts) move focus between enabled cards with a single Tab to enter the group and a single Shift+Tab to leave it.
 
-### ARIA & Semantics
-- [x] The section uses `<section>` with `aria-labelledby="help-cta-heading"` pointing to the heading's `id`.
-- [x] The heading is a semantic `<h2>` with `id="help-cta-heading"`.
-- [x] The primary CTA is a `<button>` with descriptive text content.
+### Implementation
 
-### Responsive
-- [x] Buttons stack vertically on mobile (`flex-col`) and horizontally on `sm:` and above (`sm:flex-row`).
-- [x] Buttons are full-width (`w-full`) on mobile and auto-width (`sm:w-auto`) on larger screens.
-- [x] Consistent padding across breakpoints: `px-4` (default), `sm:px-6`, `lg:px-8`.
+- **`activeIndex` state** tracks which card should hold `tabIndex={0}`; all other enabled cards receive `tabIndex={-1}`
+- **`handleGridKeyDown`** on the grid container intercepts ArrowLeft/ArrowRight/ArrowUp/ArrowDown/Home/End, computes the next focus target respecting the CSS grid column count, and calls `.focus()` on the target element
+- **`data-quick-action` attribute** marks only enabled (non-disabled) cards so arrow navigation skips the disabled placeholders
+- **`onFocus` on each card** keeps `activeIndex` in sync when focus arrives via Tab or click
+- **Grid columns** are read from `getComputedStyle` at keydown time so arrow-down behaviour adapts to the current breakpoint (1 col on mobile, 2 on sm, 3 on lg, 6 on xl)
 
-### Dark Mode
-- [x] Section background adapts: `bg-white dark:bg-[#040404]`.
-- [x] Heading text adapts: `text-[#09090B] dark:text-[#FAFAFA]`.
-- [x] Primary CTA gradient adapts: `from-[#93B4FF] via-[#A78BFA] to-[#7C3AED] dark:from-[#7C9EFF] dark:via-[#8B5CF6] dark:to-[#6D28D9]`.
-- [x] Outline CTA adapts background and border: `bg-white dark:bg-[#18181B]`, `border-[#E4E4E7] dark:border-[#27272A]`.
-- [x] Focus ring adapts automatically via the `--ring` CSS custom property (no manual dark-mode overrides needed for focus styles).
+### WCAG Criteria addressed
 
-### RTL
-- [x] Flexbox-based layout (`flex`, `justify-center`, `items-center`) reverses correctly under RTL direction.
-- [x] No directional padding/margin utilities that would break under RTL.
-
-### Long Text / Edge Cases
-- [x] Buttons have `min-w-[180px]` to prevent collapse with very short text.
-- [x] Text truncation is handled by the browser's default wrapping behavior inside flex containers.
+| Criterion | Description |
+|-----------|-------------|
+| 2.1.1 Keyboard | Arrow keys move focus between cards; Tab/Shift+Tab enters/exits the group in one step |
+| 2.4.3 Focus Order | Roving tabindex maintains logical focus order |
+| 4.1.2 Name, Role, Value | Each card retains its `aria-label` and semantic role (`link` or `button`) |
 
 ### Files changed
 
 | File | Changes |
 |------|---------|
-| `components/landing/help-cta-section.tsx` | Replaced hardcoded `focus-visible:ring-[#7C3AED]` with `focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px]` on both CTA buttons; preserved all `contrast-more:` classes |
-| `components/landing/help-cta-section.test.tsx` | Added 17 tests: focus ring design tokens, keyboard navigation (tab order, shift+tab), responsive layout, dark mode, ARIA/semantics |
+| `components/dashboard/quick-actions.tsx` | Added `activeIndex` state, `gridRef`, `handleGridKeyDown`, `data-quick-action` and `tabIndex` on cards, `onFocus` handlers, grid `role="group"` and `aria-label` |
+| `components/dashboard/quick-actions.test.tsx` | Added roving tabindex tests: single tabIndex 0, arrow key movement, Home/End, disabled card exclusion, focus tracking |
 | `design/a11y-checklist.md` | Updated — this section |
