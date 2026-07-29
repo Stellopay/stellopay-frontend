@@ -104,41 +104,13 @@ Generated screenshots:
 - `design/screenshots/settings-desktop.png`
 - `design/screenshots/settings-mobile.png`
 
-The statements change is a settings-tab addition only. Capture updated
-screenshots when the visual regression pass is run for the broader settings
-surface.
+## Status feedback
 
-## Account Avatar Crop
+A single Sonner `Toaster` is mounted once in `app/layout.tsx` (inside `ThemeProvider`, wrapping `components/ui/toaster.tsx`) so it tracks the app's resolved light/dark theme instead of the OS-only default. It renders bottom-right with `richColors` and a keyboard-dismissible close button.
 
-The Account tab profile photo action opens a focused crop dialog for upload,
-crop, and save without moving users away from settings.
+`wallets-section.tsx` has been migrated off its ad hoc status paragraph onto `toast.success` / `toast.error` calls for both the wallet-safeguards save flow and the wallet-removal confirmation. Sonner's toast region is wrapped in `aria-live="polite"`, so save/remove outcomes are announced to assistive tech without any bespoke status markup.
 
-Behavior:
-
-- The crop frame is always square and documents a fixed `512 x 512` output
-  contract for backend/image-processing wiring.
-- Users can upload an image, zoom from `100%` to `300%`, pan inside the crop
-  frame, and rotate in 90-degree increments.
-- Dragging the crop preview pans the image for pointer users.
-- The current crop values are visible for review: zoom, rotation, pan X, and
-  pan Y.
-- Non-image uploads are rejected inline before crop controls enable.
-
-Accessibility and responsive notes:
-
-- The upload field has a visible label, helper text, and `aria-invalid` error
-  state.
-- Zoom uses a native range input, so keyboard users can adjust it with standard
-  slider keys.
-- Pan is available through arrow-key handling on the focused crop preview and
-  through explicit Pan up/down/left/right buttons.
-- Rotate controls are regular buttons with visible labels and icon affordances.
-- Disabled controls remain discoverable before upload while preventing invalid
-  crop saves.
-- The dialog stacks controls below the square preview on narrow screens, then
-  shifts controls beside the preview at `lg` 1024px and wider. Long file names,
-  helper text, and crop values wrap within the dialog at `sm` 640px, `md`
-  768px, `lg` 1024px, and `xl` 1280px.
+`account-section.tsx` still uses its own inline status paragraph; migrating it to the shared toast pattern is tracked as follow-up work, not part of this pass.
 
 ## Notes
 
