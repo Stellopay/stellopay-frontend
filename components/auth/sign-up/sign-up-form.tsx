@@ -2,7 +2,7 @@
 
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
-import React, { useState } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Form } from "@/components/ui/form";
@@ -18,6 +18,18 @@ import { AuthSocialButtons } from "../auth-social-buttons";
 import { passwordPolicy, signUpSchema, SignUpFormValues } from "@/types/auth";
 import { checkPasswordRequirements, calculatePasswordStrength, PasswordStrengthResult } from "@/utils/authUtils";
 import { PasswordStrengthIndicator } from "@/components/ui/password-strength-indicator";
+
+/**
+ * Minimum time (ms) a human needs to reasonably fill out the form.
+ * Submissions faster than this are silently rejected as bot activity.
+ */
+const MINIMUM_FORM_TIME_MS = 3_000;
+
+/**
+ * Name attribute used for the honeypot field so that automated bots
+ * that fill every visible input will populate it.
+ */
+const HONEYPOT_FIELD_NAME = "website";
 
 /**
  * SignUpForm – renders the `/auth/sign-up` page form.
@@ -46,6 +58,14 @@ export function SignUpForm() {
   });
   const [showEmailModal, setShowEmailModal] = useState(false);
   const [submittedEmail, setSubmittedEmail] = useState("");
+  const [honeypotValue, setHoneypotValue] = useState("");
+
+  // Track when the component mounted to guard against instant submissions
+  const mountTimeRef = useRef<number>(0);
+
+  useEffect(() => {
+    mountTimeRef.current = Date.now();
+  }, []);
 
   const handlePasswordCheck = (password: string) => {
     // Calculate strength for the live meter
@@ -71,7 +91,32 @@ export function SignUpForm() {
     },
   });
 
+  /**
+   * Checks the honeypot field and submission-rate guard.
+   * If either detects bot-like behavior, the submission is silently
+   * discarded without showing any error to avoid tipping off bots.
+   */
+  function isSubmissionBlocked(): boolean {
+    // Honeypot must be empty (real users never see this field)
+    if (honeypotValue.trim().length > 0) {
+      return true;
+    }
+
+    // Submission must take at least MINIMUM_FORM_TIME_MS
+    const elapsed = Date.now() - mountTimeRef.current;
+    if (elapsed < MINIMUM_FORM_TIME_MS) {
+      return true;
+    }
+
+    return false;
+  }
+
   function onSubmit(data: SignUpFormValues) {
+    // Silently reject bot-like submissions
+    if (isSubmissionBlocked()) {
+      return;
+    }
+
     // No sensitive data logging
     setSubmittedEmail(data.email);
     setShowEmailModal(true);
@@ -257,6 +302,32 @@ export function SignUpForm() {
               </span>
             }
           />
+          {/* ── Honeypot field ──────────────────────────────────────
+           *  Visually hidden text input that bots often auto-fill.
+           *  - aria-hidden so screen readers ignore it entirely
+           *  - tabIndex={-1} so keyboard navigation skips it
+           *  - CSS: off-screen position with zero height, still in the
+           *    DOM so bots that dispatch events also find it
+           *  - Deceptively labelled "Website" to appear legitimate.
+           */}
+          <div
+            aria-hidden="true"
+            className="absolute -left-[9999px] -top-[9999px] opacity-0 h-0 w-0 overflow-hidden"
+          >
+            <label htmlFor="honeypot-field" className="sr-only">
+              Website
+            </label>
+            <input
+              id="honeypot-field"
+              name={HONEYPOT_FIELD_NAME}
+              type="text"
+              tabIndex={-1}
+              autoComplete="off"
+              value={honeypotValue}
+              onChange={(e) => setHoneypotValue(e.target.value)}
+              placeholder="Website"
+            />
+          </div>
           <Button type="submit" variant={"secondary"} className="">
             Create Account
           </Button>
