@@ -167,6 +167,8 @@ export async function getTransactions(
     safeFromDate,
     safeToDate,
     filterQuery,
+    minAmount,
+    maxAmount,
   );
 
   const sorted = sortTransactionsMulti(filtered, sortConfigs);

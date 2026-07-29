@@ -10,18 +10,24 @@ interface UsePaymentHistoryResult {
   refetch: () => void;
 }
 
-/**
- * Hook to fetch payment history items for the dashboard sidebar.
- * Returns a stable `refetch` callback so error states can retry without remounting.
- */
+const MAX_RETRIES = 3;
+const BASE_DELAY_MS = 1_000;
+
 export function usePaymentHistory(): UsePaymentHistoryResult {
   const [data, setData] = useState<PaymentHistoryItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [requestTick, setRequestTick] = useState(0);
   const latestRequestId = useRef(0);
+  const retryCountRef = useRef(0);
+  const retryTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const refetch = useCallback(() => {
+    if (retryTimerRef.current !== null) {
+      clearTimeout(retryTimerRef.current);
+      retryTimerRef.current = null;
+    }
+    retryCountRef.current = 0;
     setError(null);
     setIsLoading(true);
     setRequestTick((tick) => tick + 1);
@@ -35,24 +41,41 @@ export function usePaymentHistory(): UsePaymentHistoryResult {
     setIsLoading(true);
     setError(null);
 
-    getPaymentHistory()
-      .then((result) => {
-        if (!cancelled && requestId === latestRequestId.current) {
-          setData(result);
-          setIsLoading(false);
-        }
-      })
-      .catch((err: unknown) => {
-        if (!cancelled && requestId === latestRequestId.current) {
-          setError(
-            err instanceof Error ? err.message : "Failed to load payment history"
-          );
-          setIsLoading(false);
-        }
-      });
+    const attempt = () => {
+      getPaymentHistory()
+        .then((result) => {
+          if (!cancelled && requestId === latestRequestId.current) {
+            setData(result);
+            setIsLoading(false);
+          }
+        })
+        .catch((err: unknown) => {
+          if (cancelled || requestId !== latestRequestId.current) return;
+
+          if (retryCountRef.current < MAX_RETRIES) {
+            retryCountRef.current += 1;
+            const delay = BASE_DELAY_MS * Math.pow(2, retryCountRef.current - 1);
+            retryTimerRef.current = setTimeout(() => {
+              retryTimerRef.current = null;
+              attempt();
+            }, delay);
+          } else {
+            setError(
+              err instanceof Error ? err.message : "Failed to load payment history"
+            );
+            setIsLoading(false);
+          }
+        });
+    };
+
+    attempt();
 
     return () => {
       cancelled = true;
+      if (retryTimerRef.current !== null) {
+        clearTimeout(retryTimerRef.current);
+        retryTimerRef.current = null;
+      }
     };
   }, [requestTick]);
 

@@ -27,6 +27,8 @@ const Transactions = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [searchParams, setSearchParams] = useState("");
   const [filterParams, setFilterParams] = useState("");
+  const [minAmount, setMinAmount] = useState<number | undefined>(undefined);
+  const [maxAmount, setMaxAmount] = useState<number | undefined>(undefined);
   const [startDate, setStartDate] = useState<Date | undefined>(undefined);
   const [endDate, setEndDate] = useState<Date | undefined>(undefined);
   const [sortConfigs, setSortConfigs] = useState<SortConfig[]>([
@@ -37,10 +39,10 @@ const Transactions = () => {
   // Reset to page 1 whenever filters change
   useEffect(() => {
     setCurrentPage(1);
-  }, [searchParams, filterParams, startDate, endDate]);
+  }, [searchParams, filterParams, startDate, endDate, minAmount, maxAmount]);
 
   const { data, isLoading, error } = useTransactions({
-    filters: { searchQuery: searchParams, filterQuery: filterParams },
+    filters: { searchQuery: searchParams, filterQuery: filterParams, minAmount, maxAmount },
     page: 1,
     pageSize: 1000, // fetch all so we can client-side date filter (same as original)
   });

@@ -75,3 +75,76 @@ describe("SettingsPageShell summary cards", () => {
     ).not.toBeInTheDocument();
   });
 });
+
+describe("SettingsPageShell keyboard tabs", () => {
+  afterEach(() => {
+    cleanup();
+  });
+
+  function settingsTabs() {
+    const tablist = screen.getByRole("tablist", {
+      name: "Settings sections",
+    });
+    return within(tablist).getAllByRole("tab");
+  }
+
+  it("keeps only the active settings tab in the tab order", () => {
+    render(<SettingsPageShell initialSection="notifications" />);
+
+    const tabs = settingsTabs();
+    const tabbableTabs = tabs.filter((tab) => tab.tabIndex === 0);
+
+    expect(tabbableTabs).toHaveLength(1);
+    expect(tabbableTabs[0]).toHaveTextContent(/notifications/i);
+    expect(screen.getByRole("tab", { name: /notifications/i }))
+      .toHaveAttribute("aria-selected", "true");
+  });
+
+  it("cycles focus and active section with ArrowRight and ArrowLeft", () => {
+    render(<SettingsPageShell initialSection="notifications" />);
+
+    const notificationsTab = screen.getByRole("tab", {
+      name: /notifications/i,
+    });
+    notificationsTab.focus();
+
+    fireEvent.keyDown(notificationsTab, { key: "ArrowRight" });
+    expect(screen.getByRole("tab", { name: /security/i })).toHaveFocus();
+    expect(screen.getByRole("tab", { name: /security/i })).toHaveAttribute(
+      "aria-selected",
+      "true",
+    );
+
+    fireEvent.keyDown(screen.getByRole("tab", { name: /security/i }), {
+      key: "ArrowLeft",
+    });
+    expect(screen.getByRole("tab", { name: /notifications/i })).toHaveFocus();
+    expect(screen.getByRole("tab", { name: /notifications/i }))
+      .toHaveAttribute("aria-selected", "true");
+  });
+
+  it("moves to the first and last settings tabs with Home and End", () => {
+    render(<SettingsPageShell initialSection="notifications" />);
+
+    const notificationsTab = screen.getByRole("tab", {
+      name: /notifications/i,
+    });
+    notificationsTab.focus();
+
+    fireEvent.keyDown(notificationsTab, { key: "End" });
+    expect(screen.getByRole("tab", { name: /wallets/i })).toHaveFocus();
+    expect(screen.getByRole("tab", { name: /wallets/i })).toHaveAttribute(
+      "aria-selected",
+      "true",
+    );
+
+    fireEvent.keyDown(screen.getByRole("tab", { name: /wallets/i }), {
+      key: "Home",
+    });
+    expect(screen.getByRole("tab", { name: /account/i })).toHaveFocus();
+    expect(screen.getByRole("tab", { name: /account/i })).toHaveAttribute(
+      "aria-selected",
+      "true",
+    );
+  });
+});

@@ -181,6 +181,14 @@
 
 ---
 
+## Settings Preferences Tabs — Verified
+
+**File:** `app/settings/preferences/components/settings-page-shell.tsx`
+**Fix:** Made the settings tab contract explicit with horizontal automatic activation and added regression coverage for Radix Tabs roving tabindex behavior. Only the active tab remains in the page Tab order, ArrowLeft/ArrowRight cycle focus and selection, and Home/End jump to the first/last tab.
+**WCAG:** 2.1.1 Keyboard, 2.4.3 Focus Order, 4.1.2 Name/Role/Value
+
+---
+
 ## Keyboard navigation — manual test results
 
 | Journey | Tab order correct | Enter/Space activates | Escape closes modal | Focus visible |
@@ -234,5 +242,5 @@
 | `components/auth/sign-up/sign-up-form.tsx` | Password toggles → `<button>`, aria-describedby, aria-live on requirements |
 | `components/auth/sign-up/sign-up-email-modal.tsx` | `DialogDescription`, aria-live resend status, button types, focus rings |
 | `components/transactions/transactions-table.tsx` | `<caption>`, `scope="col"`, aria-label on badges, aria-hidden on icons, `<time>` element |
-| `components/common/side-bar.tsx` | aria-label, aria-expanded, aria-hidden icons, focus rings |
+| `components/common/side-bar.tsx` / `components/common/nav-link.tsx` | aria-label, aria-expanded, aria-hidden icons, focus rings, active link `aria-current="page"` |
 | `design/a11y-checklist.md` | This document |

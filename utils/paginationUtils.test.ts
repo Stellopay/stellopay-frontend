@@ -200,4 +200,73 @@ describe("paginationUtils", () => {
       expect(normalizePage(2.7)).toBe(2);
     });
   });
+
+  describe("boundary cases", () => {
+    describe("zero total items", () => {
+      it("returns 0 pages when totalItems is 0", () => {
+        expect(getTotalPages(0, 10)).toBe(0);
+      });
+
+      it("returns 0 pages when totalItems is 0 with perPage of 1", () => {
+        expect(getTotalPages(0, 1)).toBe(0);
+      });
+
+      it("returns an empty array from getPageItems when items array is empty", () => {
+        expect(getPageItems([], 1, 10)).toEqual([]);
+      });
+
+      it("returns an empty array from getPageItems for page 1 with empty items", () => {
+        expect(getPageItems([], 1, 5)).toEqual([]);
+      });
+
+      it("reports page 1 as invalid when totalPages is 0", () => {
+        expect(isValidPage(1, 0)).toBe(false);
+      });
+    });
+
+    describe("page size exceeds total items", () => {
+      it("returns 1 page when itemsPerPage is larger than totalItems", () => {
+        expect(getTotalPages(3, 10)).toBe(1);
+      });
+
+      it("returns 1 page when itemsPerPage equals totalItems", () => {
+        expect(getTotalPages(7, 7)).toBe(1);
+      });
+
+      it("returns all items on page 1 when itemsPerPage exceeds item count", () => {
+        expect(getPageItems(items, 1, 100)).toEqual(items);
+      });
+
+      it("returns start index 0 when itemsPerPage exceeds item count", () => {
+        expect(getStartIndex(1, 100)).toBe(0);
+      });
+
+      it("returns end index equal to itemsPerPage when it exceeds item count", () => {
+        expect(getEndIndex(1, 100)).toBe(100);
+      });
+    });
+
+    describe("requested page beyond last page", () => {
+      it("returns an empty array for a page number far beyond the last page", () => {
+        expect(getPageItems(items, 100, 3)).toEqual([]);
+      });
+
+      it("returns an empty array for page 2 when there is only 1 page", () => {
+        expect(getPageItems(items, 2, 100)).toEqual([]);
+      });
+
+      it("reports an out-of-range page as invalid", () => {
+        expect(isValidPage(4, 3)).toBe(false);
+      });
+
+      it("reports page 100 as invalid when totalPages is 3", () => {
+        expect(isValidPage(100, 3)).toBe(false);
+      });
+
+      it("returns indices beyond array bounds for an out-of-range page in index helpers", () => {
+        expect(getStartIndex(100, 3)).toBe(297);
+        expect(getEndIndex(100, 3)).toBe(300);
+      });
+    });
+  });
 });
