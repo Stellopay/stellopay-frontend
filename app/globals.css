@@ -6,6 +6,28 @@
     --font-general-sans: "General Sans", sans-serif;
     --font-inter: "Inter", sans-serif;
 
+    /* ─── Benefits section color tokens ─────────────────────────────────────
+     *  Added as part of the benefits gradient tokenization refactor.
+     *  These tokens capture the brand palette used exclusively in the dark
+     *  landing section so all hex stops live in one place.
+     * ──────────────────────────────────────────────────────────────────────*/
+
+    /** Near-black section background (#040404). */
+    --color-surface-deep: #040404;
+
+    /**
+     * Brand-blue radial glow color (rgb(27 67 245)).
+     * Apply as a CSS color value; callers are responsible for opacity via
+     * rgba() or the /alpha Tailwind shorthand.
+     */
+    --color-brand-glow: 27 67 245;
+
+    /** Light brand-blue featured card background (#8EB6FF). */
+    --color-brand-card: #8eb6ff;
+
+    /** Brand-blue card border (#598EFF). */
+    --color-brand-border: #598eff;
+
     /* Clash Display (Display & Headings) Token Scale */
     --font-display-2xl: 4.5rem;
     --leading-display-2xl: 1.05;
