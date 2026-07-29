@@ -258,9 +258,14 @@ HTML
 </script>
 Registration failure is non-fatal — a .catch() handler logs a warning and the app continues to function normally without the service worker.
 
-Tests
-app/layout.test.tsx — Vitest unit suite (within the existing layout test file) verifying: script tag presence, correct path and scope, load-event deferral pattern, serviceWorker API guard, and graceful .catch() error handling.
-Metadata & Viewport
+Registration failure is non-fatal — a `.catch()` handler logs a warning and the app continues to function normally without the service worker.
+
+### Tests
+
+- [`app/layout.test.tsx`](app/layout.test.tsx) — Vitest unit suite (within the existing layout test file) verifying: script tag presence, correct path and scope, load-event deferral pattern, `serviceWorker` API guard, and graceful `.catch()` error handling.
+
+## Metadata & Viewport
+
 BASE_URL // "https://stellopay.com"
 PUBLIC_ROUTES // MetadataRoute.Sitemap — array of public route entries
 DISALLOWED_PATHS // string[] — private route prefixes
@@ -351,15 +356,15 @@ Dynamic Open Graph Image
 app/opengraph-image.tsx implements the Next.js file-convention OG image route. It is served automatically at /opengraph-image and generates a 1200 × 630 px PNG at request time using next/og (ImageResponse / Satori).
 
 What's rendered
-Element	Detail
-Background	White (#FFFFFF) — matches the light-mode hero surface
-Badge	Dark pill with the StelloPay brand name and "Blockchain Payroll" label
-Headline	Three-line hero h1 — "The Future of / Payroll on / Blockchain"
-Gradient	"Payroll on" uses the brand gradient: #2563EB → #7C3AED → #059669
-Tagline	Hero paragraph copy — "Built for modern businesses…"
-Font	Clash Display Variable loaded from public/font/clash-display-variable.ttf
-Decorative blobs	Three radial-gradient orbs mirroring the hero decorative orbs
-Accent bar	Bottom-right brand gradient stripe
+Element Detail
+Background White (#FFFFFF) — matches the light-mode hero surface
+Badge Dark pill with the StelloPay brand name and "Blockchain Payroll" label
+Headline Three-line hero h1 — "The Future of / Payroll on / Blockchain"
+Gradient "Payroll on" uses the brand gradient: #2563EB → #7C3AED → #059669
+Tagline Hero paragraph copy — "Built for modern businesses…"
+Font Clash Display Variable loaded from public/font/clash-display-variable.ttf
+Decorative blobs Three radial-gradient orbs mirroring the hero decorative orbs
+Accent bar Bottom-right brand gradient stripe
 Accessibility
 What's rendered
 Element Detail
@@ -617,10 +622,42 @@ Metadata and Open Graph Architecture
 Route-level metadata is defined across application routes in the Next.js App Router to ensure optimal SEO, canonical URLs, and distinct social preview cards (Open Graph / Twitter).
 
 Metadata Configurations
-Root Layout (app/layout.tsx): Defines root default title templates, fallback description, global site name, default dynamic /opengraph-image preview card, and links the Web App Manifest.
-Web App Manifest (public/manifest.json): Configures PWA installation parameters (name, theme color, background color, display mode), and specifies generated adaptive/maskable icons located in public/icons/.
+Root Layout (app/layout.tsx): Defines root default title templates, fallback description, global site name, and default dynamic /opengraph-image preview card.
 Dashboard (app/dashboard/layout.tsx): Configures route title, description, canonical URL (https://stellopay.com/dashboard), custom Open Graph image (/dashboard-preview.jpg), and private route robots: { index: false, follow: false } directives.
 Transactions (app/transactions/layout.tsx): Configures route title, description, canonical URL (https://stellopay.com/transactions), Open Graph image (/opengraph-image), and robots: { index: false, follow: false } directives.
 Settings & Preferences (app/settings/preferences/layout.tsx): Configures route title, description, canonical URL (https://stellopay.com/settings/preferences), Open Graph image (/opengraph-image), and robots: { index: false, follow: false } directives.
 Testing and Validation
 All metadata exports are covered by unit tests in app/metadata.test.ts to verify uniqueness of titles/descriptions, correct canonical URLs, Open Graph parameters, and fallback logic.
+
+Font loading and first paint
+The landing-page hero uses local Clash Display and General Sans variable
+fonts. Their loading configuration is defined in app/layout.tsx:
+
+preload: true asks next/font/local to emit a <link rel="preload" as="font"> for each above-the-fold font. Next.js supplies the emitted,
+fingerprinted URL and the correct type/crossorigin attributes, avoiding
+stale or duplicate hand-written links.
+Both local font faces set display: "swap". Text therefore remains visible
+in its system-font fallback while a slow font download completes; this avoids
+FOIT. The General Sans CSS variable is --font-general-sans, matching the
+existing typography tokens in app/globals.css.
+This change alters font delivery only: it does not add focusable UI or modify
+colours, ARIA semantics, responsive breakpoints (sm, md, lg, xl), or
+dark-mode tokens. The existing skip link, keyboard navigation, and WCAG 2.1 AA
+contrast remain intact.
+
+Verification
+Run the focused contract test and production build:
+
+Bash
+
+npx vitest run app/metadata.test.ts --coverage.enabled=false
+npm run type-check
+npm run build
+For a deployment-specific LCP comparison, use a fresh Chrome profile and the
+same landing-page URL for both revisions. In DevTools Performance, select a
+mobile device, disable cache, set Slow 4G with 4× CPU slowdown, record a
+reload, and note the LCP marker. Repeat at least three times per revision and
+compare the medians. The preload requests should begin in the document head
+before hero text is discovered; exact LCP values depend on the host, cache, and
+network, so they should be captured in CI or the target deployment rather than
+claimed from a local build.
