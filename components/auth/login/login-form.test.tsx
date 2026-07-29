@@ -136,13 +136,14 @@ describe("LoginForm", () => {
     });
   });
 
-  it("secures credentials by not logging them and retaining autoComplete properties", () => {
+  it("secures credentials by not logging them and retaining autoComplete and inputMode properties", () => {
     render(<LoginForm />);
 
     const emailInput = screen.getByPlaceholderText(/Enter your email/i);
     const passwordInput = screen.getByPlaceholderText(/Enter your password/i);
 
     expect(emailInput).toHaveAttribute("autoComplete", "email");
+    expect(emailInput).toHaveAttribute("inputMode", "email");
     expect(passwordInput).toHaveAttribute("autoComplete", "current-password");
   });
 

@@ -131,6 +131,7 @@ export function SignUpForm() {
             placeholder="Enter your email"
             required
             autoComplete="email"
+            inputMode="email"
           />
           <FormFieldPassword
             control={form.control}

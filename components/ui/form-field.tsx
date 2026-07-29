@@ -37,6 +37,7 @@ interface FormFieldInputProps<
     Omit<ControllerProps<TFieldValues, TName>, "render"> {
   type?: "text" | "email" | "password" | "number" | "tel" | "url";
   autoComplete?: string;
+  inputMode?: React.ComponentProps<"input">["inputMode"];
   onChange?: (e: React.ChangeEvent<HTMLInputElement>) => void;
 }
 
@@ -57,6 +58,7 @@ export function FormFieldInput<
   warningMessage,
   type = "text",
   autoComplete,
+  inputMode,
   ...controllerProps
 }: FormFieldInputProps<TFieldValues, TName>) {
   const fieldId = React.useId();
@@ -89,6 +91,7 @@ export function FormFieldInput<
                 placeholder={placeholder}
                 disabled={disabled}
                 autoComplete={autoComplete}
+                inputMode={inputMode}
                 error={!!fieldState.error}
                 success={success}
                 warning={warning}
@@ -319,6 +322,7 @@ export function FormFieldPassword<
   successMessage,
   warningMessage,
   autoComplete,
+  inputMode,
   ...controllerProps
 }: FormFieldInputProps<TFieldValues, TName>) {
   const [showPassword, setShowPassword] = React.useState(false);
@@ -353,6 +357,7 @@ export function FormFieldPassword<
                   placeholder={placeholder}
                   disabled={disabled}
                   autoComplete={autoComplete}
+                  inputMode={inputMode}
                   error={!!fieldState.error}
                   success={success}
                   warning={warning}

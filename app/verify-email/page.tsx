@@ -296,7 +296,11 @@ function VerifyEmailForm() {
 
       {/* Modal Card */}
       <div className="border-[#2D2D2D] border rounded-[24px] px-7 sm:px-11 py-9 w-full max-w-[480px] space-y-4 text-center shadow-lg">
-        <h1 className="text-[#F8D2FE] text-2xl sm:text-[32px] font-medium mb-2">
+        {token ? (
+          renderTokenContent()
+        ) : (
+          <>
+            <h1 className="text-[#F8D2FE] text-2xl sm:text-[32px] font-medium mb-2">
           Check your email
         </h1>
         <p className="text-sm text-[#ACB4B5] mb-6">
@@ -336,7 +340,7 @@ function VerifyEmailForm() {
                       inputRefs.current[index] = node;
                     }}
                     type="text"
-                    inputMode="text"
+                    inputMode="numeric"
                     autoComplete={index === 0 ? "one-time-code" : "off"}
                     maxLength={1}
                     value={value}

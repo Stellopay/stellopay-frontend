@@ -108,8 +108,29 @@ Use high-level abstractions for common patterns:
 - ❌ Don't use hardcoded colors for states; use semantic tokens.
 - ❌ Don't hide error messages; always use `FormMessage`.
 
-## Security
+## Security & Password Managers
 
 - **No Console Logs**: Ensure `onSubmit` handlers do not log raw form data in production.
-- **Auto-complete**: Use appropriate `autoComplete` values (e.g., `new-password`, `current-password`, `email`).
+- **Auto-complete**: Use appropriate `autoComplete` values across all auth and settings fields to ensure password managers (Bitwarden, 1Password, iCloud Keychain) and browser autofill function seamlessly:
+  - Login email: `autoComplete="email"` and `inputMode="email"`
+  - Login password: `autoComplete="current-password"`
+  - Sign-up / Reset password: `autoComplete="new-password"`
+  - Full Name: `autoComplete="name"`
+  - Verification / 2FA OTP codes: `autoComplete="one-time-code"` and `inputMode="numeric"`
+- **Mobile soft-keyboard optimization**: Always specify `inputMode` (`"email"` for email inputs, `"numeric"` for OTP inputs, etc.) so mobile keyboards automatically trigger the optimal input layout.
 - **Validation**: Always use Zod schemas for client-side validation.
+
+## Accessibility (WCAG 2.1 AA)
+
+- **Contrast**: All form text, labels, placeholder values, and borders satisfy WCAG 2.1 AA contrast requirements across both dark and light modes.
+- **Keyboard Navigation**: Form inputs, buttons, and toggles (such as `FormFieldPassword` eye/eye-off toggle) are fully focusable and operable via `Tab`, `Enter`, and `Space`.
+- **ARIA Live & Alert Regions**: Error alerts use `role="alert"` and `aria-live="polite"` so screen readers immediately announce state changes without interrupting user speech.
+- **Focus Management**: On validation failure, focus automatically transfers to the first invalid visible input element.
+
+## Responsive Design Standards
+
+Form layouts adapt responsively across standardized Tailwind CSS breakpoints:
+- `sm` (640px): Full-width single-column form inputs and stacked CTA actions.
+- `md` (768px): Two-column input grids for side-by-side password confirmation fields.
+- `lg` (1024px) / `xl` (1280px): Centered modal/card layouts with balanced padding and focus outline indicators.
+

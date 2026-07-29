@@ -132,6 +132,7 @@ export function LoginForm() {
             loading={isLoading}
             required
             autoComplete="email"
+            inputMode="email"
           />
 
           <FormFieldPassword
