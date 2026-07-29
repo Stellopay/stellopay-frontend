@@ -224,8 +224,44 @@ The `DashboardTour` import was missing from the original file (`dashboard-page.t
 
 No test changes were needed for these fixes; the existing test suite was not exercising `RecentActivityFeed`.
 
-Run the suite:
+---
+
+## Empty-State & Error-State Audit
+
+**Branch:** `refactor/dashboard-empty-state-adoption`
+
+### What was done
+
+Audited all four dashboard widgets and migrated ad hoc empty/error states onto
+the shared `components/ui/empty-state.tsx` and `components/ui/error-state.tsx`
+primitives.
+
+### Changes per widget
+
+| Widget | Was | Now |
+|---|---|---|
+| **Account Overview** | Ad-hoc `<div role="alert">` with `AlertCircle` + `RefreshCw` + "Retry" button | `<ErrorState title="Failed to Load" … onRetry={…} />` from `error-state.tsx` |
+| **Payment History** | Already used shared `EmptyState` / `ErrorState` | No changes needed |
+| **Analytics Insights** | No empty state when all KPIs deselected (unreachable via UI, defensive only) | Added `<EmptyState title="No Metrics Selected" … />` behind `visibleKPIs.length === 0 && hasHydrated` |
+| **Client Analytics** | No empty/error states (chart library handles its own) | No changes needed |
+
+### Theme-aware fix
+
+Both `error-state.tsx` and `empty-state.tsx` had hardcoded dark-only colors
+(e.g. `text-white` on `bg-red-900/10` — invisible in light mode). Fixed by
+adding `dark:` variants with light-appropriate defaults.
+
+### Tests
+
+| File | Change |
+|---|---|
+| `components/dashboard/account-overview.test.tsx` | Replaced `getByTestId("summary-error")` with `getByRole("alert")`; changed button query from `/retry/i` to `/try again/i` |
+| `components/dashboard/analytics-insights.test.tsx` | Added test verifying `EmptyState` renders when saved IDs don't match any known metric |
+
+Run the suites:
 
 ```bash
+npx vitest run components/dashboard/account-overview.test.tsx --no-coverage
+npx vitest run components/dashboard/analytics-insights.test.tsx --no-coverage
 npx vitest run components/dashboard/dashboard-page.test.tsx --no-coverage
 ```
