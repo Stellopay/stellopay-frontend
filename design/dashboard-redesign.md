@@ -50,6 +50,37 @@ As a stopgap that doesn't invent a new CSS variable, this PR uses the existing `
 
 The obvious "one step down from full text" token is `--muted-foreground`, but at `oklch(55.553%)` (light) it produces roughly a 4:1 contrast ratio against the card background — below the 4.5:1 AA threshold for normal (non-large) 14px text such as the dropdown trigger label and "View All". To avoid regressing contrast, this text was mapped to `text-foreground` instead, which keeps the original ~10:1+ contrast the `zinc-700`/`zinc-900` values had. `text-muted-foreground` remains reserved for decorative, non-text-bearing elements (chevrons) where the WCAG 1.4.11 non-text 3:1 threshold applies instead.
 
+## Dashboard Navbar Unread Notification Badge (#714)
+
+### Overview
+The notification bell in `components/dashboard/dashboard-navbar.tsx` previously showed only a static red dot with no indication of how many notifications were unread. Now it displays a numeric badge reflecting the `unreadCount` prop, with the count capped at "9+" for double-digit values.
+
+### Component Changes
+
+#### `components/dashboard/dashboard-navbar.tsx`
+- Added `unreadCount` prop (optional, defaults to 0)
+- Replaced the static red dot on the desktop bell icon with a numeric badge showing `unreadCount` (or "9+" if > 9)
+- Updated `aria-label` to announce unread count (e.g. "Notifications, 3 unread")
+- Added matching badge to the mobile drawer notification button
+- Badge is hidden entirely when `unreadCount` is 0
+
+### Accessibility (WCAG 2.1 AA)
+- `aria-label` on the notification button includes the unread count so screen reader users hear "Notifications, 3 unread" rather than navigating blindly
+- Badge is visually hidden from the accessibility tree when count is 0 (no redundant "0" announced)
+- Badge colour (red-500 on white) exceeds the 3:1 non-text contrast threshold
+
+### Usage
+```tsx
+<DashboardNavbar unreadCount={unreadNotifications.length} />
+```
+
+### Files changed
+| File | Changes |
+|------|---------|
+| `components/dashboard/dashboard-navbar.tsx` | Added `unreadCount` prop, numeric badge on desktop + mobile bell buttons, updated aria-label |
+| `components/dashboard/dashboard-navbar.test.tsx` | Added tests for badge rendering, capping, aria-label, mobile drawer badge, default state |
+| `design/dashboard-redesign.md` | This section |
+
 ### Out of scope: non-`zinc-*` hardcoded colors
 
 The file also hardcodes non-token hex values that are **not** `zinc-*` utilities and were left untouched per this issue's scope (e.g. `bg-white dark:bg-[#111111]`, `bg-[#0D0D0D80]`, `border-[#2D2D2D]`, `bg-[#121212]`). These represent the same class of design-token debt and would be a reasonable follow-up issue, but reconciling them changes a much larger surface area of the component (including the non-`showNotifications` dark-card visual treatment) than a zinc-vs-token audit calls for.
