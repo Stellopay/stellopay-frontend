@@ -1,3 +1,4 @@
+ ui/notifications-section-channel-matrix
 # Settings Information Architecture
 
 ## Overview
@@ -237,6 +238,7 @@ all tab labels remain reachable without wrapping to multiple rows.
 | `design/screenshots/settings-desktop.png` | Reference screenshot — desktop |
 | `design/screenshots/settings-mobile.png` | Reference screenshot — mobile |
 | `design/screenshots/settings-add-wallet.png` | Reference screenshot — add wallet flow |
+ main
 # Settings Information Architecture & Accessibility (IA)
 
 ## Wallets Section Remove Confirmation Flow

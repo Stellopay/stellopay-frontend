@@ -24,10 +24,47 @@ export function SignUpEmailModal({
 }: SignUpEmailModalProps) {
   const [isResending, setIsResending] = useState(false);
   const [resendStatus, setResendStatus] = useState<string>("");
+  const [correctedEmail, setCorrectedEmail] = useState<string | null>(null);
   // secondsLeft/isActive persist across a close/reopen within the same
   // mount because the interval lives inside useCountdown, not in local
   // state that would reset when the modal unmounts and remounts.
   const { secondsLeft, isActive: isCoolingDown, start } = useCountdown();
+
+  const currentEmail = correctedEmail || email || "";
+
+  // Common typo detection
+  const COMMON_TYPOS: Record<string, string> = {
+    "gmial.com": "gmail.com",
+    "gmil.com": "gmail.com",
+    "gamil.com": "gmail.com",
+    "yahooo.com": "yahoo.com",
+    "yaho.com": "yahoo.com",
+    "outlok.com": "outlook.com",
+    "outilook.com": "outlook.com",
+    "hotmil.com": "hotmail.com",
+    "hotmal.com": "hotmail.com",
+  };
+
+  const getSuggestion = (emailStr: string) => {
+    if (!emailStr) return null;
+    const parts = emailStr.split("@");
+    if (parts.length !== 2) return null;
+    const domain = parts[1].toLowerCase();
+    if (COMMON_TYPOS[domain]) {
+      return `${parts[0]}@${COMMON_TYPOS[domain]}`;
+    }
+    return null;
+  };
+
+  const suggestion = !correctedEmail ? getSuggestion(currentEmail) : null;
+
+  const handleCorrection = () => {
+    if (suggestion) {
+      setCorrectedEmail(suggestion);
+      // Optional: if the parent form needs to know, we could call an onEmailCorrection prop.
+      // For now, we update the local display.
+    }
+  };
 
   const handleResend = async () => {
     setIsResending(true);
@@ -53,9 +90,29 @@ export function SignUpEmailModal({
               requirement and is announced by screen readers on open. */}
           <DialogDescription className="text-center text-gray-300 text-sm">
             We&apos;ve sent a verification code to{" "}
-            {email && <strong className="text-white">{email}</strong>}
+            {currentEmail && <strong className="text-white">{currentEmail}</strong>}
           </DialogDescription>
         </DialogHeader>
+
+        {suggestion && (
+          <div
+            className="bg-[#3D2942] border border-[#92569D] text-[#E0C8E4] p-3 rounded-md text-sm flex items-center justify-between"
+            role="status"
+            aria-live="polite"
+          >
+            <span>
+              Did you mean <strong className="text-white">{suggestion}</strong>?
+            </span>
+            <button
+              type="button"
+              onClick={handleCorrection}
+              className="ml-3 text-[#92569D] hover:text-white underline hover:no-underline focus:outline-none focus:ring-2 focus:ring-[#92569D] rounded"
+              aria-label={`Change email to ${suggestion}`}
+            >
+              Yes, fix it
+            </button>
+          </div>
+        )}
 
         <div className="text-center space-y-4">
           {/* aria-live region announces resend outcome to screen readers.

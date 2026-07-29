@@ -6,25 +6,35 @@ import { SidebarProvider } from "@/context/sidebar-context";
 import { ThemeProvider } from "@/context/theme-context";
 import { WalletProvider } from "@/context/wallet-context";
 import { OfflineBanner } from "@/components/common/offline-banner";
+import { CookieConsentBanner } from "@/components/common/cookie-consent-banner";
 import { Toaster } from "@/components/ui/toaster";
 
 const inter = Inter({
   variable: "--font-inter",
   subsets: ["latin"],
+  // Keep the fallback visible for the remaining custom typeface as well.
+  display: "swap",
 });
 
+/**
+ * These first-viewport local fonts explicitly use Next.js preloading and a
+ * swap display policy. Next.js emits fingerprinted preload links, so there is
+ * no fragile hand-written URL that could become stale after a build.
+ */
 const clashDisplay = localFont({
   src: "../public/font/clash-display-variable.ttf",
   variable: "--font-clash",
   weight: "500",
   display: "swap",
+  preload: true,
 });
 
 const generalSans = localFont({
   src: "../public/font/general-sans-variable.ttf",
-  variable: "--font-general",
+  variable: "--font-general-sans",
   weight: "400",
   display: "swap",
+  preload: true,
 });
 
 /**
@@ -69,6 +79,7 @@ export const metadata: Metadata = {
     locale: "en_US",
     type: "website",
   },
+  manifest: "/manifest.json",
   twitter: {
     card: "summary_large_image",
     title: "StelloPay — The Future of Payroll on Blockchain",
@@ -134,6 +145,31 @@ export default function RootLayout({
             `,
           }}
         />
+        {/*
+          Service-worker registration — client-side only.
+          Runs after the page has loaded so it never blocks the critical path.
+          The 'load' event guard is intentional: SW registration is deferred
+          until after the page is interactive so it does not compete with
+          first-paint resources.
+        */}
+        <script
+          data-testid="sw-registration-script"
+          dangerouslySetInnerHTML={{
+            __html: `
+              if ('serviceWorker' in navigator) {
+                window.addEventListener('load', function() {
+                  navigator.serviceWorker
+                    .register('/sw.js', { scope: '/' })
+                    .catch(function(err) {
+                      // Registration failure is non-fatal — the app works
+                      // normally without a service worker.
+                      console.warn('[SW] Registration failed:', err);
+                    });
+                });
+              }
+            `,
+          }}
+        />
       </head>
       <body
         className={`${inter.variable} ${clashDisplay.variable} ${generalSans.variable} antialiased`}
@@ -147,6 +183,7 @@ export default function RootLayout({
           Skip to main content
         </a>
         <OfflineBanner />
+        <CookieConsentBanner />
         <ThemeProvider>
           <WalletProvider>
             <SidebarProvider>{children}</SidebarProvider>

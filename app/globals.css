@@ -6,6 +6,38 @@
     --font-general-sans: "General Sans", sans-serif;
     --font-inter: "Inter", sans-serif;
 
+    /* ── Elevation / shadow scale (light) ────────────────────────────────
+     * Four-step hierarchy that every card-like surface must use.
+     *
+     *   1 — Static / default cards
+     *   2 — Hoverable / interactive cards
+     *   3 — Floating panels (popovers, dropdowns)
+     *   4 — Modals / dialogs
+     *
+     * Dark-mode values are swapped via the .dark variant below.
+     * Usage: shadow-elevation-1 … shadow-elevation-4
+     */
+    --elevation-1: 0 1px 2px 0 rgb(0 0 0 / 0.03), 0 1px 1px 0 rgb(0 0 0 / 0.02);
+    --elevation-2: 0 4px 6px -1px rgb(0 0 0 / 0.05), 0 2px 4px -2px rgb(0 0 0 / 0.03);
+    --elevation-3: 0 10px 15px -3px rgb(0 0 0 / 0.08), 0 4px 6px -4px rgb(0 0 0 / 0.04);
+    --elevation-4: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.05);
+
+    /* Disabled state token — single source of truth for all disabled controls
+     * Applied via the cursor-disabled and opactiy-disabled utilities below.
+     * Used across Button, Checkbox, TextInput, and Input.
+     */
+    --disabled-opacity: 0.5;
+
+    /* Section vertical-rhythm spacing tokens
+     * Applied as py-section-sm / py-section-md / py-section-lg via
+     * the @utility helpers below, or directly via Tailwind responsive
+     * classes: py-16 sm:py-20 lg:py-24. These tokens document the
+     * canonical three-step scale used across every landing section.
+     */
+    --section-py-sm: 4rem;   /* 64 px  — mobile  (≤ 639 px)  */
+    --section-py-md: 5rem;   /* 80 px  — tablet  (≥ 640 px)  */
+    --section-py-lg: 6rem;   /* 96 px  — desktop (≥ 1024 px) */
+
     /* Clash Display (Display & Headings) Token Scale */
     --font-display-2xl: 4.5rem;
     --leading-display-2xl: 1.05;
@@ -35,7 +67,58 @@
     --font-caption-sm: 0.875rem;
     --leading-caption-sm: 1.43;
     --tracking-caption-sm: 0.01em;
+
+    /* Chart colors — light mode
+     * Used by RechartsMiniBarChart and other chart components.
+     * Each token maps to a semantic chart color that adapts in dark mode.
+     */
+    --chart-blue: #3B82F6;
+    --chart-green: #10B981;
+    --chart-amber: #F59E0B;
+    --chart-tooltip-bg: #ffffff;
+    --chart-tooltip-border: #e4e4e7;
   }
+
+  .dark {
+    /* Elevation / shadow scale (dark) — deeper shadows for contrast */
+    --elevation-1: 0 1px 3px 0 rgb(0 0 0 / 0.4), 0 1px 2px -1px rgb(0 0 0 / 0.3);
+    --elevation-2: 0 4px 6px -1px rgb(0 0 0 / 0.5), 0 2px 4px -2px rgb(0 0 0 / 0.4);
+    --elevation-3: 0 10px 15px -3px rgb(0 0 0 / 0.55), 0 4px 6px -4px rgb(0 0 0 / 0.45);
+    --elevation-4: 0 20px 25px -5px rgb(0 0 0 / 0.65), 0 8px 10px -6px rgb(0 0 0 / 0.5);
+  }
+}
+
+@theme inline {
+  --shadow-elevation-1: var(--elevation-1);
+  --shadow-elevation-2: var(--elevation-2);
+  --shadow-elevation-3: var(--elevation-3);
+  --shadow-elevation-4: var(--elevation-4);
+
+  /* Disabled-state tokens — mapped so Tailwind generates cursor-disabled
+   * and opacity-disabled utilities consumed by every disabled control.
+   */
+  --opacity-disabled: var(--disabled-opacity);
+  --cursor-disabled: not-allowed;
+}
+
+/**
+ * disabled-state
+ * ---------------
+ * Composable utility that applies the canonical disabled look to any element.
+ * Each property is driven by a CSS custom property so a single token edit
+ * updates every disabled control in the project.
+ *
+ * Usage:
+ *   <button className="disabled-state" disabled>Save</button>
+ *
+ * Note: Because Tailwind's disabled: variant does not compose with @utility,
+ * prefer the individual utilities in most cases:
+ *   className="disabled:cursor-disabled disabled:opacity-disabled"
+ */
+@utility disabled-state {
+  opacity: var(--disabled-opacity);
+  cursor: var(--disabled-cursor, not-allowed);
+  pointer-events: none;
 }
 
 @utility text-display-2xl {
@@ -57,6 +140,33 @@
   font-size: var(--font-heading-lg);
   line-height: var(--leading-heading-lg);
   letter-spacing: var(--tracking-heading-lg);
+}
+
+/**
+ * section-spacing
+ * ---------------
+ * One-line utility that applies the canonical three-step vertical-rhythm
+ * scale to any landing section.  Use it in place of ad-hoc py-* values:
+ *
+ *   <section className="section-spacing ...">
+ *
+ * Equivalent to `py-16 sm:py-20 lg:py-24` (64 px / 80 px / 96 px).
+ * The values are driven by the --section-py-* CSS custom properties
+ * defined in :root so that a single token edit updates every section.
+ */
+@utility section-spacing {
+  padding-top: var(--section-py-sm);
+  padding-bottom: var(--section-py-sm);
+
+  @media (width >= 640px) {
+    padding-top: var(--section-py-md);
+    padding-bottom: var(--section-py-md);
+  }
+
+  @media (width >= 1024px) {
+    padding-top: var(--section-py-lg);
+    padding-bottom: var(--section-py-lg);
+  }
 }
 
 /* Statement output intentionally has its own print scope; table print rules and
@@ -103,14 +213,64 @@
   @page {
     margin: 16mm;
   }
+
+  /* ── Transactions table print scope ─────────────────────────────────────
+   * When printing the interactive transactions page, hide every control
+   * (filters, search, pagination, sort triggers, checkboxes, density
+   * toggle, receipt download buttons) and show only the data rows in a
+   * legible, grayscale-friendly layout with no page-breaks inside rows.
+   * Fully independent of the reconciliation-statement scope above.      */
+
+  .transactions-print-root,
+  .transactions-print-root * {
+    visibility: visible;
+  }
+
+  .transactions-print-root {
+    position: static;
+    background: #ffffff !important;
+    color: #111827 !important;
+  }
+
+  .transactions-print-root * {
+    color: #111827 !important;
+    background-color: transparent !important;
+    border-color: #d1d5db !important;
+  }
+
+  .transactions-print-root table tr {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  .transactions-print-root table thead {
+    display: table-header-group;
+  }
+
+  .transactions-print-root img {
+    filter: grayscale(100%) contrast(1.15);
+  }
 }
 
-@layer utilities {
-  .scrollbar-hide {
-    -ms-overflow-style: none; /* IE and Edge */
-    scrollbar-width: none; /* Firefox */
-  }
-  .scrollbar-hide::-webkit-scrollbar {
-    display: none; /* Chrome, Safari and Opera */
-  }
+@utility text-body-lg {
+  font-family: var(--font-general-sans), var(--font-inter);
+  font-size: var(--font-body-lg);
+  line-height: var(--leading-body-lg);
+  letter-spacing: var(--tracking-body-lg);
 }
+
+@utility text-body-md {
+  font-family: var(--font-general-sans), var(--font-inter);
+  font-size: var(--font-body-md);
+  line-height: var(--leading-body-md);
+  letter-spacing: var(--tracking-body-md);
+}
+
+@utility text-caption-sm {
+  font-family: var(--font-inter);
+  font-size: var(--font-caption-sm);
+  line-height: var(--leading-caption-sm);
+  letter-spacing: var(--tracking-caption-sm);
+}
+
+

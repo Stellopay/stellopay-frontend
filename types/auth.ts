@@ -137,9 +137,24 @@ export const magicLinkSchema = z.object({
   }),
 });
 
+/**
+ * Schema for the forgot-password form.
+ *
+ * Only validates that the value is a syntactically valid email address.
+ * No account-existence check is performed client-side — the API
+ * layer always returns a generic success to prevent enumeration.
+ */
+export const forgotPasswordSchema = z.object({
+  email: z.string().email({
+    message: "Please enter a valid email address.",
+  }),
+});
+
 export type SignUpFormValues = z.infer<typeof signUpSchema>;
 export type LoginFormValues = z.infer<typeof loginSchema>;
 /** Inferred type for the change-password form. */
 export type ChangePasswordFormValues = z.infer<typeof changePasswordSchema>;
 /** Inferred type for the magic-link form. */
 export type MagicLinkFormValues = z.infer<typeof magicLinkSchema>;
+/** Inferred type for the forgot-password form. */
+export type ForgotPasswordFormValues = z.infer<typeof forgotPasswordSchema>;

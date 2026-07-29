@@ -7,7 +7,7 @@ import TextareaInput from "@/components/common/text-area-input";
 import TextInput from "@/components/common/text-input";
 import { Button } from "@/components/ui/button";
 import { Clock3, ContactRound, Loader2, Mail, Phone } from "lucide-react";
-import React, { useState } from "react";
+import React, { useState, useRef } from "react";
 import { SupportTabsProps } from "@/types/ui";
 import { z } from "zod";
 
