@@ -7,8 +7,7 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Form } from "@/components/ui/form";
 import {
-  FormFieldInput,
-  FormFieldPassword,
+  AuthFormField,
   FormFieldCheckbox,
 } from "@/components/ui/form-field";
 import { Check, X } from "lucide-react";
@@ -107,7 +106,7 @@ export function SignUpForm() {
           className="flex flex-col gap-4"
           noValidate
         >
-          <FormFieldInput
+          <AuthFormField
             control={form.control}
             name="fullName"
             type="text"
@@ -116,7 +115,7 @@ export function SignUpForm() {
             required
             autoComplete="name"
           />
-          <FormFieldInput
+          <AuthFormField
             control={form.control}
             name="email"
             type="email"
@@ -124,10 +123,12 @@ export function SignUpForm() {
             placeholder="Enter your email"
             required
             autoComplete="email"
+            inputMode="email"
           />
-          <FormFieldPassword
+          <AuthFormField
             control={form.control}
             name="password"
+            type="password"
             label="Password"
             placeholder="Create a password"
             required
@@ -214,9 +215,10 @@ export function SignUpForm() {
               )}
             </div>
           )}
-          <FormFieldPassword
+          <AuthFormField
             control={form.control}
             name="confirmPassword"
+            type="password"
             label="Confirm Password"
             placeholder="Confirm your password"
             required
