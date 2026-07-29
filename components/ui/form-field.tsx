@@ -418,6 +418,28 @@ export function FormFieldPassword<
   );
 }
 
+export interface AuthFormFieldProps<
+  TFieldValues extends FieldValues = FieldValues,
+  TName extends FieldPath<TFieldValues> = FieldPath<TFieldValues>,
+> extends FormFieldInputProps<TFieldValues, TName> {}
+
+/**
+ * AuthFormField – Reusable field wrapper for authentication forms (LoginForm, SignUpForm).
+ *
+ * Encapsulates duplicated label, error message, input container, and react-hook-form
+ * Controller binding. Automatically delegates to `FormFieldPassword` when `type="password"`
+ * or `FormFieldInput` for all other input types.
+ */
+export function AuthFormField<
+  TFieldValues extends FieldValues = FieldValues,
+  TName extends FieldPath<TFieldValues> = FieldPath<TFieldValues>,
+>(props: AuthFormFieldProps<TFieldValues, TName>) {
+  if (props.type === "password") {
+    return <FormFieldPassword {...props} />;
+  }
+  return <FormFieldInput {...props} />;
+}
+
 // Re-export form components for convenience
 export {
   Form,

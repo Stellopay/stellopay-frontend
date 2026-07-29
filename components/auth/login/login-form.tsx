@@ -7,9 +7,8 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Form } from "@/components/ui/form";
 import {
-  FormFieldInput,
+  AuthFormField,
   FormFieldCheckbox,
-  FormFieldPassword,
 } from "@/components/ui/form-field";
 import { Separator } from "@/components/ui/separator";
 import {
@@ -231,7 +230,7 @@ export function LoginForm() {
               className="flex flex-col gap-4"
               noValidate
             >
-              <FormFieldInput
+              <AuthFormField
                 control={form.control}
                 name="email"
                 type="email"
@@ -275,9 +274,10 @@ export function LoginForm() {
                 autoComplete="email"
               />
 
-              <FormFieldPassword
+              <AuthFormField
                 control={form.control}
                 name="password"
+                type="password"
                 label="Password"
                 placeholder="Enter your password"
                 disabled={isLoading}
@@ -401,7 +401,7 @@ export function LoginForm() {
                 sign-in link. No password needed.
               </p>
 
-              <FormFieldInput
+              <AuthFormField
                 control={form.control}
                 name="email"
                 type="email"
@@ -410,6 +410,7 @@ export function LoginForm() {
                 loading={isLoading}
                 required
                 autoComplete="email"
+                inputMode="email"
               />
 
               {/* Error Message */}

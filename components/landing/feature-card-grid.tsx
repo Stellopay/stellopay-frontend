@@ -2,9 +2,12 @@ import { FC } from "react";
 import { FeatureGridItem } from "@/types/landing";
 import { ArrowRight } from "lucide-react";
 import Link from "next/link";
+import { motion } from "framer-motion";
+import { useReducedMotion } from "@/hooks/useReducedMotion";
 
 interface FeatureCardGridProps extends FeatureGridItem {
   className?: string;
+  index?: number;
 }
 
 export const FeatureCardGrid: FC<FeatureCardGridProps> = ({
@@ -13,9 +16,29 @@ export const FeatureCardGrid: FC<FeatureCardGridProps> = ({
   description,
   link,
   className = "",
+  index = 0,
 }) => {
+  const prefersReducedMotion = useReducedMotion();
+
+  const animationVariants = {
+    hidden: { opacity: 0, y: 20 },
+    visible: { 
+      opacity: 1, 
+      y: 0,
+      transition: {
+        duration: 0.5,
+        delay: index * 0.1,
+        ease: "easeOut"
+      }
+    }
+  };
+
   return (
-    <article
+    <motion.article
+      initial={prefersReducedMotion ? "visible" : "hidden"}
+      whileInView="visible"
+      viewport={{ once: true, margin: "-50px" }}
+      variants={animationVariants}
       className={`
         rounded-lg
         relative
@@ -54,6 +77,6 @@ export const FeatureCardGrid: FC<FeatureCardGridProps> = ({
           <ArrowRight className="w-4 h-4 group-hover:translate-x-[5px] transition-all duration-300" />
         </Link>
       </div>
-    </article>
+    </motion.article>
   );
 };
