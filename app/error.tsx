@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useMemo } from "react";
 import Link from "next/link";
 
 import { Button } from "@/components/ui/button";
@@ -23,9 +23,9 @@ type GlobalErrorProps = {
 /**
  * Root error boundary for the App Router.
  *
- * Renders an accessible recovery surface with a "Try again" action wired to
- * Next's `reset()` and an escape hatch back to `/dashboard`. In production,
- * the underlying error message and stack trace are never rendered.
+ * Renders an accessible recovery surface tailored to either network-shaped failures 
+ * or unexpected rendering exceptions. It adjusts primary actions based on error type.
+ * In production, the underlying error message and stack trace are never rendered.
  */
 export default function GlobalError({ error, reset }: GlobalErrorProps) {
   useEffect(() => {
@@ -38,6 +38,29 @@ export default function GlobalError({ error, reset }: GlobalErrorProps) {
   const showDevDetails =
     process.env.NODE_ENV !== "production" && Boolean(error?.message);
 
+  const isNetworkError = useMemo(() => {
+    const msg = (error?.message || "").toLowerCase();
+    const digest = (error?.digest || "").toLowerCase();
+    
+    return (
+      msg.includes("fetch") ||
+      msg.includes("network") ||
+      msg.includes("econnrefused") ||
+      msg.includes("timeout") ||
+      msg.includes("failed to fetch") ||
+      digest.includes("fetch") ||
+      digest.includes("network")
+    );
+  }, [error]);
+
+  const errorTitle = isNetworkError 
+    ? "Connection issue" 
+    : "Something went wrong";
+    
+  const errorMessage = isNetworkError
+    ? "We couldn't connect to our servers. Please check your internet connection and try again."
+    : "We hit an unexpected error while loading this page. You can try again or head back to your dashboard.";
+
   return (
     <main
       role="alert"
@@ -46,11 +69,10 @@ export default function GlobalError({ error, reset }: GlobalErrorProps) {
     >
       <div className="w-full max-w-md space-y-6 text-center">
         <h1 className="text-3xl font-semibold text-destructive">
-          Something went wrong
+          {errorTitle}
         </h1>
         <p className="text-sm text-muted-foreground">
-          We hit an unexpected error while loading this page. You can retry or
-          head back to your dashboard.
+          {errorMessage}
         </p>
 
         {showDevDetails ? (
@@ -63,10 +85,21 @@ export default function GlobalError({ error, reset }: GlobalErrorProps) {
         ) : null}
 
         <div className="flex items-center justify-center gap-3">
-          <Button onClick={() => reset()}>Try again</Button>
-          <Button variant="outline" asChild>
-            <Link href="/dashboard">Go to dashboard</Link>
-          </Button>
+          {isNetworkError ? (
+            <>
+              <Button onClick={() => reset()}>Try again</Button>
+              <Button variant="outline" asChild>
+                <Link href="/dashboard">Go to dashboard</Link>
+              </Button>
+            </>
+          ) : (
+            <>
+              <Button asChild>
+                <Link href="/dashboard">Go to dashboard</Link>
+              </Button>
+              <Button variant="outline" onClick={() => reset()}>Try again</Button>
+            </>
+          )}
         </div>
       </div>
     </main>

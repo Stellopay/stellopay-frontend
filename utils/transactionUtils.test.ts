@@ -1089,12 +1089,13 @@ describe("sortTransactionsMulti", () => {
       { field: "amount", direction: "asc" },
     ];
 
-    const sorted = sortTransactionsMulti(tiebreakerTestData, configs);
-    const ids = sorted.map((t) => t.id);
+    const result = sortTransactionsMulti(tiebreakerTestData, configs);
+    const ids = result.map((t) => t.id);
 
-    // Within "Completed" group: completed-1 (-250) comes before completed-2 (-100) by amount asc
-    // Then "Pending" group
-    expect(ids).toEqual(["completed-1", "completed-2", "pending-1"]);
+    // Primary sort: status asc → "Completed" before "Pending"
+    // Tiebreaker: amount asc by absolute value → abs(-100)=100 < abs(-250)=250
+    // so completed-2 sorts before completed-1
+    expect(ids).toEqual(["completed-2", "completed-1", "pending-1"]);
   });
 
   it("uses secondary sort descending correctly", () => {

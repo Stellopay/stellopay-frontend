@@ -6,6 +6,7 @@ import { SidebarProvider } from "@/context/sidebar-context";
 import { ThemeProvider } from "@/context/theme-context";
 import { WalletProvider } from "@/context/wallet-context";
 import { OfflineBanner } from "@/components/common/offline-banner";
+import { CookieConsentBanner } from "@/components/common/cookie-consent-banner";
 import { Toaster } from "@/components/ui/toaster";
 
 const inter = Inter({
@@ -134,6 +135,31 @@ export default function RootLayout({
             `,
           }}
         />
+        {/*
+          Service-worker registration — client-side only.
+          Runs after the page has loaded so it never blocks the critical path.
+          The 'load' event guard is intentional: SW registration is deferred
+          until after the page is interactive so it does not compete with
+          first-paint resources.
+        */}
+        <script
+          data-testid="sw-registration-script"
+          dangerouslySetInnerHTML={{
+            __html: `
+              if ('serviceWorker' in navigator) {
+                window.addEventListener('load', function() {
+                  navigator.serviceWorker
+                    .register('/sw.js', { scope: '/' })
+                    .catch(function(err) {
+                      // Registration failure is non-fatal — the app works
+                      // normally without a service worker.
+                      console.warn('[SW] Registration failed:', err);
+                    });
+                });
+              }
+            `,
+          }}
+        />
       </head>
       <body
         className={`${inter.variable} ${clashDisplay.variable} ${generalSans.variable} antialiased`}
@@ -147,6 +173,7 @@ export default function RootLayout({
           Skip to main content
         </a>
         <OfflineBanner />
+        <CookieConsentBanner />
         <ThemeProvider>
           <WalletProvider>
             <SidebarProvider>{children}</SidebarProvider>

@@ -35,11 +35,16 @@ interface GlobalErrorProps {
   through the layout) is unavailable at this point, so Tailwind classes would
   have no effect. The styles below are self-contained and dependency-free.
  */
-export default function GlobalError({ reset }: GlobalErrorProps) {
+const SUPPORT_EMAIL = "support@stellopay.com";
+
+export default function GlobalError({ error, reset }: GlobalErrorProps) {
   function handleReset() {
     if (typeof reset === "function") reset();
     else window.location.reload();
   }
+
+  const digest = error?.digest ?? "";
+  const mailtoHref = `mailto:${SUPPORT_EMAIL}?subject=${encodeURIComponent(`Error Report [${digest}]`)}&body=${encodeURIComponent(`Reference: ${digest}\n\nPlease describe what you were doing when this error occurred.`)}`;
 
   return (
     <html lang="en">
@@ -81,21 +86,48 @@ export default function GlobalError({ reset }: GlobalErrorProps) {
           >
             An unexpected error occurred. Please try again.
           </p>
-          <button
-            onClick={handleReset}
+          <div
             style={{
-              padding: "0.6rem 1.4rem",
-              fontSize: "0.95rem",
-              fontWeight: 500,
-              color: "#ffffff",
-              backgroundColor: "#111827",
-              border: "none",
-              borderRadius: "0.375rem",
-              cursor: "pointer",
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+              gap: "0.75rem",
             }}
           >
-            Try again
-          </button>
+            <button
+              onClick={handleReset}
+              style={{
+                padding: "0.6rem 1.4rem",
+                fontSize: "0.95rem",
+                fontWeight: 500,
+                color: "#ffffff",
+                backgroundColor: "#111827",
+                border: "none",
+                borderRadius: "0.375rem",
+                cursor: "pointer",
+              }}
+            >
+              Try again
+            </button>
+            <a
+              href={mailtoHref}
+              aria-label={`Report this issue to support with reference ${digest}`}
+              style={{
+                fontSize: "0.8rem",
+                color: "#6b7280",
+                textDecoration: "underline",
+                cursor: "pointer",
+              }}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" || e.key === " ") {
+                  e.preventDefault();
+                  window.location.href = mailtoHref;
+                }
+              }}
+            >
+              Report this issue
+            </a>
+          </div>
         </div>
       </body>
     </html>

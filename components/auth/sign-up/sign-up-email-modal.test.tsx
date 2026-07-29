@@ -98,3 +98,36 @@ describe("SignUpEmailModal resend cooldown", () => {
     ).toBeDisabled();
   });
 });
+
+describe("SignUpEmailModal typo suggestion", () => {
+  it("shows a suggestion for common email typos", () => {
+    render(<SignUpEmailModal {...baseProps} email="user@gmial.com" />);
+    
+    // Should show the suggestion
+    expect(screen.getByText(/Did you mean/i)).toBeInTheDocument();
+    expect(screen.getByText("user@gmail.com")).toBeInTheDocument();
+  });
+
+  it("does not show a suggestion for a valid email", () => {
+    render(<SignUpEmailModal {...baseProps} email="user@gmail.com" />);
+    
+    expect(screen.queryByText(/Did you mean/i)).not.toBeInTheDocument();
+  });
+
+  it("updates the displayed email when the user accepts the suggestion", () => {
+    render(<SignUpEmailModal {...baseProps} email="test@yahooo.com" />);
+    
+    const suggestionText = screen.getByText("test@yahoo.com");
+    expect(suggestionText).toBeInTheDocument();
+    
+    const fixButton = screen.getByRole("button", { name: /change email to test@yahoo.com/i });
+    fireEvent.click(fixButton);
+    
+    // The suggestion box should disappear
+    expect(screen.queryByText(/Did you mean/i)).not.toBeInTheDocument();
+    
+    // The main dialog description should now show the corrected email
+    expect(screen.getByText("test@yahoo.com")).toBeInTheDocument();
+  });
+});
+

@@ -1,4 +1,4 @@
-import { KeyFeatures } from "@/components/landing/key-features";
+import { FeaturesIntro } from "@/components/landing/features-intro";
 import Hero from "@/components/landing/hero";
 import Footer from "@/components/common/footer";
 import BenefitsSection from "@/components/landing/benefits";
@@ -106,7 +106,7 @@ export default function LandingPage() {
           <StatsCards stats={ILLUSTRATIVE_STATS} />
         </div>
       </section>
-      <KeyFeatures />
+      <FeaturesIntro />
       <HowItWorks />
       <ValuePropositions />
       <EnterpriseSolutionSection />

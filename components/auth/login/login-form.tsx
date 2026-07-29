@@ -7,9 +7,9 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Form } from "@/components/ui/form";
 import {
-  FormFieldInput,
-  FormFieldCheckbox,
+  AuthFormField,
   FormFieldPassword,
+  FormFieldCheckbox,
 } from "@/components/ui/form-field";
 import { Separator } from "@/components/ui/separator";
 import {
@@ -44,6 +44,7 @@ type SignInMethod = "password" | "magic-link";
 export function LoginForm() {
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
+  const [isNetworkError, setIsNetworkError] = useState(false);
   const [signInMethod, setSignInMethod] = useState<SignInMethod>("password");
   const [magicLinkSent, setMagicLinkSent] = useState(false);
   const [magicLinkEmail, setMagicLinkEmail] = useState("");
@@ -80,6 +81,7 @@ export function LoginForm() {
   async function onSubmit(_data: LoginFormValues) {
     setIsLoading(true);
     setErrorMessage("");
+    setIsNetworkError(false);
     try {
       await login(_data);
       // Persist only a non-sensitive identifier (email). The password is
@@ -93,8 +95,10 @@ export function LoginForm() {
     } catch (error) {
       if (error instanceof AuthError) {
         setErrorMessage(error.message);
+        setIsNetworkError(error.kind === "network");
       } else {
         setErrorMessage("Invalid email or password. Please try again.");
+        setIsNetworkError(false);
       }
     } finally {
       setIsLoading(false);
@@ -231,7 +235,7 @@ export function LoginForm() {
               className="flex flex-col gap-4"
               noValidate
             >
-              <FormFieldInput
+              <AuthFormField
                 control={form.control}
                 name="email"
                 type="email"
@@ -240,6 +244,7 @@ export function LoginForm() {
                 loading={isLoading}
                 required
                 autoComplete="email"
+                inputMode="email"
               />
 
               <FormFieldPassword
@@ -257,9 +262,19 @@ export function LoginForm() {
                 <div
                   role="alert"
                   aria-live="polite"
-                  className="bg-red-500/10 text-red-300 px-4 py-3 rounded-lg text-sm"
+                  className="bg-red-500/10 text-red-300 px-4 py-3 rounded-lg text-sm flex items-center justify-between gap-3"
                 >
-                  {errorMessage}
+                  <span>{errorMessage}</span>
+                  {isNetworkError && (
+                    <button
+                      type="button"
+                      onClick={form.handleSubmit(onSubmit, onValidationError)}
+                      disabled={isLoading}
+                      className="shrink-0 underline underline-offset-4 font-medium hover:text-red-200 disabled:opacity-50"
+                    >
+                      Retry
+                    </button>
+                  )}
                 </div>
               )}
 
@@ -368,7 +383,7 @@ export function LoginForm() {
                 sign-in link. No password needed.
               </p>
 
-              <FormFieldInput
+              <AuthFormField
                 control={form.control}
                 name="email"
                 type="email"
@@ -377,6 +392,7 @@ export function LoginForm() {
                 loading={isLoading}
                 required
                 autoComplete="email"
+                inputMode="email"
               />
 
               {/* Error Message */}
