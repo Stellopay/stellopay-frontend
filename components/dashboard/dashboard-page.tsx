@@ -370,7 +370,7 @@ export function RecentActivityFeed({
   return (
     <section
       aria-labelledby="recent-activity-heading"
-      className={`w-full rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm transition-colors dark:border-zinc-800 dark:bg-[#111111] sm:p-6 ${className}`}
+      className={`w-full rounded-2xl border border-zinc-200 bg-white p-4 shadow-elevation-1 transition-colors dark:border-zinc-800 dark:bg-[#111111] sm:p-6 ${className}`}
     >
       <div className="flex flex-col gap-4 border-b border-zinc-100 pb-5 dark:border-zinc-800/70 sm:flex-row sm:items-start sm:justify-between">
         <div className="flex min-w-0 items-start gap-3">

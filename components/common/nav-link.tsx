@@ -19,6 +19,7 @@ import { useId, useState, type ReactNode } from "react";
 import { usePathname } from "next/navigation";
 import Link from "next/link";
 import { useTheme } from "@/context/theme-context";
+import { transition } from "@/lib/motion";
 import {
   isLinkActive,
   shouldExpandSidebar,

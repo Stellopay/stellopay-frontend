@@ -5,6 +5,7 @@ import Image from "next/image";
 import { UserPlus, Wallet, Send } from "lucide-react";
 import { motion } from "framer-motion";
 import { useReducedMotion } from "@/hooks/useReducedMotion";
+import { duration, easing } from "@/lib/motion";
 
 const steps = [
   {
@@ -54,7 +55,7 @@ const normalVariants = {
   visible: {
     opacity: 1,
     y: 0,
-    transition: { duration: 0.5, ease: "easeOut" },
+    transition: { duration: duration.slow, ease: easing.easeOut },
   },
 };
 

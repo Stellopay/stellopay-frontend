@@ -133,7 +133,7 @@ export function SummaryCardSkeleton({
       aria-hidden="true"
       className={cn(
         "bg-white dark:bg-[#111111] border border-zinc-200 dark:border-zinc-800",
-        "rounded-2xl p-6 flex flex-col gap-4 shadow-sm",
+        "rounded-2xl p-6 flex flex-col gap-4 shadow-elevation-1",
         className,
       )}
     >
