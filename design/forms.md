@@ -113,3 +113,28 @@ Use high-level abstractions for common patterns:
 - **No Console Logs**: Ensure `onSubmit` handlers do not log raw form data in production.
 - **Auto-complete**: Use appropriate `autoComplete` values (e.g., `new-password`, `current-password`, `email`).
 - **Validation**: Always use Zod schemas for client-side validation.
+
+## Buttons (#754)
+
+There used to be two competing button implementations: `components/common/button.tsx` (a bespoke component hardcoding `bg-[#ffffff]`/`bg-[#222222]`, a fixed 48px height, and no `focus-visible` styling) and `components/ui/button.tsx` (a shadcn/cva button wired to the `--primary`/`--ring` tokens). `components/common/button.tsx` has been removed — `components/ui/button.tsx` is now the only button component and every form should use it directly:
+
+```tsx
+import { Button } from "@/components/ui/button";
+
+<Button type="submit" size="lg" className="w-full" disabled={isSubmitDisabled}>
+  {isSubmitting ? (
+    <>
+      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+      Saving...
+    </>
+  ) : (
+    "Save"
+  )}
+</Button>;
+```
+
+### Migration notes
+
+- **Prop mapping**: the old component's `text`/`loading` props map to plain children — render the loading label/spinner conditionally instead of passing a `loading` boolean. `width="100%"` maps to `className="w-full"`; the old fixed 48px height maps to `size="lg"` (the closest built-in size token) rather than a hardcoded pixel height.
+- **Loading state**: `components/ui/button.tsx` has no built-in `loading` prop by design — compose it explicitly with `lucide-react`'s `Loader2` (see `app/settings/preferences/components/security-tab.tsx` for the established pattern), so the disabled/loading condition stays visible in the calling component instead of being hidden inside the button.
+- **Accessibility**: unlike the old component, `components/ui/button.tsx` ships `focus-visible:ring-ring/50` and `focus-visible:ring-[3px]` out of the box, and `disabled:opacity-50 disabled:pointer-events-none` for disabled states — no extra work needed at the callsite for keyboard-focus visibility.
