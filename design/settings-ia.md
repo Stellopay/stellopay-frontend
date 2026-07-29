@@ -59,6 +59,7 @@ This keeps destructive actions deliberate and reduces accidental activation risk
 The intended click depth from `/settings/preferences` is:
 
 - Change profile fields: 1 section tap + 1 save action
+- Change profile photo crop: 1 section tap + photo action + crop/save interaction
 - Adjust notification priorities: 1 section tap + 1 toggle
 - Change password: 1 section tap + form interaction
 - Review wallet controls: 1 section tap + 1 toggle
@@ -106,6 +107,38 @@ Generated screenshots:
 The statements change is a settings-tab addition only. Capture updated
 screenshots when the visual regression pass is run for the broader settings
 surface.
+
+## Account Avatar Crop
+
+The Account tab profile photo action opens a focused crop dialog for upload,
+crop, and save without moving users away from settings.
+
+Behavior:
+
+- The crop frame is always square and documents a fixed `512 x 512` output
+  contract for backend/image-processing wiring.
+- Users can upload an image, zoom from `100%` to `300%`, pan inside the crop
+  frame, and rotate in 90-degree increments.
+- Dragging the crop preview pans the image for pointer users.
+- The current crop values are visible for review: zoom, rotation, pan X, and
+  pan Y.
+- Non-image uploads are rejected inline before crop controls enable.
+
+Accessibility and responsive notes:
+
+- The upload field has a visible label, helper text, and `aria-invalid` error
+  state.
+- Zoom uses a native range input, so keyboard users can adjust it with standard
+  slider keys.
+- Pan is available through arrow-key handling on the focused crop preview and
+  through explicit Pan up/down/left/right buttons.
+- Rotate controls are regular buttons with visible labels and icon affordances.
+- Disabled controls remain discoverable before upload while preventing invalid
+  crop saves.
+- The dialog stacks controls below the square preview on narrow screens, then
+  shifts controls beside the preview at `lg` 1024px and wider. Long file names,
+  helper text, and crop values wrap within the dialog at `sm` 640px, `md`
+  768px, `lg` 1024px, and `xl` 1280px.
 
 ## Notes
 
