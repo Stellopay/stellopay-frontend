@@ -157,6 +157,13 @@ and debugging stay frictionless.
 
 We expect all new utility functions and business logic to have **minimum 95% test coverage**.
 
+### Testing Hydration Guards and Dynamic Imports
+
+When writing client-side hydration guards (`isMounted` patterns) or using `next/dynamic` for heavy components, ensure they are fully tested:
+- Use `renderToString` from `react-dom/server` to test the initial `isMounted=false` SSR state.
+- Test loading and skeleton states independently of the mount state (e.g., passing `isLoading=true`).
+- Ensure fallback skeletons use accessible markup (`aria-busy="true"`, `role="status"`).
+
 ### Test Commands
 
 - **Unit Tests (Vitest):**

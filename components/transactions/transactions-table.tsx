@@ -121,8 +121,14 @@ export function TransactionsTable({
                     <span className="text-[#D7E0EF]">{transaction.type}</span>
                     <p>#{transaction.id}</p>
                   </TableCell>
-                  <TableCell className="border border-[#2D2D2D] py-4 px-6">
-                    {transaction.address}
+                  <TableCell className="border border-[#2D2D2D] py-4 px-6 max-w-[200px]">
+                    <span
+                      className="block truncate cursor-help focus:outline-none focus:ring-2 focus:ring-[#D7E0EF] rounded px-1 -ml-1"
+                      title={transaction.address}
+                      tabIndex={0}
+                    >
+                      {transaction.address}
+                    </span>
                   </TableCell>
                   <TableCell className="border border-[#2D2D2D] py-4 px-6">
                     <time dateTime={transaction.date}>
@@ -138,8 +144,14 @@ export function TransactionsTable({
                     />
                     <span>{transaction.token}</span>
                   </TableCell>
-                  <TableCell className="border border-[#2D2D2D] py-4 px-6 ">
-                    {transaction.amount}
+                  <TableCell className="border border-[#2D2D2D] py-4 px-6 max-w-[150px]">
+                    <span
+                      className="block truncate cursor-help focus:outline-none focus:ring-2 focus:ring-[#D7E0EF] rounded px-1 -ml-1"
+                      title={transaction.amount}
+                      tabIndex={0}
+                    >
+                      {transaction.amount}
+                    </span>
                   </TableCell>
                   <TableCell className="py-4 px-6">
                     <Badge
@@ -198,7 +210,11 @@ export function TransactionsTable({
                   <p className="font-medium">
                     {transaction.type} #{transaction.id}
                   </p>
-                  <p className="text-sm text-muted-foreground">
+                  <p 
+                    className="text-sm text-muted-foreground block truncate max-w-[180px] cursor-help focus:outline-none focus:ring-2 focus:ring-[#D7E0EF] rounded px-1 -ml-1"
+                    title={transaction.address}
+                    tabIndex={0}
+                  >
                     {transaction.address}
                   </p>
                 </div>
@@ -225,14 +241,16 @@ export function TransactionsTable({
                   <p className="text-sm text-muted-foreground">Token</p>
                   <p>{transaction.token}</p>
                 </div>
-                <div>
+                <div className="min-w-0">
                   <p className="text-sm text-muted-foreground">Amount</p>
                   <p
-                    className={
+                    className={`block truncate max-w-[120px] cursor-help focus:outline-none focus:ring-2 focus:ring-[#D7E0EF] rounded px-1 -ml-1 ${
                       transaction.amount.startsWith("+")
                         ? "text-green-500"
                         : "text-red-500"
-                    }
+                    }`}
+                    title={transaction.amount}
+                    tabIndex={0}
                   >
                     {transaction.amount}
                   </p>
