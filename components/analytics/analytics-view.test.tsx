@@ -146,6 +146,46 @@ describe("AnalyticsViews Component", () => {
     expect(screen.getByText("PAY-12345")).toBeInTheDocument();
     expect(screen.getByText("Processed on Jun 20")).toBeInTheDocument();
   });
+
+  it("uses semantic design tokens instead of raw zinc utilities", () => {
+    render(<AnalyticsViews showNotifications={true} showDropdown={true} />);
+
+    // Note: this component dynamically renders AnalyticsChart (analytics-chart.tsx)
+    // and PaymentHistory (payment-history.tsx) as children — their zinc usage is
+    // out of scope for the analytics-view.tsx audit (issue #763) and isn't asserted here.
+
+    expect(screen.getByText("Analytics views")).toHaveClass("text-foreground");
+    expect(screen.getByText("Notifications")).toHaveClass("text-foreground");
+
+    const dropdownTrigger = screen.getByText("This Year").parentElement;
+    expect(dropdownTrigger).toHaveClass("border-border");
+    expect(dropdownTrigger).toHaveClass("bg-muted");
+    expect(dropdownTrigger).toHaveClass("hover:bg-muted-foreground/10");
+    expect(dropdownTrigger?.className).not.toMatch(/zinc-\d/);
+
+    const viewAllChip = screen.getByText("View All").parentElement;
+    expect(viewAllChip).toHaveClass("border-border");
+    expect(viewAllChip).toHaveClass("bg-muted");
+    expect(viewAllChip?.className).not.toMatch(/zinc-\d/);
+
+    fireEvent.click(dropdownTrigger!);
+    const yearOption = screen.getByText("2024");
+    expect(yearOption).toHaveClass("text-foreground");
+    expect(yearOption).toHaveClass("hover:bg-muted-foreground/10");
+    expect(yearOption.className).not.toMatch(/zinc-\d/);
+  });
+
+  it("keeps loading-state skeletons free of raw zinc utilities", () => {
+    const { container: notifLoading } = render(
+      <AnalyticsViews isLoading={true} showNotifications={true} />,
+    );
+    expect(notifLoading.innerHTML).not.toMatch(/zinc-\d/);
+
+    const { container: chartLoading } = render(
+      <AnalyticsViews isLoading={true} showNotifications={false} />,
+    );
+    expect(chartLoading.innerHTML).not.toMatch(/zinc-\d/);
+  });
 });
 
 describe("ClientAnalyticsView Component", () => {

@@ -82,6 +82,7 @@ describe("TransactionsTable", () => {
       ).not.toBeInTheDocument();
     });
   });
+});
 
   // ──────────────────────────────────────────────────────────────────────────
   // Checkbox column and selection

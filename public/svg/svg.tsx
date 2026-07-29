@@ -394,6 +394,31 @@ export const MusicIcon: React.FC<svgInterface> = ({ color }) => (
   </svg>
 );
 
+export const AccountSummaryIcon: React.FC<svgInterface> = ({ color }) => (
+  <svg
+    width={20}
+    height={20}
+    viewBox="0 0 20 20"
+    fill="none"
+    xmlns="http://www.w3.org/2000/svg"
+  >
+    <path
+      d="M10 10C12.3012 10 14.1667 8.13452 14.1667 5.83333C14.1667 3.53215 12.3012 1.66667 10 1.66667C7.69881 1.66667 5.83333 3.53215 5.83333 5.83333C5.83333 8.13452 7.69881 10 10 10Z"
+      stroke={color}
+      strokeWidth="1.25"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+    <path
+      d="M2.5 18.3333C2.5 15.1117 5.8575 12.5 10 12.5C14.1425 12.5 17.5 15.1117 17.5 18.3333"
+      stroke={color}
+      strokeWidth="1.25"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+  </svg>
+);
+
 export const StellarIcon = () => (
   <svg
     width="20"

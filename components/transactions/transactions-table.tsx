@@ -1,5 +1,6 @@
 "use client";
 
+import { useState, useCallback } from "react";
 import {
   Table,
   TableBody,
@@ -13,9 +14,12 @@ import { Badge } from "@/components/ui/badge";
 import Image from "next/image";
 import { Skeleton } from "@/components/ui/skeleton";
 import { getStatusColor } from "@/utils/transactionUtils";
+import { truncateStellarAddress } from "@/utils/stellarAddress";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Checkbox } from "@/components/ui/checkbox";
 import { TRANSACTIONS_PAGE_SIZE } from "./transactions-config";
+import { useRef, type KeyboardEvent } from "react";
+import { DownloadReceiptButton } from "./download-receipt-button";
 
 interface TransactionsTablePropsExtended extends TransactionsTableProps {
   isLoading?: boolean;
@@ -33,6 +37,20 @@ interface TransactionsTablePropsExtended extends TransactionsTableProps {
   onSelectAll?: (checked: boolean) => void;
 }
 
+/**
+ * TransactionsTable
+ *
+ * Renders the main transactions data grid with:
+ * - Native `<table>` semantics so screen readers announce table/row/cell roles
+ *   automatically without extra `role` attributes.
+ * - A visually-hidden `<caption>` that screen readers announce as the table label.
+ * - Truncated address and amount cells with a `title` tooltip so long values
+ *   are accessible on hover/focus without breaking the table layout.
+ * - Arrow-key row navigation (ArrowDown / ArrowUp / Home / End) so keyboard
+ *   users can move between rows without leaving the table.
+ * - Each data row has `tabIndex=0` and `data-navigable` so focus can land on
+ *   rows and tests can locate navigable rows reliably.
+ */
 export function TransactionsTable({
   transactions,
   isLoading = false,
@@ -40,6 +58,8 @@ export function TransactionsTable({
   onSelectRow,
   onSelectAll,
 }: TransactionsTablePropsExtended) {
+  const [selectedTransaction, setSelectedTransaction] = useState<TransactionsTablePropsExtended["transactions"][number] | null>(null);
+
   const isEmpty = !isLoading && transactions.length === 0;
 
   /** Ids on the current page that can actually be selected */
@@ -64,9 +84,11 @@ export function TransactionsTable({
   return (
     <>
       {/* Desktop Table */}
-      <div className="hidden md:block w-full rounded-[12px] overflow-auto border border-[#2D2D2D]">
+      <div
+        ref={tableWrapperRef}
+        className="hidden md:block w-full rounded-[12px] overflow-auto border border-[#2D2D2D]"
+      >
         <Table>
-          {/* caption is visually hidden but announced by screen readers */}
           <caption className="sr-only">Transaction history</caption>
           <TableHeader>
             <TableRow className="bg-[#191919]">
@@ -97,7 +119,7 @@ export function TransactionsTable({
               </TableHead>
               <TableHead
                 scope="col"
-                className="text-white font-bold border-[#2D2D2D] border-y-2 border-t-0 py-4 px-6"
+                className="text-white font-bold border-[#2D2D2D] border-y-2 border-t-0 py-4 px-6 w-[200px]"
               >
                 Address
               </TableHead>
@@ -115,13 +137,13 @@ export function TransactionsTable({
               </TableHead>
               <TableHead
                 scope="col"
-                className="text-white font-bold border-[#2D2D2D] border-y-2 border-t-0 py-4 px-6"
+                className="text-white font-bold border-[#2D2D2D] border-y-2 border-t-0 py-4 px-6 w-[140px]"
               >
                 Amount
               </TableHead>
               <TableHead
                 scope="col"
-                className="text-white font-bold border-[#2D2D2D] border-y-2 border-t-0 py-4 px-6"
+                className="text-white font-bold border-[#2D2D2D] border-y-2 border-t-0 py-4 px-6 w-[120px]"
               >
                 Status
               </TableHead>
@@ -149,7 +171,7 @@ export function TransactionsTable({
                   <TableCell className="border border-[#2D2D2D] py-4 px-6">
                     <Skeleton className="h-4 w-24" />
                   </TableCell>
-                  <TableCell className="flex place-items-center space-x-2 py-8 px-6">
+                  <TableCell className="flex place-items-center gap-2 py-8 px-6">
                     <Skeleton className="w-5 h-5 rounded-full" />
                     <Skeleton className="h-4 w-12" />
                   </TableCell>
@@ -244,6 +266,16 @@ export function TransactionsTable({
                 );
               })
             )}
+
+            <DownloadReceiptButton
+            transaction={{
+              id: transaction.id,
+              hash: transaction.hash,
+              amount: transaction.amount,
+              counterparty: transaction.counterparty,
+              timestamp: transaction.timestamp,
+            }}
+          />
           </TableBody>
         </Table>
       </div>
@@ -360,6 +392,15 @@ export function TransactionsTable({
           })
         )}
       </div>
+
+      <Dialog open={!!selectedTransaction} onOpenChange={(open) => { if (!open) closeReceipt(); }}>
+        {selectedTransaction && (
+          <TransactionReceipt
+            transaction={selectedTransaction}
+            onClose={closeReceipt}
+          />
+        )}
+      </Dialog>
     </>
   );
 }

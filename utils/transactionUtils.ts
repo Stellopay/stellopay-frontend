@@ -45,6 +45,7 @@ export const filterTransactions = (
   filterQuery = "",
   minAmount?: number,
   maxAmount?: number,
+  counterparty?: string,
 ): Transaction[] => {
   let filtered = transactions;
 
@@ -91,6 +92,16 @@ export const filterTransactions = (
 
   if (maxAmount !== undefined) {
     filtered = filtered.filter((transaction) => Math.abs(transaction.amount) <= maxAmount);
+  }
+
+  // Filter by counterparty address
+  if (counterparty) {
+    const normalizedCounterparty = counterparty.trim().toLowerCase();
+    if (normalizedCounterparty) {
+      filtered = filtered.filter((transaction) =>
+        transaction.address.toLowerCase().includes(normalizedCounterparty),
+      );
+    }
   }
 
   return filtered;
