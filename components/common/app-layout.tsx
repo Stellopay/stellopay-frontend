@@ -1,6 +1,7 @@
 "use client";
 
 import type React from "react";
+import { useEffect, useRef } from "react";
 import { SideBar } from "./side-bar";
 import Navbar from "@/components/common/navbar";
 import FeedbackWidget from "@/components/common/feedback-widget";
@@ -10,13 +11,97 @@ import { AppLayoutProps } from "@/types/ui";
 import { ShortcutHelpModal } from "./shortcut-help-modal";
 import { useShortcutModal } from "@/hooks/useShortcutModal";
 
+/** CSS selector that matches all natively focusable elements. */
+const FOCUSABLE_SELECTOR = [
+  "a[href]",
+  "button:not([disabled])",
+  "input:not([disabled])",
+  "select:not([disabled])",
+  "textarea:not([disabled])",
+  '[tabindex]:not([tabindex="-1"])',
+].join(", ");
+
 export default function AppLayout({ children }: AppLayoutProps) {
-  const { isSidebarOpen, isMobile } = useSidebar();
+  const { isSidebarOpen, setSidebarOpen, isMobile } = useSidebar();
   const { isOpen: isShortcutModalOpen, close: closeShortcutModal } =
     useShortcutModal();
 
+  /** Ref on the mobile sidebar overlay — used to query focusable children. */
+  const mobileSidebarRef = useRef<HTMLDivElement>(null);
+
   // Enable global keyboard shortcuts (g + d/t/s) for navigation
   useGlobalShortcuts();
+
+  // ── Mobile sidebar: Escape / focus trap / scroll lock ──────────────────────
+  const isMobileSidebarOpen = isMobile && isSidebarOpen;
+
+  useEffect(() => {
+    if (!isMobileSidebarOpen) return;
+
+    // Move initial focus into the mobile sidebar on open.
+    const overlay = mobileSidebarRef.current;
+    if (overlay) {
+      const firstFocusable =
+        overlay.querySelector<HTMLElement>(FOCUSABLE_SELECTOR);
+      firstFocusable?.focus();
+    }
+
+    /** Trap Tab/Shift+Tab within the sidebar; close on Escape. */
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        setSidebarOpen(false);
+        return;
+      }
+
+      if (e.key !== "Tab" || !overlay) return;
+
+      const focusableEls = Array.from(
+        overlay.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR),
+      ).filter((el) => !el.closest("[hidden]") && el.tabIndex !== -1);
+
+      if (focusableEls.length === 0) return;
+
+      const first = focusableEls[0];
+      const last = focusableEls[focusableEls.length - 1];
+
+      if (e.shiftKey) {
+        if (document.activeElement === first) {
+          e.preventDefault();
+          last.focus();
+        }
+      } else {
+        if (document.activeElement === last) {
+          e.preventDefault();
+          first.focus();
+        }
+      }
+    };
+
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, [isMobileSidebarOpen, setSidebarOpen]);
+
+  // ── Return focus to main content when mobile sidebar closes ────────────────
+  const prevMobileSidebarOpen = useRef(isMobileSidebarOpen);
+  useEffect(() => {
+    if (prevMobileSidebarOpen.current && !isMobileSidebarOpen) {
+      const main = document.getElementById("main-content");
+      main?.focus();
+    }
+    prevMobileSidebarOpen.current = isMobileSidebarOpen;
+  }, [isMobileSidebarOpen]);
+
+  // ── Lock body scroll when mobile sidebar is open ───────────────────────────
+  useEffect(() => {
+    if (isMobileSidebarOpen) {
+      document.body.style.overflow = "hidden";
+    } else {
+      document.body.style.overflow = "";
+    }
+    return () => {
+      document.body.style.overflow = "";
+    };
+  }, [isMobileSidebarOpen]);
 
   return (
     <div className="relative h-screen overflow-hidden">
@@ -61,8 +146,20 @@ export default function AppLayout({ children }: AppLayoutProps) {
       </div>
 
       {isMobile && isSidebarOpen && (
-        <div className="fixed inset-0 z-50 bg-black">
-          <div className="h-full w-full sm:w-4/5 max-w-sm bg-[#101010] overflow-auto">
+        <div
+          ref={mobileSidebarRef}
+          className="fixed inset-0 z-50 bg-black/50"
+          aria-label="Mobile sidebar navigation"
+          aria-modal="true"
+          role="dialog"
+          onClick={(e) => {
+            // Close when clicking the backdrop (not the sidebar panel itself).
+            if (e.target === e.currentTarget) {
+              setSidebarOpen(false);
+            }
+          }}
+        >
+          <div className="h-full w-full sm:w-4/5 max-w-sm bg-white dark:bg-[#101010] overflow-auto">
             <SideBar />
           </div>
         </div>
