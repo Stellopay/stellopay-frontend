@@ -262,39 +262,6 @@ export function LoginForm() {
                   {errorMessage}
                 </div>
               )}
-            >
-              <FormFieldInput
-                control={form.control}
-                name="email"
-                type="email"
-                label="Email Address"
-                placeholder="Enter your email"
-                loading={isLoading}
-                required
-                autoComplete="email"
-              />
-
-              <AuthFormField
-                control={form.control}
-                name="password"
-                type="password"
-                label="Password"
-                placeholder="Enter your password"
-                disabled={isLoading}
-                required
-                autoComplete="current-password"
-              />
-
-              {/* Error Message */}
-              {errorMessage && (
-                <div
-                  role="alert"
-                  aria-live="polite"
-                  className="bg-red-500/10 text-red-300 px-4 py-3 rounded-lg text-sm"
-                >
-                  {errorMessage}
-                </div>
-              )}
 
               {/* Remember Me and Forgot Password */}
               <div className="flex items-center justify-between">

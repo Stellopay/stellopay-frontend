@@ -218,6 +218,71 @@ Following Next.js 15 conventions, global metadata (titles, descriptions, OpenGra
 - **`metadata`**: Contains SEO tags, OpenGraph data, and Twitter cards.
 - **`viewport`**: Contains responsive design parameters (e.g., `width`, `initialScale`) and theme colors for dark/light modes.
 
+## JSON-LD Structured Data
+
+`app/page.tsx` renders a `<script type="application/ld+json">` tag containing an **Organization** and **WebSite** schema that lets search engines build a knowledge-panel entry and a Sitelinks Search Box for StelloPay.
+
+### Schema types
+
+| Type | Purpose |
+|------|---------|
+| `Organization` | Brand identity, logo URL, and `sameAs` social-profile links for knowledge panels |
+| `WebSite` | Enables the Sitelinks Search Box in Google via `potentialAction: SearchAction` |
+
+### Shared constants module
+
+All SEO-critical values live in a single file — **`lib/seo-constants.ts`** — so a domain change or brand rename is a one-file edit:
+
+```ts
+import {
+  SITE_URL,         // "https://stellopay.com"
+  SITE_NAME,        // "StelloPay"
+  SITE_LOGO_URL,    // "https://stellopay.com/logo.png"
+  SITE_DESCRIPTION, // one-sentence elevator pitch
+  SITE_SAME_AS,     // social / authoritative profile URLs
+  JSONLD_PAYLOAD,   // fully typed Organization + WebSite @graph object
+} from "@/lib/seo-constants";
+```
+
+`JSONLD_PAYLOAD` is also re-exported from `app/page.tsx` as `jsonLdPayload` so tests can assert the exact payload without parsing the rendered DOM:
+
+```ts
+import { jsonLdPayload } from "@/app/page";
+```
+
+### Validating the structured data
+
+After deploying, check the output with:
+
+- **Google Rich Results Test**: https://search.google.com/test/rich-results
+- **Schema.org validator**: https://validator.schema.org/
+
+To inspect the raw script tag locally:
+
+```bash
+npm run dev
+# View source at http://localhost:3000 and search for application/ld+json
+```
+
+### Tests
+
+JSON-LD coverage lives in `app/metadata.test.ts` alongside the existing sitemap and robots suites:
+
+```bash
+npm test app/metadata.test.ts
+```
+
+The suite asserts:
+- All `SITE_*` constants match canonical values (URL, name, logo, description, sameAs)
+- `JSONLD_PAYLOAD` contains both `Organization` and `WebSite` nodes with correct `@type`, `@id`, `name`, `url`, `logo`, `description`, `sameAs`, `publisher`, and `potentialAction` fields
+- The `SearchAction` `urlTemplate` is rooted at `SITE_URL` and contains the `{search_term_string}` placeholder
+- The payload serialises to valid JSON and round-trips without data loss
+- `jsonLdPayload` (re-export from `app/page.tsx`) is the same reference as `JSONLD_PAYLOAD`
+
+### Accessibility
+
+The `<script>` element is an inert metadata node — it has no visual rendering and is not exposed to the accessibility tree. No ARIA attributes are required.
+
 ## Dynamic Open Graph Image
 
 `app/opengraph-image.tsx` implements the [Next.js file-convention OG image route](https://nextjs.org/docs/app/api-reference/file-conventions/opengraph-image). It is served automatically at `/opengraph-image` and generates a **1200 × 630 px PNG** at request time using `next/og` (`ImageResponse` / Satori).
