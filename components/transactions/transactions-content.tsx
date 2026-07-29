@@ -571,7 +571,7 @@ export default function TransactionsContent() {
           : ""}
       </div>
 
-      <div className="w-full max-w-7xl mx-auto mb-4">
+      <div className="w-full max-w-7xl mx-auto mb-4 transactions-print-root">
         <TransactionsHeader
           fromDate={filters.fromDate}
           toDate={filters.toDate}
@@ -579,7 +579,7 @@ export default function TransactionsContent() {
           onToDateChange={(date) => updateFilter("toDate", date)}
         />
 
-        <div className="mb-4 flex justify-end px-4 sm:px-6 lg:px-8">
+        <div className="mb-4 flex justify-end px-4 sm:px-6 lg:px-8 print:hidden">
           <button
             type="button"
             onClick={() =>
@@ -628,14 +628,16 @@ export default function TransactionsContent() {
         </div>
 
         <div className="px-4 sm:px-6 lg:px-8 bg-[#160f17] pt-3 border-[#2D2D2D] border rounded-xl">
-          <TransactionsFilters
-            searchQuery={filters.searchQuery}
-            selectedFilter={filters.selectedFilter}
-            sortConfigs={filters.sortConfigs}
-            onSearchChange={(q) => updateFilter("searchQuery", q)}
-            onFilterChange={(f) => updateFilter("selectedFilter", f)}
-            onSort={handleSort}
-          />
+          <div className="print:hidden">
+            <TransactionsFilters
+              searchQuery={filters.searchQuery}
+              selectedFilter={filters.selectedFilter}
+              sortConfigs={filters.sortConfigs}
+              onSearchChange={(q) => updateFilter("searchQuery", q)}
+              onFilterChange={(f) => updateFilter("selectedFilter", f)}
+              onSort={handleSort}
+            />
+          </div>
 
           <div className="py-4">
             {/* Loading state */}
@@ -659,12 +661,14 @@ export default function TransactionsContent() {
                   onSelectRow={handleSelectRow}
                   onSelectAll={handleSelectAllForPage}
                 />
-                <TransactionsPagination
-                  totalItems={data?.total ?? 0}
-                  currentPage={currentPage}
-                  itemsPerPage={itemsPerPage}
-                  onPageChange={handlePageChange}
-                />
+                <div className="print:hidden">
+                  <TransactionsPagination
+                    totalItems={data?.total ?? 0}
+                    currentPage={currentPage}
+                    itemsPerPage={itemsPerPage}
+                    onPageChange={handlePageChange}
+                  />
+                </div>
               </>
             )}
           </div>
@@ -673,13 +677,15 @@ export default function TransactionsContent() {
 
       {/* Floating bulk-action bar – rendered outside the scrollable content area
           so it always stays anchored to the viewport bottom */}
-      <BulkActionBar
-        selectedCount={selectedIds.size}
-        onExport={handleBulkExport}
-        onTag={handleBulkTag}
-        onArchive={handleBulkArchive}
-        onClearSelection={clearSelection}
-      />
+      <div className="print:hidden">
+        <BulkActionBar
+          selectedCount={selectedIds.size}
+          onExport={handleBulkExport}
+          onTag={handleBulkTag}
+          onArchive={handleBulkArchive}
+          onClearSelection={clearSelection}
+        />
+      </div>
     </div>
   );
 }
