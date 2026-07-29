@@ -369,7 +369,11 @@ export function FormFieldPassword<
                   onChange={(e) => {
                     field.onChange(e);
                     // Pass to custom onChange if provided in controllerProps
-                    const props = controllerProps as { onChange?: (e: React.ChangeEvent<HTMLInputElement>) => void };
+                    const props = controllerProps as {
+                      onChange?: (
+                        e: React.ChangeEvent<HTMLInputElement>,
+                      ) => void;
+                    };
                     if (props.onChange) {
                       props.onChange(e);
                     }

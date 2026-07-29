@@ -27,7 +27,9 @@ describe("Route Metadata Exports", () => {
 
   it("each route exports unique page titles and descriptions", () => {
     const titles = [
-      typeof rootMetadata.title === "object" && rootMetadata.title !== null && "default" in rootMetadata.title
+      typeof rootMetadata.title === "object" &&
+      rootMetadata.title !== null &&
+      "default" in rootMetadata.title
         ? rootMetadata.title.default
         : rootMetadata.title,
       dashboardMetadata.title,
@@ -95,7 +97,10 @@ describe("Route Metadata Exports", () => {
     ];
 
     allMetadata.forEach((meta) => {
-      const titleStr = typeof meta.title === "string" ? meta.title : JSON.stringify(meta.title);
+      const titleStr =
+        typeof meta.title === "string"
+          ? meta.title
+          : JSON.stringify(meta.title);
       const descStr = meta.description || "";
 
       // Ensure no dynamically interpolated session/user tags exist in static metadata text

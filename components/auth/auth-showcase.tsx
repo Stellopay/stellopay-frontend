@@ -16,7 +16,9 @@ export function AuthShowcase({
 
   return (
     <section
-      className={`w-full ${imagePosition === "left" ? "order-2 lg:order-1" : "order-2 lg:order-2"}`}
+      className={`w-full ${
+        imagePosition === "left" ? "order-2 lg:order-1" : "order-2 lg:order-2"
+      }`}
     >
       <Card className={`bg-[#35183A] border-0 p-0 ${paddingClass} pt-20`}>
         <CardContent className="p-0 space-y-14">

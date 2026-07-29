@@ -1,6 +1,7 @@
 "use client";
 
 import React from "react";
+import { BarChart3 } from "lucide-react";
 import {
   BarChart,
   Bar,
@@ -23,7 +24,11 @@ interface CustomTooltipProps {
   label?: string;
 }
 
-export const CustomTooltip = ({ active, payload, label }: CustomTooltipProps) => {
+export const CustomTooltip = ({
+  active,
+  payload,
+  label,
+}: CustomTooltipProps) => {
   if (active && payload && payload.length) {
     return (
       <div className="bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100 p-2 rounded shadow text-sm border border-zinc-200 dark:border-zinc-800 text-center">
@@ -44,7 +49,10 @@ interface AnalyticsChartProps {
  * Encapsulates the recharts dependency so it can be dynamically imported
  * without shipping the large library in the initial chunk.
  */
-export default function AnalyticsChart({ data, showNotifications = false }: AnalyticsChartProps) {
+export default function AnalyticsChart({
+  data,
+  showNotifications = false,
+}: AnalyticsChartProps) {
   return (
     <ResponsiveContainer width="100%" height="100%">
       <BarChart data={data}>
@@ -52,7 +60,9 @@ export default function AnalyticsChart({ data, showNotifications = false }: Anal
           strokeDasharray="3 3"
           vertical={false}
           stroke={showNotifications ? "currentColor" : "#1f1b2e"}
-          className={showNotifications ? "text-zinc-200 dark:text-zinc-800" : ""}
+          className={
+            showNotifications ? "text-zinc-200 dark:text-zinc-800" : ""
+          }
         />
         <XAxis
           dataKey="month"

@@ -7,7 +7,11 @@ import {
 } from "@testing-library/react";
 import { describe, expect, it, vi, afterEach, beforeEach } from "vitest";
 
-import SecurityTab from "./security-tab";
+import SecurityTab, {
+  DEFAULT_TWO_FACTOR_ENABLED,
+  TWO_FACTOR_CODE_LENGTH,
+  getVerificationCodeError,
+} from "./security-tab";
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -245,7 +249,9 @@ describe("SecurityTab — weak-password inline errors", () => {
 
     await waitFor(() =>
       expect(
-        screen.getByText("Password must include at least one uppercase letter."),
+        screen.getByText(
+          "Password must include at least one uppercase letter.",
+        ),
       ).toBeInTheDocument(),
     );
   });
@@ -556,9 +562,7 @@ describe("SecurityTab — failed password change", () => {
 
     await waitFor(
       () =>
-        expect(
-          screen.getByText(/failed to save changes/i),
-        ).toBeInTheDocument(),
+        expect(screen.getByText(/failed to save changes/i)).toBeInTheDocument(),
       { timeout: 3000 },
     );
   });
@@ -573,9 +577,7 @@ describe("SecurityTab — failed password change", () => {
 
     await waitFor(
       () =>
-        expect(
-          screen.getByText(/failed to save changes/i),
-        ).toBeInTheDocument(),
+        expect(screen.getByText(/failed to save changes/i)).toBeInTheDocument(),
       { timeout: 3000 },
     );
 
@@ -592,9 +594,7 @@ describe("SecurityTab — failed password change", () => {
 
     await waitFor(
       () =>
-        expect(
-          screen.getByText(/failed to save changes/i),
-        ).toBeInTheDocument(),
+        expect(screen.getByText(/failed to save changes/i)).toBeInTheDocument(),
       { timeout: 3000 },
     );
 
@@ -634,9 +634,7 @@ describe("SecurityTab — status message auto-clear", () => {
       await vi.advanceTimersByTimeAsync(1500);
     });
 
-    expect(
-      screen.getByText(/password policy satisfied/i),
-    ).toBeInTheDocument();
+    expect(screen.getByText(/password policy satisfied/i)).toBeInTheDocument();
 
     // Advance past the 5000ms auto-clear
     await act(async () => {
@@ -741,5 +739,503 @@ describe("SecurityTab — edge cases", () => {
     expect(
       screen.getByRole("button", { name: /update password/i }),
     ).toBeInTheDocument();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// 2FA verification code — validation helper (unit tests)
+// ---------------------------------------------------------------------------
+
+describe("SecurityTab — getVerificationCodeError helper", () => {
+  it("returns null for an empty string (user hasn't typed yet)", () => {
+    expect(getVerificationCodeError("")).toBeNull();
+  });
+
+  it("returns null for a valid 6-digit numeric code", () => {
+    expect(getVerificationCodeError("123456")).toBeNull();
+    expect(getVerificationCodeError("000000")).toBeNull();
+    expect(getVerificationCodeError("999999")).toBeNull();
+  });
+
+  it("rejects code that contains non-digit characters with a digits-only message", () => {
+    expect(getVerificationCodeError("123A56")).toMatch(/only contain digits/i);
+    expect(getVerificationCodeError("12-456")).toMatch(/only contain digits/i);
+    expect(getVerificationCodeError("123 56")).toMatch(/only contain digits/i);
+    expect(getVerificationCodeError("abcdef")).toMatch(/only contain digits/i);
+  });
+
+  it("rejects a code that is too short with a 'too short' message", () => {
+    const err = getVerificationCodeError("12345");
+    expect(err).toMatch(/too short/i);
+    expect(err).toContain("1 digit");
+
+    const err2 = getVerificationCodeError("12");
+    expect(err2).toMatch(/too short/i);
+    expect(err2).toContain("4 digits");
+  });
+
+  it("rejects a code that is too long with a 'too long' message", () => {
+    const err = getVerificationCodeError("1234567");
+    expect(err).toMatch(/too long/i);
+    expect(err).toContain("1 digit");
+
+    const err2 = getVerificationCodeError("1234567890");
+    expect(err2).toMatch(/too long/i);
+    expect(err2).toContain("4 digits");
+  });
+
+  it("does not trim whitespace — surrounding spaces trigger the digits-only error", () => {
+    expect(getVerificationCodeError(" 123456")).toMatch(/only contain digits/i);
+    expect(getVerificationCodeError("123456 ")).toMatch(/only contain digits/i);
+  });
+
+  it("code length constant matches the expected TOTP size", () => {
+    expect(TWO_FACTOR_CODE_LENGTH).toBe(6);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// 2FA setup flow — panel open/close + controlled toggle behaviour
+// ---------------------------------------------------------------------------
+
+describe("SecurityTab — 2FA setup panel open/close", () => {
+  /**
+   * Click the Authenticator toggle card via its switch button. The toggle's
+   * `role="switch"` combined with `aria-pressed` / `aria-checked` lets us
+   * query it reliably.
+   */
+  function clickTwoFactorSwitch() {
+    const sw = screen.getByRole("switch", {
+      name: /authenticator app verification/i,
+    });
+    fireEvent.click(sw);
+    return sw;
+  }
+
+  it("toggling 2FA OFF from the enabled state flips the switch directly (no panel)", () => {
+    render(<SecurityTab twoFactorEnabled={true} />);
+    const sw = screen.getByRole("switch", {
+      name: /authenticator app verification/i,
+    });
+    expect(sw).toHaveAttribute("aria-checked", "true");
+
+    fireEvent.click(sw);
+
+    expect(sw).toHaveAttribute("aria-checked", "false");
+    expect(
+      screen.queryByRole("form", { name: /authenticator verification setup/i }),
+    ).not.toBeInTheDocument();
+  });
+
+  it("toggling 2FA ON from the disabled state opens the setup panel and does NOT flip the switch yet", () => {
+    render(<SecurityTab twoFactorEnabled={false} />);
+    const sw = screen.getByRole("switch", {
+      name: /authenticator app verification/i,
+    });
+    expect(sw).toHaveAttribute("aria-checked", "false");
+
+    fireEvent.click(sw);
+
+    // Switch must remain OFF until a valid code is submitted.
+    expect(sw).toHaveAttribute("aria-checked", "false");
+    // Setup panel appears.
+    expect(
+      screen.getByRole("form", { name: /authenticator verification setup/i }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByLabelText(/6-digit verification code/i),
+    ).toBeInTheDocument();
+  });
+
+  it("controlled onTwoFactorEnabledChange is NOT called when the panel opens (toggle is gated)", () => {
+    const onChange = vi.fn();
+    render(
+      <SecurityTab
+        twoFactorEnabled={false}
+        onTwoFactorEnabledChange={onChange}
+      />,
+    );
+
+    clickTwoFactorSwitch();
+
+    expect(onChange).not.toHaveBeenCalled();
+  });
+
+  it("controlled onTwoFactorEnabledChange IS called when the user turns 2FA off directly", () => {
+    const onChange = vi.fn();
+    render(
+      <SecurityTab
+        twoFactorEnabled={true}
+        onTwoFactorEnabledChange={onChange}
+      />,
+    );
+
+    clickTwoFactorSwitch();
+
+    expect(onChange).toHaveBeenCalledTimes(1);
+    expect(onChange).toHaveBeenLastCalledWith(false);
+  });
+
+  it("cancel button in the setup panel closes it, clears the typed code, and leaves 2FA disabled", () => {
+    render(<SecurityTab twoFactorEnabled={false} />);
+    clickTwoFactorSwitch();
+
+    const input = screen.getByLabelText(/6-digit verification code/i);
+    fireEvent.change(input, { target: { value: "123456" } });
+    expect(input).toHaveValue("123456");
+
+    fireEvent.click(screen.getByRole("button", { name: /cancel/i }));
+
+    expect(
+      screen.queryByRole("form", { name: /authenticator verification setup/i }),
+    ).not.toBeInTheDocument();
+    const sw = screen.getByRole("switch", {
+      name: /authenticator app verification/i,
+    });
+    expect(sw).toHaveAttribute("aria-checked", "false");
+
+    // Re-open the panel to confirm the code did NOT persist.
+    fireEvent.click(sw);
+    const reopenedInput = screen.getByLabelText(/6-digit verification code/i);
+    expect(reopenedInput).toHaveValue("");
+  });
+});
+
+// ---------------------------------------------------------------------------
+// 2FA setup flow — client-side validation + submit gating
+// ---------------------------------------------------------------------------
+
+describe("SecurityTab — 2FA verification code validation", () => {
+  /**
+   * Renders SecurityTab with 2FA disabled, then clicks the toggle to open
+   * the setup panel. Returns the code input and verify submit button so the
+   * caller can simulate typing and submitting.
+   */
+  function openSetupPanel() {
+    render(<SecurityTab twoFactorEnabled={false} />);
+    const sw = screen.getByRole("switch", {
+      name: /authenticator app verification/i,
+    });
+    fireEvent.click(sw);
+    const input = screen.getByLabelText(/6-digit verification code/i);
+    const getVerifyButton = () =>
+      screen.getByRole("button", { name: /verify and enable/i });
+    return { input, getVerifyButton };
+  }
+
+  it("setup panel starts with an empty input, no inline error, and the submit button disabled", () => {
+    const { input, getVerifyButton } = openSetupPanel();
+    expect(input).toHaveValue("");
+    expect(input).toHaveAttribute("aria-required", "true");
+    expect(input).toHaveAttribute("aria-invalid", "false");
+    expect(getVerifyButton()).toBeDisabled();
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+  });
+
+  it("submit button stays disabled for a partial / incomplete code (e.g. 3 digits) and no inline error shown", () => {
+    const { input, getVerifyButton } = openSetupPanel();
+    fireEvent.change(input, { target: { value: "123" } });
+
+    expect(input).toHaveValue("123");
+    // Too-short code: inline error is shown (via helper).
+    expect(screen.getByRole("alert")).toHaveTextContent(/too short/i);
+    expect(input).toHaveAttribute("aria-invalid", "true");
+    expect(getVerifyButton()).toBeDisabled();
+  });
+
+  it("shows inline 'too short' error and keeps submit disabled for a 5-digit code", () => {
+    const { input, getVerifyButton } = openSetupPanel();
+    fireEvent.change(input, { target: { value: "12345" } });
+
+    expect(screen.getByRole("alert")).toHaveTextContent(/1 digit.*too short/i);
+    expect(getVerifyButton()).toBeDisabled();
+  });
+
+  it("shows inline 'too long' error and keeps submit disabled for a 7-digit code", () => {
+    const { input, getVerifyButton } = openSetupPanel();
+    fireEvent.change(input, { target: { value: "1234567" } });
+
+    expect(screen.getByRole("alert")).toHaveTextContent(/too long/i);
+    expect(getVerifyButton()).toBeDisabled();
+  });
+
+  it("shows inline 'digits only' error and keeps submit disabled when letters are mixed in", () => {
+    const { input, getVerifyButton } = openSetupPanel();
+    fireEvent.change(input, { target: { value: "123A56" } });
+
+    const alert = screen.getByRole("alert");
+    expect(alert).toHaveTextContent(/only contain digits/i);
+    expect(input).toHaveAttribute("aria-invalid", "true");
+    expect(getVerifyButton()).toBeDisabled();
+  });
+
+  it("enables the submit button once the code is exactly 6 numeric digits", async () => {
+    const { input, getVerifyButton } = openSetupPanel();
+    fireEvent.change(input, { target: { value: "743891" } });
+
+    expect(input).toHaveAttribute("aria-invalid", "false");
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+    await waitFor(() => expect(getVerifyButton()).not.toBeDisabled());
+  });
+
+  it("submit button becomes disabled again if the user deletes part of a previously-valid code", async () => {
+    const { input, getVerifyButton } = openSetupPanel();
+    fireEvent.change(input, { target: { value: "123456" } });
+    await waitFor(() => expect(getVerifyButton()).not.toBeDisabled());
+
+    fireEvent.change(input, { target: { value: "12345" } });
+    expect(getVerifyButton()).toBeDisabled();
+    expect(screen.getByRole("alert")).toHaveTextContent(/too short/i);
+  });
+
+  it("inline error resets when the user starts correcting a previously invalid value", () => {
+    const { input } = openSetupPanel();
+    fireEvent.change(input, { target: { value: "123A56" } });
+    expect(screen.getByRole("alert")).toHaveTextContent(/digits/i);
+
+    fireEvent.change(input, { target: { value: "123" } });
+    // Error changed to 'too short', not lingering 'digits' message.
+    expect(screen.getByRole("alert")).toHaveTextContent(/too short/i);
+    expect(screen.queryByText(/only contain digits/i)).not.toBeInTheDocument();
+  });
+
+  it("verification code input exposes its instruction text via aria-describedby", () => {
+    const { input } = openSetupPanel();
+    expect(input).toHaveAccessibleDescription(/no spaces or letters/i);
+  });
+
+  it("verification code input exposes an inline error via aria-describedby after invalid input", () => {
+    const { input } = openSetupPanel();
+    fireEvent.change(input, { target: { value: "123A56" } });
+
+    const alert = screen.getByRole("alert");
+    expect(input).toHaveAccessibleDescription(alert.textContent ?? "");
+  });
+});
+
+// ---------------------------------------------------------------------------
+// 2FA setup flow — submission success / failure outcomes
+// ---------------------------------------------------------------------------
+
+describe("SecurityTab — 2FA verification submit", () => {
+  function openSetupPanelWith(
+    props: React.ComponentProps<typeof SecurityTab> = {},
+  ) {
+    const mergedProps = { twoFactorEnabled: false, ...props } as const;
+    render(<SecurityTab {...mergedProps} />);
+    const sw = screen.getByRole("switch", {
+      name: /authenticator app verification/i,
+    });
+    fireEvent.click(sw);
+    const input = screen.getByLabelText(/6-digit verification code/i);
+    const getVerifyButton = () =>
+      screen.getByRole("button", { name: /verify and enable/i });
+    return { input, getVerifyButton };
+  }
+
+  it("successful submission: flips 2FA toggle ON, closes the panel, and clears the input", async () => {
+    vi.spyOn(Math, "random").mockReturnValue(0.1);
+    const onChange = vi.fn();
+    const { input, getVerifyButton } = openSetupPanelWith({
+      onTwoFactorEnabledChange: onChange,
+    });
+
+    fireEvent.change(input, { target: { value: "009911" } });
+    await waitFor(() => expect(getVerifyButton()).not.toBeDisabled());
+
+    fireEvent.click(getVerifyButton());
+
+    // Button shows loading state while verifying.
+    await waitFor(() =>
+      expect(screen.getByText(/verifying\.\.\./i)).toBeInTheDocument(),
+    );
+
+    // After simulated save resolves:
+    await waitFor(
+      () => {
+        const sw = screen.getByRole("switch", {
+          name: /authenticator app verification/i,
+        });
+        expect(sw).toHaveAttribute("aria-checked", "true");
+      },
+      { timeout: 3000 },
+    );
+
+    expect(onChange).toHaveBeenCalledTimes(1);
+    expect(onChange).toHaveBeenLastCalledWith(true);
+
+    // Panel is closed → no setup form in DOM.
+    expect(
+      screen.queryByRole("form", { name: /authenticator verification setup/i }),
+    ).not.toBeInTheDocument();
+
+    // Reopen the panel to confirm state was fully reset: input is empty and
+    // submit is disabled.
+    const sw2 = screen.getByRole("switch", {
+      name: /authenticator app verification/i,
+    });
+    // 2FA is now true; turning it off then on again re-opens setup.
+    fireEvent.click(sw2); // toggle off
+    fireEvent.click(sw2); // toggle on (re-open setup)
+    const reopenedInput = screen.getByLabelText(/6-digit verification code/i);
+    expect(reopenedInput).toHaveValue("");
+    expect(
+      screen.getByRole("button", { name: /verify and enable/i }),
+    ).toBeDisabled();
+  });
+
+  it("successful submission: a success banner is shown via the status area", async () => {
+    vi.spyOn(Math, "random").mockReturnValue(0.1);
+    const { input, getVerifyButton } = openSetupPanelWith();
+    fireEvent.change(input, { target: { value: "112233" } });
+    await waitFor(() => expect(getVerifyButton()).not.toBeDisabled());
+    fireEvent.click(getVerifyButton());
+
+    await waitFor(
+      () =>
+        expect(
+          screen.getByText(/authenticator app verified/i),
+        ).toBeInTheDocument(),
+      { timeout: 3000 },
+    );
+  });
+
+  it("failed submission: clears the verification code input (security) and shows a server error inline", async () => {
+    vi.spyOn(Math, "random").mockReturnValue(0.95);
+    const onChange = vi.fn();
+    const { input, getVerifyButton } = openSetupPanelWith({
+      onTwoFactorEnabledChange: onChange,
+    });
+
+    fireEvent.change(input, { target: { value: "987654" } });
+    await waitFor(() => expect(getVerifyButton()).not.toBeDisabled());
+    fireEvent.click(getVerifyButton());
+
+    await waitFor(
+      () => {
+        // 2FA toggle never flipped.
+        const sw = screen.getByRole("switch", {
+          name: /authenticator app verification/i,
+        });
+        expect(sw).toHaveAttribute("aria-checked", "false");
+        // Input was cleared after failure.
+        expect(input).toHaveValue("");
+        // Error surfaced inline.
+        const alert = screen.getByRole("alert");
+        expect(alert).toHaveTextContent(/didn't work.*try again/i);
+      },
+      { timeout: 3000 },
+    );
+
+    expect(onChange).not.toHaveBeenCalled();
+    // Because the input is now empty the submit button must be disabled again.
+    expect(getVerifyButton()).toBeDisabled();
+  });
+
+  it("failed submission: after the input is cleared, re-typing a valid code re-enables submit", async () => {
+    vi.spyOn(Math, "random").mockReturnValue(0.95);
+    const { input, getVerifyButton } = openSetupPanelWith();
+
+    fireEvent.change(input, { target: { value: "121212" } });
+    await waitFor(() => expect(getVerifyButton()).not.toBeDisabled());
+    fireEvent.click(getVerifyButton());
+
+    // Wait for failure → input cleared.
+    await waitFor(() => expect(input).toHaveValue(""), { timeout: 3000 });
+
+    // Re-type a valid code and confirm submit is enabled once more.
+    fireEvent.change(input, { target: { value: "555444" } });
+    await waitFor(() => expect(getVerifyButton()).not.toBeDisabled());
+  });
+});
+
+// ---------------------------------------------------------------------------
+// 2FA setup flow — security properties
+// ---------------------------------------------------------------------------
+
+describe("SecurityTab — 2FA verification security", () => {
+  it("never logs the actual verification code to console during a failed submit", async () => {
+    vi.spyOn(Math, "random").mockReturnValue(0.95);
+    const consoleSpy = vi
+      .spyOn(console, "log")
+      .mockImplementation(() => void 0);
+    const consoleErrorSpy = vi
+      .spyOn(console, "error")
+      .mockImplementation(() => void 0);
+
+    render(<SecurityTab twoFactorEnabled={false} />);
+    const sw = screen.getByRole("switch", {
+      name: /authenticator app verification/i,
+    });
+    fireEvent.click(sw);
+    const input = screen.getByLabelText(/6-digit verification code/i);
+    const submit = screen.getByRole("button", { name: /verify and enable/i });
+
+    const secretCode = "773311";
+    fireEvent.change(input, { target: { value: secretCode } });
+    await waitFor(() => expect(submit).not.toBeDisabled());
+    fireEvent.click(submit);
+
+    await waitFor(
+      () =>
+        expect(screen.getByRole("alert")).toHaveTextContent(
+          /didn't work.*try again/i,
+        ),
+      { timeout: 3000 },
+    );
+
+    const allLogged = [
+      ...consoleSpy.mock.calls.flat(),
+      ...consoleErrorSpy.mock.calls.flat(),
+    ]
+      .map(String)
+      .join(" ");
+    expect(allLogged).not.toContain(secretCode);
+  });
+
+  it("never logs the actual verification code to console during a successful submit", async () => {
+    vi.spyOn(Math, "random").mockReturnValue(0.05);
+    const consoleSpy = vi
+      .spyOn(console, "log")
+      .mockImplementation(() => void 0);
+    const consoleErrorSpy = vi
+      .spyOn(console, "error")
+      .mockImplementation(() => void 0);
+
+    render(<SecurityTab twoFactorEnabled={false} />);
+    const sw = screen.getByRole("switch", {
+      name: /authenticator app verification/i,
+    });
+    fireEvent.click(sw);
+    const input = screen.getByLabelText(/6-digit verification code/i);
+    const submit = screen.getByRole("button", { name: /verify and enable/i });
+
+    const secretCode = "228844";
+    fireEvent.change(input, { target: { value: secretCode } });
+    await waitFor(() => expect(submit).not.toBeDisabled());
+    fireEvent.click(submit);
+
+    await waitFor(
+      () =>
+        expect(
+          screen.getByText(/authenticator app verified/i),
+        ).toBeInTheDocument(),
+      { timeout: 3000 },
+    );
+
+    const allLogged = [
+      ...consoleSpy.mock.calls.flat(),
+      ...consoleErrorSpy.mock.calls.flat(),
+    ]
+      .map(String)
+      .join(" ");
+    expect(allLogged).not.toContain(secretCode);
+  });
+
+  it("server error text does not include the user's previously typed code even when it matches a 'too long' description", () => {
+    // Regression: ensure no leaked code fragment in error text.
+    const err = getVerificationCodeError("12345678");
+    expect(err).not.toContain("12345678");
+    expect(err).not.toContain("12345");
   });
 });

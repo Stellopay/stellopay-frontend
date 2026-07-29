@@ -52,7 +52,11 @@ export default function Navbar() {
             <div className="flex items-center">
               <Link href="/" className="flex items-center">
                 <Image
-                  src={resolvedTheme === "dark" ? "/logos/LOGO A/PNG/StelloPay Brand-13.png" : "/logos/LOGO A/PNG/StelloPay Brand-14.png"}
+                  src={
+                    resolvedTheme === "dark"
+                      ? "/logos/LOGO A/PNG/StelloPay Brand-13.png"
+                      : "/logos/LOGO A/PNG/StelloPay Brand-14.png"
+                  }
                   alt="StelloPay Logo"
                   width={130}
                   height={32}
@@ -65,7 +69,8 @@ export default function Navbar() {
             {/* Center: Nav links */}
             <nav className="hidden xl:flex items-center justify-center gap-8">
               {navLinks.map((l) => {
-                const active = pathname === l.href || pathname.startsWith(l.href + "/");
+                const active =
+                  pathname === l.href || pathname.startsWith(l.href + "/");
                 return (
                   <Link
                     key={l.href}
@@ -86,17 +91,41 @@ export default function Navbar() {
             {/* Right: controls */}
             <div className="flex items-center justify-end gap-3">
               <button
-                aria-label={theme === "light" ? "Switch to dark mode" : theme === "dark" ? "Switch to system mode" : "Switch to light mode"}
+                aria-label={
+                  theme === "light"
+                    ? "Switch to dark mode"
+                    : theme === "dark"
+                      ? "Switch to system mode"
+                      : "Switch to light mode"
+                }
                 onClick={toggleTheme}
                 className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-white/5 transition-colors"
               >
                 {resolvedTheme === "light" ? (
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" fill="#0F172A" />
+                  <svg
+                    width="18"
+                    height="18"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    xmlns="http://www.w3.org/2000/svg"
+                  >
+                    <path
+                      d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"
+                      fill="#0F172A"
+                    />
                   </svg>
                 ) : (
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M6.76 4.84l-1.8-1.79L3.17 4.84l1.79 1.8 1.8-1.8zM1 13h3v-2H1v2zm10 9h2v-3h-2v3zM17.24 19.16l1.8 1.79 1.79-1.79-1.79-1.8-1.8 1.8zM20 11v2h3v-2h-3zM4.22 19.78l1.79-1.79-1.8-1.8L2.41 17.98l1.81 1.8zM12 4a8 8 0 100 16 8 8 0 000-16z" fill="#F3F4F6" />
+                  <svg
+                    width="18"
+                    height="18"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    xmlns="http://www.w3.org/2000/svg"
+                  >
+                    <path
+                      d="M6.76 4.84l-1.8-1.79L3.17 4.84l1.79 1.8 1.8-1.8zM1 13h3v-2H1v2zm10 9h2v-3h-2v3zM17.24 19.16l1.8 1.79 1.79-1.79-1.79-1.8-1.8 1.8zM20 11v2h3v-2h-3zM4.22 19.78l1.79-1.79-1.8-1.8L2.41 17.98l1.81 1.8zM12 4a8 8 0 100 16 8 8 0 000-16z"
+                      fill="#F3F4F6"
+                    />
                   </svg>
                 )}
               </button>
@@ -122,12 +151,36 @@ export default function Navbar() {
                 onClick={() => setMobileOpen((s) => !s)}
               >
                 {mobileOpen ? (
-                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M6 18L18 6M6 6l12 12" stroke="#9CA3AF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                  <svg
+                    width="22"
+                    height="22"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    xmlns="http://www.w3.org/2000/svg"
+                  >
+                    <path
+                      d="M6 18L18 6M6 6l12 12"
+                      stroke="#9CA3AF"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
                   </svg>
                 ) : (
-                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M3 6h18M3 12h18M3 18h18" stroke="#9CA3AF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                  <svg
+                    width="22"
+                    height="22"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    xmlns="http://www.w3.org/2000/svg"
+                  >
+                    <path
+                      d="M3 6h18M3 12h18M3 18h18"
+                      stroke="#9CA3AF"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
                   </svg>
                 )}
               </button>

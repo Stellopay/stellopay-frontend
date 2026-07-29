@@ -74,7 +74,9 @@ const EmailInput: React.FC<EnhancedEmailInputProps> = ({
       <div
         className={cn(
           "flex items-center border rounded-md h-12 overflow-hidden transition-colors",
-          hasAnyError ? "border-destructive ring-destructive/20" : "border-input",
+          hasAnyError
+            ? "border-destructive ring-destructive/20"
+            : "border-input",
           disabled && "opacity-50 cursor-not-allowed",
         )}
       >

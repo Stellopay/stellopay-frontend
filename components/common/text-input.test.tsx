@@ -65,14 +65,14 @@ describe("TextInput", () => {
       expect(onChange).not.toHaveBeenCalledWith("1a");
       expect(onChange).not.toHaveBeenCalledWith("1a2");
       // userEvent.type simulates keypresses one by one.
-      // Since "a" is dropped, the final value would be "12" if we update state, 
+      // Since "a" is dropped, the final value would be "12" if we update state,
       // but here we just check if onChange was called with invalid strings.
     });
 
     it("sets correct inputMode and pattern for mobile keyboards", () => {
       render(<TextInput label="Amount" type="number" onChange={() => {}} />);
       const input = screen.getByLabelText("Amount");
-      
+
       expect(input).toHaveAttribute("inputMode", "decimal");
       expect(input).toHaveAttribute("pattern", "^-?[0-9]*\\.?[0-9]*$");
     });
@@ -109,12 +109,12 @@ describe("TextInput", () => {
           label="Test"
           onChange={() => {}}
           helperText="Helper message"
-        />
+        />,
       );
 
       const input = screen.getByLabelText("Test");
       const helper = screen.getByText("Helper message");
-      
+
       expect(input).toHaveAttribute("aria-describedby", helper.id);
     });
 
@@ -125,16 +125,16 @@ describe("TextInput", () => {
           onChange={() => {}}
           error={true}
           helperText="Error message"
-        />
+        />,
       );
 
       const input = screen.getByLabelText("Test");
       const errorMsg = screen.getByText("Error message");
-      
+
       const describedBy = input.getAttribute("aria-describedby");
       expect(describedBy).toContain(errorMsg.id);
     });
-    
+
     it("wires up aria-describedby for both if possible (though error replaces helper in UI)", () => {
       render(
         <TextInput
@@ -142,7 +142,7 @@ describe("TextInput", () => {
           onChange={() => {}}
           error={true}
           helperText="Error message"
-        />
+        />,
       );
 
       const input = screen.getByLabelText("Test");

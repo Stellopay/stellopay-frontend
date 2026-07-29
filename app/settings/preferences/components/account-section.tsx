@@ -158,7 +158,6 @@ export default function AccountSection({
     }
   };
 
-
   /**
    * Validates the email on blur and normalizes the field by trimming
    * leading/trailing whitespace, so the displayed value always matches
@@ -350,7 +349,9 @@ export default function AccountSection({
               <p
                 role="alert"
                 className={`text-sm ${
-                  status.type === "success" ? "text-success" : "text-destructive"
+                  status.type === "success"
+                    ? "text-success"
+                    : "text-destructive"
                 }`}
               >
                 {status.message}
