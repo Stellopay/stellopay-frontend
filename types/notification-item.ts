@@ -20,7 +20,7 @@ export type NotificationItem = {
   title: string;
   message: string;
   read: boolean;
-  category?: NotificationCategory | string;
-  timestamp?: string;
+  /** ISO timestamp set when the notification transitions from unread to read */
+  readAt?: string;
 };
 

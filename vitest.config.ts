@@ -28,6 +28,7 @@ export default defineConfig({
       include: [
         "hooks/useTransactions.ts",
         "hooks/useCountdown.ts",
+        "hooks/useUnsavedChangesGuard.ts",
         "utils/authUtils.ts",
         "utils/clipboardUtils.ts",
         "utils/date-utils.ts",
@@ -37,6 +38,8 @@ export default defineConfig({
         "utils/paginationUtils.ts",
         "utils/stellarAddress.ts",
         "utils/commonUtils.ts",
+        "utils/objectUtils.ts",
+        "app/settings/preferences/components/settings-page-shell.tsx",
         "types/auth.ts",
         "types/wallet.ts",
         "lib/api/transactions.ts",
@@ -55,8 +58,10 @@ export default defineConfig({
         "components/common/network-switcher.tsx",
         "components/common/search-bar.tsx",
         "components/ui/pagination.tsx",
+        "components/dashboard/RechartsMiniBarChart.tsx",
         "components/dashboard/account-summary-card.tsx",
         "components/dashboard/transaction-history.tsx",
+        "components/transactions/transactions-config.ts",
       ],
       exclude: [
         "**/*.test.{ts,tsx}",

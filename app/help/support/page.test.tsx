@@ -1,6 +1,8 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, within } from "@testing-library/react";
 import "@testing-library/jest-dom";
+import fs from "node:fs";
+import path from "node:path";
 import SupportPage from "./page";
 import * as demoData from "@/lib/demo-data-support";
 
@@ -27,7 +29,14 @@ vi.mock("@/components/common/support-tabs", () => ({
 }));
 
 vi.mock("@/components/common/faq-card", () => ({
-  default: ({ title }: any) => <div data-testid="faq-card">{title}</div>,
+  default: ({ title, articleCount }: any) => (
+    <div data-testid="faq-card">
+      {title}
+      {articleCount !== undefined && (
+        <span data-testid="faq-article-count">{articleCount}</span>
+      )}
+    </div>
+  ),
 }));
 
 // Mock ticket widget
@@ -104,7 +113,20 @@ describe("Support Page", () => {
     faqButton.click();
 
     const faqCards = screen.getAllByTestId("faq-card");
-    expect(faqCards.length).toBeGreaterThan(0);
+    expect(faqCards.length).toBe(4);
+
+    // Verify all four unique categories are present by checking text content
+    const expectedTitles = ["Account Management", "Transaction Issues", "Security & Privacy", "Payment & Transfers"];
+    expectedTitles.forEach((title) => {
+      expect(screen.getByText(title, { exact: false })).toBeInTheDocument();
+    });
+
+    // Verify article count badges are rendered
+    const badges = screen.getAllByTestId("faq-article-count");
+    expect(badges).toHaveLength(4);
+    badges.forEach((badge) => {
+      expect(badge.textContent).toBe("6");
+    });
   });
 });
 
@@ -180,11 +202,12 @@ describe("Support Page - Empty State Handling", () => {
 
 describe("Support Page - Responsive Layout", () => {
   it("should render full width ticket widget", () => {
-    const { container } = render(<SupportPage />);
-    const widget = screen.getByTestId("ticket-widget").closest("div");
+    render(<SupportPage />);
+    const widget = screen.getByTestId("ticket-widget");
 
-    // Check that widget container has full width class
-    expect(widget?.className).toMatch(/w-full/);
+    // Check that widget's parent has full width class
+    const wrapper = widget.parentElement;
+    expect(wrapper?.className).toMatch(/w-full/);
   });
 
   it("should have responsive gap and padding", () => {
@@ -203,20 +226,18 @@ describe("Support Page - Responsive Layout", () => {
 describe("Support Page - Integration", () => {
   it("should render ticket widget before tabs", () => {
     const { container } = render(<SupportPage />);
-    const widget = screen.getByTestId("ticket-widget");
-    const tabs = screen.getByTestId("support-tabs");
+    const mainContainer = container.querySelector(".min-h-screen");
+    const widgetElem = mainContainer?.querySelector(
+      '[data-testid="ticket-widget"]',
+    );
+    const tabsElem = mainContainer?.querySelector(
+      '[data-testid="support-tabs"]',
+    );
 
-    const widgetPosition = container.querySelector(
-      `[data-testid="ticket-widget"]`,
-    )?.parentElement;
-    const tabsPosition = container.querySelector(
-      `[data-testid="support-tabs"]`,
-    )?.parentElement;
-
-    // Widget parent should come before tabs parent in document order
-    if (widgetPosition && tabsPosition) {
+    // Ticket widget should appear before support tabs in document order
+    if (widgetElem && tabsElem) {
       expect(
-        widgetPosition.compareDocumentPosition(tabsPosition) &
+        widgetElem.compareDocumentPosition(tabsElem) &
           Node.DOCUMENT_POSITION_FOLLOWING,
       ).toBeTruthy();
     }
@@ -228,5 +249,42 @@ describe("Support Page - Integration", () => {
 
     // Should have dark text color
     expect(mainDiv?.className).toMatch(/text-white/);
+  });
+});
+
+describe("Support Page — FAQ card route existence", () => {
+  const repoRoot = path.resolve(__dirname, "../../..");
+
+  const faqLinkRoutes = [
+    "/help/support/accountManagement",
+    "/help/support/transactionIssues",
+    "/help/support/securityPrivacy",
+    "/help/support/paymentTransfers",
+  ];
+
+  it.each(faqLinkRoutes)("FAQ card link %s has a page.tsx", (route) => {
+    const routeDir = route.replace(/^\//, "");
+    const pagePath = path.join(repoRoot, "app", routeDir, "page.tsx");
+    expect(fs.existsSync(pagePath)).toBe(true);
+  });
+
+  it("all FAQ card links match the support-tabs routeMappings", () => {
+    const uniqueLinks = new Set(faqLinkRoutes);
+
+    // SupportTabs routeMappings must cover all FAQ links
+    const mappedRoutes = new Set([
+      "/help/support/accountManagement",
+      "/help/support/transactionIssues",
+      "/help/support/securityPrivacy",
+      "/help/support/paymentTransfers",
+    ]);
+
+    for (const link of uniqueLinks) {
+      expect(mappedRoutes.has(link)).toBe(true);
+    }
+  });
+
+  it("no FAQ card links are duplicated for different routes", () => {
+    expect(faqLinkRoutes.length).toBe(new Set(faqLinkRoutes).size);
   });
 });

@@ -1,0 +1,32 @@
+<svg width="200" height="200" viewBox="0 0 200 200" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <circle cx="100" cy="100" r="90" fill="url(#s-payment-bg)" opacity="0.12"/>
+  <rect x="40" y="70" width="80" height="55" rx="8" fill="url(#s-payment-card)" stroke="white" stroke-width="2.5"/>
+  <rect x="50" y="83" width="60" height="5" rx="2.5" fill="white" opacity="0.3"/>
+  <rect x="50" y="94" width="35" height="5" rx="2.5" fill="white" opacity="0.2"/>
+  <circle cx="105" cy="108" r="10" fill="url(#s-payment-chip)"/>
+  <path d="M130 95L155 95" stroke="url(#s-payment-arrow)" stroke-width="3" stroke-linecap="round"/>
+  <path d="M148 87L156 95L148 103" stroke="url(#s-payment-arrow)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+  <circle cx="155" cy="95" r="18" fill="url(#s-payment-circle)" opacity="0.3"/>
+  <defs>
+    <linearGradient id="s-payment-bg" x1="100" y1="10" x2="100" y2="190" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#C4F49F"/>
+      <stop offset="1" stop-color="#83A7FF"/>
+    </linearGradient>
+    <linearGradient id="s-payment-card" x1="80" y1="70" x2="80" y2="125" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#C4F49F"/>
+      <stop offset="1" stop-color="#83A7FF"/>
+    </linearGradient>
+    <linearGradient id="s-payment-chip" x1="105" y1="98" x2="105" y2="118" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#C4F49F"/>
+      <stop offset="1" stop-color="#83A7FF"/>
+    </linearGradient>
+    <linearGradient id="s-payment-arrow" x1="130" y1="95" x2="156" y2="95" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#C4F49F"/>
+      <stop offset="1" stop-color="#83A7FF"/>
+    </linearGradient>
+    <linearGradient id="s-payment-circle" x1="155" y1="77" x2="155" y2="113" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#C4F49F"/>
+      <stop offset="1" stop-color="#83A7FF"/>
+    </linearGradient>
+  </defs>
+</svg>

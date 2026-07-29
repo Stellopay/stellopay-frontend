@@ -35,6 +35,7 @@ const TextareaInput: React.FC<EnhancedTextareaInputProps> = ({
   className,
   resize = false,
   onBlur,
+  maxLength,
 }) => {
   const fieldId = React.useId();
   const descriptionId = helperText ? `${fieldId}-description` : undefined;

@@ -9,16 +9,16 @@ interface IFeature {
 
 const features: IFeature[] = [
   {
-    text: "Advanced API integration",
+    text: "Horizon API & anchor rails",
   },
   {
-    text: "Custom payment workflows",
+    text: "Multi-asset settlement (USDC, XLM)",
   },
   {
-    text: "Dedicated account manager",
+    text: "3-second transaction finality",
   },
   {
-    text: "Priority support",
+    text: "Dedicated enterprise support",
   },
 ];
 
@@ -48,23 +48,28 @@ const enterpriseSolutionCardData: IEnterpriseSolutionCardData[] = [
 const EnterpriseSolutionSection = () => {
   return (
     <section
-      className="bg-[#FFFFFF] border-2 border-[#E4E4E7] dark:bg-[#18181B] dark:border-[#27272A] shadow-lg shadow-gray-500 dark:shadow-gray-100/50 p-10 lg:p-[65px] rounded-[48px] flex gap-10 flex-col lg:flex-row lg:gap-5 justify-between items-center m-4 2xl:max-w-[1095px] 2xl:mx-auto print:bg-white print:shadow-none print:border-gray-300 print:text-black"
+      className="py-16 sm:py-20 lg:py-24 px-4 bg-white dark:bg-[#0D0D0D]"
       aria-labelledby="enterprise-solution-title"
-      aria-describedby="enterprise-solution-desc"
     >
+      <div
+        className="bg-[#FFFFFF] border-2 border-[#E4E4E7] dark:bg-[#18181B] dark:border-[#27272A] shadow-lg shadow-gray-500 dark:shadow-gray-100/50 p-10 lg:p-[65px] rounded-[48px] flex gap-10 flex-col lg:flex-row lg:gap-5 justify-between items-center 2xl:max-w-[1095px] 2xl:mx-auto print:bg-white print:shadow-none print:border-gray-300 print:text-black"
+        aria-describedby="enterprise-solution-desc"
+      >
       <div className="flex flex-col items-start gap-5 flex-1">
         <div>
           <h4 className="font-bold text-3xl lg:text-5xl leading-12 tracking-[0.35px] text-[#09090B] dark:text-[#FAFAFA] print:text-black">
             Enterprise-ready <br />
             <span className="bg-linear-to-r from-[#83A7FF] to-[#8B5CF6] bg-clip-text text-transparent print:bg-none print:text-[#09090B]">
-              blockchain solution
+              Stellar-powered payments
             </span>
           </h4>
         </div>
         <div className="w-full lg:w-[458.5px]">
           <p className="text-[#52525B] dark:text-[#A1A1AA] text-start font-normal text-xl leading-[32.5px] print:text-black">
-            StelloPay is built for scale. Whether you&apos;re a startup or an
-            enterprise, our platform grows with your business needs.
+            StelloPay settles cross-border payments on the Stellar network in
+            3–5 seconds for less than $0.001 per transaction. Native multi-asset
+            support (USDC, XLM, and more) with built-in fiat on/off ramps via
+            Stellar anchors.
           </p>
         </div>
         <div aria-label="Enterprise features">
@@ -112,6 +117,7 @@ const EnterpriseSolutionSection = () => {
           ),
         )}
       </div>
+    </div>
     </section>
   );
 };

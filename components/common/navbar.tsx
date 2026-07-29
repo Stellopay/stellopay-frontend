@@ -1,61 +1,151 @@
-// components/Navbar.tsx
 "use client";
 
-interface NavbarProps {
-  walletAddress?: string;
-  isLoadingWallet?: boolean;
-  isLoadingNetwork?: boolean;
+import React, { useState } from "react";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+import { Menu, X } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { StellOpayLogo } from "@/public/svg/svg";
+
+export interface NavItem {
+  label: string;
+  href: string;
 }
 
-export default function Navbar(_props: NavbarProps) {
-  return null;
-  /*
+const DEFAULT_NAV_ITEMS: NavItem[] = [
+  { label: "Features", href: "/#features" },
+  { label: "How It Works", href: "/#how-it-works" },
+  { label: "Pricing", href: "/#pricing" },
+  { label: "Dashboard", href: "/dashboard" },
+  { label: "Transactions", href: "/transactions" },
+];
+
+export interface NavbarProps {
+  navItems?: NavItem[];
+}
+
+export default function Navbar({ navItems = DEFAULT_NAV_ITEMS }: NavbarProps) {
+  const pathname = usePathname();
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
+  const isItemActive = (href: string) => {
+    if (!pathname) return false;
+    if (href.startsWith("/#")) {
+      return pathname === "/";
+    }
+    return pathname === href || (href !== "/" && pathname.startsWith(`${href}/`));
+  };
+
   return (
-    <>
-      <nav className="w-full h-[75px] border-b border-[#1A1A1A] px-4 md:px-10">
-        <div className="h-full flex items-center justify-between gap-4 flex-wrap">
-          <input
-            type="text"
-            placeholder="Search here..."
-            className="bg-transparent border border-[#242428] text-white px-4 py-2 rounded-md w-full sm:w-1/3 md:w-[400px] placeholder:text-[#E5E5E5] outline-none focus-within:ring-1"
-          />
+    <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+      <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
+        {/* Brand Logo */}
+        <div className="flex items-center space-x-2">
+          <Link
+            href="/"
+            aria-label="StelloPay Home"
+            className="flex items-center space-x-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 rounded-md"
+          >
+            <StellOpayLogo className="h-8 w-auto text-primary" />
+            <span className="font-general text-xl font-bold tracking-tight text-foreground">
+              StelloPay
+            </span>
+          </Link>
+        </div>
 
-          <div className="flex items-center gap-4 mt-2 sm:mt-0">
-            <NetworkSwitcher variant="dashboard" isLoading={isLoadingNetwork} />
+        {/* Desktop Navigation Links */}
+        <nav
+          className="hidden md:flex items-center space-x-1 lg:space-x-2"
+          aria-label="Main Navigation"
+        >
+          {navItems.map((item) => {
+            const active = isItemActive(item.href);
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                aria-current={active ? "page" : undefined}
+                className={`px-3 py-2 text-sm font-medium rounded-md transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 ${
+                  active
+                    ? "bg-primary/10 text-primary font-semibold dark:bg-primary/20"
+                    : "text-muted-foreground hover:bg-muted hover:text-foreground"
+                }`}
+              >
+                {item.label}
+              </Link>
+            );
+          })}
+        </nav>
 
-            {isLoadingWallet ? (
-              <Skeleton className="w-32 h-6 rounded-md" />
-            ) : walletAddress ? (
-              <div className="px-3 py-1.5 bg-[#1A1A1A] border border-[#242428] rounded-md">
-                <span className="text-sm text-[#E5E5E5] font-mono">{walletAddress}</span>
-              </div>
-            ) : null}
+        {/* Actions */}
+        <div className="hidden md:flex items-center space-x-3">
+          <Button asChild variant="outline" size="sm">
+            <Link href="/auth/login">Log In</Link>
+          </Button>
+          <Button asChild size="sm">
+            <Link href="/auth/sign-up">Get Started</Link>
+          </Button>
+        </div>
 
-            <div className="p-2 rounded-md relative">
-              <Bell className="w-10 h-10 sm:w-6 sm:h-6 text-[#6e6d6e] hover:text-[#FFFFFF] transition-colors" />
-              <span className="absolute top-2 right-2 sm:top-2.5 sm:right-2.5 w-2.5 h-2.5 bg-[#EB6945] rounded-full" />
-            </div>
+        {/* Mobile Menu Button */}
+        <div className="flex md:hidden items-center space-x-2">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => setMobileMenuOpen((prev) => !prev)}
+            aria-expanded={mobileMenuOpen}
+            aria-label={mobileMenuOpen ? "Close navigation menu" : "Open navigation menu"}
+            aria-controls="mobile-navigation"
+          >
+            {mobileMenuOpen ? (
+              <X className="h-6 w-6 text-foreground" aria-hidden="true" />
+            ) : (
+              <Menu className="h-6 w-6 text-foreground" aria-hidden="true" />
+            )}
+          </Button>
+        </div>
+      </div>
 
-            <div className="p-2 rounded-md">
-              <Settings className="w-10 h-10 sm:w-6 sm:h-6 text-[#6e6d6e] hover:text-[#FFFFFF] transition-colors" />
-            </div>
-
-            <div className="p-2 rounded-md">
-              <HelpCircle className="w-10 h-10 sm:w-6 sm:h-6 text-[#6e6d6e] hover:text-[#FFFFFF] transition-colors" />
-            </div>
-
-            <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-full border-2 border-pink-500 relative">
-              <img
-                src="/avatar.jpg"
-                alt="User"
-                className="w-full h-full rounded-full object-cover"
-              />
-              <span className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 rounded-full border-2 border-[#1a0c1d]"></span>
-            </div>
+      {/* Mobile Navigation Drawer */}
+      {mobileMenuOpen && (
+        <div
+          id="mobile-navigation"
+          className="md:hidden border-b border-border bg-background px-4 pt-2 pb-4 space-y-2"
+        >
+          <nav aria-label="Mobile Navigation" className="flex flex-col space-y-1">
+            {navItems.map((item) => {
+              const active = isItemActive(item.href);
+              return (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  aria-current={active ? "page" : undefined}
+                  onClick={() => setMobileMenuOpen(false)}
+                  className={`block px-3 py-2 rounded-md text-base font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
+                    active
+                      ? "bg-primary/10 text-primary font-semibold dark:bg-primary/20"
+                      : "text-muted-foreground hover:bg-muted hover:text-foreground"
+                  }`}
+                >
+                  {item.label}
+                </Link>
+              );
+            })}
+          </nav>
+          <div className="pt-4 border-t border-border flex flex-col space-y-2">
+            <Button asChild variant="outline" className="w-full justify-center">
+              <Link href="/auth/login" onClick={() => setMobileMenuOpen(false)}>
+                Log In
+              </Link>
+            </Button>
+            <Button asChild className="w-full justify-center">
+              <Link href="/auth/sign-up" onClick={() => setMobileMenuOpen(false)}>
+                Get Started
+              </Link>
+            </Button>
           </div>
         </div>
-      </nav>
-    </>
+      )}
+    </header>
   );
-  */
 }

@@ -18,6 +18,11 @@ export interface AccountSummaryCardProps {
   chartData: ChartData[];
   currency?: string;
   decimals?: number;
+  /**
+   * Optional filter query value used for drill-down navigation.
+   * When set, clicking the card deep-links to /transactions?filter=XXX.
+   */
+  filterQuery?: string;
 }
 
 export const summaryCardsData: AccountSummaryCardProps[] = [
@@ -28,8 +33,9 @@ export const summaryCardsData: AccountSummaryCardProps[] = [
     change: "+12.5% vs last month",
     isPositive: true,
     iconBgColor: "bg-blue-500/10",
-    chartColor: "bg-blue-500",
+    chartColor: "var(--chart-blue)",
     icon: null, // Will be replaced with actual icon component
+    filterQuery: "",
     chartData: [
       { value: 40 },
       { value: 70 },
@@ -50,8 +56,9 @@ export const summaryCardsData: AccountSummaryCardProps[] = [
     change: "+8.2% vs last month",
     isPositive: true,
     iconBgColor: "bg-emerald-500/10",
-    chartColor: "bg-emerald-500",
+    chartColor: "var(--chart-green)",
     icon: null,
+    filterQuery: "Payment Sent",
     chartData: [
       { value: 30 },
       { value: 50 },
@@ -72,8 +79,9 @@ export const summaryCardsData: AccountSummaryCardProps[] = [
     change: "-3.1% vs last month",
     isPositive: false,
     iconBgColor: "bg-amber-500/10",
-    chartColor: "bg-amber-500",
+    chartColor: "var(--chart-amber)",
     icon: null,
+    filterQuery: "Payment Received",
     chartData: [
       { value: 60 },
       { value: 40 },
@@ -125,7 +133,7 @@ export function SummaryCardSkeleton({
       aria-hidden="true"
       className={cn(
         "bg-white dark:bg-[#111111] border border-zinc-200 dark:border-zinc-800",
-        "rounded-2xl p-6 flex flex-col gap-4 shadow-sm",
+        "rounded-2xl p-6 flex flex-col gap-4 shadow-elevation-1",
         className,
       )}
     >
