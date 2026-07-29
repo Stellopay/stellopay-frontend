@@ -1,17 +1,6 @@
 "use client";
 
-import React, { useEffect, useMemo, useState } from "react";
-import Link from "next/link";
-import dynamic from "next/dynamic";
-import {
-  ChevronRight,
-  Clock3,
-  FileText,
-  Settings,
-  Shield,
-  Wallet,
-  type LucideIcon,
-} from "lucide-react";
+import React, { useState, useEffect, useRef } from "react";
 import DashboardNavbar from "@/components/dashboard/dashboard-navbar";
 import AccountOverview from "@/components/dashboard/account-overview";
 import { QuickActions } from "@/components/dashboard/quick-actions";
@@ -19,8 +8,7 @@ import Skeleton from "@/components/ui/skeleton";
 import { EmptyState } from "@/components/ui/empty-state";
 import { ErrorState } from "@/components/ui/error-state";
 import ClientAnalyticsView from "@/components/analytics/client-analytics-view";
-import { useTransactions } from "@/hooks/useTransactions";
-import type { Transaction } from "@/types/transaction";
+import { DashboardTour } from "@/components/dashboard/dashboard-tour";
 
 const AnalyticsInsights = dynamic(
   () =>
@@ -463,6 +451,10 @@ export function RecentActivityFeed({
  */
 export default function Dashboard() {
   const [isLoading, setIsLoading] = useState(true);
+  const accountSummaryRef = useRef<HTMLDivElement>(null);
+  const quickActionsRef = useRef<HTMLDivElement>(null);
+  const analyticsInsightsRef = useRef<HTMLDivElement>(null);
+  const clientAnalyticsRef = useRef<HTMLDivElement>(null);
 
   // Simulate loading for demo purposes
   useEffect(() => {
@@ -477,22 +469,35 @@ export default function Dashboard() {
       <DashboardNavbar />
 
       <div className="flex-1 p-6 lg:p-10 max-w-[1600px] mx-auto w-full space-y-10">
-        <AccountOverview />
+        <div ref={accountSummaryRef}>
+          <AccountOverview />
+        </div>
 
-        <QuickActions />
+        <div ref={quickActionsRef}>
+          <QuickActions />
+        </div>
 
-        <RecentActivityFeed />
+        <div ref={analyticsInsightsRef}>
+          <AnalyticsInsights />
+        </div>
 
-        <AnalyticsInsights />
-
-        <ClientAnalyticsView
-          isLoading={isLoading}
-          showNotifications={true}
-          showDropdown={true}
-        />
+        <div ref={clientAnalyticsRef}>
+          <ClientAnalyticsView
+            isLoading={isLoading}
+            showNotifications={true}
+            showDropdown={true}
+          />
+        </div>
 
         {/* <TransactionHistory /> */}
       </div>
+
+      <DashboardTour
+        accountSummaryRef={accountSummaryRef}
+        quickActionsRef={quickActionsRef}
+        analyticsInsightsRef={analyticsInsightsRef}
+        clientAnalyticsRef={clientAnalyticsRef}
+      />
     </div>
   );
 }

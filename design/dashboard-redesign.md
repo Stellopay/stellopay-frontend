@@ -21,69 +21,43 @@ already include a `sort` param are never overridden.
 - **Keyboard Nav**: The "Try Again" button is fully keyboard navigable. Focus order is maintained.
 - **ARIA**: The `ErrorState` component utilizes `role="alert"` and `aria-live="assertive"` so screen readers can proactively announce network failures. Loading/Retrying indicators use `aria-hidden="true"` on non-text elements and `aria-label` or `aria-disabled` where appropriate to ensure status is accurately conveyed.
 
-## Dashboard Recent Activity Feed
+## First-Login Guided Product Tour
 
-### Purpose
+A 5-step spotlight overlay (`DashboardTour`) highlights one dashboard widget per step on first authenticated dashboard visit, reducing the learning curve for new users.
 
-The dashboard now includes a **Recent activity** widget that gives users one unified place to review the latest account activity. It combines:
+### Steps
 
-- transaction events from the existing transactions data hook,
-- wallet connection / wallet preference events,
-- security-setting changes, and
-- general settings updates.
+| Step | Widget | Icon | Highlight |
+|------|--------|------|-----------|
+| 1 | Welcome (overview) | Sparkles | No target; centered tooltip |
+| 2 | Account Summary | Wallet | AccountOverview ref |
+| 3 | Quick Actions | Zap | QuickActions ref |
+| 4 | Analytics & Insights | BarChart3 | AnalyticsInsights ref |
+| 5 | Detailed Analytics | TrendingUp | ClientAnalyticsView ref |
 
-Events are merged by ISO timestamp, sorted newest first, and capped to a default of **12** items with a hard maximum of **15**. The card includes a **View all** link that currently routes to `/transactions` while a dedicated full account-activity route is not yet available.
+### Implementation
 
-### Visual Design and Tokens
+- **File**: `components/dashboard/dashboard-tour.tsx`
+- **Trigger**: Auto-opens 800ms after first authenticated dashboard visit (tracked via `safeStorage` key `stellopay_dashboard_tour_completed`)
+- **Persistence**: Marked complete in `localStorage` after "Get Started" is clicked or user dismisses any step
+- **Dismissible**: Skip button (X) on every step; Escape key closes the entire tour
+- **Keyboard nav**: Tab cycles through tooltip controls; Enter activates; Escape dismisses
 
-- Container follows existing dashboard card treatment: `rounded-2xl`, `border-zinc-200 dark:border-zinc-800`, `bg-white dark:bg-[#111111]`, and `shadow-sm`.
-- Typography mirrors dashboard hierarchy:
-  - `text-xl font-bold` for the card heading,
-  - `text-sm text-zinc-600 dark:text-zinc-400` for supporting copy,
-  - `text-sm font-semibold` for event titles.
-- Event type icon treatments use existing lucide-react icons and WCAG-conscious color pairs:
-  - Transaction: `FileText`, blue treatment.
-  - Wallet: `Wallet`, emerald treatment.
-  - Security: `Shield`, amber treatment.
-  - Settings: `Settings`, violet treatment.
-- Event type is never conveyed by icon/color alone. Each row includes a visible uppercase text badge such as `Transaction`, `Wallet`, `Security`, or `Settings`.
+### Accessibility (WCAG 2.1 AA)
 
-### Accessibility Notes (WCAG 2.1 AA)
+- **ARIA**: `role="dialog"`, `aria-modal="true"`, `aria-labelledby` linking to step title (`tour-title-${step.id}`), `aria-describedby` linking to step description (`tour-description-${step.id}`).
+- **Focus management**: Focus is automatically placed inside the tour tooltip upon opening and step change; Tab/Shift+Tab cycle focus strictly within the dialog controls.
+- **Keyboard navigation**: Tab/Shift+Tab for focus trap navigation, Enter/Space for button activation, Escape key to dismiss and mark complete.
+- **Contrast**: Complies with 4.5:1 ratio requirement (high-contrast dark text on light tooltip in light mode, bright white/zinc text on dark background `#111111` in dark mode). Blue focus rings (`ring-blue-500`) provide visible focus indicators.
+- **Reduced motion**: Respects `prefers-reduced-motion` settings, bypassing smooth scrolling and highlight transitions when enabled.
+- **Screen readers**: Icons set to `aria-hidden="true"`, step indicators announce current step via `aria-current="step"` and descriptive `aria-label`.
 
-- **Structure**: The widget is a `section` labelled by `#recent-activity-heading`; the event feed is an ordered list with an accessible name and `aria-describedby` pointing to the descriptive helper text.
-- **Loading State**: Uses `role="status"`, `aria-busy="true"`, and `aria-live="polite"`, plus an `sr-only` loading label.
-- **Error State**: Reuses `<ErrorState />`, preserving `role="alert"`, `aria-live="assertive"`, and a keyboard-operable retry button.
-- **Empty State**: Reuses `<EmptyState />`, preserving polite status announcement semantics.
-- **Keyboard Navigation**: The only interactive control inside the widget is the **View all** link. It is a native anchor, appears in the natural tab order, and has a visible focus ring via `focus-visible:ring-*` classes.
-- **Icons**: Lucide icons are decorative and marked `aria-hidden="true"`; visible text badges provide the non-visual equivalent.
-- **Contrast**: Primary text uses `text-zinc-900` on white and `text-white` on `#111111`. Secondary text uses `text-zinc-600` / `dark:text-zinc-400`. Badge and icon colors use darker light-mode shades and lighter dark-mode shades to preserve AA contrast.
-- **Long Text**: Event title/description/metadata use `break-words`, `min-w-0`, and `line-clamp-2` to avoid horizontal overflow while keeping the full row reachable to assistive technologies.
+### Responsive Behavior Across Breakpoints
 
-### Responsive Behavior
+| Viewport Breakpoint | Target Width | Tour Overlay & Spotlight Behavior |
+|---------------------|--------------|-----------------------------------|
+| **sm** (640px) | 640px | Highlighting bounding box dynamically tracks target elements; overlay tooltip spans `w-[calc(100%-2rem)]` centered horizontally with touch-friendly targets (min 44px height). |
+| **md** (768px) | 768px | Tooltip positions dynamically below highlighted widget with safe margin padding (`top: Math.min(...)`, `left: calc(50%)`). |
+| **lg** (1024px) | 1024px | Multi-column widget layout supported; target element spotlight dynamically recalculates on resize/scroll events. |
+| **xl** (1280px+) | 1280px+ | Full desktop layout (`max-w-[1600px]`); smooth scroll-into-view centers active target before spotlight calculation. |
 
-Validated layout expectations by breakpoint:
-
-- **sm (640px)**: Header controls move from stacked to horizontal. Feed rows switch from a two-column mobile grid to icon/content/time alignment.
-- **md (768px)**: Card content remains readable with consistent spacing inside the dashboard's main content column.
-- **lg (1024px)**: Widget aligns with other dashboard cards within the wider dashboard spacing (`lg:p-10`).
-- **xl (1280px)**: Feed preserves max-width behavior through the dashboard container (`max-w-[1600px]`) and avoids over-stretched row copy through `max-w-2xl` helper text and row `min-w-0` constraints.
-
-### States and Edge Cases
-
-- **Loading**: Skeleton rows reserve row structure and announce busy state.
-- **Error**: A retryable alert appears if transaction activity fails to load.
-- **Empty**: If all event sources are empty, a clear empty state tells users where future activity will appear.
-- **Long text**: Long event titles, descriptions, metadata, and addresses wrap/clamp instead of overflowing.
-- **Dark mode**: All rows, borders, badges, icons, and focus states include dark-mode tokens.
-
-### Review and Screenshot Checklist
-
-When opening a PR, capture these screenshots for hand-off:
-
-1. **Before**: Dashboard without the unified Recent activity widget.
-2. **After — desktop**: Dashboard at `xl` width showing the new widget between Quick Actions and Analytics Insights.
-3. **After — tablet/mobile**: Dashboard at `sm`/`md` widths showing stacked header and row wrapping.
-4. **After — dark mode**: Dashboard with `.dark` applied, verifying card, badges, and focus-ring contrast.
-5. **Edge states**: Loading skeleton, error alert with retry, and empty-state card.
-
-Automated coverage is in `components/dashboard/dashboard-page.test.tsx`, including merge/sort/cap behavior, loading/error/empty states, visible event type labels, decorative icon ARIA, dashboard placement, and an axe scan for the loaded widget.
