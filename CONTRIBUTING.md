@@ -157,6 +157,20 @@ and debugging stay frictionless.
 
 We expect all new utility functions and business logic to have **minimum 95% test coverage**.
 
+### Runtime Guard Coverage
+
+Runtime type guards that validate external payloads must have focused unit tests
+near the type they protect. Cover valid payloads, invalid payloads, and at least
+one representative TypeScript narrowing path. When a broader component or
+context suite also needs the same payload shape, put reusable samples in a
+shared fixture module instead of duplicating them across test files.
+
+Guard-only changes have no visual UI state to screenshot, but the PR should
+say so explicitly. If the guarded payload drives rendered UI, include notes for
+WCAG 2.1 AA contrast, keyboard navigation, ARIA semantics, dark mode, RTL,
+long text, and responsive checks at `sm` 640px, `md` 768px, `lg` 1024px, and
+`xl` 1280px.
+
 ### Test Commands
 
 - **Unit Tests (Vitest):**
