@@ -1,12 +1,13 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import DashboardNavbar from "@/components/dashboard/dashboard-navbar";
 import AccountOverview from "@/components/dashboard/account-overview";
 import { QuickActions } from "@/components/dashboard/quick-actions";
 import dynamic from "next/dynamic";
 import Skeleton from "@/components/ui/skeleton";
 import ClientAnalyticsView from "@/components/analytics/client-analytics-view";
+import { DashboardTour } from "@/components/dashboard/dashboard-tour";
 
 const AnalyticsInsights = dynamic(
   () =>
@@ -51,6 +52,10 @@ const AnalyticsInsights = dynamic(
  */
 export default function Dashboard() {
   const [isLoading, setIsLoading] = useState(true);
+  const accountSummaryRef = useRef<HTMLDivElement>(null);
+  const quickActionsRef = useRef<HTMLDivElement>(null);
+  const analyticsInsightsRef = useRef<HTMLDivElement>(null);
+  const clientAnalyticsRef = useRef<HTMLDivElement>(null);
 
   // Simulate loading for demo purposes
   useEffect(() => {
@@ -65,20 +70,35 @@ export default function Dashboard() {
       <DashboardNavbar />
 
       <div className="flex-1 p-6 lg:p-10 max-w-[1600px] mx-auto w-full space-y-10">
-        <AccountOverview />
+        <div ref={accountSummaryRef}>
+          <AccountOverview />
+        </div>
 
-        <QuickActions />
+        <div ref={quickActionsRef}>
+          <QuickActions />
+        </div>
 
-        <AnalyticsInsights />
+        <div ref={analyticsInsightsRef}>
+          <AnalyticsInsights />
+        </div>
 
-        <ClientAnalyticsView
-          isLoading={isLoading}
-          showNotifications={true}
-          showDropdown={true}
-        />
+        <div ref={clientAnalyticsRef}>
+          <ClientAnalyticsView
+            isLoading={isLoading}
+            showNotifications={true}
+            showDropdown={true}
+          />
+        </div>
 
         {/* <TransactionHistory /> */}
       </div>
+
+      <DashboardTour
+        accountSummaryRef={accountSummaryRef}
+        quickActionsRef={quickActionsRef}
+        analyticsInsightsRef={analyticsInsightsRef}
+        clientAnalyticsRef={clientAnalyticsRef}
+      />
     </div>
   );
 }
