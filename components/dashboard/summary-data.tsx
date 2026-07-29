@@ -9,13 +9,15 @@ export interface ChartData {
 export interface AccountSummaryCardProps {
   title: string;
   subtitle: string;
-  value: string;
+  value: string | number;
   change: string;
   isPositive: boolean;
   icon: ReactNode;
   iconBgColor: string;
   chartColor: string;
   chartData: ChartData[];
+  currency?: string;
+  decimals?: number;
 }
 
 export const summaryCardsData: AccountSummaryCardProps[] = [
