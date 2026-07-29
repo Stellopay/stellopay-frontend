@@ -3,6 +3,7 @@ import type React from "react";
 import { SidebarProvider } from "@/context/sidebar-context";
 import type { Metadata } from "next";
 import AppLayout from "@/components/common/app-layout";
+import { Breadcrumb } from "@/components/common/breadcrumb";
 
 export const metadata: Metadata = {
   title: "Stellopay | Hep/Support",
@@ -17,7 +18,12 @@ export default function HelpSupportLayout({
 }>) {
   return (
     <SidebarProvider>
-      <AppLayout>{children}</AppLayout>
+      <AppLayout>
+        <div className="px-4 py-4 md:px-6 w-full max-w-screen-xl mx-auto">
+          <Breadcrumb />
+        </div>
+        {children}
+      </AppLayout>
     </SidebarProvider>
   );
 }

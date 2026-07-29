@@ -7,6 +7,24 @@ import { format, parse, isValid, startOfDay } from "date-fns";
  * locale-dependent `Date.prototype.toLocaleDateString`) and the original
  * `utils/date-utils.ts` (date-fns based) into one module so formatting is
  * deterministic regardless of the host machine's locale.
+ *
+ * ---
+ * ## Timezone convention
+ *
+ * **All functions in this module display dates in the viewer's local timezone.**
+ *
+ * - Input: ISO 8601 strings (e.g. `"2023-04-15T23:30:00.000Z"`) are parsed
+ *   into `Date` objects and **normalized to the local calendar day** via
+ *   `date-fns/startOfDay` before formatting.
+ * - This ensures a UTC timestamp near midnight (e.g. 23:30 UTC on Apr 15)
+ *   consistently displays as the correct local calendar date (Apr 16 in
+ *   UTC+2, Apr 15 in UTC-5) rather than silently showing the UTC date.
+ * - The `formatDateTimeWithTimezone` helper is the exception — it accepts an
+ *   explicit IANA timezone and formats accordingly.
+ *
+ * **Never** call `date-fns/format` or `Date.prototype.toLocaleDateString`
+ * directly from components — always route through a helper here so the
+ * convention stays uniform.
  */
 
 /**
@@ -46,7 +64,10 @@ export function parseTransactionDate(dateString: string): Date | null {
 export function formatDate(dateLike: Date | string): string {
   const date = typeof dateLike === "string" ? new Date(dateLike) : dateLike;
   if (!isValid(date)) return "";
-  return format(date, "MMM dd, yyyy");
+  // Normalize to start of local calendar day so a UTC timestamp near
+  // midnight (e.g. 23:30Z on Apr 15 in UTC+2 → local Apr 16) always
+  // displays the correct local date.
+  return format(startOfDay(date), "MMM dd, yyyy");
 }
 
 /**
@@ -109,5 +130,34 @@ export function isDateInRange(
  */
 export function getCurrentDate(): string {
   return formatDateForInput(new Date());
+}
+
+/**
+ * Formats a date with timezone-aware output using {@link https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Intl/DateTimeFormat | Intl.DateTimeFormat}.
+ *
+ * Falls back gracefully when the timezone is invalid (returns a no-timezone format).
+ *
+ * @param date - The date to format.
+ * @param timezone - An IANA timezone identifier (e.g. `"Africa/Lagos"`).
+ * @returns A human-readable date/time string such as `"Jul 29, 2026, 10:30 AM WAT"`.
+ */
+export function formatDateTimeWithTimezone(
+  date: Date,
+  timezone: string,
+): string {
+  try {
+    return new Intl.DateTimeFormat("en-US", {
+      dateStyle: "medium",
+      timeStyle: "short",
+      timeZone: timezone,
+    }).format(date);
+  } catch {
+    // Fall back to no-timezone formatting when the runtime rejects the
+    // timezone identifier (e.g. an unsupported IANA zone).
+    return new Intl.DateTimeFormat("en-US", {
+      dateStyle: "medium",
+      timeStyle: "short",
+    }).format(date);
+  }
 }
 

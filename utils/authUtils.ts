@@ -11,6 +11,33 @@ export interface PasswordRequirements {
 }
 
 /**
+ * JWT payload structure with standard claims
+ */
+export interface JWTPayload {
+  sub?: string; // Subject (user ID)
+  exp?: number; // Expiration time (Unix timestamp in seconds)
+  iat?: number; // Issued at (Unix timestamp in seconds)
+  iss?: string; // Issuer
+  [key: string]: unknown; // Allow additional claims
+}
+
+/**
+ * Token parsing result
+ */
+export interface TokenParseResult {
+  payload: JWTPayload | null;
+  error: string | null;
+}
+
+/**
+ * Session validity check result
+ */
+export interface SessionValidityResult {
+  isValid: boolean;
+  reason?: string;
+}
+
+/**
  * Validates password requirements and returns the validation status
  * @param password - The password to validate
  * @returns Object containing validation results for each requirement
@@ -183,4 +210,184 @@ export const calculatePasswordStrength = (password: string): PasswordStrengthRes
 export const isValidEmail = (email: string): boolean => {
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
   return emailRegex.test(email);
+};
+
+/**
+ * Parses a JWT token and extracts its payload
+ * Handles malformed tokens gracefully by returning null payload with error message
+ * @param token - The JWT token to parse (expected format: header.payload.signature)
+ * @returns Object with parsed payload and error (if any)
+ */
+export const parseToken = (token: unknown): TokenParseResult => {
+  // Handle null/undefined input
+  if (token === null || token === undefined) {
+    return {
+      payload: null,
+      error: "Token is null or undefined",
+    };
+  }
+
+  // Handle non-string input
+  if (typeof token !== "string") {
+    return {
+      payload: null,
+      error: "Token must be a string",
+    };
+  }
+
+  // Check for empty string
+  if (token.length === 0) {
+    return {
+      payload: null,
+      error: "Token is empty",
+    };
+  }
+
+  // Split token into parts (should be header.payload.signature)
+  const parts = token.split(".");
+  if (parts.length !== 3) {
+    return {
+      payload: null,
+      error: `Invalid token format: expected 3 parts, got ${parts.length}`,
+    };
+  }
+
+  const [, payloadPart] = parts;
+
+  // Validate payload part is not empty
+  if (!payloadPart || payloadPart.length === 0) {
+    return {
+      payload: null,
+      error: "Token payload is empty",
+    };
+  }
+
+  try {
+    // Decode base64url (standard Base64 with - and _ replacing + and /)
+    const decoded = Buffer.from(payloadPart, "base64").toString("utf-8");
+    const payload = JSON.parse(decoded) as JWTPayload;
+    return {
+      payload,
+      error: null,
+    };
+  } catch (error) {
+    const errorMessage =
+      error instanceof Error ? error.message : "Unknown error";
+    return {
+      payload: null,
+      error: `Failed to parse token payload: ${errorMessage}`,
+    };
+  }
+};
+
+/**
+ * Checks if a token is expired based on its exp claim
+ * Uses the provided current time for deterministic testing
+ * @param token - The JWT token to check
+ * @param currentTimeMs - Current time in milliseconds (defaults to Date.now())
+ * @returns Object with expiration status and reason
+ */
+export const isTokenExpired = (
+  token: unknown,
+  currentTimeMs: number = Date.now(),
+): SessionValidityResult => {
+  const parseResult = parseToken(token);
+
+  if (parseResult.error) {
+    return {
+      isValid: false,
+      reason: `Cannot check expiration: ${parseResult.error}`,
+    };
+  }
+
+  if (!parseResult.payload) {
+    return {
+      isValid: false,
+      reason: "Token payload is missing",
+    };
+  }
+
+  // If no exp claim, consider token as non-expiring (valid)
+  if (parseResult.payload.exp === undefined || parseResult.payload.exp === null) {
+    return {
+      isValid: true,
+      reason: "No expiration claim (token does not expire)",
+    };
+  }
+
+  // Convert exp (seconds) to milliseconds for comparison
+  const expirationTimeMs = parseResult.payload.exp * 1000;
+  const isExpired = currentTimeMs > expirationTimeMs;
+
+  if (isExpired) {
+    return {
+      isValid: false,
+      reason: "Token has expired",
+    };
+  }
+
+  return {
+    isValid: true,
+    reason: "Token has not expired",
+  };
+};
+
+/**
+ * Checks overall session validity (token not expired and properly formatted)
+ * @param token - The JWT token to validate
+ * @param currentTimeMs - Current time in milliseconds (defaults to Date.now())
+ * @returns Object with validity status and reason
+ */
+export const isSessionValid = (
+  token: unknown,
+  currentTimeMs: number = Date.now(),
+): SessionValidityResult => {
+  const parseResult = parseToken(token);
+
+  if (parseResult.error) {
+    return {
+      isValid: false,
+      reason: `Invalid token: ${parseResult.error}`,
+    };
+  }
+
+  if (!parseResult.payload) {
+    return {
+      isValid: false,
+      reason: "Token payload could not be extracted",
+    };
+  }
+
+  // Check if token is expired
+  const expirationCheck = isTokenExpired(token, currentTimeMs);
+  if (!expirationCheck.isValid) {
+    return {
+      isValid: false,
+      reason: expirationCheck.reason,
+    };
+  }
+
+  return {
+    isValid: true,
+    reason: "Session is valid",
+  };
+};
+
+/**
+ * Extracts a specific claim from a token
+ * @param token - The JWT token
+ * @param claimName - The claim key to extract
+ * @returns The claim value or null if not found or token is invalid
+ */
+export const getTokenClaim = (
+  token: unknown,
+  claimName: string,
+): unknown => {
+  const parseResult = parseToken(token);
+
+  if (parseResult.error || !parseResult.payload) {
+    return null;
+  }
+
+  return parseResult.payload[claimName] ?? null;
 };

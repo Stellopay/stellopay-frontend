@@ -2,83 +2,239 @@
 
 ## Overview
 
-This pass restructures the settings surface around four primary sections:
+`app/settings/preferences` is a single-page tabbed shell (`SettingsPageShell`)
+that organises all user-facing settings into sections. The active section is
+driven by the `?section=<value>` query-string parameter so deep links and
+browser history work correctly.
 
-- Account
-- Notifications
-- Security
-- Wallets
+Five tabs are live as of this writing:
 
-The goal is to keep frequent tasks obvious, reduce visual overload, and separate destructive actions from routine edits.
+| Tab value     | Label        | Purpose                                                    |
+| ------------- | ------------ | ---------------------------------------------------------- |
+| `account`     | Account      | Profile fields, identity verification, and locale defaults |
+| `notifications` | Notifications | Transaction alerts and delivery-channel toggles          |
+| `security`    | Security     | Password change, 2-FA setup, active sessions, API keys     |
+| `wallets`     | Wallets      | Connected Stellar wallets and transfer-limit safeguards    |
+| `documents`   | Statements   | Periodic statements and downloadable tax summaries         |
 
-## IA Decisions
+> **Updating tab count?** If you add or remove a tab, update this table, the
+> `buildSections()` function in `settings-page-shell.tsx`, and the summary
+> below.
 
-### 1. Clear section grouping
+---
 
-- **Account:** profile identity, email, locale, and billing-related defaults
-- **Notifications:** alert priorities, channel routing, and quiet hours
-- **Security:** password work, verification controls, and active sessions
-- **Wallets:** connected wallets, outbound safeguards, and destructive wallet removal
+## Tab-by-tab breakdown
 
-The top chrome now uses a persistent settings section bar built from the existing `components/ui/tabs.tsx` primitive. The active section is mirrored into the URL with `?section=...` so users can deep-link directly into a settings area without creating additional nested routes.
+### Account (`account`)
 
-### 2. Progressive disclosure
+Core identity and locale controls.
 
-The page now exposes only high-frequency tasks by default and hides lower-frequency details behind disclosure patterns:
+- Display name, avatar upload, and contact email
+- Regional defaults: currency, timezone, language
+- Profile-completion indicator (drives the **Profile readiness** summary card)
+- Danger zone: account closure (gated behind the `DestructiveActionDialog`)
 
-- Advanced identity and billing fields
-- Delivery channel customization
-- Recovery methods
-- Wallet metadata and compliance checks
+Accessibility notes:
+- Avatar upload uses a visually hidden `<input type="file">` with an explicit
+  `<label>` — no `aria-label` gymnastics required.
+- Inline validation errors are associated via `aria-describedby`.
 
-This keeps the initial scan light on both desktop and mobile while still keeping advanced controls on the same page.
+### Notifications (`notifications`)
 
-### 3. Safe destructive actions
+Per-channel, per-category alert preferences.
 
-Destructive actions are isolated into explicit danger zones instead of appearing beside standard save actions.
+- Transaction alerts (sends, receives, failed payments)
+- Security alerts (login from new device, password change)
+- Marketing / product updates (opt-in only)
+- Delivery channel toggles: email, push, SMS
 
-Current destructive patterns:
+The **Alerts enabled** summary card reflects the count of active switches in
+real time; the count is derived from live state, not a hardcoded string.
 
-- `Deactivate account`
-- `Sign out all sessions`
-- `Remove primary wallet`
+Accessibility notes:
+- Every toggle is a `<Switch>` with an `aria-label` that includes the state
+  (e.g. _"Transaction alerts, enabled"_) so screen readers announce the change.
 
-Each destructive flow uses:
+### Security (`security`)
 
-- A dedicated confirmation dialog
-- Impact statements before confirmation
-- A typed confirmation token before the destructive CTA enables
+Credential and session management.
 
-This keeps destructive actions deliberate and reduces accidental activation risk.
+- Password change form with live policy checklist (8+ chars, uppercase,
+  special char, matching confirm)
+- Two-factor authentication (TOTP): toggle with guided setup panel,
+  6-digit code verification
+- Active sessions list with selective revocation
+- Recovery methods (collapsible disclosure)
+- API key management: create, rotate, revoke with destructive confirmation
 
-## Reachability
+Accessibility notes:
+- Password inputs carry `aria-invalid` and `aria-describedby` linked to the
+  inline error paragraphs.
+- The 2-FA setup panel is a `role="form"` region with a labelled `aria-label`;
+  inline errors use `role="alert"`.
+- The sign-out-all-sessions and API key rotate/revoke actions both pass through
+  `DestructiveActionDialog`, which traps focus and requires a typed keyword
+  confirmation before enabling the destructive button.
 
-The intended click depth from `/settings/preferences` is:
+### Wallets (`wallets`)
 
-- Change profile fields: 1 section tap + 1 save action
-- Adjust notification priorities: 1 section tap + 1 toggle
-- Change password: 1 section tap + form interaction
-- Review wallet controls: 1 section tap + 1 toggle
-- Destructive actions: 1 section tap + 1 danger-zone action + typed confirmation
+Stellar wallet management.
 
-This keeps the overwhelming majority of settings tasks within the requested `<= 3 clicks` threshold from entry.
+- List of connected wallets (sourced from `DEMO_WALLETS` in `lib/demo-data.ts`,
+  eventually from the `WalletProvider` context)
+- Add / remove wallet flows
+- Transfer-limit safeguards per wallet
 
-## Testing And Screenshots
+The **Wallet coverage** summary card mirrors `DEMO_WALLETS.length` so the
+displayed count stays in sync with the data.
 
-Automated coverage is provided with Playwright in `tests/settings.spec.ts`.
+### Statements / Tax Documents (`documents`)
 
-Covered flows:
+Downloadable financial records.
 
-- Desktop settings navigation across grouped sections
-- Typed-confirmation gating for account deactivation
-- Mobile visibility of the settings section navigation
+- Quarterly transaction statements
+- Annual tax summaries
+- Each row shows: period label, type badge, file size, and a download link
+  (`<a download>` with a `data:` URI)
+- Empty state (`role="status"`) is shown when `statements` prop is `[]`
 
-Generated screenshots:
+The **Statements** summary card mirrors the count passed as the `statements`
+prop to `SettingsPageShell`.
 
-- `design/screenshots/settings-desktop.png`
-- `design/screenshots/settings-mobile.png`
+---
 
-## Notes
+## Adding a new settings section
 
-- The UI remains prototype-safe: save and destructive actions currently update local confirmation states until backend wiring exists.
-- The branch for this work is `design/settings-ia`.
+> **Where to document new sections:** This file (`design/settings-ia.md`) is
+> the single source of truth for the settings information architecture. Any
+> time a new tab is introduced — or an existing tab is renamed, reordered, or
+> removed — the change **must** be reflected here first (update the table at
+> the top and add/edit the corresponding subsection), then propagated to
+> `buildSections()` in `settings-page-shell.tsx` and to the test suite. The
+> README's _Settings section structure_ paragraph mirrors the high-level tab
+> list; keep it in sync too.
+
+1. **Create the section component** under
+   `app/settings/preferences/components/<name>-section.tsx`.
+2. **Register it in `buildSections()`** inside `settings-page-shell.tsx`.  
+   Pick a unique `value` key (lowercase, hyphen-separated), a short `label`,
+   a one-line `description`, and an optional dynamic `badge`.
+3. **Add a `<TabsContent>`** block in the shell's JSX, using the same `value`
+   as the key above.
+4. **Add a summary card** to the summary-card grid if the section has a metric
+   worth surfacing at a glance. Derive the displayed value from live state, not
+   a hardcoded string. Update the `xl:grid-cols-*` class on the grid container
+   to match the new column count.
+5. **Write tests**: add `<name>-section.test.tsx` alongside the component, and
+   extend `settings-page-shell.test.tsx` and `page.test.tsx` for any
+   shell-level or routing interactions the new tab introduces.
+6. **Update this document**: add a row to the tab table at the top of this
+   file and a subsection below the existing ones, following the same format
+   (purpose, field/control inventory, accessibility notes). Then update the
+   README's _Settings section structure_ paragraph so the inline tab list stays
+   accurate.
+
+> **Example — proposed tax-documents tab (now live as "Statements"):**  
+> The `tax-documents-section.tsx` component was added following exactly these
+> steps. The `documents` tab value, the `TaxDocumentsSection` import, and the
+> `statementCount` badge expression in `buildSections()` were all introduced
+> together so the shell, the tests, and this spec stayed consistent.
+
+---
+
+## Routing and deep links
+
+The shell reads `?section=<value>` from the URL on mount. Unknown values
+silently fall back to `account`. Switching tabs calls `router.replace()` to
+keep the address bar in sync without adding a history entry per click.
+
+```
+/settings/preferences                  → account tab
+/settings/preferences?section=security → security tab
+/settings/preferences?section=unknown  → account tab (fallback)
+```
+
+---
+
+## Unsaved-changes guard
+
+The shell tracks a "dirty" flag (currently scoped to the Account section's
+profile form). If the user attempts to switch tabs with unsaved edits, a
+`<Dialog>` intercepts the navigation:
+
+- **Stay** — dismisses the dialog, leaving the user on the current tab with
+  their edits intact.
+- **Discard changes** — resets the dirty state, then switches to the
+  requested tab.
+
+Extend this guard to other sections by adding corresponding dirty flags to the
+shell state and including them in the `isDirty` expression.
+
+---
+
+## Accessibility checklist (WCAG 2.1 AA)
+
+| Criterion | Implementation |
+| --------- | -------------- |
+| Tab list keyboard navigation | Arrow keys (left/right), Home, End — driven by Radix `<Tabs>` |
+| Active tab in tab order only | `tabIndex={0}` only on the selected tab; others at `-1` |
+| Section heading hierarchy | Each section starts with an `<h2>` |
+| Focus trap in dialogs | `<Dialog>` from Radix traps focus automatically |
+| Destructive actions gated | `DestructiveActionDialog` requires typed keyword before enabling |
+| Live regions | Summary cards use `aria-live` where values change dynamically |
+| Form error association | `aria-describedby` links inputs to their inline error elements |
+| Colour contrast | All text meets 4.5:1 against its background in both light and dark themes |
+
+---
+
+## Responsive behaviour
+
+The settings page uses a full-viewport-height shell with responsive layout:
+
+| Breakpoint | Layout notes |
+| ---------- | ------------ |
+| `sm` (640 px) | Tabs wrap; summary cards stack in a single column |
+| `md` (768 px) | Summary cards shift to a two-column grid |
+| `xl` (1280 px) | Summary cards expand to the full five-column grid |
+
+The tab header (`SettingsHeader`) scrolls horizontally on narrow viewports so
+all tab labels remain reachable without wrapping to multiple rows.
+
+---
+
+## Related files
+
+| File | Role |
+| ---- | ---- |
+| `app/settings/preferences/page.tsx` | Server component; reads `?section` from `searchParams` |
+| `app/settings/preferences/layout.tsx` | Route layout wrapping the shell |
+| `app/settings/preferences/loading.tsx` | Suspense fallback skeleton |
+| `app/settings/preferences/components/settings-page-shell.tsx` | The tabbed shell and summary cards |
+| `app/settings/preferences/components/account-section.tsx` | Account tab content |
+| `app/settings/preferences/components/notifications-section.tsx` | Notifications tab content |
+| `app/settings/preferences/components/security-tab.tsx` | Security tab content |
+| `app/settings/preferences/components/wallets-section.tsx` | Wallets tab content |
+| `app/settings/preferences/components/tax-documents-section.tsx` | Statements tab content |
+| `app/settings/preferences/components/destructive-action-dialog.tsx` | Shared confirmation dialog |
+| `components/settings-header.tsx` | Reusable tab-list header |
+| `lib/demo-data.ts` | Mock wallet and statement data |
+| `design/screenshots/settings-desktop.png` | Reference screenshot — desktop |
+| `design/screenshots/settings-mobile.png` | Reference screenshot — mobile |
+| `design/screenshots/settings-add-wallet.png` | Reference screenshot — add wallet flow |
+# Settings Information Architecture & Accessibility (IA)
+
+## Wallets Section Remove Confirmation Flow
+
+### Overview
+Destructive actions in `app/settings/preferences/components/wallets-section.tsx` require explicit confirmation to prevent accidental disconnection.
+
+### Accessibility Annotations (WCAG 2.1 AA)
+- **Contrast**: Confirm and Cancel actions utilize semantic high-contrast design tokens (`bg-destructive`, `text-destructive-foreground`, `border-input`).
+- **Keyboard Navigation**: Dialog uses `components/ui/dialog.tsx` (Radix UI Primitive) which enforces a focus trap on open and restores focus to the triggering element upon closure or cancellation.
+- **ARIA Labeling**:
+  - Dialog contains `DialogTitle` (`aria-labelledby`) and `DialogDescription` (`aria-describedby`).
+  - Action trigger includes specific explicit context: `aria-label="Remove {nickname} ({address})"`.
+
+### Responsive Breakpoints
+- **Mobile (`< sm 640px`)**: Full-width stacked buttons on action dialog.
+- **Desktop (`>= sm 640px`)**: Inline action buttons (`DialogFooter`).
