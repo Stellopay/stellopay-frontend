@@ -2,10 +2,12 @@
 
 import Link from "next/link";
 import Image from "next/image";
-import { useState } from "react";
 import { messages } from "@/messages";
 
 // TODO: Replace direct import of messages with next-intl useTranslations() hook once i18n is enabled.
+import { useState, useEffect } from "react";
+import { safeStorage } from "@/utils/safeStorage";
+import { X } from "lucide-react";
 
 // Social Media Icons as SVG components
 const TwitterIcon = () => (
@@ -125,16 +127,48 @@ const socialLinks = [
   },
 ];
 
+const CONSENT_STORAGE_KEY = "stellopay.cookie-consent";
+
+function persistConsent(value: boolean): void {
+  safeStorage.setItem(
+    CONSENT_STORAGE_KEY,
+    value ? "accepted" : "rejected",
+  );
+}
+
 export default function Footer() {
   const [email, setEmail] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [bannerVisible, setBannerVisible] = useState(false);
+
+  useEffect(() => {
+    const stored = safeStorage.getItem(CONSENT_STORAGE_KEY);
+    if (stored === null) {
+      setBannerVisible(true);
+    } else {
+      setBannerVisible(false);
+    }
+  }, []);
+
+  const handleAccept = () => {
+    persistConsent(true);
+    setBannerVisible(false);
+  };
+
+  const handleReject = () => {
+    persistConsent(false);
+    setBannerVisible(false);
+  };
+
+  const handleClose = () => {
+    setBannerVisible(false);
+  };
 
   const handleSubscribe = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!email) return;
 
     setIsSubmitting(true);
-    // Simulate API call
     await new Promise((resolve) => setTimeout(resolve, 1000));
     setEmail("");
     setIsSubmitting(false);
@@ -142,8 +176,66 @@ export default function Footer() {
 
   return (
     <footer className="w-full bg-[#FAFAFA] dark:bg-[#09090B] border-t border-gray-100 dark:border-[#1a1a1a]">
+      {/* Cookie Consent Banner */}
+      {bannerVisible && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-label="Cookie consent"
+          className="fixed bottom-0 left-0 right-0 z-50 bg-white dark:bg-[#18181b] border-t border-gray-200 dark:border-[#27272a] shadow-lg"
+          data-testid="cookie-consent-banner"
+        >
+          <div className="relative max-w-[1200px] mx-auto px-4 py-3 sm:py-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4 pr-10 sm:pr-12">
+            <div className="flex-1 min-w-0">
+              <p
+                className="text-sm text-[#1a1a1a] dark:text-[#a1a1aa]"
+                style={{ fontFamily: "General Sans, sans-serif" }}
+              >
+                We use cookies to improve your experience. By continuing to use
+                our site, you agree to our{" "}
+                <Link
+                  href="/cookies"
+                  className="text-[#7C3AED] dark:text-[#a78bfa] underline hover:text-[#6d28d9] dark:hover:text-[#8b5cf6] transition-colors"
+                >
+                  Cookie Policy
+                </Link>
+                .
+              </p>
+            </div>
+            <div className="flex items-center gap-2 shrink-0">
+              <button
+                onClick={handleReject}
+                className="px-4 py-2 text-sm font-medium text-[#666666] dark:text-[#a1a1aa] rounded-lg border border-gray-200 dark:border-[#27272a] hover:bg-gray-50 dark:hover:bg-[#27272a] transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-[#7C3AED]/20 dark:focus:ring-[#a78bfa]/20"
+                data-testid="cookie-consent-reject"
+                aria-label="Reject all cookies"
+              >
+                Reject
+              </button>
+              <button
+                onClick={handleAccept}
+                className="px-4 py-2 text-sm font-medium text-white rounded-lg bg-gradient-to-r from-[#83A7FF] to-[#8B5CF6] hover:opacity-90 transition-opacity duration-200 focus:outline-none focus:ring-2 focus:ring-[#7C3AED]/40 dark:focus:ring-[#a78bfa]/40"
+                data-testid="cookie-consent-accept"
+                aria-label="Accept all cookies"
+              >
+                Accept
+              </button>
+            </div>
+            {/* Positioned relative to the inner container so the button sits
+                at the top-right corner without escaping the max-width constraint. */}
+            <button
+              onClick={handleClose}
+              className="absolute top-3 right-3 text-[#666666] dark:text-[#a1a1aa] hover:text-[#1a1a1a] dark:hover:text-white transition-colors p-1 rounded focus:outline-none focus:ring-2 focus:ring-[#7C3AED]/20 dark:focus:ring-[#a78bfa]/20"
+              aria-label="Dismiss cookie consent banner"
+              data-testid="cookie-consent-close"
+            >
+              <X className="w-4 h-4" aria-hidden="true" />
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Main Footer Content */}
-      <div className="max-w-[1200px] mx-auto">
+      <div className="max-w-[1200px] mx-auto pb-20">
         <div className="px-6 py-16">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-12 lg:gap-8">
             {/* Logo and Description Section */}

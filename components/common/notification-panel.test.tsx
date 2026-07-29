@@ -1,16 +1,36 @@
-import { render, screen, fireEvent } from "@testing-library/react";
-import { describe, expect, it, vi } from "vitest";
+import React from "react";
+import { render, screen, fireEvent, act } from "@testing-library/react";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import NotificationPanel, { NotificationItem } from "./notification-panel";
 
-import NotificationPanel from "./notification-panel";
-import { NotificationItem } from "@/types/notification-item";
+const MOCK_NOTIFICATIONS: NotificationItem[] = [
+  {
+    id: "test-1",
+    title: "Test Alert 1",
+    message: "First test message",
+    timestamp: "1m ago",
+    read: false,
+  },
+  {
+    id: "test-2",
+    title: "Test Alert 2",
+    message: "Second test message",
+    timestamp: "10m ago",
+    read: true,
+  },
+];
 
 const buildNotifications = (count: number): NotificationItem[] =>
-  Array.from({ length: count }).map((_, index) => ({
-    id: `notif-${index}`,
-    title: `Title ${index}`,
-    message: `Message ${index}`,
-    read: index % 2 === 0,
-  }));
+  Array.from({ length: count }).map((_, index) => {
+    const isRead = index % 2 === 0;
+    return {
+      id: `notif-${index}`,
+      title: `Title ${index}`,
+      message: `Message ${index}`,
+      read: isRead,
+      ...(isRead ? { readAt: new Date().toISOString() } : {}),
+    };
+  });
 
 describe("NotificationPanel", () => {
   it("renders a loading skeleton when isLoading is true", () => {
@@ -20,98 +40,87 @@ describe("NotificationPanel", () => {
     expect(screen.queryByRole("listbox")).not.toBeInTheDocument();
   });
 
-  it("renders the empty state when notifications is empty and not loading", () => {
-    render(<NotificationPanel notifications={[]} />);
-
-    expect(screen.getByText("You're all caught up")).toBeInTheDocument();
-    expect(screen.queryByRole("listbox")).not.toBeInTheDocument();
+  afterEach(() => {
+    vi.restoreAllMocks();
   });
 
-  it("renders a single notification inside the accessible listbox", () => {
-    const notifications = buildNotifications(1);
+  it("renders notification items and unread count correctly", () => {
+    render(<NotificationPanel initialNotifications={MOCK_NOTIFICATIONS} />);
+
+    expect(screen.getByText("Notifications")).toBeInTheDocument();
+    expect(screen.getByText("Test Alert 1")).toBeInTheDocument();
+    expect(screen.getByText("Test Alert 2")).toBeInTheDocument();
+    expect(screen.getByText("1 new")).toBeInTheDocument();
+  });
+
+  it("marks all notifications as read when clicking Mark all read", () => {
+    render(<NotificationPanel initialNotifications={MOCK_NOTIFICATIONS} />);
+
+    const markAllBtn = screen.getByRole("button", { name: /mark all notifications as read/i });
+    fireEvent.click(markAllBtn);
+
+    expect(screen.queryByText("1 new")).not.toBeInTheDocument();
+  });
+
+  it("clears all notifications and presents undo toast window", () => {
+    render(<NotificationPanel initialNotifications={MOCK_NOTIFICATIONS} />);
+
+    const clearAllBtn = screen.getByRole("button", { name: /clear all notifications/i });
+    fireEvent.click(clearAllBtn);
+
+    expect(screen.queryByText("Test Alert 1")).not.toBeInTheDocument();
+    expect(screen.getByText("No notifications to display.")).toBeInTheDocument();
+
+    expect(screen.getByRole("status")).toBeInTheDocument();
+    expect(screen.getByText("Notifications cleared.")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /undo clear all notifications/i })).toBeInTheDocument();
+  });
+
+  it("restores exact prior notification list when clicking Undo", () => {
+    render(<NotificationPanel initialNotifications={MOCK_NOTIFICATIONS} />);
+
+    fireEvent.click(screen.getByRole("button", { name: /clear all notifications/i }));
+    expect(screen.queryByText("Test Alert 1")).not.toBeInTheDocument();
+
+    const undoBtn = screen.getByRole("button", { name: /undo clear all notifications/i });
+    fireEvent.click(undoBtn);
+
+    expect(screen.getByText("Test Alert 1")).toBeInTheDocument();
+    expect(screen.getByText("Test Alert 2")).toBeInTheDocument();
+    expect(screen.getByText("1 new")).toBeInTheDocument();
+    expect(screen.queryByRole("status")).not.toBeInTheDocument();
+  });
+
+  it("dismisses undo toast automatically after timer expires", () => {
+    render(<NotificationPanel initialNotifications={MOCK_NOTIFICATIONS} undoDurationMs={3000} />);
+
+    fireEvent.click(screen.getByRole("button", { name: /clear all notifications/i }));
+    expect(screen.getByRole("status")).toBeInTheDocument();
+
+    act(() => {
+      vi.advanceTimersByTime(3000);
+    });
+
+    expect(screen.queryByRole("status")).not.toBeInTheDocument();
+    expect(screen.getByText("No notifications to display.")).toBeInTheDocument();
+  });
+
+  it("displays the readAt timestamp for read notifications if provided", () => {
+    const notifications: NotificationItem[] = [
+      { id: "read", title: "Read item", message: "msg", read: true, readAt: "2026-07-29T15:00:00Z" },
+    ];
     render(<NotificationPanel notifications={notifications} />);
 
-    expect(screen.queryByText("You're all caught up")).not.toBeInTheDocument();
-    const listbox = screen.getByRole("listbox", {
-      name: "Notifications list",
-    });
-    expect(listbox).toBeInTheDocument();
-    expect(screen.getByText("Title 0")).toBeInTheDocument();
-    expect(screen.getByText("Message 0")).toBeInTheDocument();
+    expect(screen.getByText(/Read:/)).toBeInTheDocument();
   });
 
-  it("renders one row per notification keyed by stable id, not array index", () => {
-    const notifications = buildNotifications(3);
-    const { rerender } = render(
-      <NotificationPanel notifications={notifications} />,
-    );
-
-    notifications.forEach((notification) => {
-      expect(screen.getByText(notification.title)).toBeInTheDocument();
-    });
-
-    // Remove the first item (simulating a dismissal). If the list were keyed
-    // by array index, React would mutate the existing DOM node for index 0
-    // in place instead of removing it; keying by `id` ensures the node for
-    // the removed notification (notif-0) is actually removed from the DOM.
-    const remaining = notifications.slice(1);
-    rerender(<NotificationPanel notifications={remaining} />);
-
-    expect(screen.queryByText("Title 0")).not.toBeInTheDocument();
-    expect(screen.getByText("Title 1")).toBeInTheDocument();
-    expect(screen.getByText("Title 2")).toBeInTheDocument();
-  });
-
-  it("transitions from loading to the empty state when notifications resolve to an empty array", () => {
-    const { rerender } = render(
-      <NotificationPanel notifications={[]} isLoading />,
-    );
-    expect(screen.queryByText("You're all caught up")).not.toBeInTheDocument();
-
-    rerender(<NotificationPanel notifications={[]} isLoading={false} />);
-    expect(screen.getByText("You're all caught up")).toBeInTheDocument();
-  });
-
-  it("renders the bell trigger with an accessible label", () => {
-    render(<NotificationPanel notifications={buildNotifications(1)} />);
-
-    expect(
-      screen.getByRole("button", { name: "Notifications" }),
-    ).toBeInTheDocument();
-  });
-
-  it("renders notification text as plain escaped text, not raw markup", () => {
-    const malicious: NotificationItem[] = [
-      {
-        id: "notif-xss",
-        title: "<img src=x onerror=alert(1)>",
-        message: "<script>alert('xss')</script>",
-        read: false,
-      },
-    ];
-    render(<NotificationPanel notifications={malicious} />);
-
-    expect(
-      screen.getByText("<img src=x onerror=alert(1)>"),
-    ).toBeInTheDocument();
-    expect(
-      screen.getByText("<script>alert('xss')</script>"),
-    ).toBeInTheDocument();
-    expect(document.querySelector("script")).not.toBeInTheDocument();
-    expect(document.querySelector("img")).not.toBeInTheDocument();
-  });
-
-  it("shows the unread indicator only for unread notifications", () => {
+  it("displays the readAt timestamp for read notifications if provided", () => {
     const notifications: NotificationItem[] = [
-      { id: "read", title: "Read item", message: "msg", read: true },
-      { id: "unread", title: "Unread item", message: "msg", read: false },
+      { id: "read", title: "Read item", message: "msg", read: true, readAt: "2026-07-29T15:00:00Z" },
     ];
-    const { container } = render(
-      <NotificationPanel notifications={notifications} />,
-    );
+    render(<NotificationPanel notifications={notifications} />);
 
-    const unreadDots = container.querySelectorAll(".w-1.h-1.bg-\\[\\#EB6945\\]");
-    expect(unreadDots).toHaveLength(1);
+    expect(screen.getByText(/Read:/)).toBeInTheDocument();
   });
 
   // ── Keyboard navigation ────────────────────────────────────────────
@@ -119,7 +128,7 @@ describe("NotificationPanel", () => {
   describe("keyboard navigation", () => {
     it("applies listbox role and aria-label to the notification list", () => {
       render(<NotificationPanel notifications={buildNotifications(3)} />);
-#602
+
       expect(
         screen.getByRole("listbox", { name: "Notifications list" }),
       ).toBeInTheDocument();

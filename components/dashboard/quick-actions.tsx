@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useRef, useState, useCallback } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
@@ -157,6 +157,66 @@ export function QuickActions({
   onCustomize,
 }: QuickActionsProps) {
   const router = useRouter();
+  const [activeIndex, setActiveIndex] = useState(0);
+  const gridRef = useRef<HTMLDivElement>(null);
+
+  const getEnabledCards = useCallback(() => {
+    if (!gridRef.current) return [];
+    return Array.from(
+      gridRef.current.querySelectorAll<HTMLElement>("[data-quick-action]"),
+    );
+  }, []);
+
+  const handleGridKeyDown = useCallback(
+    (e: React.KeyboardEvent) => {
+      const cards = getEnabledCards();
+      if (cards.length === 0) return;
+
+      const currentActive = cards.findIndex(
+        (card) => card === document.activeElement,
+      );
+      const currentIndex = currentActive >= 0 ? currentActive : activeIndex;
+
+      let nextIndex = currentIndex;
+      const cols =
+        gridRef.current
+          ? window.getComputedStyle(gridRef.current).gridTemplateColumns.split(" ")
+              .length
+          : 1;
+
+      switch (e.key) {
+        case "ArrowRight":
+          if (currentIndex < cards.length - 1) nextIndex = currentIndex + 1;
+          break;
+        case "ArrowLeft":
+          if (currentIndex > 0) nextIndex = currentIndex - 1;
+          break;
+        case "ArrowDown":
+          if (currentIndex + cols < cards.length)
+            nextIndex = currentIndex + cols;
+          break;
+        case "ArrowUp":
+          if (currentIndex - cols >= 0)
+            nextIndex = currentIndex - cols;
+          break;
+        case "Home":
+          nextIndex = 0;
+          break;
+        case "End":
+          nextIndex = cards.length - 1;
+          break;
+        default:
+          return;
+      }
+
+      if (nextIndex !== currentIndex) {
+        e.preventDefault();
+        setActiveIndex(nextIndex);
+        cards[nextIndex]?.focus();
+      }
+    },
+    [activeIndex, getEnabledCards],
+  );
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
@@ -234,7 +294,13 @@ export function QuickActions({
       </div>
 
       {/* Action cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-6">
+      <div
+        ref={gridRef}
+        role="group"
+        aria-label="Quick actions"
+        className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-6"
+        onKeyDown={handleGridKeyDown}
+      >
         {actions.map((action, index) => {
           const Icon = action.icon;
 
@@ -314,9 +380,12 @@ export function QuickActions({
               <Link
                 key={index}
                 href={action.href}
+                data-quick-action
+                tabIndex={index === activeIndex ? 0 : -1}
                 className={cn(cardBase, cardInteractive)}
                 aria-label={action.title}
                 title={titleHint}
+                onFocus={() => setActiveIndex(index)}
               >
                 {content}
               </Link>
@@ -327,9 +396,12 @@ export function QuickActions({
             <button
               key={index}
               type="button"
+              data-quick-action
+              tabIndex={index === activeIndex ? 0 : -1}
               onClick={action.onClick}
               aria-label={action.title}
               title={titleHint}
+              onFocus={() => setActiveIndex(index)}
               className={cn(cardBase, cardInteractive, "text-left w-full")}
             >
               {content}

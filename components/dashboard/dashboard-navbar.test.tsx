@@ -11,7 +11,7 @@
  * - Body scroll is locked when drawer is open.
  */
 import React from "react";
-import { render, screen, fireEvent, act } from "@testing-library/react";
+import { render, screen, fireEvent, act, within } from "@testing-library/react";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import DashboardNavbar from "./dashboard-navbar";
 
@@ -246,5 +246,71 @@ describe("DashboardNavbar mobile drawer focus trap", () => {
   it("hamburger button has aria-controls pointing to the drawer", () => {
     render(<DashboardNavbar />);
     expect(getMenuButton()).toHaveAttribute("aria-controls", "dashboard-mobile-drawer");
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Unread notification badge
+// ---------------------------------------------------------------------------
+
+describe("DashboardNavbar – unread notification badge", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  function getDesktopNotificationBtn() {
+    return screen.getByRole("button", { name: /notifications/i });
+  }
+
+  it("does not render a badge when unreadCount is 0", () => {
+    render(<DashboardNavbar unreadCount={0} />);
+    const btn = getDesktopNotificationBtn();
+    expect(btn.querySelector(".bg-red-500")).toBeNull();
+  });
+
+  it("renders a badge with the unread count when unreadCount > 0", () => {
+    render(<DashboardNavbar unreadCount={5} />);
+    const btn = getDesktopNotificationBtn();
+    expect(btn.querySelector(".bg-red-500")).toHaveTextContent("5");
+  });
+
+  it("caps the badge at 9+ when unreadCount exceeds 9", () => {
+    render(<DashboardNavbar unreadCount={15} />);
+    const btn = getDesktopNotificationBtn();
+    expect(btn.querySelector(".bg-red-500")).toHaveTextContent("9+");
+  });
+
+  it("includes unread count in aria-label on desktop", () => {
+    render(<DashboardNavbar unreadCount={3} />);
+    expect(getDesktopNotificationBtn()).toHaveAttribute(
+      "aria-label",
+      "Notifications, 3 unread",
+    );
+  });
+
+  it("uses default aria-label when unreadCount is 0", () => {
+    render(<DashboardNavbar unreadCount={0} />);
+    expect(getDesktopNotificationBtn()).toHaveAttribute(
+      "aria-label",
+      "Notifications",
+    );
+  });
+
+  it("renders mobile notification button with badge when open", () => {
+    render(<DashboardNavbar unreadCount={7} />);
+
+    const menuBtn = screen.getByRole("button", { name: /open navigation menu/i });
+    fireEvent.click(menuBtn);
+
+    const drawer = screen.getByRole("dialog", { name: /mobile navigation menu/i });
+    const mobileNotifBtns = within(drawer).getAllByRole("button", { name: "Notifications, 7 unread" });
+    expect(mobileNotifBtns.length).toBeGreaterThanOrEqual(1);
+    expect(mobileNotifBtns[0].querySelector(".bg-red-500")).toHaveTextContent("7");
+  });
+
+  it("defaults to no badge when unreadCount is not provided", () => {
+    render(<DashboardNavbar />);
+    const btn = getDesktopNotificationBtn();
+    expect(btn.querySelector(".bg-red-500")).toBeNull();
   });
 });

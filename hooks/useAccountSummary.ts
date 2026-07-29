@@ -20,8 +20,51 @@ export function clearAccountSummaryCache() {
 }
 
 /**
- * Hook to fetch account summary data for the dashboard.
- * Returns a stable `refetch` callback so error states can retry without remounting.
+ * Fetches the dashboard account summary for the currently connected wallet.
+ *
+ * The hook reads the wallet address and network from {@link useWallet} and
+ * returns a standard `{ data, isLoading, error, refetch }` shape.  Results
+ * are cached in a module-level Map keyed by `${network.id}:${address}` so
+ * navigating away and back rehydrates from the cache without a loading flash.
+ *
+ * The `refetch` callback is stable across renders, clears any previous
+ * error, and forces a new fetch even when cached data exists.  It is safe to
+ * pass directly to an `<ErrorState onRetry={refetch} />` without wrapping.
+ *
+ * @returns An object with the following fields:
+ *
+ * - `data`     — `AccountSummary | null`  The latest account summary, or `null`
+ *                before the first successful fetch.
+ * - `isLoading`— `boolean`  `true` while the initial or refetch request is in
+ *                flight; `false` when a cached result is served synchronously.
+ * - `error`    — `string | null`  A human-readable error message when the most
+ *                recent fetch fails, or `null` on success.
+ * - `refetch`  — `() => void`  Stable function that resets `error`, sets
+ *                `isLoading = true`, and re-fetches from the API.
+ *
+ * @example
+ * ```tsx
+ * import { useAccountSummary } from "@/hooks/useAccountSummary";
+ * import { ErrorState } from "@/components/ui/error-state";
+ *
+ * function DashboardSummary() {
+ *   const { data, isLoading, error, refetch } = useAccountSummary();
+ *
+ *   if (isLoading) return <Skeleton />;
+ *   if (error) return (
+ *     <ErrorState
+ *       title="Failed to Load"
+ *       description={error}
+ *       onRetry={refetch}
+ *     />
+ *   );
+ *
+ *   return <p>Balance: {data?.balance}</p>;
+ * }
+ * ```
+ *
+ * @see {@link usePaymentHistory} — the payment-history hook that shares the
+ *      same `{ data, isLoading, error, refetch }` contract.
  */
 export function useAccountSummary(): UseAccountSummaryResult {
   const { address, network } = useWallet();
