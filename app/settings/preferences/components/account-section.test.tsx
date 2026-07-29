@@ -25,3 +25,49 @@ describe('AccountSection Component - Cookie Preferences', () => {
     expect(marketingCheckbox.checked).toBe(true);
   });
 });
+
+describe("AccountSection avatar upload validation", () => {
+  beforeEach(() => {
+    vi.useFakeTimers();
+  });
+
+  afterEach(() => {
+    cleanup();
+    vi.restoreAllMocks();
+    vi.useRealTimers();
+  });
+
+  const getFileInput = () => screen.getByTestId("avatar-upload-input");
+
+  it("shows an error when the file is not an accepted image type", () => {
+    render(<AccountSection />);
+    const fileInput = getFileInput();
+    const file = new File(["dummy content"], "test.pdf", { type: "application/pdf" });
+    
+    fireEvent.change(fileInput, { target: { files: [file] } });
+
+    expect(screen.getByText(/Please select a valid image file/i)).toBeInTheDocument();
+  });
+
+  it("shows an error when the file exceeds 5MB", () => {
+    render(<AccountSection />);
+    const fileInput = getFileInput();
+    const file = new File(["content"], "large.png", { type: "image/png" });
+    Object.defineProperty(file, "size", { value: 6 * 1024 * 1024 });
+    
+    fireEvent.change(fileInput, { target: { files: [file] } });
+
+    expect(screen.getByText(/File size must be less than 5MB/i)).toBeInTheDocument();
+  });
+
+  it("shows a success status for a valid image", () => {
+    render(<AccountSection />);
+    const fileInput = getFileInput();
+    const file = new File(["content"], "avatar.png", { type: "image/png" });
+    Object.defineProperty(file, "size", { value: 1024 * 1024 });
+    
+    fireEvent.change(fileInput, { target: { files: [file] } });
+
+    expect(screen.getByText(/Photo staged for upload/i)).toBeInTheDocument();
+  });
+});
