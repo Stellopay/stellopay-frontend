@@ -157,6 +157,23 @@ and debugging stay frictionless.
 
 We expect all new utility functions and business logic to have **minimum 95% test coverage**.
 
+### Locale Testing Convention for Formatting Utilities
+
+Formatting utility functions in `utils/formatUtils.ts` are tested across multiple locales to ensure graceful degradation and validate readiness for eventual i18n support. This parametrized approach catches hardcoded locale assumptions early.
+
+**When adding or modifying a formatting function:**
+
+1. **Locale-aware functions** (those that call `Intl.NumberFormat`, `Intl.DateTimeFormat`, etc.): Accept a `locale` parameter and test across the locale matrix defined in `formatUtils.test.ts` (currently: `en-US`, `de-DE`, `fr-FR`, `ar-SA`). Validate output against `Intl` API behavior for each locale, not hardcoded expected strings.
+
+2. **Locale-agnostic functions** (pure string manipulation, no `Intl` calls): Add parametrized tests confirming no errors are thrown across the locale matrix. These functions don't need locale-specific output assertions, but confirming execution safety across locales prevents silent breakage if the function is used in future i18n contexts.
+
+3. **Audit hardcoded assumptions**: Before submitting a PR, check for:
+   - Hardcoded locale strings (e.g., `'en-US'` literal in function logic)
+   - Manual formatting logic (e.g., comma insertion, currency symbol placement) that should delegate to `Intl`
+   - Missing locale parameters that prevent per-call locale flexibility
+
+Hardcoded locale assumptions should be flagged in the PR description for maintainer review — do not silently change function signatures or implementation as part of a test PR. See issue #823 for a detailed example of this audit pattern.
+
 ### Test Commands
 
 - **Unit Tests (Vitest):**
