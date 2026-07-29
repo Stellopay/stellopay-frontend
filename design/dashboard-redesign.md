@@ -292,3 +292,138 @@ Migrated hardcoded hex colors to semantic tokens for better theme consistency an
 - **Flex Layout**: Uses `flex flex-col gap-2` to stack the value and label vertically, adapting to varying text lengths gracefully.
 - **Dimensions**: Retains a fixed height (`h-[118px]`) with `w-full`, allowing the card to stretch fluidly across CSS grid or flex layouts across breakpoints (`sm`, `md`, `lg`, `xl`).
 - **Text Wrapping**: The text is centered (`text-center`) and breaks naturally, preserving readability on smaller screens.
+
+## Cookie Consent Banner (Issue #810)
+
+The Cookie Consent Banner ensures compliance with cookie-consent regulations by prompting first-time visitors to accept or decline non-essential cookies before the site sets them.
+
+### Feature Overview
+
+- **First-Visit Detection**: Uses `utils/safeStorage.ts` with storage key `"stellopay.cookie-consent"` to show the banner only once per browser.
+- **Explicit Actions**: Provides **Accept** and **Decline** buttons — not just an acknowledge-and-dismiss.
+- **Policy Link**: Includes a "Learn more" link that navigates to the `/cookies` policy page.
+- **Bottom Fixed Position**: Rendered as a fixed bottom bar that does NOT block page content or trap keyboard focus.
+- **No Focus Trap**: Keyboard users can freely Tab past the banner; focus is not confined.
+
+### Component
+
+| File | Purpose |
+|------|---------|
+| `components/common/cookie-consent-banner.tsx` | Fixed bottom banner with Accept / Decline actions and `/cookies` link |
+| `components/common/cookie-consent-banner.test.tsx` | Unit tests covering happy path, edge cases, a11y, and negative scenarios |
+| `app/layout.tsx` | Renders `<CookieConsentBanner />` in the root layout alongside `<OfflineBanner />` |
+
+### State Model
+
+- **Storage Key**: `"stellopay.cookie-consent"` (follows dot-namespace convention).
+- **Storage Values**: `"accepted"` | `"declined"` — `null` means first visit.
+- **Hydration Pattern**:
+  1. Component mounts with `consent = null` and `hydrated = false`.
+  2. `useEffect` reads from `safeStorage.getItem(STORAGE_KEY)` (SSR-safe, returns `null` on error).
+  3. Sets `consent` and `hydrated = true`.
+  4. Banner renders only when hydrated AND consent is `null` (first visit).
+- **Persistence**: Clicking Accept or Decline calls `safeStorage.setItem(STORAGE_KEY, value)` and sets component state to hide the banner immediately.
+
+### Accessibility (WCAG 2.1 AA)
+
+**ARIA Attributes**
+- Banner container: `role="dialog"` with `aria-label="Cookie consent"`.
+- Accept button: `aria-label="Accept cookies"`.
+- Decline button: `aria-label="Decline cookies"`.
+- Cookie icon: `aria-hidden="true"` (decorative).
+- "Learn more" link: navigates to `/cookies`.
+
+**Keyboard Navigation**
+- All interactive elements (Accept, Decline, Learn more) are fully keyboard-operable.
+- `Tab` moves between buttons and the link naturally — no focus trapping.
+- All elements display visible `focus-visible:ring-2` focus indicators.
+
+**Color Contrast (WCAG AA)**
+- Light mode: `#666666` text on `#FAFAFA` background — meets AA for normal text.
+- Dark mode: `#a1a1aa` text on `#09090B` background — meets AA for normal text.
+- Accept button: white text (`#FFFFFF`) on gradient `#83A7FF → #8B5CF6` — meets AA (4.5:1+ against the darker purple endpoint).
+- Link color: `#7C3AED` on `#FAFAFA` — meets AA for large text.
+
+**Visual Indicators**
+- Hover state on Decline button: border and text change to accent color.
+- Hover state on Accept button: gradient shift.
+- Hover state on "Learn more" link: underline + color shift.
+- Focus indicators: `ring-2` with `ring-offset-2` on all interactive elements.
+
+### Responsive Behavior
+
+- **Mobile (< 640px)**: Stacked layout — message on top, buttons below. Full-width.
+- **Tablet/Desktop (≥ 640px)**: Side-by-side — message left, buttons right.
+- **Max width**: `1200px` to match the footer and main content width.
+- **Padding**: `px-4` on mobile, `px-6` on `sm+`.
+- **Text**: Constrained to a readable measure; wraps naturally on long content.
+
+### Design Tokens & Styling Consistency
+
+**Color System (Light Mode)**
+- Banner background: `bg-[#FAFAFA]` (matches footer background).
+- Border: `border-gray-200`.
+- Text: `text-[#666666]`.
+- Accent link: `text-[#7C3AED]`.
+- Accept button: gradient `from-[#83A7FF] to-[#8B5CF6]` (matches newsletter subscribe button in footer).
+- Decline button: transparent background with `border-gray-200`.
+
+**Color System (Dark Mode)**
+- Banner background: `dark:bg-[#09090B]` (matches footer background).
+- Border: `dark:border-[#1a1a1a]`.
+- Text: `dark:text-[#a1a1aa]`.
+- Accent link: `dark:text-[#a78bfa]`.
+- Accept button: same gradient (white text ensures contrast).
+- Decline button: `dark:border-[#27272a]`, `dark:text-[#a1a1aa]`.
+
+**Spacing & Typography**
+- Font family: `General Sans, sans-serif` (matches footer).
+- Text size: `text-sm`.
+- Button height: `h-9` (36px).
+- Button padding: `px-4` (Decline), `px-5` (Accept).
+- Border radius: `rounded-lg` for buttons.
+
+**Transitions**
+- All interactive elements use `transition-all duration-200`.
+- Hover: border/text color shifts.
+- Banner shadow: subtle upward shadow to separate from content.
+
+### Testing Coverage
+
+**Unit Tests** (`cookie-consent-banner.test.tsx`)
+
+*Default Rendering*
+- ✓ Renders banner when no consent is stored (first visit).
+- ✓ Shows cookie icon, message text, Accept button, Decline button, and Learn more link.
+- ✓ "Learn more" link points to `/cookies`.
+
+*Accept & Decline Actions*
+- ✓ Accept dismisses banner and persists `"accepted"` to safeStorage.
+- ✓ Decline dismisses banner and persists `"declined"` to safeStorage.
+
+*Persistence*
+- ✓ Does NOT render when consent was previously accepted.
+- ✓ Does NOT render when consent was previously declined.
+
+*SSR / Error Handling*
+- ✓ Handles safeStorage.setItem failure gracefully (does not throw).
+- ✓ Banner still dismisses even if persistence write fails.
+
+*Accessibility*
+- ✓ Uses `role="dialog"` with `aria-label="Cookie consent"`.
+- ✓ Cookie icon is decorative (`aria-hidden="true"`).
+- ✓ Action buttons have descriptive `aria-label`s.
+- ✓ Does NOT trap keyboard focus.
+
+*Negative Test*
+- ✓ Does NOT render when hydrated and consent is already decided.
+
+*Responsive & Dark Mode*
+- ✓ Applies dark mode classes on the banner container.
+- ✓ "Learn more" link has dark-mode styling classes.
+
+### Known Limitations
+
+- **No granular category preferences**: The banner is a binary Accept/Decline. Granular cookie category preferences (e.g., analytics vs. marketing) are out of scope for this iteration.
+- **No third-party script blocking**: The banner sets a consent flag but does not actively block third-party scripts. Integration with a tag manager would be needed for production enforcement.
+- **No auto-dismiss**: The banner remains until the user takes explicit action, which is intentional for compliance.
