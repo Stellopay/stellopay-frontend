@@ -99,11 +99,18 @@ interface AccountSectionProps {
    */
   profile?: ProfileState;
   onProfileChange?: (next: ProfileState) => void;
+  /**
+   * Called with the final saved profile once a save succeeds, so a parent
+   * tracking a dirty/unsaved-changes flag can clear it. Not called on
+   * validation failure or a simulated save error.
+   */
+  onSaved?: (saved: ProfileState) => void;
 }
 
 export default function AccountSection({
   profile: controlledProfile,
   onProfileChange,
+  onSaved,
 }: AccountSectionProps = {}) {
   const [internalProfile, setInternalProfile] =
     useState<ProfileState>(DEFAULT_PROFILE);
@@ -213,6 +220,7 @@ export default function AccountSection({
             "Account profile changes are staged and ready for backend save.",
           type: "success",
         });
+        onSaved?.({ ...profile, email: normalizedEmail });
       }
     } catch {
       if (isMountedRef.current) {

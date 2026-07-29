@@ -4,8 +4,10 @@ import {
   fireEvent,
   render,
   screen,
+  waitFor,
   within,
 } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import SettingsPageShell from "./settings-page-shell";
 
@@ -73,5 +75,114 @@ describe("SettingsPageShell summary cards", () => {
     expect(
       within(summaryValue("Alerts enabled")).queryByText("5 active"),
     ).not.toBeInTheDocument();
+  });
+});
+
+describe("SettingsPageShell unsaved-changes navigation guard", () => {
+  afterEach(() => {
+    cleanup();
+    vi.restoreAllMocks();
+  });
+
+  it("does not warn when switching sections with no unsaved changes", async () => {
+    const user = userEvent.setup();
+    render(<SettingsPageShell />);
+    const confirmSpy = vi.spyOn(window, "confirm");
+
+    // Radix's TabsTrigger activates on pointer events, not a bare click, so
+    // this needs userEvent (which dispatches the full pointer sequence)
+    // rather than fireEvent.click.
+    await user.click(screen.getByRole("tab", { name: /notifications/i }));
+
+    expect(confirmSpy).not.toHaveBeenCalled();
+    expect(screen.getByRole("tab", { name: /notifications/i })).toHaveAttribute(
+      "data-state",
+      "active",
+    );
+  });
+
+  it("warns before switching sections with an unsaved account edit, and stays put if cancelled", async () => {
+    const user = userEvent.setup();
+    render(<SettingsPageShell />);
+
+    const firstNameInput = screen.getByLabelText(/first name/i);
+    fireEvent.change(firstNameInput, { target: { value: "Ada" } });
+
+    const confirmSpy = vi.spyOn(window, "confirm").mockReturnValue(false);
+    await user.click(screen.getByRole("tab", { name: /notifications/i }));
+
+    expect(confirmSpy).toHaveBeenCalled();
+    expect(screen.getByRole("tab", { name: /account/i })).toHaveAttribute(
+      "data-state",
+      "active",
+    );
+  });
+
+  it("allows switching sections with an unsaved edit once the user confirms", async () => {
+    const user = userEvent.setup();
+    render(<SettingsPageShell />);
+
+    const firstNameInput = screen.getByLabelText(/first name/i);
+    fireEvent.change(firstNameInput, { target: { value: "Ada" } });
+
+    vi.spyOn(window, "confirm").mockReturnValue(true);
+    await user.click(screen.getByRole("tab", { name: /notifications/i }));
+
+    expect(screen.getByRole("tab", { name: /notifications/i })).toHaveAttribute(
+      "data-state",
+      "active",
+    );
+  });
+
+  it("clears the dirty flag after a successful save, so a later navigation is unprompted", async () => {
+    const user = userEvent.setup();
+    // The simulated save in AccountSection has a random failure chance;
+    // force the success branch deterministically (same pattern used in
+    // account-section.test.tsx).
+    vi.spyOn(Math, "random").mockReturnValue(0.1);
+    render(<SettingsPageShell />);
+
+    const firstNameInput = screen.getByLabelText(/first name/i);
+    fireEvent.change(firstNameInput, { target: { value: "Ada" } });
+    fireEvent.click(
+      screen.getByRole("button", { name: /save account changes/i }),
+    );
+
+    await waitFor(
+      () =>
+        expect(
+          screen.getByText(/staged and ready for backend save/i),
+        ).toBeInTheDocument(),
+      { timeout: 3000 },
+    );
+
+    const confirmSpy = vi.spyOn(window, "confirm");
+    await user.click(screen.getByRole("tab", { name: /notifications/i }));
+
+    expect(confirmSpy).not.toHaveBeenCalled();
+    expect(
+      screen.getByRole("tab", { name: /notifications/i }),
+    ).toHaveAttribute("data-state", "active");
+  });
+
+  it("prevents a tab close/reload when there are unsaved changes", () => {
+    render(<SettingsPageShell />);
+
+    const firstNameInput = screen.getByLabelText(/first name/i);
+    fireEvent.change(firstNameInput, { target: { value: "Ada" } });
+
+    const event = new Event("beforeunload", { cancelable: true });
+    window.dispatchEvent(event);
+
+    expect(event.defaultPrevented).toBe(true);
+  });
+
+  it("does not prevent a tab close/reload when there are no unsaved changes", () => {
+    render(<SettingsPageShell />);
+
+    const event = new Event("beforeunload", { cancelable: true });
+    window.dispatchEvent(event);
+
+    expect(event.defaultPrevented).toBe(false);
   });
 });

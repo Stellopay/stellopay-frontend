@@ -55,11 +55,18 @@ interface NotificationsSectionProps {
    */
   settings?: NotificationSettingsState;
   onSettingsChange?: (next: NotificationSettingsState) => void;
+  /**
+   * Called with the saved settings once a save succeeds, so a parent
+   * tracking a dirty/unsaved-changes flag can clear it. Not called when the
+   * save fails.
+   */
+  onSaved?: (saved: NotificationSettingsState) => void;
 }
 
 export default function NotificationsSection({
   settings: controlledSettings,
   onSettingsChange,
+  onSaved,
 }: NotificationsSectionProps = {}) {
   const [internalSettings, setInternalSettings] =
     useState<NotificationSettingsState>(DEFAULT_NOTIFICATION_SETTINGS);
@@ -110,6 +117,7 @@ export default function NotificationsSection({
 
       setStatusType("success");
       setStatusMessage("Notification preferences updated. Critical alerts remain prioritized.");
+      onSaved?.(settings);
     } catch (_error) {
       setStatusType("error");
       setStatusMessage("Failed to save preferences. Please try again.");

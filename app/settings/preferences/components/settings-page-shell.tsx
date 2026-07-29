@@ -27,6 +27,8 @@ import NotificationsSection, {
 } from "./notifications-section";
 import SecurityTab, { DEFAULT_TWO_FACTOR_ENABLED } from "./security-tab";
 import WalletsSection from "./wallets-section";
+import { useUnsavedChangesGuard } from "@/hooks/useUnsavedChangesGuard";
+import { isShallowEqual } from "@/utils/objectUtils";
 
 /**
  * Number of wallets currently linked. Sourced from the wallets data the
@@ -89,6 +91,22 @@ export default function SettingsPageShell({
     DEFAULT_TWO_FACTOR_ENABLED,
   );
 
+  // Snapshots of the two sections that have an explicit "Save" step
+  // (Account, Notifications) as of their last successful save. Security's
+  // two-factor toggle applies immediately (no draft to lose) and Wallets
+  // manages its own unlifted state, so neither contributes to the dirty
+  // flag below. Compared against the live state to know whether either
+  // section has an edit that hasn't been saved yet.
+  const [savedProfile, setSavedProfile] = useState(DEFAULT_PROFILE);
+  const [savedNotificationSettings, setSavedNotificationSettings] = useState(
+    DEFAULT_NOTIFICATION_SETTINGS,
+  );
+  const hasUnsavedChanges =
+    !isShallowEqual(profile, savedProfile) ||
+    !isShallowEqual(notificationSettings, savedNotificationSettings);
+
+  const { confirmDiscard } = useUnsavedChangesGuard(hasUnsavedChanges);
+
   // Summary card values, derived from live state rather than hardcoded copy.
   const profileReadiness = isProfileComplete(profile)
     ? "Complete"
@@ -98,6 +116,8 @@ export default function SettingsPageShell({
   const walletCoverage = `${linkedWalletCount} linked`;
 
   const handleSectionChange = (nextSection: string) => {
+    if (nextSection === activeSection) return;
+    if (!confirmDiscard()) return;
     setActiveSection(nextSection);
     router.replace(`${pathname}?section=${nextSection}`, {
       scroll: false,
@@ -146,13 +166,18 @@ export default function SettingsPageShell({
         </section>
 
         <TabsContent value="account" className="mt-0">
-          <AccountSection profile={profile} onProfileChange={setProfile} />
+          <AccountSection
+            profile={profile}
+            onProfileChange={setProfile}
+            onSaved={setSavedProfile}
+          />
         </TabsContent>
 
         <TabsContent value="notifications" className="mt-0">
           <NotificationsSection
             settings={notificationSettings}
             onSettingsChange={setNotificationSettings}
+            onSaved={setSavedNotificationSettings}
           />
         </TabsContent>
 
