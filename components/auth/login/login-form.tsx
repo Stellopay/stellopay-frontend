@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Form } from "@/components/ui/form";
 import {
   AuthFormField,
+  FormFieldPassword,
   FormFieldCheckbox,
 } from "@/components/ui/form-field";
 import { Separator } from "@/components/ui/separator";
@@ -43,6 +44,7 @@ type SignInMethod = "password" | "magic-link";
 export function LoginForm() {
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
+  const [isNetworkError, setIsNetworkError] = useState(false);
   const [signInMethod, setSignInMethod] = useState<SignInMethod>("password");
   const [magicLinkSent, setMagicLinkSent] = useState(false);
   const [magicLinkEmail, setMagicLinkEmail] = useState("");
@@ -79,6 +81,7 @@ export function LoginForm() {
   async function onSubmit(_data: LoginFormValues) {
     setIsLoading(true);
     setErrorMessage("");
+    setIsNetworkError(false);
     try {
       await login(_data);
       // Persist only a non-sensitive identifier (email). The password is
@@ -92,8 +95,10 @@ export function LoginForm() {
     } catch (error) {
       if (error instanceof AuthError) {
         setErrorMessage(error.message);
+        setIsNetworkError(error.kind === "network");
       } else {
         setErrorMessage("Invalid email or password. Please try again.");
+        setIsNetworkError(false);
       }
     } finally {
       setIsLoading(false);
@@ -212,7 +217,7 @@ export function LoginForm() {
               : "text-zinc-400 hover:text-white hover:bg-[#1A1A1A]"
           }`}
         >
-<Mail className="w-4 h-4" aria-hidden="true" />
+          <Mail className="w-4 h-4" aria-hidden="true" />
           Send Link
         </button>
       </div>
@@ -257,42 +262,19 @@ export function LoginForm() {
                 <div
                   role="alert"
                   aria-live="polite"
-                  className="bg-red-500/10 text-red-300 px-4 py-3 rounded-lg text-sm"
+                  className="bg-red-500/10 text-red-300 px-4 py-3 rounded-lg text-sm flex items-center justify-between gap-3"
                 >
-                  {errorMessage}
-                </div>
-              )}
-            >
-              <FormFieldInput
-                control={form.control}
-                name="email"
-                type="email"
-                label="Email Address"
-                placeholder="Enter your email"
-                loading={isLoading}
-                required
-                autoComplete="email"
-              />
-
-              <AuthFormField
-                control={form.control}
-                name="password"
-                type="password"
-                label="Password"
-                placeholder="Enter your password"
-                disabled={isLoading}
-                required
-                autoComplete="current-password"
-              />
-
-              {/* Error Message */}
-              {errorMessage && (
-                <div
-                  role="alert"
-                  aria-live="polite"
-                  className="bg-red-500/10 text-red-300 px-4 py-3 rounded-lg text-sm"
-                >
-                  {errorMessage}
+                  <span>{errorMessage}</span>
+                  {isNetworkError && (
+                    <button
+                      type="button"
+                      onClick={form.handleSubmit(onSubmit, onValidationError)}
+                      disabled={isLoading}
+                      className="shrink-0 underline underline-offset-4 font-medium hover:text-red-200 disabled:opacity-50"
+                    >
+                      Retry
+                    </button>
+                  )}
                 </div>
               )}
 
