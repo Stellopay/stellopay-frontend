@@ -154,3 +154,63 @@ describe("SettingsPageShell keyboard tabs", () => {
     );
   });
 });
+
+describe("SettingsPageShell unsaved changes guard", () => {
+  afterEach(() => {
+    cleanup();
+  });
+
+  it("intercepts tab switch when there are unsaved edits, and handles Stay", () => {
+    render(<SettingsPageShell initialSection="account" />);
+
+    // Dirty the account tab
+    const firstNameInput = screen.getByLabelText(/first name/i);
+    const originalValue = (firstNameInput as HTMLInputElement).value;
+    fireEvent.change(firstNameInput, { target: { value: "Dirty Name" } });
+
+    // Attempt to switch to notifications
+    fireEvent.click(screen.getByRole("tab", { name: /notifications/i }));
+
+    // Assert the guard intercepts
+    const dialog = screen.getByRole("dialog");
+    expect(dialog).toBeInTheDocument();
+    expect(screen.getByText(/unsaved changes/i)).toBeInTheDocument();
+
+    // Confirm choosing to stay leaves both the tab and unsaved edits intact
+    fireEvent.click(screen.getByRole("button", { name: /stay/i }));
+    
+    // Dialog should be gone
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    
+    // Tab should still be account
+    expect(screen.getByRole("tab", { name: /account/i })).toHaveAttribute("aria-selected", "true");
+    
+    // Edit should still be intact
+    expect(screen.getByLabelText(/first name/i)).toHaveValue("Dirty Name");
+  });
+
+  it("intercepts tab switch and handles Discard changes", () => {
+    render(<SettingsPageShell initialSection="account" />);
+
+    // Dirty the account tab
+    const firstNameInput = screen.getByLabelText(/first name/i);
+    const originalValue = (firstNameInput as HTMLInputElement).value;
+    fireEvent.change(firstNameInput, { target: { value: "Dirty Name" } });
+
+    // Attempt to switch to notifications
+    fireEvent.click(screen.getByRole("tab", { name: /notifications/i }));
+
+    // Confirm choosing to discard changes actually switches tabs and clears dirty state
+    fireEvent.click(screen.getByRole("button", { name: /discard changes/i }));
+    
+    // Dialog should be gone
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    
+    // Tab should now be notifications
+    expect(screen.getByRole("tab", { name: /notifications/i })).toHaveAttribute("aria-selected", "true");
+    
+    // Switch back to account to verify dirty state was cleared
+    fireEvent.click(screen.getByRole("tab", { name: /account/i }));
+    expect(screen.getByLabelText(/first name/i)).toHaveValue(originalValue);
+  });
+});

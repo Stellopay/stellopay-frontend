@@ -13,6 +13,15 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent } from "@/components/ui/tabs";
 import { DEMO_WALLETS } from "@/lib/demo-data";
 import AccountSection, {
@@ -99,11 +108,43 @@ export default function SettingsPageShell({
   const securityPosture = twoFactorEnabled ? "2-step on" : "2-step off";
   const walletCoverage = `${linkedWalletCount} linked`;
 
+  const [pendingSection, setPendingSection] = useState<string | null>(null);
+
+  // Determine if there are unsaved edits. We use a simple deep comparison
+  // against the initial defaults since this shell tracks the state.
+  const isProfileDirty = JSON.stringify(profile) !== JSON.stringify(DEFAULT_PROFILE);
+  const isDirty = isProfileDirty;
+
   const handleSectionChange = (nextSection: string) => {
+    if (nextSection === activeSection) return;
+
+    if (isDirty) {
+      setPendingSection(nextSection);
+      return;
+    }
+    
+    commitSectionChange(nextSection);
+  };
+
+  const commitSectionChange = (nextSection: string) => {
     setActiveSection(nextSection);
     router.replace(`${pathname}?section=${nextSection}`, {
       scroll: false,
     });
+  };
+
+  const handleDiscardChanges = () => {
+    // Reset state to clear the dirty flag
+    setProfile(DEFAULT_PROFILE);
+    
+    if (pendingSection) {
+      commitSectionChange(pendingSection);
+      setPendingSection(null);
+    }
+  };
+
+  const handleStay = () => {
+    setPendingSection(null);
   };
 
   return (
@@ -171,6 +212,25 @@ export default function SettingsPageShell({
           <WalletsSection />
         </TabsContent>
       </div>
+
+      <Dialog open={pendingSection !== null} onOpenChange={(open) => !open && handleStay()}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Unsaved changes</DialogTitle>
+            <DialogDescription>
+              You have unsaved edits in the current tab. If you switch tabs now, those changes will be lost.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={handleStay}>
+              Stay
+            </Button>
+            <Button variant="destructive" onClick={handleDiscardChanges}>
+              Discard changes
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </Tabs>
   );
 }
