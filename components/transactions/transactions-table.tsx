@@ -12,7 +12,6 @@ import {
 import { TransactionsTableProps, TransactionProps } from "@/types/transaction";
 import { Badge } from "@/components/ui/badge";
 import Image from "next/image";
-import { Skeleton } from "@/components/ui/skeleton";
 import { getStatusColor } from "@/utils/transactionUtils";
 import { truncateStellarAddress } from "@/utils/stellarAddress";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -501,30 +500,9 @@ export function TransactionsTable({
       {/* Mobile Cards */}
       <div className="md:hidden space-y-4">
         {isLoading ? (
-          Array.from({ length: TRANSACTIONS_PAGE_SIZE }).map((_, index) => (
-            <div
-              key={`skeleton-mobile-${index}`}
-              className="p-4 border rounded-lg border-[#2D2D2D]"
-            >
-              <div className="flex justify-between items-start">
-                <div className="space-y-2">
-                  <Skeleton className="h-4 w-32" />
-                  <Skeleton className="h-3 w-24" />
-                </div>
-                <Skeleton className="h-6 w-16 rounded-full" />
-              </div>
-              <div className="mt-2 grid grid-cols-2 gap-2">
-                <div className="space-y-1">
-                  <Skeleton className="h-3 w-12" />
-                  <Skeleton className="h-4 w-20" />
-                </div>
-                <div className="space-y-1">
-                  <Skeleton className="h-3 w-12" />
-                  <Skeleton className="h-4 w-16" />
-                </div>
-              </div>
-            </div>
-          ))
+          <div className="p-4 border rounded-lg border-[#2D2D2D]">
+            <TransactionTableSkeleton rows={TRANSACTIONS_PAGE_SIZE} />
+          </div>
         ) : isEmpty ? (
           <div className="p-8 border rounded-lg border-[#2D2D2D]">
             <EmptyState
