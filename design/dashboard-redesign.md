@@ -107,3 +107,56 @@ Run the suite:
 ```bash
 npx vitest run components/dashboard/account-overview.test.tsx --coverage.enabled=false
 ```
+
+---
+
+## Shared StatCard Primitive (#805)
+
+**Branch:** `refactor/shared-stat-card-primitive`
+
+### What was added
+
+Extracted a unified `StatCard` primitive (`components/ui/stat-card.tsx`) that consolidation-wise replaces duplicate card markups previously found in both landing page stats (`components/landing/stats-cards.tsx`) and dashboard account summary cards (`components/dashboard/account-summary-card.tsx`).
+
+### Component API (`StatCardProps`)
+
+| Prop | Type | Default | Description |
+|---|---|---|---|
+| `size` | `"sm"` \| `"lg"` | `"sm"` | Controls scale variant: `"sm"` (compact/dashboard) vs `"lg"` (large/landing) |
+| `title` | `ReactNode` | `undefined` | Card primary label or title |
+| `subtitle` | `ReactNode` | `undefined` | Secondary sub-label for compact cards |
+| `value` | `ReactNode` | *(required)* | Main stat value (string, number, or animated element) |
+| `valueTestId` | `string` | `undefined` | Test identifier for value container |
+| `icon` | `ReactNode` | `undefined` | Header icon element |
+| `iconBgColor` | `string` | `""` | Background color utility for icon wrapper |
+| `change` | `string` | `undefined` | Trend change text (e.g. `+12.5% vs last month`) |
+| `isPositive` | `boolean` | `undefined` | Trend direction flag (emerald vs rose) |
+| `trendSlot` | `ReactNode` | `undefined` | Custom trend badge override |
+| `chartSlot` | `ReactNode` | `undefined` | Bottom slot (e.g., mini bar chart) |
+| `href` | `string` | `undefined` | Optional link destination for interactive cards |
+| `ariaLabel` | `string` | `undefined` | Accessible label when rendered as a link |
+| `testId` | `string` | `undefined` | Data-testid for card wrapper |
+
+### Accessibility (WCAG 2.1 AA)
+
+| Aspect | Implementation & Contrast Ratios |
+|---|---|
+| **Color Contrast (Light)** | Value text `zinc-900` (#18181b, 16:1), title `zinc-500` (#71717a, 4.6:1), positive trend `emerald-700` (#047857, 5.5:1), negative trend `rose-700` (#be123c, 6:1). Landing scale value `#6B47ED` (4.5:1). |
+| **Color Contrast (Dark)** | Dark value `white` (#ffffff, 21:1), dark title `zinc-400` (#a1a1aa, 6.2:1), positive trend `emerald-400` (#34d399, 7+:1), negative trend `rose-400` (#fb7185, 7+:1). Landing scale value `#A78BFA` (7+:1). |
+| **Keyboard Navigation** | Link variant (`href` provided) renders a standard accessible `<Link>` with clear focus indicator: `focus-visible:ring-2 focus-visible:ring-zinc-900 dark:focus-visible:ring-white focus-visible:ring-offset-2`. |
+| **Screen Readers & ARIA** | Interactive link variants accept `ariaLabel`. Decorative trend arrows carry `aria-hidden="true"`. |
+
+### Responsive Behavior Across Breakpoints
+
+- **`sm` (640px)**: Grid adjusts from 1-column stack to multi-column layout on landing. Text sizes scale (`text-2xl` to `text-3xl`).
+- **`md` (768px)**: Landing scale padding scales up (`px-8 py-10`), label text grows (`text-base`).
+- **`lg` (1024px)**: 4-column layout for landing stat card grids.
+- **`xl` (1280px)**: Full width container constraints with smooth overflow protection (`truncate`, `min-w-0`, `max-w-full`).
+
+### Tests
+
+Suite run:
+
+```bash
+node node_modules/vitest/vitest.mjs run components/ui/stat-card.test.tsx components/dashboard/account-summary-card.test.tsx components/landing/stats-cards.test.tsx
+```
