@@ -126,17 +126,22 @@ export default function NotificationsSection({
     }
   };
 
-  const updateSetting = (
-    field: keyof NotificationSettingsState,
-    value: boolean,
-  ) => {
-    const next: NotificationSettingsState = { ...settings, [field]: value };
-    if (onSettingsChange) {
-      onSettingsChange(next);
-    } else {
-      setInternalSettings(next);
-    }
-  };
+const updateSetting = (
+  field: keyof NotificationSettingsState,
+  value: boolean,
+) => {
+  if (settings[field] === value) {
+    return;
+  }
+
+  const next = { ...settings, [field]: value };
+
+  if (onSettingsChange) {
+    onSettingsChange(next);
+  } else {
+    setInternalSettings(next);
+  }
+};
 
   return (
     <div className="grid gap-6 xl:grid-cols-[minmax(0,1.1fr)_minmax(320px,0.9fr)]">

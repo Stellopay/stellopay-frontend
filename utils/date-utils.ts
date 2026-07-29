@@ -111,3 +111,32 @@ export function getCurrentDate(): string {
   return formatDateForInput(new Date());
 }
 
+/**
+ * Formats a date with timezone-aware output using {@link https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Intl/DateTimeFormat | Intl.DateTimeFormat}.
+ *
+ * Falls back gracefully when the timezone is invalid (returns a no-timezone format).
+ *
+ * @param date - The date to format.
+ * @param timezone - An IANA timezone identifier (e.g. `"Africa/Lagos"`).
+ * @returns A human-readable date/time string such as `"Jul 29, 2026, 10:30 AM WAT"`.
+ */
+export function formatDateTimeWithTimezone(
+  date: Date,
+  timezone: string,
+): string {
+  try {
+    return new Intl.DateTimeFormat("en-US", {
+      dateStyle: "medium",
+      timeStyle: "short",
+      timeZone: timezone,
+    }).format(date);
+  } catch {
+    // Fall back to no-timezone formatting when the runtime rejects the
+    // timezone identifier (e.g. an unsupported IANA zone).
+    return new Intl.DateTimeFormat("en-US", {
+      dateStyle: "medium",
+      timeStyle: "short",
+    }).format(date);
+  }
+}
+
