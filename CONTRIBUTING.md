@@ -309,6 +309,84 @@ Run them with:
 npm run test -- date-range-chip
 ```
 
+## Transaction Filter Predicates (`transactions-config.ts`)
+
+`components/transactions/transactions-config.ts` is the single source of truth
+for the Transactions feature's filter/sort/pagination defaults **and** the
+individual filter predicate builders. It is consumed by
+`hooks/useTransactions.ts` (via `lib/api/transactions.ts` →
+`utils/transactionUtils.ts › filterTransactions`).
+
+### Why centralized predicates?
+
+Previously, the logic that combines multiple simultaneous filters
+(date range AND status AND amount) lived only inside
+`utils/transactionUtils.ts › filterTransactions` as a sequence of
+`.filter()` calls. That logic had **no direct unit test** — only indirect
+coverage through component tests — so regressions in the AND composition
+could ship unnoticed.
+
+The refactor extracts each filter rule into a standalone, pure predicate
+builder:
+
+| Builder | Matches | Inactive behavior |
+|---------|---------|-------------------|
+| `createSearchQueryPredicate(query)` | type, txId, address, token, status (case-insensitive) | empty → pass-all |
+| `createSelectedFilterPredicate(filter)` | exact `type` (case-sensitive) | `DEFAULT_SELECTED_FILTER` → pass-all |
+| `createFilterQueryPredicate(query)` | type, status, address (trimmed, case-insensitive) | empty/whitespace → pass-all |
+| `createDateRangePredicate(from, to)` | inclusive date range | invalid dates → exclude all |
+| `createMinAmountPredicate(min)` | `abs(amount) >= min` | `undefined` → pass-all |
+| `createMaxAmountPredicate(max)` | `abs(amount) <= max` | `undefined` → pass-all |
+| `createCounterpartyPredicate(c)` | address substring (trimmed, case-insensitive) | empty/whitespace → pass-all |
+
+`applyTransactionFilters(transactions, options)` composes every active
+predicate with **AND semantics**: a transaction is included only when it
+satisfies **all** active predicates. The date-range predicate is applied only
+when **both** `fromDate` and `toDate` are provided, so other predicates can be
+tested in isolation without a date constraint.
+
+### Adding a new filter
+
+1. **Add a `createXxxPredicate` builder** in `transactions-config.ts` that
+   returns a pure `(transaction) => boolean`. Handle the inactive case
+   (empty/undefined) by returning a pass-all predicate.
+2. **Add the option** to `TransactionFilterOptions` and compose the new
+   predicate inside `applyTransactionFilters`.
+3. **Delegate** from `filterTransactions` (positional adapter) if the new
+   filter should flow through the existing API layer.
+4. **Add unit tests** in `transactions-config.test.ts` covering:
+   - The predicate in isolation (match, no-match, inactive pass-all, boundary).
+   - Combined AND behavior with at least one other predicate.
+   - A zero-results edge case for the new filter.
+
+### Testing the predicates
+
+```bash
+npm run test -- transactions-config
+```
+
+The suite covers:
+
+- **Individual predicates in isolation** — each builder's match/no-match,
+  case sensitivity, trimming, inactive pass-all, and boundary conditions.
+- **Combined-filter AND semantics** — overlapping and non-overlapping result
+  sets across two, three, and four simultaneous filters.
+- **Zero-results edge case** — filter combinations that match no transaction
+  return `[]`, including an empty input array.
+- **Immutability** — the input array is never mutated.
+- **Defaults** — `applyTransactionFilters()` with no options returns all
+  transactions; `getDefaultDateRange()` returns a 30-day window ending today.
+
+### Accessibility & responsive notes
+
+The predicates are pure data functions with no rendered UI, so there is no
+direct WCAG/contrast/keyboard surface. The filter UI components that consume
+them (`filter.tsx`, `advanced-filter-panel.tsx`, `date-range-chip.tsx`) carry
+their own axe-core and keyboard tests. The status color palette in
+`transactionUtils.ts` uses AA-compliant contrast ratios (documented inline in
+`STATUS_COLOR_PALETTE`). Responsive behavior is validated at the component
+level across `sm` 640 / `md` 768 / `lg` 1024 / `xl` 1280 breakpoints.
+
 ## Data-Layer Rules
 
 We enforce a strict separation of concerns for data access.
