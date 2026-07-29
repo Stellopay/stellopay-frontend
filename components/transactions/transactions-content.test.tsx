@@ -2,7 +2,10 @@ import React from "react";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen } from "@testing-library/react";
 
-import { TRANSACTIONS_PAGE_SIZE, getDefaultDateRange } from "./transactions-config";
+import {
+  TRANSACTIONS_PAGE_SIZE,
+  getDefaultDateRange,
+} from "./transactions-config";
 import { TransactionsTable } from "./transactions-table";
 
 // next/image is not available in jsdom — swap it for a plain <img>.
@@ -46,7 +49,9 @@ describe("getDefaultDateRange", () => {
 
   it("fromDate is strictly before toDate", () => {
     const { fromDate, toDate } = getDefaultDateRange();
-    expect(new Date(fromDate).getTime()).toBeLessThan(new Date(toDate).getTime());
+    expect(new Date(fromDate).getTime()).toBeLessThan(
+      new Date(toDate).getTime(),
+    );
   });
 
   it("does not return the stale 2023 hardcoded dates", () => {
@@ -86,22 +91,25 @@ describe("TransactionsTable skeleton count parity", () => {
     // One colspan row for the empty-state message
     expect(tbody?.querySelectorAll("tr").length).toBe(1);
     expect(
-      screen.getAllByText("No transactions found. Try adjusting your filters.")
+      screen.getAllByText("No transactions found. Try adjusting your filters."),
     ).toHaveLength(2); // desktop + mobile
   });
 
   it("renders exactly TRANSACTIONS_PAGE_SIZE data rows when provided that many transactions", () => {
-    const transactions = Array.from({ length: TRANSACTIONS_PAGE_SIZE }, (_, i) => ({
-      id: `tx-${i}`,
-      type: "Payment",
-      address: `GAddress${i}`,
-      date: "2024-01-01",
-      time: "12:00",
-      token: "USDC",
-      amount: `+$${(i + 1) * 10}.00`,
-      status: "Completed" as const,
-      tokenIcon: "/usdc-logo.png",
-    }));
+    const transactions = Array.from(
+      { length: TRANSACTIONS_PAGE_SIZE },
+      (_, i) => ({
+        id: `tx-${i}`,
+        type: "Payment",
+        address: `GAddress${i}`,
+        date: "2024-01-01",
+        time: "12:00",
+        token: "USDC",
+        amount: `+$${(i + 1) * 10}.00`,
+        status: "Completed" as const,
+        tokenIcon: "/usdc-logo.png",
+      }),
+    );
 
     render(<TransactionsTable transactions={transactions} isLoading={false} />);
     const tbody = document.querySelector("tbody");

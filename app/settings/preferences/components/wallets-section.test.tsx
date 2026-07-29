@@ -1,4 +1,11 @@
-import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import {
+  act,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+  within,
+} from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import React from "react";
 import { describe, expect, it, vi, beforeEach, afterEach } from "vitest";
@@ -125,9 +132,7 @@ describe("WalletsSection – disconnect via danger zone", () => {
       target: { value: "REMOVE" },
     });
     await act(async () => {
-      fireEvent.click(
-        screen.getByRole("button", { name: /^remove wallet$/i }),
-      );
+      fireEvent.click(screen.getByRole("button", { name: /^remove wallet$/i }));
     });
   }
 
@@ -419,7 +424,8 @@ describe("WalletsSection – copy button on live wallet card", () => {
 // Copy-to-clipboard — added wallet rows
 // ---------------------------------------------------------------------------
 describe("WalletsSection – copy button on added wallet rows", () => {
-  const VALID_ADDRESS = "GBZXN7PIRZGNMHGA7MUUUF4GWPY5AYPGZIXUNYL67X5TVLZN7CI6S2W";
+  const VALID_ADDRESS =
+    "GBZXN7PIRZGNMHGA7MUUUF4GWPY5AYPGZIXUNYL67X5TVLZN7CI6S2W";
 
   beforeEach(() => {
     vi.useFakeTimers();

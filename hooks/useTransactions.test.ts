@@ -70,7 +70,9 @@ describe("useTransactions", () => {
     expect(result.current.error).toBeNull();
 
     // Clean up: resolve so the hook effect doesn't leak.
-    act(() => { deferred.resolve(makePage("1")); });
+    act(() => {
+      deferred.resolve(makePage("1"));
+    });
   });
 
   it("exposes fetched data and clears loading when the request resolves", async () => {
@@ -141,7 +143,9 @@ describe("useTransactions", () => {
     const { result } = renderHook(() => useTransactions());
 
     // Give the rejection a chance to propagate.
-    await act(async () => { await Promise.resolve(); });
+    await act(async () => {
+      await Promise.resolve();
+    });
 
     // isLoading stays true because the abort is treated as "no result yet".
     // Crucially, error must remain null.
@@ -183,7 +187,7 @@ describe("useTransactions", () => {
   it("only commits the latest result when two requests overlap (race condition)", async () => {
     // Simulate two concurrent requests where the *earlier* one (first) resolves
     // after the *later* one (second).  Only the second result should be kept.
-    const first  = makeDeferred<ReturnType<typeof makePage>>();
+    const first = makeDeferred<ReturnType<typeof makePage>>();
     const second = makeDeferred<ReturnType<typeof makePage>>();
     let callCount = 0;
 
@@ -201,21 +205,27 @@ describe("useTransactions", () => {
     rerender({ filters: { searchQuery: "b" } });
 
     // The second (latest) resolves first.
-    act(() => { second.resolve(makePage("latest")); });
+    act(() => {
+      second.resolve(makePage("latest"));
+    });
     await waitFor(() => expect(result.current.isLoading).toBe(false));
 
     expect(result.current.data?.data[0].id).toBe("latest");
 
     // The first (stale) resolves later — its result must NOT overwrite.
-    act(() => { first.resolve(makePage("stale")); });
-    await act(async () => { await Promise.resolve(); });
+    act(() => {
+      first.resolve(makePage("stale"));
+    });
+    await act(async () => {
+      await Promise.resolve();
+    });
 
     expect(result.current.data?.data[0].id).toBe("latest");
   });
 
   it("discards a stale response even when it resolves much later than the latest", async () => {
     // Same as above but we also verify the hook stays consistent over time.
-    const stale  = makeDeferred<ReturnType<typeof makePage>>();
+    const stale = makeDeferred<ReturnType<typeof makePage>>();
     const latest = makeDeferred<ReturnType<typeof makePage>>();
     let callCount = 0;
 
@@ -242,12 +252,18 @@ describe("useTransactions", () => {
     rerender({ filters: { searchQuery: "y" } });
 
     // Latest settles first.
-    act(() => { latest.resolve(makePage("new")); });
+    act(() => {
+      latest.resolve(makePage("new"));
+    });
     await waitFor(() => expect(result.current.data?.data[0].id).toBe("new"));
 
     // Stale eventually resolves — must be a no-op.
-    act(() => { stale.resolve(makePage("old")); });
-    await act(async () => { await Promise.resolve(); });
+    act(() => {
+      stale.resolve(makePage("old"));
+    });
+    await act(async () => {
+      await Promise.resolve();
+    });
 
     expect(result.current.data?.data[0].id).toBe("new");
   });
@@ -290,9 +306,7 @@ describe("useTransactions", () => {
     const deferred = makeDeferred<ReturnType<typeof makePage>>();
     mockGetTransactions.mockReturnValue(deferred.promise);
 
-    const consoleSpy = vi
-      .spyOn(console, "error")
-      .mockImplementation(() => {});
+    const consoleSpy = vi.spyOn(console, "error").mockImplementation(() => {});
 
     const { unmount } = renderHook(() => useTransactions());
 
@@ -300,8 +314,12 @@ describe("useTransactions", () => {
 
     // Resolving after unmount must not trigger React's "state update on
     // unmounted component" warning (or any console.error at all).
-    act(() => { deferred.resolve(makePage("1")); });
-    await act(async () => { await Promise.resolve(); });
+    act(() => {
+      deferred.resolve(makePage("1"));
+    });
+    await act(async () => {
+      await Promise.resolve();
+    });
 
     expect(consoleSpy).not.toHaveBeenCalled();
 
@@ -311,7 +329,7 @@ describe("useTransactions", () => {
   // ── refetch ─────────────────────────────────────────────────────────────────
 
   it("re-runs the request and updates data when refetch is called", async () => {
-    const first  = makePage("first");
+    const first = makePage("first");
     const second = makePage("second");
 
     mockGetTransactions
@@ -323,7 +341,9 @@ describe("useTransactions", () => {
     await waitFor(() => expect(result.current.isLoading).toBe(false));
     expect(result.current.data?.data[0].id).toBe("first");
 
-    act(() => { result.current.refetch(); });
+    act(() => {
+      result.current.refetch();
+    });
 
     await waitFor(() => expect(result.current.isLoading).toBe(false));
     expect(result.current.data?.data[0].id).toBe("second");

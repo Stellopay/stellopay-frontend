@@ -16,7 +16,8 @@ import { Check, X } from "lucide-react";
 import { SignUpEmailModal } from "./sign-up-email-modal";
 import { AuthSocialButtons } from "../auth-social-buttons";
 import { passwordPolicy, signUpSchema, SignUpFormValues } from "@/types/auth";
-import { checkPasswordRequirements } from "@/utils/authUtils";
+import { checkPasswordRequirements, calculatePasswordStrength, PasswordStrengthResult } from "@/utils/authUtils";
+import { PasswordStrengthIndicator } from "@/components/ui/password-strength-indicator";
 
 /**
  * SignUpForm – renders the `/auth/sign-up` page form.
@@ -38,10 +39,20 @@ export function SignUpForm() {
   const [showPasswordRequirements, setShowPasswordRequirements] =
     useState(false);
   const [isPasswordStrong, setIsPasswordStrong] = useState(false);
+  const [passwordStrength, setPasswordStrength] = useState<PasswordStrengthResult>({
+    strength: "weak",
+    score: 0,
+    feedback: "Enter a password",
+  });
   const [showEmailModal, setShowEmailModal] = useState(false);
   const [submittedEmail, setSubmittedEmail] = useState("");
 
   const handlePasswordCheck = (password: string) => {
+    // Calculate strength for the live meter
+    const strengthResult = calculatePasswordStrength(password);
+    setPasswordStrength(strengthResult);
+    
+    // Keep existing requirements checking for the checklist UI
     const requirements = checkPasswordRequirements(password);
     setPasswordRequirements(requirements);
     const allMet = Object.values(requirements).every((req) => req);
@@ -135,9 +146,23 @@ export function SignUpForm() {
                 handlePasswordCheck(value);
               } else {
                 setShowPasswordRequirements(false);
+                // Reset strength meter when password is cleared
+                setPasswordStrength({
+                  strength: "weak",
+                  score: 0,
+                  feedback: "Enter a password",
+                });
               }
             }}
           />
+          {/* Password Strength Indicator */}
+          {showPasswordRequirements && (
+            <PasswordStrengthIndicator
+              strengthResult={passwordStrength}
+              className="mt-2"
+              showFeedback={true}
+            />
+          )}
           {/* Password Requirements */}
           {showPasswordRequirements && (
             <div

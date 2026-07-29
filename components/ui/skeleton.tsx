@@ -36,7 +36,7 @@ export function Skeleton({
         "rounded-md",
         baseColors[shade],
         animate && "skeleton-shimmer",
-        className
+        className,
       )}
       {...props}
     />
@@ -60,7 +60,7 @@ export function SkeletonText({
           shade={shade}
           className={cn(
             "h-3",
-            i === lines - 1 && lines > 1 ? "w-3/4" : "w-full"
+            i === lines - 1 && lines > 1 ? "w-3/4" : "w-full",
           )}
         />
       ))}

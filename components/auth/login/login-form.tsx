@@ -16,6 +16,9 @@ import { Loader2 } from "lucide-react";
 import { AuthSocialButtons } from "../auth-social-buttons";
 import { login, AuthError } from "@/lib/api/auth";
 import { loginSchema, LoginFormValues } from "@/types/auth";
+import { safeStorage } from "@/utils/safeStorage";
+
+const REMEMBERED_EMAIL_KEY = "stellopay:rememberedEmail";
 
 /**
  * LoginForm – renders the `/auth/login` page form.
@@ -31,12 +34,14 @@ export function LoginForm() {
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
 
+  const rememberedEmail = safeStorage.getItem(REMEMBERED_EMAIL_KEY);
+
   const form = useForm<LoginFormValues>({
     resolver: zodResolver(loginSchema),
     defaultValues: {
-      email: "",
+      email: rememberedEmail ?? "",
       password: "",
-      rememberMe: false,
+      rememberMe: !!rememberedEmail,
     },
   });
 
@@ -45,6 +50,13 @@ export function LoginForm() {
     setErrorMessage("");
     try {
       await login(_data);
+      // Persist only a non-sensitive identifier (email). The password is
+      // never written to storage in any branch of this logic.
+      if (_data.rememberMe) {
+        safeStorage.setItem(REMEMBERED_EMAIL_KEY, _data.email);
+      } else {
+        safeStorage.removeItem(REMEMBERED_EMAIL_KEY);
+      }
       // Handle successful login redirect or state update here
     } catch (error) {
       if (error instanceof AuthError) {
@@ -56,7 +68,6 @@ export function LoginForm() {
       setIsLoading(false);
     }
   }
-
 
   return (
     <section className="w-full order-1 lg:order-2">

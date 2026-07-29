@@ -9,7 +9,8 @@ import type { Metadata } from "next";
  */
 export const metadata: Metadata = {
   title: "Dashboard",
-  description: "View and manage your StelloPay payroll payments, account activity, and transaction metrics.",
+  description:
+    "View and manage your StelloPay payroll payments, account activity, and transaction metrics.",
   robots: {
     index: false,
     follow: false,

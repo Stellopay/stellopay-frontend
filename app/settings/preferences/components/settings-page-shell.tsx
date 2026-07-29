@@ -92,7 +92,9 @@ export default function SettingsPageShell({
   // Summary card values, derived from live state rather than hardcoded copy.
   const profileReadiness = isProfileComplete(profile)
     ? "Complete"
-    : `${countCompletedProfileFields(profile)}/${totalProfileFields(profile)} done`;
+    : `${countCompletedProfileFields(profile)}/${totalProfileFields(
+        profile,
+      )} done`;
   const activeAlerts = countActiveNotifications(notificationSettings);
   const securityPosture = twoFactorEnabled ? "2-step on" : "2-step off";
   const walletCoverage = `${linkedWalletCount} linked`;
@@ -108,6 +110,8 @@ export default function SettingsPageShell({
     <Tabs
       value={activeSection}
       onValueChange={handleSectionChange}
+      orientation="horizontal"
+      activationMode="automatic"
       className="min-h-screen bg-[radial-gradient(circle_at_top,_rgba(14,165,233,0.10),_transparent_25%),linear-gradient(180deg,_rgba(255,255,255,0.98),_rgba(244,244,245,0.96))] dark:bg-[radial-gradient(circle_at_top,_rgba(56,189,248,0.14),_transparent_22%),linear-gradient(180deg,_#09090B,_#111113)]"
     >
       <SettingsHeader
