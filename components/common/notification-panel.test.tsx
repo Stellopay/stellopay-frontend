@@ -108,7 +108,64 @@ describe("NotificationPanel", () => {
       <NotificationPanel notifications={notifications} />,
     );
 
-    const unreadDots = container.querySelectorAll(".bg-\\[\\#EB6945\\]");
+    const unreadDots = container.querySelectorAll(".w-1.h-1.bg-\\[\\#EB6945\\]");
     expect(unreadDots).toHaveLength(1);
+  });
+
+  it("shows the unread count badge on the bell icon when there are unread notifications", () => {
+    const notifications: NotificationItem[] = [
+      { id: "unread1", title: "Unread item", message: "msg", read: false },
+      { id: "unread2", title: "Unread item 2", message: "msg", read: false },
+    ];
+    render(<NotificationPanel notifications={notifications} />);
+
+    const badge = screen.getByTestId("unread-count-badge");
+    expect(badge).toBeInTheDocument();
+    expect(badge).toHaveTextContent("2");
+  });
+
+  it("hides the unread count badge when there are no unread notifications", () => {
+    const notifications: NotificationItem[] = [
+      { id: "read1", title: "Read item", message: "msg", read: true },
+    ];
+    render(<NotificationPanel notifications={notifications} />);
+
+    expect(screen.queryByTestId("unread-count-badge")).not.toBeInTheDocument();
+  });
+
+  it("shows the 'Mark all as read' button and triggers callback when unread items exist", () => {
+    const handleMarkAllAsRead = vitest.fn();
+    const notifications: NotificationItem[] = [
+      { id: "unread1", title: "Unread item", message: "msg", read: false },
+    ];
+    render(
+      <NotificationPanel
+        notifications={notifications}
+        onMarkAllAsRead={handleMarkAllAsRead}
+      />,
+    );
+
+    const button = screen.getByRole("button", { name: "Mark all as read" });
+    expect(button).toBeInTheDocument();
+
+    button.click();
+    expect(handleMarkAllAsRead).toHaveBeenCalledTimes(1);
+  });
+
+  it("hides the 'Mark all as read' button when all items are read", () => {
+    const handleMarkAllAsRead = vitest.fn();
+    const notifications: NotificationItem[] = [
+      { id: "read1", title: "Read item", message: "msg", read: true },
+    ];
+    render(
+      <NotificationPanel
+        notifications={notifications}
+        onMarkAllAsRead={handleMarkAllAsRead}
+      />,
+    );
+
+    expect(
+      screen.queryByRole("button", { name: "Mark all as read" }),
+    ).not.toBeInTheDocument();
   });
 });

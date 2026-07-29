@@ -12,24 +12,53 @@ interface NotificationPanelProps extends NotificationProps {
 /**
  * Renders the bell-trigger header shared by all panel states.
  */
-function NotificationPanelHeader() {
+interface NotificationPanelHeaderProps {
+  unreadCount: number;
+  onMarkAllAsRead?: () => void;
+}
+
+function NotificationPanelHeader({
+  unreadCount,
+  onMarkAllAsRead,
+}: NotificationPanelHeaderProps) {
   return (
     <div className="flex justify-between items-center mb-4">
       <div className="flex items-center gap-3">
-        <Button
-          aria-label="Notifications"
-          className="bg-[#121212] border border-[#2E2E2E] cursor-pointer hover:bg-inherit "
-          size="icon"
-        >
-          <BellIcon />
-        </Button>
+        <div className="relative">
+          <Button
+            aria-label="Notifications"
+            className="bg-[#121212] border border-[#2E2E2E] cursor-pointer hover:bg-inherit "
+            size="icon"
+          >
+            <BellIcon />
+          </Button>
+          {unreadCount > 0 && (
+            <div
+              data-testid="unread-count-badge"
+              className="absolute -top-1 -right-1 bg-[#EB6945] text-white text-[10px] w-4 h-4 rounded-full flex items-center justify-center font-medium"
+            >
+              {unreadCount}
+            </div>
+          )}
+        </div>
 
         <span>Notifications</span>
       </div>
-      <Button className="bg-[#12121266] border border-[#2E2E2E] cursor-pointer px-2! hover:bg-inherit">
-        <p className="text-[#E5E5E5] font-light">View All</p>
-        <ChevronRight />
-      </Button>
+      <div className="flex items-center gap-2">
+        {unreadCount > 0 && onMarkAllAsRead && (
+          <Button
+            variant="ghost"
+            onClick={onMarkAllAsRead}
+            className="text-xs text-[#E5E5E5] hover:bg-[#12121266] px-2 h-auto font-light cursor-pointer"
+          >
+            Mark all as read
+          </Button>
+        )}
+        <Button className="bg-[#12121266] border border-[#2E2E2E] cursor-pointer px-2! hover:bg-inherit">
+          <p className="text-[#E5E5E5] font-light">View All</p>
+          <ChevronRight />
+        </Button>
+      </div>
     </div>
   );
 }
@@ -67,7 +96,9 @@ const NotificationPanel = ({
   className: _className,
   notifications,
   isLoading = false,
+  onMarkAllAsRead,
 }: NotificationPanelProps) => {
+  const unreadCount = notifications.filter((n) => !n.read).length;
   if (isLoading) {
     return (
       <div className="bg-[#0D0D0D80] bg-opacity-50 border border-[#2D2D2D] max-w-[400px] rounded-xl p-4 text-[#E5E5E5]">
@@ -99,7 +130,10 @@ const NotificationPanel = ({
 
   return (
     <div className="bg-[#0D0D0D80]  bg-opacity-50 border border-[#2D2D2D] max-w-[400px] rounded-xl  p-4 text-[#E5E5E5]">
-      <NotificationPanelHeader />
+      <NotificationPanelHeader
+        unreadCount={unreadCount}
+        onMarkAllAsRead={onMarkAllAsRead}
+      />
 
       {notifications.length === 0 ? (
         <NotificationPanelEmptyState />
