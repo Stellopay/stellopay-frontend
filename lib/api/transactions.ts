@@ -165,8 +165,6 @@ export async function getTransactions(
     minAmount,
     maxAmount,
     sortConfigs = [{ field: "date" as const, direction: "desc" as const }],
-    minAmount,
-    maxAmount,
     counterparty,
   } = filters;
 

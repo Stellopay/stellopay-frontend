@@ -6,27 +6,15 @@
     --font-general-sans: "General Sans", sans-serif;
     --font-inter: "Inter", sans-serif;
 
-    /* ─── Benefits section color tokens ─────────────────────────────────────
-     *  Added as part of the benefits gradient tokenization refactor.
-     *  These tokens capture the brand palette used exclusively in the dark
-     *  landing section so all hex stops live in one place.
-     * ──────────────────────────────────────────────────────────────────────*/
-
-    /** Near-black section background (#040404). */
-    --color-surface-deep: #040404;
-
-    /**
-     * Brand-blue radial glow color (rgb(27 67 245)).
-     * Apply as a CSS color value; callers are responsible for opacity via
-     * rgba() or the /alpha Tailwind shorthand.
+    /* Section vertical-rhythm spacing tokens
+     * Applied as py-section-sm / py-section-md / py-section-lg via
+     * the @utility helpers below, or directly via Tailwind responsive
+     * classes: py-16 sm:py-20 lg:py-24. These tokens document the
+     * canonical three-step scale used across every landing section.
      */
-    --color-brand-glow: 27 67 245;
-
-    /** Light brand-blue featured card background (#8EB6FF). */
-    --color-brand-card: #8eb6ff;
-
-    /** Brand-blue card border (#598EFF). */
-    --color-brand-border: #598eff;
+    --section-py-sm: 4rem;   /* 64 px  — mobile  (≤ 639 px)  */
+    --section-py-md: 5rem;   /* 80 px  — tablet  (≥ 640 px)  */
+    --section-py-lg: 6rem;   /* 96 px  — desktop (≥ 1024 px) */
 
     /* Clash Display (Display & Headings) Token Scale */
     --font-display-2xl: 4.5rem;
@@ -81,11 +69,114 @@
   letter-spacing: var(--tracking-heading-lg);
 }
 
-@utility text-heading-md {
-  font-family: var(--font-clash);
-  font-size: var(--font-heading-md);
-  line-height: var(--leading-heading-md);
-  letter-spacing: var(--tracking-heading-md);
+/**
+ * section-spacing
+ * ---------------
+ * One-line utility that applies the canonical three-step vertical-rhythm
+ * scale to any landing section.  Use it in place of ad-hoc py-* values:
+ *
+ *   <section className="section-spacing ...">
+ *
+ * Equivalent to `py-16 sm:py-20 lg:py-24` (64 px / 80 px / 96 px).
+ * The values are driven by the --section-py-* CSS custom properties
+ * defined in :root so that a single token edit updates every section.
+ */
+@utility section-spacing {
+  padding-top: var(--section-py-sm);
+  padding-bottom: var(--section-py-sm);
+
+  @media (width >= 640px) {
+    padding-top: var(--section-py-md);
+    padding-bottom: var(--section-py-md);
+  }
+
+  @media (width >= 1024px) {
+    padding-top: var(--section-py-lg);
+    padding-bottom: var(--section-py-lg);
+  }
+}
+
+/* Statement output intentionally has its own print scope; table print rules and
+   navigation never leak into the reconciliation document. */
+@media print {
+  body * {
+    visibility: hidden;
+  }
+
+  .statement-print-root,
+  .statement-print-root * {
+    visibility: visible;
+  }
+
+  .statement-print-root {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    margin: 0;
+    border: 0;
+    box-shadow: none;
+    color: #111827 !important;
+    background: #ffffff !important;
+  }
+
+  .statement-print-root .statement-actions {
+    display: none !important;
+  }
+
+  .statement-print-root * {
+    color: #111827 !important;
+    background-color: transparent !important;
+  }
+
+  .statement-print-root table,
+  .statement-print-root tr {
+    break-inside: avoid;
+  }
+
+  .statement-print-root thead {
+    display: table-header-group;
+  }
+
+  @page {
+    margin: 16mm;
+  }
+
+  /* ── Transactions table print scope ─────────────────────────────────────
+   * When printing the interactive transactions page, hide every control
+   * (filters, search, pagination, sort triggers, checkboxes, density
+   * toggle, receipt download buttons) and show only the data rows in a
+   * legible, grayscale-friendly layout with no page-breaks inside rows.
+   * Fully independent of the reconciliation-statement scope above.      */
+
+  .transactions-print-root,
+  .transactions-print-root * {
+    visibility: visible;
+  }
+
+  .transactions-print-root {
+    position: static;
+    background: #ffffff !important;
+    color: #111827 !important;
+  }
+
+  .transactions-print-root * {
+    color: #111827 !important;
+    background-color: transparent !important;
+    border-color: #d1d5db !important;
+  }
+
+  .transactions-print-root table tr {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  .transactions-print-root table thead {
+    display: table-header-group;
+  }
+
+  .transactions-print-root img {
+    filter: grayscale(100%) contrast(1.15);
+  }
 }
 
 @utility text-body-lg {
@@ -108,3 +199,5 @@
   line-height: var(--leading-caption-sm);
   letter-spacing: var(--tracking-caption-sm);
 }
+
+

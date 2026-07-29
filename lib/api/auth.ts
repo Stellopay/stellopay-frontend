@@ -3,10 +3,14 @@ import { LoginFormValues } from "@/types/auth";
 /**
  * Custom error class for authentication failures.
  */
+export type AuthErrorKind = "invalid_credentials" | "network";
+
 export class AuthError extends Error {
-  constructor(message: string) {
+  kind: AuthErrorKind;
+  constructor(message: string, kind: AuthErrorKind = "invalid_credentials") {
     super(message);
     this.name = "AuthError";
+    this.kind = kind;
   }
 }
 
@@ -69,6 +73,12 @@ export async function login(credentials: LoginFormValues): Promise<void> {
     });
 
     if (!response.ok) {
+      if (response.status >= 500) {
+        throw new AuthError(
+          "We're having trouble reaching our servers. Please try again.",
+          "network"
+        );
+      }
       // Intentionally not exposing server response details
       throw new AuthError("Invalid email or password. Please try again.");
     }
@@ -76,9 +86,10 @@ export async function login(credentials: LoginFormValues): Promise<void> {
     if (error instanceof AuthError) {
       throw error;
     }
-    // Generic error for network issues, etc.
+    // Generic error for network issues (fetch throws TypeError on network failure), etc.
     throw new AuthError(
-      "An error occurred during login. Please try again later.",
+      "Unable to connect. Please check your internet connection and try again.",
+      "network"
     );
   }
 }
@@ -197,6 +208,7 @@ function getErrorMessage(code: OAuthCallbackError["code"]): string {
       return "Authentication failed. Please try again or use your password to sign in.";
   }
 }
+/**
  * Sends a passwordless magic-link sign-in email to the given address.
  *
  * The email contains a one-time sign-in link that authenticates the user
