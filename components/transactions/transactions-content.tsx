@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, useCallback } from "react";
+import { useState, useMemo, useCallback, useRef } from "react";
 import type {
   SortField,
   SortConfig,
@@ -14,11 +14,8 @@ import TransactionsHeader from "./transactions-header";
 import TransactionsFilters from "./transactions-filters";
 import { TransactionsTable } from "./transactions-table";
 import TransactionsPagination from "./transactions-pagination";
+import { BulkActionBar } from "./bulk-action-bar";
 import { ErrorState } from "@/components/ui/error-state";
-import AdvancedFilterPanel, {
-  type AdvancedFilterValues,
-} from "./advanced-filter-panel";
-import FilterChips, { type FilterChip } from "./filter-chips";
 import {
   TRANSACTIONS_PAGE_SIZE,
   getDefaultDateRange,
@@ -40,6 +37,7 @@ const getTokenIcon = (token: string): string => {
 const toTransactionProps = (t: Transaction): TransactionProps => ({
   id: t.id,
   type: t.type,
+  txId: t.txId,
   address: t.address,
   date: t.date,
   time: t.time,
@@ -50,42 +48,8 @@ const toTransactionProps = (t: Transaction): TransactionProps => ({
       : `-$${Math.abs(t.amount).toFixed(2)}`,
   status: t.status as "Completed" | "Pending" | "Failed",
   tokenIcon: getTokenIcon(t.token),
+  memo: t.memo,
 });
-
-/** Build active filter chips from current filter state. */
-function buildFilterChips(filters: TransactionFilters): FilterChip[] {
-  const chips: FilterChip[] = [];
-
-  if (filters.selectedFilter !== "All Transactions") {
-    chips.push({
-      key: "status",
-      label: "Status",
-      value: filters.selectedFilter,
-    });
-  }
-  if (filters.minAmount !== undefined) {
-    chips.push({
-      key: "minAmount",
-      label: "Min",
-      value: `$${filters.minAmount}`,
-    });
-  }
-  if (filters.maxAmount !== undefined) {
-    chips.push({
-      key: "maxAmount",
-      label: "Max",
-      value: `$${filters.maxAmount}`,
-    });
-  }
-  if (filters.counterparty) {
-    chips.push({
-      key: "counterparty",
-      label: "Counterparty",
-      value: filters.counterparty,
-    });
-  }
-  return chips;
-}
 
 export default function TransactionsContent() {
   const [filters, setFilters] = useState<TransactionFilters>(() => ({
@@ -96,13 +60,68 @@ export default function TransactionsContent() {
     sortConfigs: [{ field: "date", direction: "desc" }],
   }));
   const [currentPage, setCurrentPage] = useState(1);
-  const [advancedPanelOpen, setAdvancedPanelOpen] = useState(false);
+  const [statementRange, setStatementRange] = useState<{
+    fromDate: string;
+    toDate: string;
+  } | null>(null);
   const itemsPerPage = TRANSACTIONS_PAGE_SIZE;
 
+  // ── Selection state ─────────────────────────────────────────────────────────
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+
+  const clearSelection = useCallback(() => {
+    setSelectedIds(new Set());
+  }, []);
+
+  const handleSelectRow = useCallback((id: string, checked: boolean) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (checked) {
+        next.add(id);
+      } else {
+        next.delete(id);
+      }
+      return next;
+    });
+  }, []);
+
+  const handleSelectAll = useCallback(
+    (checked: boolean, pageIds: string[]) => {
+      setSelectedIds((prev) => {
+        const next = new Set(prev);
+        if (checked) {
+          pageIds.forEach((id) => next.add(id));
+        } else {
+          pageIds.forEach((id) => next.delete(id));
+        }
+        return next;
+      });
+    },
+    [],
+  );
+
+  // ── Data ─────────────────────────────────────────────────────────────────────
   const { data, isLoading, error, refetch } = useTransactions({
     filters,
     page: currentPage,
     pageSize: itemsPerPage,
+  });
+
+  // A statement needs the ledger before the selected range to calculate its
+  // opening balance. Keep this request independent of table search/filter UI.
+  // The API currently caps a response at 100 records; production APIs should
+  // expose a server-side statement endpoint for ledgers larger than that.
+  const statementLedger = useTransactions({
+    filters: {
+      fromDate: "",
+      toDate: "",
+      searchQuery: "",
+      filterQuery: "",
+      selectedFilter: "All Transactions",
+      sortConfigs: [{ field: "date", direction: "asc" }],
+    },
+    page: 1,
+    pageSize: 100,
   });
 
   const paginatedTransactions: TransactionProps[] = useMemo(
@@ -110,6 +129,19 @@ export default function TransactionsContent() {
     [data],
   );
 
+  // ── Stable select-all that has access to current page ids ────────────────────
+  const paginatedTransactionsRef = useRef(paginatedTransactions);
+  paginatedTransactionsRef.current = paginatedTransactions;
+
+  const handleSelectAllForPage = useCallback(
+    (checked: boolean) => {
+      const pageIds = paginatedTransactionsRef.current.map((t) => t.id);
+      handleSelectAll(checked, pageIds);
+    },
+    [handleSelectAll],
+  );
+
+  // ── Filter helpers (clear selection on any filter/page change) ───────────────
   const updateFilter = useCallback(
     <K extends keyof TransactionFilters>(
       key: K,
@@ -117,8 +149,17 @@ export default function TransactionsContent() {
     ) => {
       setFilters((prev) => ({ ...prev, [key]: value }));
       setCurrentPage(1);
+      clearSelection();
     },
-    [],
+    [clearSelection],
+  );
+
+  const handlePageChange = useCallback(
+    (page: number) => {
+      setCurrentPage(page);
+      clearSelection();
+    },
+    [clearSelection],
   );
 
   const handleSort = useCallback(
@@ -161,113 +202,69 @@ export default function TransactionsContent() {
         };
       });
       setCurrentPage(1);
+      clearSelection();
     },
-    [],
+    [clearSelection],
   );
 
-  // ── Advanced filter panel helpers ──────────────────────────────────────
+  // ── Bulk action handlers ─────────────────────────────────────────────────────
+  const handleBulkExport = useCallback(() => {
+    // Stub: collect the selected transactions and trigger a CSV download.
+    // Replace with a real implementation once the export endpoint is available.
+    const selected = paginatedTransactions.filter((t) =>
+      selectedIds.has(t.id),
+    );
+    const csv = [
+      ["ID", "Type", "Address", "Date", "Token", "Amount", "Status"].join(","),
+      ...selected.map((t) =>
+        [t.id, t.type, t.address, t.date, t.token, t.amount, t.status].join(
+          ",",
+        ),
+      ),
+    ].join("\n");
 
-  /** Draft values for the open panel (pre-apply). */
-  const advancedPanelValues: AdvancedFilterValues = useMemo(
-    () => ({
-      status: filters.selectedFilter,
-      minAmount:
-        filters.minAmount !== undefined ? String(filters.minAmount) : "",
-      maxAmount:
-        filters.maxAmount !== undefined ? String(filters.maxAmount) : "",
-      counterparty: filters.counterparty ?? "",
-      fromDate: filters.fromDate,
-      toDate: filters.toDate,
-    }),
-    [filters],
-  );
+    const blob = new Blob([csv], { type: "text/csv" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `transactions-export-${Date.now()}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+    clearSelection();
+  }, [paginatedTransactions, selectedIds, clearSelection]);
 
-  const [draftPanelValues, setDraftPanelValues] =
-    useState<AdvancedFilterValues>(advancedPanelValues);
+  const handleBulkTag = useCallback(() => {
+    // Stub: open a tag-assignment dialog.
+    // Replace with real implementation once the tag feature is built.
+    console.log("Tag transactions:", Array.from(selectedIds));
+  }, [selectedIds]);
 
-  const handlePanelOpenChange = useCallback(
-    (open: boolean) => {
-      if (open) {
-        // Reset draft to current committed values when opening
-        setDraftPanelValues(advancedPanelValues);
-      }
-      setAdvancedPanelOpen(open);
-    },
-    [advancedPanelValues],
-  );
-
-  const handlePanelApply = useCallback(() => {
-    setFilters((prev) => ({
-      ...prev,
-      selectedFilter: draftPanelValues.status,
-      fromDate: draftPanelValues.fromDate || prev.fromDate,
-      toDate: draftPanelValues.toDate || prev.toDate,
-      minAmount:
-        draftPanelValues.minAmount !== ""
-          ? parseFloat(draftPanelValues.minAmount)
-          : undefined,
-      maxAmount:
-        draftPanelValues.maxAmount !== ""
-          ? parseFloat(draftPanelValues.maxAmount)
-          : undefined,
-      counterparty:
-        draftPanelValues.counterparty !== ""
-          ? draftPanelValues.counterparty
-          : undefined,
-    }));
-    setCurrentPage(1);
-    setAdvancedPanelOpen(false);
-  }, [draftPanelValues]);
-
-  const handlePanelClearAll = useCallback(() => {
-    const defaults = getDefaultDateRange();
-    setDraftPanelValues({
-      status: "All Transactions",
-      minAmount: "",
-      maxAmount: "",
-      counterparty: "",
-      fromDate: defaults.fromDate,
-      toDate: defaults.toDate,
-    });
-  }, []);
-
-  const activeChips = useMemo(() => buildFilterChips(filters), [filters]);
-
-  /** Remove a single advanced filter by its key. */
-  const handleChipRemove = useCallback((chipKey: string) => {
-    setFilters((prev) => {
-      switch (chipKey) {
-        case "status":
-          return { ...prev, selectedFilter: "All Transactions" };
-        case "minAmount":
-          return { ...prev, minAmount: undefined };
-        case "maxAmount":
-          return { ...prev, maxAmount: undefined };
-        case "counterparty":
-          return { ...prev, counterparty: undefined };
-        default:
-          return prev;
-      }
-    });
-    setCurrentPage(1);
-  }, []);
-
-  /** Clear all advanced filters (amount range + counterparty) via chips. */
-  const handleClearAllChips = useCallback(() => {
-    setFilters((prev) => ({
-      ...prev,
-      selectedFilter: "All Transactions",
-      minAmount: undefined,
-      maxAmount: undefined,
-      counterparty: undefined,
-    }));
-    setCurrentPage(1);
-  }, []);
-
-
+  const handleBulkArchive = useCallback(() => {
+    // Stub: send archive request for all selected ids.
+    // Replace with real implementation once the archive endpoint is available.
+    console.log("Archive transactions:", Array.from(selectedIds));
+    clearSelection();
+  }, [selectedIds, clearSelection]);
 
   return (
     <div className="min-h-screen text-white mt-4">
+      {/*
+        aria-live region announces selection count changes to screen readers
+        without interrupting the user's current focus.
+      */}
+      <div
+        aria-live="polite"
+        aria-atomic="true"
+        className="sr-only"
+        data-testid="selection-announcement"
+      >
+        {selectedIds.size > 0
+          ? selectedIds.size === 1
+            ? "1 transaction selected"
+            : `${selectedIds.size} transactions selected`
+          : ""}
+      </div>
+
       <div className="w-full max-w-7xl mx-auto mb-4">
         <TransactionsHeader
           fromDate={filters.fromDate}
@@ -275,6 +272,38 @@ export default function TransactionsContent() {
           onFromDateChange={(date) => updateFilter("fromDate", date)}
           onToDateChange={(date) => updateFilter("toDate", date)}
         />
+
+        <div className="mb-4 flex justify-end px-4 sm:px-6 lg:px-8">
+          <button
+            type="button"
+            onClick={() =>
+              setStatementRange({ fromDate: filters.fromDate, toDate: filters.toDate })
+            }
+            disabled={statementLedger.isLoading || !!statementLedger.error}
+            className="inline-flex items-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground shadow-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring disabled:cursor-not-allowed disabled:opacity-60"
+            aria-describedby="statement-help"
+          >
+            <FileText aria-hidden="true" size={16} />
+            Generate statement
+          </button>
+          <span id="statement-help" className="sr-only">
+            Creates a printable reconciliation statement for the selected date range.
+          </span>
+          {statementLedger.error && (
+            <p role="status" className="ml-3 self-center text-sm text-red-300">
+              Statement data could not be loaded. Try again later.
+            </p>
+          )}
+        </div>
+
+        {statementRange && (
+          <TransactionsStatement
+            fromDate={statementRange.fromDate}
+            toDate={statementRange.toDate}
+            ledger={statementLedger.data?.data ?? []}
+            onClose={() => setStatementRange(null)}
+          />
+        )}
 
         <div className="px-4 sm:px-6 lg:px-8 bg-[#160f17] pt-3 border-[#2D2D2D] border rounded-xl">
           <TransactionsFilters
@@ -284,21 +313,6 @@ export default function TransactionsContent() {
             onSearchChange={(q) => updateFilter("searchQuery", q)}
             onFilterChange={(f) => updateFilter("selectedFilter", f)}
             onSort={handleSort}
-            onAdvancedFilterToggle={() => handlePanelOpenChange(true)}
-            hasAdvancedFilters={
-              filters.selectedFilter !== "All Transactions" ||
-              filters.minAmount !== undefined ||
-              filters.maxAmount !== undefined ||
-              !!filters.counterparty
-            }
-          />
-
-          {/* Active filter chips */}
-          <FilterChips
-            chips={activeChips}
-            onRemove={handleChipRemove}
-            onClearAll={handleClearAllChips}
-            className="px-0 pb-3"
           />
 
           <div className="py-4">
@@ -317,12 +331,17 @@ export default function TransactionsContent() {
             {/* Data state */}
             {!isLoading && !error && (
               <>
-                <TransactionsTable transactions={paginatedTransactions} />
+                <TransactionsTable
+                  transactions={paginatedTransactions}
+                  selectedIds={selectedIds}
+                  onSelectRow={handleSelectRow}
+                  onSelectAll={handleSelectAllForPage}
+                />
                 <TransactionsPagination
                   totalItems={data?.total ?? 0}
                   currentPage={currentPage}
                   itemsPerPage={itemsPerPage}
-                  onPageChange={setCurrentPage}
+                  onPageChange={handlePageChange}
                 />
               </>
             )}
@@ -330,15 +349,14 @@ export default function TransactionsContent() {
         </div>
       </div>
 
-      {/* Advanced filter panel (drawer) */}
-      <AdvancedFilterPanel
-        open={advancedPanelOpen}
-        onOpenChange={handlePanelOpenChange}
-        currentValues={draftPanelValues}
-        onValuesChange={setDraftPanelValues}
-        onApply={handlePanelApply}
-        onClearAll={handlePanelClearAll}
-        disabled={isLoading}
+      {/* Floating bulk-action bar – rendered outside the scrollable content area
+          so it always stays anchored to the viewport bottom */}
+      <BulkActionBar
+        selectedCount={selectedIds.size}
+        onExport={handleBulkExport}
+        onTag={handleBulkTag}
+        onArchive={handleBulkArchive}
+        onClearSelection={clearSelection}
       />
     </div>
   );

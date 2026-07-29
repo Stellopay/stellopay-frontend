@@ -1,4 +1,14 @@
 /**
+ * Categories available for filtering notifications in the panel.
+ */
+export type NotificationCategory = "payments" | "security" | "system";
+
+/**
+ * Filter option for notification categories, including 'all'.
+ */
+export type NotificationCategoryFilter = "all" | NotificationCategory;
+
+/**
  * Represents a single notification entry shown in the notification panel.
  *
  * `id` must be stable and unique across renders so list items can be used
@@ -13,3 +23,4 @@ export type NotificationItem = {
   /** ISO timestamp set when the notification transitions from unread to read */
   readAt?: string;
 };
+

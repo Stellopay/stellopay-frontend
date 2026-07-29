@@ -1,10 +1,123 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from "react";
+import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { DestructiveActionDialog } from "./destructive-action-dialog";
+import { OAuthCallbackError } from "@/lib/api/auth";
 
-export const AccountSection: React.FC = () => {
-  const [analytics, setAnalytics] = useState<boolean>(false);
-  const [marketing, setMarketing] = useState<boolean>(false);
+export interface ProfileState {
+  firstName: string;
+  lastName: string;
+  displayName: string;
+  email: string;
+  timezone: string;
+  currency: string;
+}
+
+/**
+ * Default profile values seeded from demo data. Exported so a parent surface
+ * (e.g. the settings summary cards) can own the same initial state when it
+ * lifts this section into a controlled component.
+ */
+export const DEFAULT_PROFILE: ProfileState = {
+  firstName: DEMO_PROFILE.firstName,
+  lastName: DEMO_PROFILE.lastName,
+  displayName: DEMO_PROFILE.displayName,
+  email: DEMO_PROFILE.email,
+  timezone: DEMO_PROFILE.timezone,
+  currency: DEMO_PROFILE.currency,
+};
+
+/** Number of profile fields that have a non-empty value. */
+export function countCompletedProfileFields(profile: ProfileState): number {
+  return (Object.values(profile) as string[]).filter(
+    (value) => value.trim().length > 0,
+  ).length;
+}
+
+/** Total number of profile fields tracked. */
+export function totalProfileFields(profile: ProfileState): number {
+  return Object.keys(profile).length;
+}
+
+/** A profile is "complete" once every tracked field is filled in. */
+export function isProfileComplete(profile: ProfileState): boolean {
+  return countCompletedProfileFields(profile) === totalProfileFields(profile);
+}
+
+interface StatusState {
+  message: string;
+  type: "success" | "error" | null;
+}
+
+const sectionMap = [
+  {
+    label: "Account",
+    description: "Profile, identity, and region defaults.",
+    badge: "Core",
+  },
+  {
+    label: "Notifications",
+    description: "Transaction alerts and delivery channels.",
+    badge: "Alerts",
+  },
+  {
+    label: "Security",
+    description: "Password, verification, and sessions.",
+    badge: "Protected",
+  },
+  {
+    label: "Wallets",
+    description: "Connected wallets and transfer safeguards.",
+    badge: "2 linked",
+  },
+];
+
+/**
+ * AccountSection component.
+ * Renders user profile information, identity details, and regional settings.
+ * Uses placeholder demo data pending full backend API integration.
+ */
+interface AccountSectionProps {
+  /**
+   * Controlled profile state. When provided the component renders this value
+   * and reports edits through `onProfileChange`. When omitted the section
+   * manages its own internal state (standalone use).
+   */
+  profile?: ProfileState;
+  onProfileChange?: (next: ProfileState) => void;
+  /**
+   * Called with the final saved profile once a save succeeds, so a parent
+   * tracking a dirty/unsaved-changes flag can clear it. Not called on
+   * validation failure or a simulated save error.
+   */
+  onSaved?: (saved: ProfileState) => void;
+}
+
+export default function AccountSection({
+  profile: controlledProfile,
+  onProfileChange,
+  onSaved,
+}: AccountSectionProps = {}) {
+  const [internalProfile, setInternalProfile] =
+    useState<ProfileState>(DEFAULT_PROFILE);
+  const profile = controlledProfile ?? internalProfile;
+  const [status, setStatus] = useState<StatusState>({
+    message: "",
+    type: null,
+  });
+  const [isSaving, setIsSaving] = useState(false);
+  const [isEmailTouched, setIsEmailTouched] = useState(false);
+  const statusTimeoutRef = useRef<number | null>(null);
+  const isMountedRef = useRef(true);
+
+  // Trim before validating so incidental whitespace can neither defeat
+  // isValidEmail() nor end up persisted in a form the user never typed.
+  const normalizedEmail = profile.email.trim();
+  const isEmailValid = isValidEmail(normalizedEmail);
+  const showEmailError = isEmailTouched && !isEmailValid;
 
   useEffect(() => {
     const savedPreferences = localStorage.getItem('stellopay_cookie_preferences');
@@ -19,9 +132,42 @@ export const AccountSection: React.FC = () => {
     }
   }, []);
 
-  const handleSave = () => {
-    const preferences = { essential: true, analytics, marketing };
-    localStorage.setItem('stellopay_cookie_preferences', JSON.stringify(preferences));
+    setIsSaving(true);
+    setStatus({ message: "", type: null });
+    clearQueuedStatusReset();
+    try {
+      // Simulate async API call
+      await new Promise((resolve, reject) =>
+        setTimeout(() => {
+          // Simulate occasional failure for testing
+          if (Math.random() > 0.8) {
+            reject(new Error("Failed to save"));
+          } else {
+            resolve(null);
+          }
+        }, 1500),
+      );
+      if (isMountedRef.current) {
+        setStatus({
+          message:
+            "Account profile changes are staged and ready for backend save.",
+          type: "success",
+        });
+        onSaved?.({ ...profile, email: normalizedEmail });
+      }
+    } catch {
+      if (isMountedRef.current) {
+        setStatus({
+          message: "Failed to save changes. Please try again.",
+          type: "error",
+        });
+      }
+    } finally {
+      if (isMountedRef.current) {
+        setIsSaving(false);
+        queueStatusReset();
+      }
+    }
   };
 
   return (
@@ -78,3 +224,24 @@ export const AccountSection: React.FC = () => {
     </section>
   );
 };
+
+interface AccountSectionProps {
+  profile: any;
+  onProfileChange: (profile: any) => void;
+}
+
+interface DeletionDialogProps {
+  title: string;
+  description: string;
+  impactItems: string[];
+  confirmationToken: string;
+  confirmationLabel: string;
+  confirmLabel: string;
+  onConfirm: () => void;
+}
+
+const getConfirmationError = (value: string, token: string): string | null => {
+  if (value === token) return null;
+  if (value.trim() === token) return 'Remove extra spaces — type exactly "${token}"';
+  if (value.toLowerCase() === token.toLowerCase()) return 'Check capitalization — type exactly "${token}"';
+  return 'The text doesn

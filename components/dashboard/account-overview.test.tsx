@@ -10,6 +10,13 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import AccountOverview from "./account-overview";
 import { WalletProvider, useWallet } from "@/context/wallet-context";
+
+vi.mock("next/dynamic", () => ({
+  default: () => {
+    const MockChart = () => <div data-testid="recharts-mini-bar-chart-mock" />;
+    return MockChart;
+  },
+}));
 import * as summaryDataModule from "./summary-data";
 
 const PUBLIC_ADDRESS = "GABCDEFGHIJKLMNOPQRSTUVWXYZ234567ABCDEFGHIJKLMNOPF123";
