@@ -63,7 +63,7 @@ export default function AccountSummaryCard({
 
       <RechartsMiniBarChart
         data={chartData}
-        color={chartColor}
+        cssVar={chartColor}
         ariaLabel={`${title} mini chart`}
         height="3rem"
       />

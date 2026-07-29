@@ -35,6 +35,27 @@
     --font-caption-sm: 0.875rem;
     --leading-caption-sm: 1.43;
     --tracking-caption-sm: 0.01em;
+
+    /* Chart tokens — used by Recharts components */
+    --chart-1: #4f6fff;
+    --chart-2: #10b981;
+    --chart-3: #f59e0b;
+    --chart-4: #8b5cf6;
+    --chart-5: #ef4444;
+    --chart-tooltip-bg: #ffffff;
+    --chart-tooltip-text: #09090b;
+    --chart-tooltip-border: #e4e4e7;
+  }
+
+  .dark {
+    --chart-1: #6b8aff;
+    --chart-2: #34d399;
+    --chart-3: #fbbf24;
+    --chart-4: #a78bfa;
+    --chart-5: #f87171;
+    --chart-tooltip-bg: #18181b;
+    --chart-tooltip-text: #fafafa;
+    --chart-tooltip-border: #27272a;
   }
 }
 

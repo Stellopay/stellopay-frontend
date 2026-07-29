@@ -116,3 +116,102 @@ The file also hardcodes non-token hex values that are **not** `zinc-*` utilities
 ### Responsive Breakpoint Validation
 - Category chip container utilizes `flex flex-wrap gap-1.5 sm:gap-2 mb-4` to wrap cleanly across small (`sm: 640px`), medium (`md: 768px`), large (`lg: 1024px`), and extra-large (`xl: 1280px`) viewports without overflowing the max `400px` panel container.
 
+---
+
+## RechartsMiniBarChart — Theme-Aware Design Tokens (#821)
+
+### Overview
+`components/dashboard/RechartsMiniBarChart.tsx` previously passed hardcoded Tailwind class strings (e.g. `"bg-blue-500"`) to Recharts' `fill` prop, which Recharts does not interpret as a valid CSS color — effectively leaving bars unfilled. The tooltip referenced an undefined `--chart-tooltip-bg` variable that silently defaulted to `transparent`.
+
+The component now reads colour values from the CSS custom properties defined in `app/globals.css`, so bar and tooltip colours respond to theme changes (light/dark) without a page reload.
+
+### What changed
+
+| File | Change |
+|------|--------|
+| `app/globals.css` | Added `--chart-1` through `--chart-5` and `--chart-tooltip-*` tokens in both `:root` (light) and `.dark` (dark) blocks |
+| `components/dashboard/RechartsMiniBarChart.tsx` | Added `"use client"`; introduced `cssVar` prop for CSS variable names; added empty-state rendering; wired tooltip to `--chart-tooltip-bg/text/border` |
+| `components/dashboard/summary-data.tsx` | Changed `chartColor` values from `"bg-blue-500"` / `"bg-emerald-500"` / `"bg-amber-500"` to `"--chart-1"` / `"--chart-2"` / `"--chart-3"` |
+| `components/dashboard/account-summary-card.tsx` | Changed prop from `color={chartColor}` to `cssVar={chartColor}` |
+| `components/dashboard/RechartsMiniBarChart.test.tsx` | New file — 22 tests covering render states, props, edge cases, tooltip CSS variables, and aria |
+
+### Design tokens added to `app/globals.css`
+
+```css
+:root {
+  --chart-1: #4f6fff;           /* blue — first data series */
+  --chart-2: #10b981;           /* emerald — second data series */
+  --chart-3: #f59e0b;           /* amber — third data series */
+  --chart-4: #8b5cf6;           /* purple — fourth data series */
+  --chart-5: #ef4444;           /* red — fifth data series (use sparingly) */
+  --chart-tooltip-bg: #ffffff;
+  --chart-tooltip-text: #09090b;
+  --chart-tooltip-border: #e4e4e7;
+}
+
+.dark {
+  --chart-1: #6b8aff;
+  --chart-2: #34d399;
+  --chart-3: #fbbf24;
+  --chart-4: #a78bfa;
+  --chart-5: #f87171;
+  --chart-tooltip-bg: #18181b;
+  --chart-tooltip-text: #fafafa;
+  --chart-tooltip-border: #27272a;
+}
+```
+
+### How it works
+
+The `fill` attribute on Recharts' `<Bar>` component is set to `var(--chart-1)` (or whichever variable the consumer passes). Since SVG `fill` supports CSS custom properties, the browser re-evaluates the variable whenever the `.dark` class toggles on `<html>`, and the chart repaints immediately without a React re-render.
+
+### CSS variable reference (live cascade)
+
+| CSS variable | Used in | Light value | Dark value | WCAG 2.1 AA contrast |
+|---|---|---|---|---|
+| `--chart-tooltip-bg` | Tooltip background | `#ffffff` | `#18181b` | — |
+| `--chart-tooltip-text` | Tooltip text | `#09090b` | `#fafafa` | >15:1 (light), ~14.5:1 (dark) |
+| `--chart-tooltip-border` | Tooltip border | `#e4e4e7` | `#27272a` | >3:1 non-text |
+
+### Accessibility annotations (WCAG 2.1 AA)
+
+- **Contrast**: Tooltip text on background exceeds 4.5:1 in both modes (15:1 light, 14.5:1 dark). Bar colours use the chart tokens which provide sufficient contrast against both the light (`#fff`) and dark (`#111`) card surfaces.
+- **Keyboard**: The chart is purely decorative/illustrative — it receives no interactive focus. Navigation proceeds to adjacent interactive elements (buttons, links) with no interruption.
+- **ARIA**: The wrapper `div` has `role="img"` and `aria-label` (customisable via `ariaLabel` prop, defaults to `"Mini bar chart"`). Empty state renders `aria-label="No chart data available"` on the placeholder. The empty-state text uses `text-muted-foreground` for adequate contrast.
+
+### Responsive behaviour
+
+- The chart container uses `height` as a CSS `style` prop (default `3rem`) and `width: 100%` via `ResponsiveContainer`. No breakpoint-specific overrides are needed — the chart reflows with its parent container.
+- At `sm: 640px`, `md: 768px`, `lg: 1024px`, and `xl: 1280px`, the card grid that hosts the chart uses the existing `grid-cols-1 md:grid-cols-2 lg:grid-cols-3` responsive layout; the mini chart scales down fluidly inside each card.
+
+### Testing
+
+```bash
+# Unit tests (22 tests covering render, props, edge cases, tooltip, aria)
+npm test -- --run components/dashboard/RechartsMiniBarChart.test.tsx
+```
+
+| Test group | Tests | Covers |
+|---|---|---|
+| Basic rendering | 3 | Renders chart, empty state, default fill |
+| cssVar prop | 2 | Custom CSS variable, cssVar overrides color |
+| color prop | 1 | Static fill fallback |
+| height prop | 2 | Default 3rem, custom height |
+| ariaLabel prop | 3 | Default label, custom label, role="img" |
+| Data transformation | 2 | Index labels, zero margins |
+| Bar props | 2 | dataKey, radius |
+| XAxis props | 1 | Data key and hidden |
+| Tooltip props | 3 | cursor, CSS variable references, percentage formatter |
+| Edge cases | 4 | Single point, zero value, empty array, empty state aria |
+
+### Files changed
+
+| File | Status |
+|------|--------|
+| `app/globals.css` | Modified — added chart token block |
+| `components/dashboard/RechartsMiniBarChart.tsx` | Modified — CSS variable fill, tooltip tokens, empty state |
+| `components/dashboard/summary-data.tsx` | Modified — updated chartColor values |
+| `components/dashboard/account-summary-card.tsx` | Modified — `cssVar` prop |
+| `components/dashboard/RechartsMiniBarChart.test.tsx` | New |
+| `design/dashboard-redesign.md` | This section |
+

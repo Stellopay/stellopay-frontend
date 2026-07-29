@@ -28,7 +28,7 @@ export const summaryCardsData: AccountSummaryCardProps[] = [
     change: "+12.5% vs last month",
     isPositive: true,
     iconBgColor: "bg-blue-500/10",
-    chartColor: "bg-blue-500",
+    chartColor: "--chart-1",
     icon: null, // Will be replaced with actual icon component
     chartData: [
       { value: 40 },
@@ -50,7 +50,7 @@ export const summaryCardsData: AccountSummaryCardProps[] = [
     change: "+8.2% vs last month",
     isPositive: true,
     iconBgColor: "bg-emerald-500/10",
-    chartColor: "bg-emerald-500",
+    chartColor: "--chart-2",
     icon: null,
     chartData: [
       { value: 30 },
@@ -72,7 +72,7 @@ export const summaryCardsData: AccountSummaryCardProps[] = [
     change: "-3.1% vs last month",
     isPositive: false,
     iconBgColor: "bg-amber-500/10",
-    chartColor: "bg-amber-500",
+    chartColor: "--chart-3",
     icon: null,
     chartData: [
       { value: 60 },
