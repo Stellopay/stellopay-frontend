@@ -170,7 +170,7 @@ export function LoginForm() {
         </div>
       </div>
 
-      {/* Social Login */}
+      {/* Social Login (includes accessible divider) */}
       <AuthSocialButtons />
 
       {/* Divider */}
