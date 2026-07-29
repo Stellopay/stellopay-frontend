@@ -3,6 +3,8 @@
 import React from "react";
 import Image from "next/image";
 import { UserPlus, Wallet, Send } from "lucide-react";
+import { motion } from "framer-motion";
+import { useReducedMotion } from "@/hooks/useReducedMotion";
 
 const steps = [
   {
@@ -47,9 +49,25 @@ const metrics = [
   { label: "Transaction Speed", value: "<3s" },
 ];
 
+const normalVariants = {
+  hidden: { opacity: 0, y: 40 },
+  visible: {
+    opacity: 1,
+    y: 0,
+    transition: { duration: 0.5, ease: "easeOut" },
+  },
+};
+
+const reducedVariants = {
+  hidden: { opacity: 0 },
+  visible: { opacity: 1 },
+};
+
 const HowItWorks = () => {
+  const reducedMotion = useReducedMotion();
+
   return (
-    <section className="py-20 px-4 bg-white dark:bg-[#181818] font-['Inter',sans-serif]">
+    <section className="py-16 sm:py-20 lg:py-24 px-4 bg-white dark:bg-[#181818] font-['Inter',sans-serif]">
       {/* Header Section */}
       <div className="max-w-6xl mx-auto text-center mb-16">
         <div className="inline-block px-4 py-1 mb-6 text-sm font-medium text-gray-600 dark:text-gray-400 border border-gray-200 dark:border-[#27272A] rounded-full">
@@ -69,8 +87,12 @@ const HowItWorks = () => {
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8 relative z-10">
           {steps.map((step, index) => (
-            <div
+            <motion.div
               key={index}
+              variants={reducedMotion ? reducedVariants : normalVariants}
+              initial="hidden"
+              whileInView="visible"
+              viewport={{ once: true, amount: 0.2 }}
               className="relative bg-white dark:bg-[#1C1C1C] border border-gray-200 dark:border-[#27272A] rounded-3xl p-10 hover:shadow-md transition-shadow duration-300"
             >
               {/* Top Decorative Dot */}
@@ -120,10 +142,22 @@ const HowItWorks = () => {
                 />
                 <span className="h-1 flex-1 bg-gray-200 dark:bg-[#27272A] rounded-full" />
               </div>
-            </div>
+            </motion.div>
           ))}
         </div>
       </div>
+      {/* Video Section */}
+      <div className="max-w-6xl mx-auto mb-20">
+        <VideoFacade
+          videoId="REPLACE_WITH_ACTUAL_VIDEO_ID"
+          platform="youtube"
+          videoTitle="See how Stellopay works in 2 minutes"
+          captionsUrl="/docs/demo-transcript"
+          captionsLabel="View demo transcript"
+          className="mt-8 lg:mt-12 max-w-3xl mx-auto"
+        />
+      </div>
+
       {/* Metrics Section */}
       <div className="max-w-6xl mx-auto grid grid-cols-2 md:grid-cols-4 gap-4">
         {metrics.map((metric, index) => (

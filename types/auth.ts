@@ -125,7 +125,21 @@ export const changePasswordSchema = z
     path: ["confirmPassword"],
   });
 
+/**
+ * Schema for the magic-link sign-in form.
+ *
+ * Only requires a valid email address since authentication is handled via
+ * a one-time link sent to that inbox.
+ */
+export const magicLinkSchema = z.object({
+  email: z.string().email({
+    message: "Please enter a valid email address.",
+  }),
+});
+
 export type SignUpFormValues = z.infer<typeof signUpSchema>;
 export type LoginFormValues = z.infer<typeof loginSchema>;
 /** Inferred type for the change-password form. */
 export type ChangePasswordFormValues = z.infer<typeof changePasswordSchema>;
+/** Inferred type for the magic-link form. */
+export type MagicLinkFormValues = z.infer<typeof magicLinkSchema>;

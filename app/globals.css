@@ -1,191 +1,166 @@
 @import "tailwindcss";
-@import "tw-animate-css";
-
-@custom-variant dark (&:is(.dark *));
-@custom-variant contrast-more (@media (prefers-contrast: more));
-
-html {
-  scroll-behavior: smooth;
-}
-
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-inter);
-  --font-clash: var(--font-clash);
-  --font-general: var(--font-general);
-  --color-sidebar-ring: var(--sidebar-ring);
-  --color-sidebar-border: var(--sidebar-border);
-  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
-  --color-sidebar-accent: var(--sidebar-accent);
-  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
-  --color-sidebar-primary: var(--sidebar-primary);
-  --color-sidebar-foreground: var(--sidebar-foreground);
-  --color-sidebar: var(--sidebar);
-  --color-chart-5: var(--chart-5);
-  --color-chart-4: var(--chart-4);
-  --color-chart-3: var(--chart-3);
-  --color-chart-2: var(--chart-2);
-  --color-chart-1: var(--chart-1);
-  --color-ring: var(--ring);
-  --color-input: var(--input);
-  --color-border: var(--border);
-  --color-destructive: var(--destructive);
-  --color-success: var(--success);
-  --color-warning: var(--warning);
-  --color-accent-foreground: var(--accent-foreground);
-  --color-accent: var(--accent);
-  --color-muted-foreground: var(--muted-foreground);
-  --color-muted: var(--muted);
-  --color-secondary-foreground: var(--secondary-foreground);
-  --color-secondary: var(--secondary);
-  --color-primary-foreground: var(--primary-foreground);
-  --color-primary: var(--primary);
-  --color-popover-foreground: var(--popover-foreground);
-  --color-popover: var(--popover);
-  --color-card-foreground: var(--card-foreground);
-  --color-card: var(--card);
-  --radius-sm: calc(var(--radius) - 4px);
-  --radius-md: calc(var(--radius) - 2px);
-  --radius-lg: var(--radius);
-  --radius-xl: calc(var(--radius) + 4px);
-}
-
-:root {
-  --radius: 0.625rem;
-  --card: oklch(100% 0.00011 271.152);
-  --card-foreground: oklch(14.479% 0.00002 271.152);
-  --popover: oklch(100% 0.00011 271.152);
-  --popover-foreground: oklch(14.479% 0.00002 271.152);
-  --primary: oklch(20.463% 0.00002 271.152);
-  --primary-foreground: oklch(98.511% 0.00011 271.152);
-  --secondary: oklch(97.015% 0.00011 271.152);
-  --secondary-foreground: oklch(20.463% 0.00002 271.152);
-  --muted: oklch(97.015% 0.00011 271.152);
-  --muted-foreground: oklch(55.553% 0.00006 271.152);
-  --accent: oklch(97.015% 0.00011 271.152);
-  --accent-foreground: oklch(20.463% 0.00002 271.152);
-  --destructive: oklch(58.302% 0.23867 28.465);
-  --success: oklch(62.74% 0.1492 145.45);
-  --warning: oklch(76.94% 0.1766 70.08);
-  --border: oklch(92.191% 0.0001 271.152);
-  --input: oklch(0% 0 0 / 0.502);
-  --ring: oklch(70.9% 0.00008 271.152);
-  --chart-1: oklch(64.71% 0.21732 36.839);
-  --chart-2: oklch(60.488% 0.10705 184.202);
-  --chart-3: oklch(39.716% 0.06984 227.223);
-  --chart-4: oklch(0.828 0.189 84.429);
-  --chart-5: oklch(0.769 0.188 70.08);
-  --sidebar: oklch(98.511% 0.00011 271.152);
-  --sidebar-foreground: oklch(14.479% 0.00002 271.152);
-  --sidebar-primary: oklch(20.463% 0.00002 271.152);
-  --sidebar-primary-foreground: oklch(98.511% 0.00011 271.152);
-  --sidebar-accent: oklch(0.97 0 0);
-  --sidebar-accent-foreground: oklch(0.205 0 0);
-  --sidebar-border: oklch(0.922 0 0);
-  --sidebar-ring: oklch(0.708 0 0);
-  --background: #ffffff;
-  --foreground: #0a0a0a;
-}
-
-.dark {
-  --background: #0a0a0a;
-  --foreground: #fafafa;
-  --card: oklch(20.463% 0.00002 271.152);
-  --card-foreground: oklch(98.511% 0.00011 271.152);
-  --popover: oklch(20.463% 0.00002 271.152);
-  --popover-foreground: oklch(98.511% 0.00011 271.152);
-  --primary: oklch(92.191% 0.0001 271.152);
-  --primary-foreground: oklch(20.463% 0.00002 271.152);
-  --secondary: oklch(26.862% 0.00003 271.152);
-  --secondary-foreground: oklab(98.51100000000001% 0 -0.00011);
-  --muted: oklch(26.862% 0.00003 271.152);
-  --muted-foreground: oklch(70.9% 0.00008 271.152);
-  --accent: oklch(26.862% 0.00003 271.152);
-  --accent-foreground: oklch(98.511% 0.00011 271.152);
-  --destructive: oklch(0.704 0.191 22.216);
-  --success: oklch(0.645 0.246 145.45);
-  --warning: oklch(0.769 0.188 70.08);
-  --border: oklch(100% 0.00011 271.152 / 0.102);
-  --input: oklch(1 0 0 / 15%);
-  --ring: oklch(55.553% 0.00006 271.152);
-  --chart-1: oklch(0.488 0.243 264.376);
-  --chart-2: oklch(70.192% 0.15767 160.464);
-  --chart-3: oklch(0.769 0.188 70.08);
-  --chart-4: oklch(0.627 0.265 303.9);
-  --chart-5: oklch(0.645 0.246 16.439);
-  --sidebar: oklch(20.463% 0.00002 271.152);
-  --sidebar-foreground: oklch(0.985 0 0);
-  --sidebar-primary: oklch(0.488 0.243 264.376);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.269 0 0);
-  --sidebar-accent-foreground: oklch(0.985 0 0);
-  --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: oklch(0.556 0 0);
-}
 
 @layer base {
-  * {
-    @apply border-border outline-ring/50;
-  }
-  body {
-    @apply bg-background text-foreground font-sans;
-  }
+  :root {
+    --font-clash: "Clash Display", sans-serif;
+    --font-general-sans: "General Sans", sans-serif;
+    --font-inter: "Inter", sans-serif;
 
-  input:-webkit-autofill,
-  input:-webkit-autofill:hover,
-  input:-webkit-autofill:focus,
-  textarea:-webkit-autofill,
-  textarea:-webkit-autofill:hover,
-  textarea:-webkit-autofill:focus,
-  select:-webkit-autofill,
-  select:-webkit-autofill:hover,
-  select:-webkit-autofill:focus {
-    box-shadow: 0 0 0 1000px transparent inset !important;
-    -webkit-box-shadow: 0 0 0 1000px transparent inset !important;
-    -webkit-text-fill-color: #ffffff !important;
-    transition: background-color 5000s ease-in-out 0s;
+    /* Section vertical-rhythm spacing tokens
+     * Applied as py-section-sm / py-section-md / py-section-lg via
+     * the @utility helpers below, or directly via Tailwind responsive
+     * classes: py-16 sm:py-20 lg:py-24. These tokens document the
+     * canonical three-step scale used across every landing section.
+     */
+    --section-py-sm: 4rem;   /* 64 px  — mobile  (≤ 639 px)  */
+    --section-py-md: 5rem;   /* 80 px  — tablet  (≥ 640 px)  */
+    --section-py-lg: 6rem;   /* 96 px  — desktop (≥ 1024 px) */
+
+    /* Clash Display (Display & Headings) Token Scale */
+    --font-display-2xl: 4.5rem;
+    --leading-display-2xl: 1.05;
+    --tracking-display-2xl: -0.03em;
+
+    --font-display-xl: 3.75rem;
+    --leading-display-xl: 1.1;
+    --tracking-display-xl: -0.025em;
+
+    --font-heading-lg: 2.25rem;
+    --leading-heading-lg: 1.2;
+    --tracking-heading-lg: -0.02em;
+
+    --font-heading-md: 1.5rem;
+    --leading-heading-md: 1.25;
+    --tracking-heading-md: -0.015em;
+
+    /* General Sans / Inter (Body Copy & UI) Token Scale */
+    --font-body-lg: 1.125rem;
+    --leading-body-lg: 1.6;
+    --tracking-body-lg: -0.01em;
+
+    --font-body-md: 1rem;
+    --leading-body-md: 1.5;
+    --tracking-body-md: 0em;
+
+    --font-caption-sm: 0.875rem;
+    --leading-caption-sm: 1.43;
+    --tracking-caption-sm: 0.01em;
   }
 }
 
-/* Skeleton shimmer animation */
-.skeleton-shimmer {
-  position: relative;
-  overflow: hidden;
+@utility text-display-2xl {
+  font-family: var(--font-clash);
+  font-size: var(--font-display-2xl);
+  line-height: var(--leading-display-2xl);
+  letter-spacing: var(--tracking-display-2xl);
 }
 
-.skeleton-shimmer::after {
-  content: "";
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: linear-gradient(
-    90deg,
-    transparent,
-    rgba(255, 255, 255, 0.1),
-    transparent
-  );
-  transform: translateX(-100%);
-  animation: shimmer 2s infinite;
+@utility text-display-xl {
+  font-family: var(--font-clash);
+  font-size: var(--font-display-xl);
+  line-height: var(--leading-display-xl);
+  letter-spacing: var(--tracking-display-xl);
 }
 
-@keyframes shimmer {
-  0% {
-    transform: translateX(-100%);
+@utility text-heading-lg {
+  font-family: var(--font-clash);
+  font-size: var(--font-heading-lg);
+  line-height: var(--leading-heading-lg);
+  letter-spacing: var(--tracking-heading-lg);
+}
+
+/**
+ * section-spacing
+ * ---------------
+ * One-line utility that applies the canonical three-step vertical-rhythm
+ * scale to any landing section.  Use it in place of ad-hoc py-* values:
+ *
+ *   <section className="section-spacing ...">
+ *
+ * Equivalent to `py-16 sm:py-20 lg:py-24` (64 px / 80 px / 96 px).
+ * The values are driven by the --section-py-* CSS custom properties
+ * defined in :root so that a single token edit updates every section.
+ */
+@utility section-spacing {
+  padding-top: var(--section-py-sm);
+  padding-bottom: var(--section-py-sm);
+
+  @media (width >= 640px) {
+    padding-top: var(--section-py-md);
+    padding-bottom: var(--section-py-md);
   }
-  100% {
-    transform: translateX(100%);
+
+  @media (width >= 1024px) {
+    padding-top: var(--section-py-lg);
+    padding-bottom: var(--section-py-lg);
   }
 }
 
-@layer utilities {
-  .scrollbar-hide {
-    -ms-overflow-style: none; /* IE and Edge */
-    scrollbar-width: none; /* Firefox */
+/* Statement output intentionally has its own print scope; table print rules and
+   navigation never leak into the reconciliation document. */
+@media print {
+  body * {
+    visibility: hidden;
   }
-  .scrollbar-hide::-webkit-scrollbar {
-    display: none; /* Chrome, Safari and Opera */
+
+  .statement-print-root,
+  .statement-print-root * {
+    visibility: visible;
+  }
+
+  .statement-print-root {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    margin: 0;
+    border: 0;
+    box-shadow: none;
+    color: #111827 !important;
+    background: #ffffff !important;
+  }
+
+  .statement-print-root .statement-actions {
+    display: none !important;
+  }
+
+  .statement-print-root * {
+    color: #111827 !important;
+    background-color: transparent !important;
+  }
+
+  .statement-print-root table,
+  .statement-print-root tr {
+    break-inside: avoid;
+  }
+
+  .statement-print-root thead {
+    display: table-header-group;
+  }
+
+  @page {
+    margin: 16mm;
   }
 }
+
+@utility text-body-lg {
+  font-family: var(--font-general-sans), var(--font-inter);
+  font-size: var(--font-body-lg);
+  line-height: var(--leading-body-lg);
+  letter-spacing: var(--tracking-body-lg);
+}
+
+@utility text-body-md {
+  font-family: var(--font-general-sans), var(--font-inter);
+  font-size: var(--font-body-md);
+  line-height: var(--leading-body-md);
+  letter-spacing: var(--tracking-body-md);
+}
+
+@utility text-caption-sm {
+  font-family: var(--font-inter);
+  font-size: var(--font-caption-sm);
+  line-height: var(--leading-caption-sm);
+  letter-spacing: var(--tracking-caption-sm);
+}
+
+

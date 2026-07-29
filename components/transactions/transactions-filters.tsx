@@ -10,7 +10,7 @@ import {
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { SearchBar } from "@/components/common/search-bar";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -29,6 +29,7 @@ export default function TransactionsFilters({
   onSort,
   onAdvancedFilterToggle,
   hasAdvancedFilters = false,
+  debounceMs = 300,
 }: TransactionsFiltersProps) {
   const renderSortIndicator = (field: SortField) => {
     const indicators: string[] = [];
@@ -41,6 +42,12 @@ export default function TransactionsFilters({
     }
     return indicators.length > 0 ? indicators.join(" ") : "";
   };
+
+  // Compute how many filters are active (search, selected filter, advanced filters)
+  const activeFilterCount =
+    (searchQuery && searchQuery.trim() !== "" ? 1 : 0) +
+    (selectedFilter && selectedFilter !== "All Transactions" ? 1 : 0) +
+    (hasAdvancedFilters ? 1 : 0);
 
   return (
     <div className="flex flex-col lg:flex-row lg:items-center justify-between px-6 py-4 rounded-lg bg-[#160f17]">
@@ -58,9 +65,14 @@ export default function TransactionsFilters({
           <DropdownMenuTrigger asChild>
             <Button
               variant="ghost"
-              className="text-xl text-white hover:bg-[#160f17] hover:text-white px-2"
+              className="relative text-xl text-white hover:bg-[#160f17] hover:text-white px-2"
             >
               {selectedFilter}
+              {activeFilterCount > 0 && (
+                <span className="absolute -top-1 -right-1 inline-flex items-center justify-center px-1.5 py-0.5 rounded-full text-xs font-medium bg-[#34D399] text-black">
+                  {activeFilterCount}
+                </span>
+              )}
               <ChevronDown
                 size={16}
                 color="currentColor"
@@ -97,16 +109,15 @@ export default function TransactionsFilters({
         {/* Search Input */}
         <div className="relative">
           <span className="absolute left-3 top-1/2 transform -translate-y-1/2">
-            <Search
-              size={16}
-              color="#9CA3AF"
-              strokeWidth={1.5}
-            />
+            <Search size={16} color="#9CA3AF" strokeWidth={1.5} />
           </span>
-          <Input
+          {/* Debounced Search Input */}
+          <SearchBar
             placeholder="Search"
+            ariaLabel="Search transactions"
             value={searchQuery}
-            onChange={(e) => onSearchChange(e.target.value)}
+            onSearch={onSearchChange}
+            debounceMs={debounceMs}
             className="pl-10 bg-[#1A1A1A] border-[#2D2D2D] text-white placeholder-gray-400 focus:border-gray-600"
           />
         </div>
@@ -138,6 +149,20 @@ export default function TransactionsFilters({
             )}
           </Button>
         )}
+
+        {/* Clear All Filters */}
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => {
+            onSearchChange("");
+            onFilterChange("All Transactions");
+          }}
+          aria-label="Clear all filters"
+          className="text-gray-400 hover:text-white"
+        >
+          Clear all
+        </Button>
 
         {/* Filter Dropdown */}
         <DropdownMenu>

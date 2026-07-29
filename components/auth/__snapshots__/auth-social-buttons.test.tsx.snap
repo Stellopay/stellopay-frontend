@@ -1,0 +1,3 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`AuthSocialButtons > matches the divider markup snapshot 1`] = `"<div class="flex items-center my-6 gap-2"><span role="separator" aria-label="or continue with email" class="sr-only"></span><div data-orientation="horizontal" role="none" class="h-[1px] w-full flex-1 bg-muted-foreground"></div><span class="text-sm text-muted-foreground" aria-hidden="true">Or</span><div data-orientation="horizontal" role="none" class="h-[1px] w-full flex-1 bg-muted-foreground"></div></div>"`;

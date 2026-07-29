@@ -1,12 +1,13 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import {
   AlertCircle,
   CheckCircle2,
   Copy,
+  Download,
   EyeOff,
   KeyRound,
   Monitor,
@@ -28,11 +29,16 @@ import { Badge } from "@/components/ui/badge";
 import { Form } from "@/components/ui/form";
 import { FormFieldPassword } from "@/components/ui/form-field";
 import { Input } from "@/components/ui/input";
+import { PasswordStrengthIndicator } from "@/components/ui/password-strength-indicator";
 import { changePasswordSchema, ChangePasswordFormValues } from "@/types/auth";
-import { checkPasswordRequirements } from "@/utils/authUtils";
-import { copyToClipboardWithFeedback } from "@/utils/clipboardUtils";
+import {
+  calculatePasswordStrength,
+  checkPasswordRequirements,
+} from "@/utils/authUtils";
 import DestructiveActionDialog from "./destructive-action-dialog";
 import { DEMO_SECURITY } from "@/lib/demo-data";
+import { generateTotpSecret, verifyTotpCode } from "@/lib/totp";
+import QRCode from "qrcode";
 
 const sessions = [
   {
@@ -110,6 +116,69 @@ export function createApiKeySecret(name: string): string {
       : Math.random().toString(36).slice(2).padEnd(24, "0");
 
   return `sk_live_${normalizedName}_${randomPart.slice(0, 24)}`;
+}
+
+/** How many single-use two-factor backup codes are issued per set. */
+export const BACKUP_CODE_COUNT = 10;
+
+/**
+ * Generates a set of single-use two-factor backup (recovery) codes.
+ *
+ * Each code is derived from a cryptographically strong source when available
+ * (`crypto.randomUUID`) and normalised to an unambiguous, human-transcribable
+ * `XXXXX-XXXXX` shape. Uniqueness within the set is guaranteed by collecting
+ * into a `Set` before returning, so no two codes in the same batch collide.
+ *
+ * @security The returned codes are secrets: they are shown to the user once and
+ *   must never be logged, echoed into a `StatusState` message, or persisted
+ *   anywhere the raw values could leak. Callers own clearing them from state
+ *   once the user has saved them.
+ *
+ * @param count - How many codes to produce. Defaults to {@link BACKUP_CODE_COUNT}.
+ * @returns An array of `count` distinct backup codes.
+ */
+export function generateBackupCodes(count: number = BACKUP_CODE_COUNT): string[] {
+  const codes = new Set<string>();
+
+  while (codes.size < count) {
+    const raw =
+      typeof crypto !== "undefined" && "randomUUID" in crypto
+        ? crypto.randomUUID().replace(/-/g, "")
+        : Math.random().toString(36).slice(2).padEnd(24, "0");
+    // Uppercase alphanumerics only — drop any separators the source produced.
+    const normalized = raw.replace(/[^a-z0-9]/gi, "").toUpperCase();
+
+    if (normalized.length < 10) {
+      continue;
+    }
+
+    codes.add(`${normalized.slice(0, 5)}-${normalized.slice(5, 10)}`);
+  }
+
+  return Array.from(codes);
+}
+
+/**
+ * Renders a set of backup codes as the plain-text file the user downloads.
+ *
+ * Kept as a pure, exported helper (separate from the DOM download side effect)
+ * so the exact on-disk contents can be asserted in tests without a real Blob.
+ *
+ * @security The header only contains guidance text — the caller is responsible
+ *   for treating the produced string as a secret (it embeds the raw codes).
+ */
+export function formatBackupCodesFile(codes: string[]): string {
+  const header = [
+    "StelloPay two-factor backup codes",
+    "",
+    "Each code can be used once to sign in if you lose access to your",
+    "authenticator app. Store them somewhere safe and private — anyone with",
+    "these codes can bypass two-factor authentication.",
+    "",
+  ];
+  const body = codes.map((code, index) => `${index + 1}. ${code}`);
+
+  return [...header, ...body, ""].join("\n");
 }
 
 interface SecurityTabProps {
@@ -229,6 +298,42 @@ export default function SecurityTab({
     string | null
   >(null);
   const [twoFactorSubmitting, setTwoFactorSubmitting] = useState(false);
+  const [totpSecret, setTotpSecret] = useState<string | null>(null);
+  const [qrCodeDataUrl, setQrCodeDataUrl] = useState<string | null>(null);
+  const totpSecretRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    if (!isTwoFactorSetupOpen) return;
+    let cancelled = false;
+    (async () => {
+      const { base32, otpauthUrl } = generateTotpSecret(
+        "Stellopay",
+        "user@stellopay.com",
+      );
+      if (cancelled) return;
+      setTotpSecret(base32);
+      totpSecretRef.current = base32;
+      try {
+        const url = await QRCode.toDataURL(otpauthUrl, {
+          width: 200,
+          margin: 2,
+        });
+        if (!cancelled) setQrCodeDataUrl(url);
+      } catch {
+        // QR generation failure is non-critical
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [isTwoFactorSetupOpen]);
+
+  // --- Two-factor backup (recovery) codes ---------------------------------
+  // `backupCodes` holds the current, one-time-visible set. `null` means no set
+  // has been generated (or the user dismissed the last one). These are secrets:
+  // never log them or place them in a StatusState message.
+  const [backupCodes, setBackupCodes] = useState<string[] | null>(null);
+  const [backupCodesCopyStatus, setBackupCodesCopyStatus] =
+    useState<CopyStatus>("idle");
+  const [backupCodesGenerating, setBackupCodesGenerating] = useState(false);
 
   useEffect(() => {
     if (controlledTwoFactor !== undefined) {
@@ -260,6 +365,9 @@ export default function SecurityTab({
     setIsTwoFactorSetupOpen(false);
     setTwoFactorCode("");
     setTwoFactorSetupInlineError(null);
+    setTotpSecret(null);
+    setQrCodeDataUrl(null);
+    totpSecretRef.current = null;
   };
 
   /**
@@ -274,6 +382,8 @@ export default function SecurityTab({
     if (!nextRequested) {
       setTwoFactorEnabled(false);
       closeTwoFactorSetup();
+      setBackupCodes(null);
+      setBackupCodesCopyStatus("idle");
       return;
     }
     setIsTwoFactorSetupOpen(true);
@@ -302,18 +412,25 @@ export default function SecurityTab({
     setTwoFactorSetupInlineError(null);
     setTwoFactorSubmitting(true);
     try {
-      await new Promise<void>((resolve, reject) =>
-        setTimeout(() => {
-          if (Math.random() > 0.8) {
-            reject(new Error("Verification failed"));
-          } else {
-            resolve();
-          }
-        }, 1200),
-      );
+      const secret = totpSecretRef.current;
+      if (!secret) {
+        throw new Error("TOTP secret not generated");
+      }
+
+      // Simulate a brief network delay to match the real async flow
+      await new Promise((resolve) => setTimeout(resolve, 600));
+
+      const isValid = verifyTotpCode(secret, twoFactorCode);
+      if (!isValid) {
+        throw new Error("Invalid code");
+      }
 
       setTwoFactorEnabled(true);
       closeTwoFactorSetup();
+      // Issue a fresh set of one-time recovery codes so the user has a way back
+      // in if they lose their authenticator. Shown once, in the panel below.
+      setBackupCodes(generateBackupCodes());
+      setBackupCodesCopyStatus("idle");
       setStatus({
         message:
           "Authenticator app verified. Two-factor is now enabled for this account.",
@@ -340,6 +457,10 @@ export default function SecurityTab({
   const watchedPassword = form.watch("newPassword");
   const watchedConfirm = form.watch("confirmPassword");
   const passwordRequirements = checkPasswordRequirements(watchedPassword);
+  const passwordStrengthResult = useMemo(
+    () => calculatePasswordStrength(watchedPassword),
+    [watchedPassword],
+  );
   const passwordsMatch =
     watchedPassword.length > 0 && watchedPassword === watchedConfirm;
 
@@ -447,6 +568,87 @@ export default function SecurityTab({
   };
 
   /**
+   * Copies the whole backup-code set to the clipboard, one code per line, and
+   * toggles transient feedback. The codes are only ever passed to the clipboard
+   * util — never logged or placed in a status message.
+   */
+  const handleCopyBackupCodes = () => {
+    if (!backupCodes) {
+      return;
+    }
+
+    copyToClipboardWithFeedback(
+      backupCodes.join("\n"),
+      () => {
+        setBackupCodesCopyStatus("success");
+        setTimeout(() => setBackupCodesCopyStatus("idle"), 2000);
+      },
+      () => {
+        setBackupCodesCopyStatus("error");
+        setTimeout(() => setBackupCodesCopyStatus("idle"), 3000);
+      },
+    );
+  };
+
+  /**
+   * Downloads the current backup-code set as a plain-text file. The file body
+   * is built by the pure {@link formatBackupCodesFile} helper (unit-tested
+   * separately); this function only owns the Blob + anchor DOM side effect and
+   * guards the browser-only APIs so it is a no-op during SSR.
+   */
+  const handleDownloadBackupCodes = () => {
+    if (!backupCodes) {
+      return;
+    }
+    if (typeof document === "undefined" || typeof URL === "undefined") {
+      return;
+    }
+
+    const blob = new Blob([formatBackupCodesFile(backupCodes)], {
+      type: "text/plain;charset=utf-8",
+    });
+    const url = URL.createObjectURL(blob);
+    const anchor = document.createElement("a");
+    anchor.href = url;
+    anchor.download = "stellopay-backup-codes.txt";
+    document.body.appendChild(anchor);
+    anchor.click();
+    document.body.removeChild(anchor);
+    URL.revokeObjectURL(url);
+  };
+
+  /**
+   * Dismisses the show-once panel. The codes leave React state entirely — the
+   * user has confirmed they saved them, and they can regenerate a set later.
+   */
+  const handleDismissBackupCodes = () => {
+    setBackupCodes(null);
+    setBackupCodesCopyStatus("idle");
+  };
+
+  /**
+   * Regenerates the backup-code set from behind the destructive-action dialog.
+   * Any previously issued codes are invalidated (replaced), so this reuses the
+   * same show-once panel with a fresh set.
+   */
+  const handleRegenerateBackupCodes = async () => {
+    setBackupCodesGenerating(true);
+    try {
+      await new Promise((resolve) => setTimeout(resolve, 350));
+      setBackupCodes(generateBackupCodes());
+      setBackupCodesCopyStatus("idle");
+      setStatus({
+        message:
+          "New backup codes generated. Your previous codes no longer work.",
+        type: "success",
+      });
+      setTimeout(() => setStatus({ message: "", type: null }), 5000);
+    } finally {
+      setBackupCodesGenerating(false);
+    }
+  };
+
+  /**
    * Invoked by `form.handleSubmit` after zod passes all validations.
    *
    * `_data` is typed as `ChangePasswordFormValues` but intentionally unused —
@@ -520,14 +722,21 @@ export default function SecurityTab({
                   autoComplete="new-password"
                   disabled={isSaving}
                 />
-                <FormFieldPassword
-                  control={form.control}
-                  name="confirmPassword"
-                  label="Confirm password"
-                  placeholder="Repeat the new password"
-                  autoComplete="new-password"
-                  disabled={isSaving}
-                />
+                <div className="space-y-4">
+                  <FormFieldPassword
+                    control={form.control}
+                    name="confirmPassword"
+                    label="Confirm password"
+                    placeholder="Repeat the new password"
+                    autoComplete="new-password"
+                    disabled={isSaving}
+                  />
+                  {watchedPassword.length > 0 && (
+                    <PasswordStrengthIndicator
+                      strengthResult={passwordStrengthResult}
+                    />
+                  )}
+                </div>
               </div>
 
               <div className="grid gap-3 sm:grid-cols-2">
@@ -634,7 +843,54 @@ export default function SecurityTab({
                 className="rounded-2xl border border-sky-500/20 bg-sky-500/5 p-4"
                 aria-label="Authenticator verification setup"
               >
-                <div className="space-y-3">
+                <div className="space-y-4">
+                  <div className="flex flex-col items-center gap-3 sm:flex-row sm:items-start">
+                    {qrCodeDataUrl && (
+                      <div className="shrink-0">
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img
+                          src={qrCodeDataUrl}
+                          alt="TOTP QR code — scan with your authenticator app"
+                          width={140}
+                          height={140}
+                          className="rounded-lg border border-zinc-200 dark:border-zinc-700"
+                        />
+                      </div>
+                    )}
+                    <div className="flex flex-col gap-2 text-sm text-zinc-600 dark:text-zinc-400">
+                      <p className="font-medium text-zinc-900 dark:text-white">
+                        Scan with your authenticator app
+                      </p>
+                      <p>
+                        Use an authenticator app like Google Authenticator or
+                        Authy to scan the QR code. If you cannot scan the code,
+                        copy the key below.
+                      </p>
+                      {totpSecret && (
+                        <div className="flex items-center gap-2 rounded-lg border border-zinc-200 bg-white px-3 py-2 dark:border-zinc-700 dark:bg-zinc-900">
+                          <code className="select-all font-mono text-xs tracking-wider break-all">
+                            {totpSecret}
+                          </code>
+                          <button
+                            type="button"
+                            onClick={() =>
+                              copyToClipboardWithFeedback(
+                                totpSecret,
+                                "Secret key copied",
+                              )
+                            }
+                            className="shrink-0 rounded-md p-1.5 text-zinc-400 hover:bg-zinc-100 hover:text-zinc-600 dark:hover:bg-zinc-800 dark:hover:text-zinc-300"
+                            aria-label="Copy secret key"
+                          >
+                            <Copy className="h-4 w-4" />
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="border-t border-zinc-200 dark:border-zinc-700" />
+
                   <p className="flex gap-2 text-sm font-medium text-zinc-900 dark:text-white">
                     <AlertCircle className="mt-0.5 h-4 w-4 text-sky-600 dark:text-sky-300" />
                     Enter the code displayed in your authenticator app to finish
@@ -724,6 +980,86 @@ export default function SecurityTab({
               </form>
             )}
 
+            {backupCodes && (
+              <div
+                className="rounded-2xl border border-emerald-500/20 bg-emerald-500/5 p-4"
+                role="region"
+                aria-label="Two-factor backup codes"
+              >
+                <div className="space-y-3">
+                  <h3 className="flex items-center gap-2 text-sm font-semibold text-zinc-900 dark:text-white">
+                    <ShieldCheck className="h-4 w-4 text-emerald-600" />
+                    Backup codes
+                  </h3>
+                  <p className="text-xs text-zinc-600 dark:text-zinc-400">
+                    Each code can be used once to sign in if you lose access to
+                    your authenticator app.
+                  </p>
+                  <div
+                    className="grid gap-1.5 sm:grid-cols-2"
+                    role="list"
+                    aria-label="Your backup codes"
+                  >
+                    {backupCodes.map((code) => (
+                      <div
+                        key={code}
+                        role="listitem"
+                        className="rounded-md border border-zinc-200 bg-white px-3 py-2 font-mono text-sm tracking-wider text-zinc-900 dark:border-white/10 dark:bg-[#09090B] dark:text-white"
+                      >
+                        {code}
+                      </div>
+                    ))}
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={handleCopyBackupCodes}
+                      aria-label="Copy all backup codes to clipboard"
+                    >
+                      {backupCodesCopyStatus === "success" ? (
+                        <>
+                          <CheckCircle2 className="h-4 w-4 text-emerald-600" />
+                          Copied
+                        </>
+                      ) : backupCodesCopyStatus === "error" ? (
+                        <>
+                          <AlertCircle className="h-4 w-4 text-red-500" />
+                          Failed
+                        </>
+                      ) : (
+                        <>
+                          <Copy className="h-4 w-4" />
+                          Copy all
+                        </>
+                      )}
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={handleDownloadBackupCodes}
+                      aria-label="Download backup codes as text file"
+                    >
+                      <Download className="h-4 w-4" />
+                      Download
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={handleDismissBackupCodes}
+                      disabled={backupCodesGenerating}
+                    >
+                      <EyeOff className="h-4 w-4" />
+                      I&apos;ve saved these codes
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            )}
+
             <ToggleCard
               title="New device approval"
               description="Challenge sign-ins from browsers or devices you have not approved yet."
@@ -736,6 +1072,43 @@ export default function SecurityTab({
               enabled={transferApprovalEnabled}
               onToggle={setTransferApprovalEnabled}
             />
+
+            {twoFactorEnabled && !backupCodes && (
+              <div className="rounded-2xl border border-zinc-200 bg-zinc-50 p-4 dark:border-white/10 dark:bg-white/5">
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                  <div className="space-y-1">
+                    <p className="text-sm font-medium text-zinc-900 dark:text-white">
+                      Backup codes
+                    </p>
+                    <p className="text-xs text-zinc-600 dark:text-zinc-400">
+                      Generate backup codes to recover access if you lose your
+                      authenticator device.
+                    </p>
+                  </div>
+                  {backupCodesGenerating ? (
+                    <Button disabled variant="outline" size="sm">
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      Generating...
+                    </Button>
+                  ) : (
+                    <DestructiveActionDialog
+                      triggerLabel="Regenerate"
+                      title="Regenerate backup codes"
+                      description="This will invalidate all previously generated backup codes."
+                      impactItems={[
+                        "Any previously saved backup codes will stop working immediately.",
+                        "New codes are shown once after regeneration and must be saved.",
+                        "This action cannot be undone.",
+                      ]}
+                      confirmationToken="REGENERATE"
+                      confirmationLabel='Type "REGENERATE" to continue'
+                      confirmLabel="Regenerate codes"
+                      onConfirm={handleRegenerateBackupCodes}
+                    />
+                  )}
+                </div>
+              </div>
+            )}
           </CardContent>
         </Card>
 

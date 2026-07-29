@@ -284,3 +284,58 @@ describe("ErrorState — layout regression (no onRetry)", () => {
     expect(container.querySelector("button")).toBeNull();
   });
 });
+
+// ─── Sentry-ready props (eventId + reportLink) ───────────────────────────────
+
+describe("ErrorState — Sentry-ready props", () => {
+  it("renders the event ID placeholder when eventId is provided", () => {
+    render(
+      <ErrorState
+        title="Error"
+        description="Desc"
+        eventId="abc123"
+        onRetry={() => {}}
+      />,
+    );
+    expect(screen.getByText("Reference ID:")).toBeInTheDocument();
+    expect(screen.getByText("abc123")).toBeInTheDocument();
+    const code = document.querySelector("code");
+    expect(code).toHaveAttribute("aria-label", "Event reference abc123");
+  });
+
+  it("renders a dash placeholder when eventId is omitted", () => {
+    render(<ErrorState title="Error" description="Desc" onRetry={() => {}} />);
+    expect(screen.getByText("Reference ID:")).toBeInTheDocument();
+    expect(screen.getByText("—")).toBeInTheDocument();
+    const code = document.querySelector("code");
+    expect(code).toHaveAttribute(
+      "aria-label",
+      "Event reference not available",
+    );
+  });
+
+  it("renders the report-issue link with the default URL", () => {
+    render(<ErrorState title="Error" description="Desc" onRetry={() => {}} />);
+    const link = screen.getByRole("link", { name: /report this issue/i });
+    expect(link).toBeInTheDocument();
+    expect(link).toHaveAttribute("href", "/help/support");
+  });
+
+  it("renders the report-issue link with a custom URL when provided", () => {
+    render(
+      <ErrorState
+        title="Error"
+        description="Desc"
+        onRetry={() => {}}
+        reportLink="https://example.com/report"
+      />,
+    );
+    const link = screen.getByRole("link", { name: /report this issue/i });
+    expect(link).toHaveAttribute("href", "https://example.com/report");
+  });
+
+  it("keeps event ID out of the rendered text when it is undefined", () => {
+    render(<ErrorState title="Error" description="Desc" eventId={undefined} />);
+    expect(screen.queryByText("undefined")).not.toBeInTheDocument();
+  });
+});

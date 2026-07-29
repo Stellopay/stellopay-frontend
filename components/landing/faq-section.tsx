@@ -48,7 +48,7 @@ const AccordionItem = ({
   item: FAQItem;
   isOpen: boolean;
   onToggle: () => void;
-  buttonRef: React.RefObject<HTMLButtonElement>;
+  buttonRef: React.RefObject<HTMLButtonElement | null>;
   onKeyDown: (e: React.KeyboardEvent<HTMLButtonElement>) => void;
   reducedMotion: boolean;
 }) => {
@@ -121,7 +121,7 @@ const AccordionItem = ({
 export default function FAQSection() {
   const reducedMotion = useReducedMotion();
   const [openIndex, setOpenIndex] = useState<number | null>(0);
-  const buttonRefs = useRef<Array<React.RefObject<HTMLButtonElement>>>(
+  const buttonRefs = useRef<Array<React.RefObject<HTMLButtonElement | null>>>(
     faqData.map(() => React.createRef<HTMLButtonElement>()),
   );
 
