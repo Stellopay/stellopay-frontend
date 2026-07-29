@@ -5,12 +5,16 @@ import NotificationPanel from "./notification-panel";
 import { NotificationItem } from "@/types/notification-item";
 
 const buildNotifications = (count: number): NotificationItem[] =>
-  Array.from({ length: count }).map((_, index) => ({
-    id: `notif-${index}`,
-    title: `Title ${index}`,
-    message: `Message ${index}`,
-    read: index % 2 === 0,
-  }));
+  Array.from({ length: count }).map((_, index) => {
+    const isRead = index % 2 === 0;
+    return {
+      id: `notif-${index}`,
+      title: `Title ${index}`,
+      message: `Message ${index}`,
+      read: isRead,
+      ...(isRead ? { readAt: new Date().toISOString() } : {}),
+    };
+  });
 
 describe("NotificationPanel", () => {
   it("renders a loading skeleton when isLoading is true", () => {
@@ -112,6 +116,15 @@ describe("NotificationPanel", () => {
 
     const unreadDots = container.querySelectorAll(".w-1.h-1.bg-\\[\\#EB6945\\]");
     expect(unreadDots).toHaveLength(1);
+  });
+
+  it("displays the readAt timestamp for read notifications if provided", () => {
+    const notifications: NotificationItem[] = [
+      { id: "read", title: "Read item", message: "msg", read: true, readAt: "2026-07-29T15:00:00Z" },
+    ];
+    render(<NotificationPanel notifications={notifications} />);
+
+    expect(screen.getByText(/Read:/)).toBeInTheDocument();
   });
 
   // ── Keyboard navigation ────────────────────────────────────────────

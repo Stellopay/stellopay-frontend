@@ -253,6 +253,14 @@ const NotificationPanel = ({
                 <p className="text-xs text-[#505050] truncate">
                   {notification.message}
                 </p>
+                {notification.read && notification.readAt && (
+                  <p className="text-[10px] text-[#505050] mt-1">
+                    Read: {new Date(notification.readAt).toLocaleString(undefined, {
+                      dateStyle: 'medium',
+                      timeStyle: 'short'
+                    })}
+                  </p>
+                )}
               </div>
               <div className="relative w-[24px] h-[24px] flex items-center justify-center bg-[#0D0D0D80]/50 border border-[#2E2E2E] rounded-sm">
                 <IconBell />
