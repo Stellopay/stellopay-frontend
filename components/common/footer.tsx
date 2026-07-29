@@ -3,6 +3,9 @@
 import Link from "next/link";
 import Image from "next/image";
 import { useState } from "react";
+import { messages } from "@/messages";
+
+// TODO: Replace direct import of messages with next-intl useTranslations() hook once i18n is enabled.
 
 // Social Media Icons as SVG components
 const TwitterIcon = () => (
@@ -70,32 +73,32 @@ const EmailIcon = () => (
 
 // Footer link data
 const footerLinks = {
-  Product: [
-    { label: "Features", href: "#KeyFeatures" },
-    { label: "Pricing", href: "#Pricing" },
-    { label: "Security", href: "#Security" },
-    { label: "API", href: "#API" },
-    { label: "Integrations", href: "#Integrations" },
+  [messages.footer.categories.product]: [
+    { label: messages.footer.links.features, href: "#KeyFeatures" },
+    { label: messages.footer.links.pricing, href: "#Pricing" },
+    { label: messages.footer.links.security, href: "#Security" },
+    { label: messages.footer.links.api, href: "#API" },
+    { label: messages.footer.links.integrations, href: "#Integrations" },
   ],
-  Company: [
-    { label: "About", href: "/about" },
-    { label: "Blog", href: "/blog" },
-    { label: "Careers", href: "/careers" },
-    { label: "Press", href: "/press" },
-    { label: "Partners", href: "/partners" },
+  [messages.footer.categories.company]: [
+    { label: messages.footer.links.about, href: "/about" },
+    { label: messages.footer.links.blog, href: "/blog" },
+    { label: messages.footer.links.careers, href: "/careers" },
+    { label: messages.footer.links.press, href: "/press" },
+    { label: messages.footer.links.partners, href: "/partners" },
   ],
-  Resources: [
-    { label: "Documentation", href: "/docs" },
-    { label: "Help Center", href: "/help" },
-    { label: "Tutorials", href: "/tutorials" },
-    { label: "Community", href: "/community" },
-    { label: "Error Pages", href: "/errors" },
+  [messages.footer.categories.resources]: [
+    { label: messages.footer.links.documentation, href: "/docs" },
+    { label: messages.footer.links.helpCenter, href: "/help" },
+    { label: messages.footer.links.tutorials, href: "/tutorials" },
+    { label: messages.footer.links.community, href: "/community" },
+    { label: messages.footer.links.errorPages, href: "/errors" },
   ],
-  Legal: [
-    { label: "Privacy", href: "/privacy" },
-    { label: "Terms", href: "/terms" },
-    { label: "Cookie Policy", href: "/cookies" },
-    { label: "Licenses", href: "/licenses" },
+  [messages.footer.categories.legal]: [
+    { label: messages.footer.links.privacy, href: "/privacy" },
+    { label: messages.footer.links.terms, href: "/terms" },
+    { label: messages.footer.links.cookiePolicy, href: "/cookies" },
+    { label: messages.footer.links.licenses, href: "/licenses" },
   ],
 };
 
@@ -103,15 +106,23 @@ const socialLinks = [
   {
     icon: TwitterIcon,
     href: "https://twitter.com/stellopay",
-    label: "Twitter",
+    label: messages.footer.socialLinks.twitter,
   },
   {
     icon: LinkedInIcon,
     href: "https://linkedin.com/company/stellopay",
-    label: "LinkedIn",
+    label: messages.footer.socialLinks.linkedIn,
   },
-  { icon: GitHubIcon, href: "https://github.com/stellopay", label: "GitHub" },
-  { icon: EmailIcon, href: "mailto:contact@stellopay.com", label: "Email" },
+  {
+    icon: GitHubIcon,
+    href: "https://github.com/stellopay",
+    label: messages.footer.socialLinks.gitHub,
+  },
+  {
+    icon: EmailIcon,
+    href: "mailto:contact@stellopay.com",
+    label: messages.footer.socialLinks.email,
+  },
 ];
 
 export default function Footer() {
@@ -155,9 +166,7 @@ export default function Footer() {
                 className="text-[#666666] dark:text-[#a1a1aa] text-sm leading-relaxed mb-6 max-w-[280px]"
                 style={{ fontFamily: "General Sans, sans-serif" }}
               >
-                Simplifying crypto payments for businesses. Built on the Stellar
-                blockchain for instant, secure, and affordable global
-                transactions.
+                {messages.footer.description}
               </p>
 
               {/* Social Links */}
@@ -210,14 +219,13 @@ export default function Footer() {
                 className="text-[#1a1a1a] dark:text-white text-2xl font-semibold mb-3"
                 style={{ fontFamily: "General Sans, sans-serif" }}
               >
-                Stay updated with StelloPay
+                {messages.footer.newsletter.heading}
               </h3>
               <p
                 className="text-[#666666] dark:text-[#a1a1aa] text-sm mb-6"
                 style={{ fontFamily: "General Sans, sans-serif" }}
               >
-                Get the latest news, updates, and tips delivered straight to
-                your inbox.
+                {messages.footer.newsletter.description}
               </p>
 
               <form
@@ -228,7 +236,7 @@ export default function Footer() {
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  placeholder="Your email address"
+                  placeholder={messages.footer.newsletter.placeholder}
                   className="w-full sm:w-[320px] h-12 px-4 rounded-lg border border-gray-200 dark:border-[#27272a] bg-transparent dark:bg-[#18181b] text-[#1a1a1a] dark:text-white text-sm placeholder:text-[#999999] dark:placeholder:text-[#71717a] focus:outline-none focus:ring-2 focus:ring-[#7C3AED]/20 dark:focus:ring-[#a78bfa]/20 focus:border-[#7C3AED] dark:focus:border-[#a78bfa] transition-all duration-200"
                   style={{ fontFamily: "General Sans, sans-serif" }}
                 />
@@ -238,7 +246,9 @@ export default function Footer() {
                   className="w-full sm:w-auto h-12 px-8 rounded-lg text-white font-medium text-sm disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 bg-gradient-to-r from-[#83A7FF] to-[#8B5CF6]"
                   style={{ fontFamily: "General Sans, sans-serif" }}
                 >
-                  {isSubmitting ? "Subscribing..." : "Subscribe"}
+                  {isSubmitting
+                    ? messages.footer.newsletter.subscribing
+                    : messages.footer.newsletter.subscribe}
                 </button>
               </form>
             </div>
@@ -252,7 +262,7 @@ export default function Footer() {
                 className="text-[#666666] dark:text-[#a1a1aa] text-sm"
                 style={{ fontFamily: "General Sans, sans-serif" }}
               >
-                © 2026 StelloPay. All rights reserved.
+                {messages.footer.bottomBar.copyright}
               </p>
 
               <div className="flex items-center gap-6">
@@ -261,21 +271,21 @@ export default function Footer() {
                   className="text-[#666666] dark:text-[#a1a1aa] text-sm hover:text-[#7C3AED] dark:hover:text-[#a78bfa] transition-colors duration-200"
                   style={{ fontFamily: "General Sans, sans-serif" }}
                 >
-                  Privacy Policy
+                  {messages.footer.bottomBar.privacyPolicy}
                 </Link>
                 <Link
                   href="/terms"
                   className="text-[#666666] dark:text-[#a1a1aa] text-sm hover:text-[#7C3AED] dark:hover:text-[#a78bfa] transition-colors duration-200"
                   style={{ fontFamily: "General Sans, sans-serif" }}
                 >
-                  Terms of Service
+                  {messages.footer.bottomBar.termsOfService}
                 </Link>
                 <Link
                   href="/cookies"
                   className="text-[#666666] dark:text-[#a1a1aa] text-sm hover:text-[#7C3AED] dark:hover:text-[#a78bfa] transition-colors duration-200"
                   style={{ fontFamily: "General Sans, sans-serif" }}
                 >
-                  Cookie Policy
+                  {messages.footer.bottomBar.cookiePolicy}
                 </Link>
               </div>
             </div>
