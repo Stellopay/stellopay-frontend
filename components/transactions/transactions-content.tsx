@@ -15,7 +15,7 @@ import TransactionsHeader from "./transactions-header";
 import TransactionsFilters from "./transactions-filters";
 import { TransactionsTable } from "./transactions-table";
 import TransactionsPagination from "./transactions-pagination";
-import { TransactionsStatement } from "./transactions-statement";
+import { BulkActionBar } from "./bulk-action-bar";
 import { ErrorState } from "@/components/ui/error-state";
 import {
   TRANSACTIONS_PAGE_SIZE,
@@ -67,6 +67,41 @@ export default function TransactionsContent() {
   } | null>(null);
   const itemsPerPage = TRANSACTIONS_PAGE_SIZE;
 
+  // ── Selection state ─────────────────────────────────────────────────────────
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+
+  const clearSelection = useCallback(() => {
+    setSelectedIds(new Set());
+  }, []);
+
+  const handleSelectRow = useCallback((id: string, checked: boolean) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (checked) {
+        next.add(id);
+      } else {
+        next.delete(id);
+      }
+      return next;
+    });
+  }, []);
+
+  const handleSelectAll = useCallback(
+    (checked: boolean, pageIds: string[]) => {
+      setSelectedIds((prev) => {
+        const next = new Set(prev);
+        if (checked) {
+          pageIds.forEach((id) => next.add(id));
+        } else {
+          pageIds.forEach((id) => next.delete(id));
+        }
+        return next;
+      });
+    },
+    [],
+  );
+
+  // ── Data ─────────────────────────────────────────────────────────────────────
   const { data, isLoading, error, refetch } = useTransactions({
     filters,
     page: currentPage,
@@ -139,6 +174,19 @@ export default function TransactionsContent() {
     [data],
   );
 
+  // ── Stable select-all that has access to current page ids ────────────────────
+  const paginatedTransactionsRef = useRef(paginatedTransactions);
+  paginatedTransactionsRef.current = paginatedTransactions;
+
+  const handleSelectAllForPage = useCallback(
+    (checked: boolean) => {
+      const pageIds = paginatedTransactionsRef.current.map((t) => t.id);
+      handleSelectAll(checked, pageIds);
+    },
+    [handleSelectAll],
+  );
+
+  // ── Filter helpers (clear selection on any filter/page change) ───────────────
   const updateFilter = useCallback(
     <K extends keyof TransactionFilters>(
       key: K,
@@ -146,8 +194,17 @@ export default function TransactionsContent() {
     ) => {
       setFilters((prev) => ({ ...prev, [key]: value }));
       setCurrentPage(1);
+      clearSelection();
     },
-    [],
+    [clearSelection],
+  );
+
+  const handlePageChange = useCallback(
+    (page: number) => {
+      setCurrentPage(page);
+      clearSelection();
+    },
+    [clearSelection],
   );
 
   const handleSort = useCallback(
@@ -190,12 +247,69 @@ export default function TransactionsContent() {
         };
       });
       setCurrentPage(1);
+      clearSelection();
     },
-    [],
+    [clearSelection],
   );
+
+  // ── Bulk action handlers ─────────────────────────────────────────────────────
+  const handleBulkExport = useCallback(() => {
+    // Stub: collect the selected transactions and trigger a CSV download.
+    // Replace with a real implementation once the export endpoint is available.
+    const selected = paginatedTransactions.filter((t) =>
+      selectedIds.has(t.id),
+    );
+    const csv = [
+      ["ID", "Type", "Address", "Date", "Token", "Amount", "Status"].join(","),
+      ...selected.map((t) =>
+        [t.id, t.type, t.address, t.date, t.token, t.amount, t.status].join(
+          ",",
+        ),
+      ),
+    ].join("\n");
+
+    const blob = new Blob([csv], { type: "text/csv" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `transactions-export-${Date.now()}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+    clearSelection();
+  }, [paginatedTransactions, selectedIds, clearSelection]);
+
+  const handleBulkTag = useCallback(() => {
+    // Stub: open a tag-assignment dialog.
+    // Replace with real implementation once the tag feature is built.
+    console.log("Tag transactions:", Array.from(selectedIds));
+  }, [selectedIds]);
+
+  const handleBulkArchive = useCallback(() => {
+    // Stub: send archive request for all selected ids.
+    // Replace with real implementation once the archive endpoint is available.
+    console.log("Archive transactions:", Array.from(selectedIds));
+    clearSelection();
+  }, [selectedIds, clearSelection]);
 
   return (
     <div className="min-h-screen text-white mt-4">
+      {/*
+        aria-live region announces selection count changes to screen readers
+        without interrupting the user's current focus.
+      */}
+      <div
+        aria-live="polite"
+        aria-atomic="true"
+        className="sr-only"
+        data-testid="selection-announcement"
+      >
+        {selectedIds.size > 0
+          ? selectedIds.size === 1
+            ? "1 transaction selected"
+            : `${selectedIds.size} transactions selected`
+          : ""}
+      </div>
+
       <div className="w-full max-w-7xl mx-auto mb-4">
         <TransactionsHeader
           fromDate={filters.fromDate}
@@ -274,18 +388,33 @@ export default function TransactionsContent() {
             {/* Data state */}
             {!isLoading && !error && (
               <>
-                <TransactionsTable transactions={paginatedTransactions} />
+                <TransactionsTable
+                  transactions={paginatedTransactions}
+                  selectedIds={selectedIds}
+                  onSelectRow={handleSelectRow}
+                  onSelectAll={handleSelectAllForPage}
+                />
                 <TransactionsPagination
                   totalItems={data?.total ?? 0}
                   currentPage={currentPage}
                   itemsPerPage={itemsPerPage}
-                  onPageChange={setCurrentPage}
+                  onPageChange={handlePageChange}
                 />
               </>
             )}
           </div>
         </div>
       </div>
+
+      {/* Floating bulk-action bar – rendered outside the scrollable content area
+          so it always stays anchored to the viewport bottom */}
+      <BulkActionBar
+        selectedCount={selectedIds.size}
+        onExport={handleBulkExport}
+        onTag={handleBulkTag}
+        onArchive={handleBulkArchive}
+        onClearSelection={clearSelection}
+      />
     </div>
   );
 }

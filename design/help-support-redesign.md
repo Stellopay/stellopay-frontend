@@ -393,6 +393,77 @@ Fixes #915
 **Total Test Code:** ~530 lines
 
 ---
+## Design Approach
+
+The design approach focused on:
+
+- Search-first support experience to surface answers instantly
+- Clear information hierarchy using cards, tabs, and grouped sections
+- Action-oriented UI that guides users to the right support channel
+- Mobile-first responsiveness, scaled cleanly to tablet and desktop
+- Accessible, calm fintech styling to reduce user anxiety
+
+Where possible, issues can be resolved through FAQs and guides before escalating to support tickets.
+
+---
+
+## Figma Design File
+
+**Figma:** [View Complete Design on Figma](https://www.figma.com/design/Ntcbc8bESxTjkb0bT4ilLW/Stellopay---Help-Support-Page-Redesign?node-id=26-2352&t=CPUyDeLZZiDXFXJv-1)
+
+---
+
+---
+
+## Component Specifications
+
+### 1. Support Navigation / Tabs
+
+- **Description:** Sticky navigation tabs for quick access to FAQs, account help, tickets, and contact options
+- **States:** Default, Active, Hover
+- **Responsive behavior:** Collapses into icon-based navigation on mobile
+
+---
+
+### 2. FAQ Section
+
+- **Description:** Card-based, expandable FAQ items grouped by category
+- **Expandable items:** Yes
+- **Search integration:** Yes
+- **Categories:**
+  - Getting Started
+  - Payments & Transfers
+  - Account & Verification
+  - Security & Privacy
+
+---
+
+### 3. Support Ticket System
+
+- **Description:** Guided ticket creation with helper tips and confirmation states
+- **Form fields:**
+  - Issue category
+  - Subject
+  - Description
+  - Attachments
+  - Priority level
+- **Priority levels:** Low, Medium, Urgent
+- **Status indicators:** Open, Pending, In Review, Resolved
+
+---
+
+### 4. Account Management Help
+
+- **Description:** Self-service account assistance using action cards
+- **Key sections:**
+  - Verify account
+  - Reset or change password
+  - Enable two-factor authentication (2FA)
+  - Update profile
+  - Security and privacy settings
+  - Close or deactivate account
+
+---
 
 ### 5. Contact & Support Options
 
@@ -472,43 +543,13 @@ Frontend implementation can reference the Figma file for:
 
 ---
 
-## 7. Persistent Back Affordance (Account Management Sub-page)
+## Technical Enhancements
 
-- **Description:** A persistent "Back to Help Center" link at the top of sub-pages so users who land from search can navigate back without relying on the browser back button.
-- **Location:** `app/help/support/accountManagement/page.tsx` — rendered as the first interactive element inside the page wrapper.
-
-### Behavior
-
-- Always visible at the top of the page (never scrolls out of view for typical content heights).
-- Uses an `ArrowLeft` icon + "Back to Help Center" text.
-- Links to `/help/support`.
-- Complements the breadcrumb navigation rendered by `SupportTabs` (which shows the full "Help/Support &gt; Account Management" hierarchy).
-
-### Accessibility (WCAG 2.1 AA)
-
-- Link has `aria-label="Back to Help Center"`.
-- Arrow icon is marked `aria-hidden="true"`.
-- Link is the first focusable element after the skip-to-content link.
-- `nav[aria-label="Breadcrumb"]` landmark wraps the breadcrumb in `SupportTabs`, with `aria-current="page"` on the current page label.
-- Color `#A0A0A0` on `#0f0711` background provides ~5.5:1 contrast ratio (passes WCAG AA for both normal and large text).
-- Hover state transitions to `text-white` for clear focus/hover feedback.
-
-### Loading State
-
-- `loading.tsx` renders a skeleton that mirrors the page layout: back link placeholder, breadcrumb placeholder, tab skeletons, sidebar, and content area.
-- Includes `role="status"`, `aria-busy="true"`, `aria-live="polite"`, and an `sr-only` announcement.
-
-### Responsive Behavior
-
-| Breakpoint | Behavior |
-|---|---|
-| sm (640px) | Back link and breadcrumb stack naturally; padding adjusts to `p-4` / `p-6` |
-| md (768px) | Layout transitions from stacked to side-by-side sidebar + content |
-| lg (1024px) | Full two-column layout |
-| xl (1280px) | Same as lg, wider container |
-
-### Testing
-
-- **File:** `app/help/support/accountManagement/loading.test.tsx`
-- Validates accessible status region, sr-only label, and axe accessibility violations.
-- Run with `pnpm test`.
+### Account Management Loading Skeleton
+To prevent layout shift and visible reflows, a loading skeleton was added for the `accountManagement` section (`app/help/support/accountManagement/loading.tsx`).
+- **Structural Parity:** Mirrors the precise flexbox layout, padding, heading styles, and paragraph layouts of the real article content (`page.tsx`).
+- **Accessibility:** 
+  - Integrates ARIA attributes (`aria-busy="true"`, `aria-live="polite"`, `aria-label`) to ensure assistive technologies can parse the loading state seamlessly.
+  - Interactive elements (like the search bar) are appropriately marked as disabled.
+- **Dark/Light Modes:** The skeleton component inherently supports both light and dark variations depending on the current token context (e.g. `shade="light"` for active tabs).
+- **Responsive Validated:** Tested across sm (640), md (768), lg (1024), and xl (1280) breakpoints.

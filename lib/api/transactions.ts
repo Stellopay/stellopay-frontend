@@ -8,7 +8,10 @@
 
 import type { Transaction, TransactionFilters } from "@/types/transaction";
 import { allTransactions } from "@/lib/transactions";
-import { filterTransactions, sortTransactionsMulti } from "@/utils/transactionUtils";
+import {
+  filterTransactions,
+  sortTransactionsMulti,
+} from "@/utils/transactionUtils";
 
 export interface PaginatedTransactions {
   data: Transaction[];
@@ -84,10 +87,67 @@ const normalizeDateFilter = (
  *
  * Today returns mock data; swap the body for a fetch() when the backend is ready.
  *
+ * ---
+ *
+ * ### AbortSignal / cancellation contract
+ *
+ * The caller is responsible for creating and owning the `AbortController`.
+ * Pass `controller.signal` as the second argument and call `controller.abort()`
+ * whenever the result is no longer needed (e.g. on React effect cleanup, route
+ * change, or component unmount).
+ *
+ * **When abort fires:**
+ *
+ * - *During the dev-mode delay* — the internal `setTimeout` is cleared and the
+ *   delay promise rejects with `new DOMException("Aborted", "AbortError")`,
+ *   which propagates out of `getTransactions` immediately.
+ * - *After the delay, before the synchronous computation begins* — the
+ *   `signal.aborted` guard at the top of the synchronous section throws
+ *   `new DOMException("Aborted", "AbortError")` before any filtering or
+ *   sorting work is performed.
+ * - *In production (no delay)* — only the post-delay `signal.aborted` guard
+ *   applies; when wired to a real `fetch()`, pass the signal directly to
+ *   `fetch()` so the network request is cancelled by the browser as well.
+ *
+ * **What the caller receives on abort:**
+ *
+ * The returned `Promise` rejects with a `DOMException` whose `.name` is
+ * `"AbortError"`. Callers **must not** surface this to the user — it is a
+ * normal part of the cancellation lifecycle. Check `err.name === "AbortError"`
+ * (or `signal.aborted`) and silently discard the rejection.
+ *
+ * **When no signal is provided:**
+ *
+ * The `signal` parameter is optional. Omitting it disables cancellation
+ * support; the promise will always run to completion. This is safe for
+ * one-off, non-reactive call sites.
+ *
+ * @example
+ * ```ts
+ * // React effect — cancel when filters change or component unmounts
+ * useEffect(() => {
+ *   const controller = new AbortController();
+ *
+ *   getTransactions({ filters, page, pageSize }, controller.signal)
+ *     .then(setData)
+ *     .catch((err) => {
+ *       if (err?.name === "AbortError") return; // expected; discard
+ *       setError(err.message);
+ *     });
+ *
+ *   return () => controller.abort();
+ * }, [filters, page, pageSize]);
+ * ```
+ *
  * @param params - Optional transaction filters and pagination values.
+ * @param signal - Optional `AbortSignal` from an `AbortController` owned by
+ *   the caller. When the signal fires, the function rejects with a
+ *   `DOMException` whose `.name` is `"AbortError"`.
  * @returns The validated page of transactions with pagination metadata.
- * @throws RangeError When `filters.fromDate` or `filters.toDate` is non-empty
- * and cannot be parsed as a valid date.
+ * @throws {RangeError} When `filters.fromDate` or `filters.toDate` is
+ *   non-empty and cannot be parsed as a valid date.
+ * @throws {DOMException} With `.name === "AbortError"` when the provided
+ *   `signal` is aborted before or during execution.
  */
 export async function getTransactions(
   params: GetTransactionsParams = {},
@@ -105,6 +165,8 @@ export async function getTransactions(
     selectedFilter = "All Transactions",
     fromDate = MOCK_FROM_DATE,
     toDate = MOCK_TO_DATE,
+    minAmount,
+    maxAmount,
     sortConfigs = [{ field: "date" as const, direction: "desc" as const }],
     minAmount,
     maxAmount,
