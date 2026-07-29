@@ -179,9 +179,9 @@ describe("AbortSignal support", () => {
     const controller = new AbortController();
     controller.abort();
 
-    await expect(
-      getTransactions({}, controller.signal),
-    ).rejects.toMatchObject({ name: "AbortError" });
+    await expect(getTransactions({}, controller.signal)).rejects.toMatchObject({
+      name: "AbortError",
+    });
   });
 
   it("resolves normally when a non-aborted signal is passed", async () => {

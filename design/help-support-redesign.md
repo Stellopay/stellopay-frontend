@@ -19,11 +19,11 @@ The goal was to help users **find answers quickly**, reduce support friction, an
 
 The design approach focused on:
 
-- Search-first support experience to surface answers instantly  
-- Clear information hierarchy using cards, tabs, and grouped sections  
-- Action-oriented UI that guides users to the right support channel  
-- Mobile-first responsiveness, scaled cleanly to tablet and desktop  
-- Accessible, calm fintech styling to reduce user anxiety  
+- Search-first support experience to surface answers instantly
+- Clear information hierarchy using cards, tabs, and grouped sections
+- Action-oriented UI that guides users to the right support channel
+- Mobile-first responsiveness, scaled cleanly to tablet and desktop
+- Accessible, calm fintech styling to reduce user anxiety
 
 Where possible, issues can be resolved through FAQs and guides before escalating to support tickets.
 
@@ -35,80 +35,74 @@ Where possible, issues can be resolved through FAQs and guides before escalating
 
 ---
 
-
 ---
 
 ## Component Specifications
 
 ### 1. Support Navigation / Tabs
 
-- **Description:** Sticky navigation tabs for quick access to FAQs, account help, tickets, and contact options  
-- **States:** Default, Active, Hover  
-- **Responsive behavior:** Collapses into icon-based navigation on mobile  
-
-
+- **Description:** Sticky navigation tabs for quick access to FAQs, account help, tickets, and contact options
+- **States:** Default, Active, Hover
+- **Responsive behavior:** Collapses into icon-based navigation on mobile
 
 ---
 
 ### 2. FAQ Section
 
-- **Description:** Card-based, expandable FAQ items grouped by category  
-- **Expandable items:** Yes  
-- **Search integration:** Yes  
-- **Categories:**  
-  - Getting Started  
-  - Payments & Transfers  
-  - Account & Verification  
-  - Security & Privacy  
+- **Description:** Card-based, expandable FAQ items grouped by category
+- **Expandable items:** Yes
+- **Search integration:** Yes
+- **Categories:**
+  - Getting Started
+  - Payments & Transfers
+  - Account & Verification
+  - Security & Privacy
 
 ---
 
 ### 3. Support Ticket System
 
-- **Description:** Guided ticket creation with helper tips and confirmation states  
-- **Form fields:**  
-  - Issue category  
-  - Subject  
-  - Description  
-  - Attachments  
-  - Priority level  
-- **Priority levels:** Low, Medium, Urgent  
-- **Status indicators:** Open, Pending, In Review, Resolved  
+- **Description:** Guided ticket creation with helper tips and confirmation states
+- **Form fields:**
+  - Issue category
+  - Subject
+  - Description
+  - Attachments
+  - Priority level
+- **Priority levels:** Low, Medium, Urgent
+- **Status indicators:** Open, Pending, In Review, Resolved
 
 ---
 
 ### 4. Account Management Help
 
-- **Description:** Self-service account assistance using action cards  
-- **Key sections:**  
-  - Verify account  
-  - Reset or change password  
-  - Enable two-factor authentication (2FA)  
-  - Update profile  
-  - Security and privacy settings  
-  - Close or deactivate account  
-
+- **Description:** Self-service account assistance using action cards
+- **Key sections:**
+  - Verify account
+  - Reset or change password
+  - Enable two-factor authentication (2FA)
+  - Update profile
+  - Security and privacy settings
+  - Close or deactivate account
 
 ---
 
 ### 5. Contact & Support Options
 
-- **Description:** Clear support channels with response expectations  
-- **Contact channels:**  
-  - Live chat  
-  - Email support    
-  - Community support  
-  - Emergency support (highlighted)  
-- **Response time:** Clearly communicated per channel  
-
+- **Description:** Clear support channels with response expectations
+- **Contact channels:**
+  - Live chat
+  - Email support
+  - Community support
+  - Emergency support (highlighted)
+- **Response time:** Clearly communicated per channel
 
 ---
 
 ### 6. Search Functionality
 
-- **Description:** Centralized search for help articles and FAQs  
+- **Description:** Centralized search for help articles and FAQs
 - **Search scope:** FAQs, guides, and help content
-
 
 ---
 
@@ -116,50 +110,51 @@ Where possible, issues can be resolved through FAQs and guides before escalating
 
 ### Accessibility
 
-- WCAG-compliant color contrast  
-- Readable typography and spacing  
-- Large tap targets for mobile  
-- Clear focus and error states  
+- WCAG-compliant color contrast
+- Readable typography and spacing
+- Large tap targets for mobile
+- Clear focus and error states
 
 ### Responsive Design
 
-- **Mobile:** < 430px  
-- **Tablet:** 1024px  
-- **Desktop:** > 1512px  
+- **Mobile:** < 430px
+- **Tablet:** 1024px
+- **Desktop:** > 1512px
 
 ### Design System
 
-- **Typography:** Geist font and Inter fonts family 
-- **Color Palette:** #598EFF, neutral backgrounds - #CDDDFF ,   
-- **Spacing:** Consistent 8-48px based scale  
-- **Border Radius:** 8–32px for cards and components  
+- **Typography:** Geist font and Inter fonts family
+- **Color Palette:** #598EFF, neutral backgrounds - #CDDDFF ,
+- **Spacing:** Consistent 8-48px based scale
+- **Border Radius:** 8–32px for cards and components
 
 ---
 
 ## Key Design Decisions
 
-1. Search-first layout to reduce time spent browsing help content  
-2. Card-based components to improve scannability and mobile usability  
-3. Clear separation between self-help and escalation paths to reduce support load  
+1. Search-first layout to reduce time spent browsing help content
+2. Card-based components to improve scannability and mobile usability
+3. Clear separation between self-help and escalation paths to reduce support load
 
 ---
 
 ## Implementation Notes
 
-- Figma components organized for easy developer handoff  
-- Responsive breakpoints clearly defined  
-- Interactive states documented  
-- Styles aligned with StelloPay’s existing design language  
+- Figma components organized for easy developer handoff
+- Responsive breakpoints clearly defined
+- Interactive states documented
+- Styles aligned with StelloPay’s existing design language
 
 ---
 
 ## Next Steps
 
 Frontend implementation can reference the Figma file for:
-- Component behavior  
-- Responsive layouts  
-- Interactive states  
-- Asset exports  
+
+- Component behavior
+- Responsive layouts
+- Interactive states
+- Asset exports
 
 ---
 

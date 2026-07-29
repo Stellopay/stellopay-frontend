@@ -50,7 +50,9 @@ function formatViolation(violation: Result): string {
     .slice(0, 3)
     .map((node) => node.target.join(" "))
     .join(", ");
-  return `  [${violation.impact ?? "unknown"}] ${violation.id}: ${violation.help} (${violation.nodes.length} node(s): ${targets}) — ${violation.helpUrl}`;
+  return `  [${violation.impact ?? "unknown"}] ${violation.id}: ${
+    violation.help
+  } (${violation.nodes.length} node(s): ${targets}) — ${violation.helpUrl}`;
 }
 
 /**
@@ -110,7 +112,9 @@ export async function expectNoSeriousA11yViolations(
       return entry ? ` (triaged: ${entry.reason})` : "";
     };
     console.warn(
-      `[axe] ${nonBlocking.length} non-blocking violation(s) on ${page.url()}:\n` +
+      `[axe] ${
+        nonBlocking.length
+      } non-blocking violation(s) on ${page.url()}:\n` +
         nonBlocking
           .map((v) => formatViolation(v) + allowlistedNote(v.id))
           .join("\n"),

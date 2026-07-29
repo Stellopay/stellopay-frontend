@@ -43,7 +43,9 @@ function NotificationPanelEmptyState() {
       <div className="relative w-[24px] h-[24px] flex items-center justify-center bg-[#0D0D0D80]/50 border border-[#2E2E2E] rounded-sm">
         <IconBell />
       </div>
-      <p className="font-light text-[#E5E5E5] text-sm">You&apos;re all caught up</p>
+      <p className="font-light text-[#E5E5E5] text-sm">
+        You&apos;re all caught up
+      </p>
       <p className="text-xs text-[#505050]">No new notifications right now.</p>
     </div>
   );
@@ -61,7 +63,11 @@ function NotificationPanelEmptyState() {
  * Notification `title` and `message` are rendered as plain text children,
  * never via `dangerouslySetInnerHTML`, so they cannot inject markup.
  */
-const NotificationPanel = ({ className: _className, notifications, isLoading = false }: NotificationPanelProps) => {
+const NotificationPanel = ({
+  className: _className,
+  notifications,
+  isLoading = false,
+}: NotificationPanelProps) => {
   if (isLoading) {
     return (
       <div className="bg-[#0D0D0D80] bg-opacity-50 border border-[#2D2D2D] max-w-[400px] rounded-xl p-4 text-[#E5E5E5]">

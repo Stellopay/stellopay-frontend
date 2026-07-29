@@ -36,10 +36,7 @@ export function CardSkeleton({
         {Array.from({ length: lines }).map((_, i) => (
           <Skeleton
             key={i}
-            className={cn(
-              "h-4",
-              i === lines - 1 ? "w-2/3" : "w-full"
-            )}
+            className={cn("h-4", i === lines - 1 ? "w-2/3" : "w-full")}
           />
         ))}
       </div>

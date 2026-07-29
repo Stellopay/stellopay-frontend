@@ -40,4 +40,98 @@ describe("Filter", () => {
 
     expect(onChange).toHaveBeenCalledWith("");
   });
+
+  it("applies min and max amount filters correctly for a valid range", () => {
+    vi.useFakeTimers();
+    const onMinChange = vi.fn();
+    const onMaxChange = vi.fn();
+
+    render(
+      <Filter
+        value=""
+        onChange={vi.fn()}
+        onMinAmountChange={onMinChange}
+        onMaxAmountChange={onMaxChange}
+        debounceMs={250}
+      />
+    );
+
+    fireEvent.change(screen.getByLabelText("Min amount"), {
+      target: { value: "10" },
+    });
+    fireEvent.change(screen.getByLabelText("Max amount"), {
+      target: { value: "100" },
+    });
+
+    vi.advanceTimersByTime(250);
+
+    expect(onMinChange).toHaveBeenCalledWith(10);
+    expect(onMaxChange).toHaveBeenCalledWith(100);
+    expect(screen.queryByText("Min > Max")).not.toBeInTheDocument();
+
+    vi.useRealTimers();
+  });
+
+  it("shows an error and does not apply filter for an inverted range", () => {
+    vi.useFakeTimers();
+    const onMinChange = vi.fn();
+    const onMaxChange = vi.fn();
+
+    render(
+      <Filter
+        value=""
+        onChange={vi.fn()}
+        onMinAmountChange={onMinChange}
+        onMaxAmountChange={onMaxChange}
+        debounceMs={250}
+      />
+    );
+
+    fireEvent.change(screen.getByLabelText("Min amount"), {
+      target: { value: "200" },
+    });
+    fireEvent.change(screen.getByLabelText("Max amount"), {
+      target: { value: "50" },
+    });
+
+    vi.advanceTimersByTime(250);
+
+    expect(screen.getByText("Min > Max")).toBeInTheDocument();
+    expect(onMinChange).not.toHaveBeenCalled();
+    expect(onMaxChange).not.toHaveBeenCalled();
+
+    vi.useRealTimers();
+  });
+
+  it("handles no-range (unchanged) cases properly", () => {
+    vi.useFakeTimers();
+    const onMinChange = vi.fn();
+    const onMaxChange = vi.fn();
+
+    render(
+      <Filter
+        value=""
+        onChange={vi.fn()}
+        onMinAmountChange={onMinChange}
+        onMaxAmountChange={onMaxChange}
+        debounceMs={250}
+      />
+    );
+
+    fireEvent.change(screen.getByLabelText("Min amount"), {
+      target: { value: "" },
+    });
+    fireEvent.change(screen.getByLabelText("Max amount"), {
+      target: { value: "" },
+    });
+
+    vi.advanceTimersByTime(250);
+
+    // Initial state is undefined, clearing an empty input means it remains unchanged
+    expect(onMinChange).not.toHaveBeenCalled();
+    expect(onMaxChange).not.toHaveBeenCalled();
+    expect(screen.queryByText("Min > Max")).not.toBeInTheDocument();
+
+    vi.useRealTimers();
+  });
 });

@@ -217,8 +217,12 @@ describe("Pagination", () => {
     const links = screen.getAllByRole("link");
     expect(links).toHaveLength(1);
     expect(links[0]).toHaveAttribute("aria-current", "page");
-    expect(screen.queryByRole("link", { name: /go to previous page/i })).not.toBeInTheDocument();
-    expect(screen.queryByRole("link", { name: /go to next page/i })).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("link", { name: /go to previous page/i }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("link", { name: /go to next page/i }),
+    ).not.toBeInTheDocument();
   });
 
   it("applies custom className to the nav element", () => {

@@ -1,6 +1,6 @@
-'use client';
+"use client";
 
-import React from 'react';
+import React from "react";
 import { TrendingUp, TrendingDown } from "lucide-react";
 import { AccountSummaryCardProps } from './summary-data';
 import { RechartsMiniBarChart } from './RechartsMiniBarChart';
@@ -61,7 +61,12 @@ export default function AccountSummaryCard({
         </div>
       </div>
 
-       <RechartsMiniBarChart data={chartData} color={chartColor} ariaLabel={`${title} mini chart`} height="3rem" />
+      <RechartsMiniBarChart
+        data={chartData}
+        color={chartColor}
+        ariaLabel={`${title} mini chart`}
+        height="3rem"
+      />
     </div>
   );
 }

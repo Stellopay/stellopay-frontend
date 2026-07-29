@@ -7,7 +7,9 @@ import { EmptyState } from "./empty-state";
 
 describe("EmptyState — baseline rendering", () => {
   it("renders with required props and accessibility roles", () => {
-    render(<EmptyState title="No Data" description="There is no data to show." />);
+    render(
+      <EmptyState title="No Data" description="There is no data to show." />,
+    );
 
     const status = screen.getByRole("status");
     expect(status).toBeInTheDocument();
@@ -19,7 +21,9 @@ describe("EmptyState — baseline rendering", () => {
   });
 
   it("renders no button when neither action nor onRetry is provided", () => {
-    render(<EmptyState title="No Data" description="There is no data to show." />);
+    render(
+      <EmptyState title="No Data" description="There is no data to show." />,
+    );
     expect(screen.queryByRole("button")).not.toBeInTheDocument();
   });
 
@@ -52,7 +56,9 @@ describe("EmptyState — legacy onRetry prop (backward-compatible)", () => {
         onRetry={() => {}}
       />,
     );
-    expect(screen.getByRole("button", { name: /clear filters/i })).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: /clear filters/i }),
+    ).toBeInTheDocument();
   });
 
   it("calls onRetry when the button is clicked", () => {
@@ -77,7 +83,9 @@ describe("EmptyState — legacy onRetry prop (backward-compatible)", () => {
         actionLabel="Reset Search"
       />,
     );
-    expect(screen.getByRole("button", { name: /reset search/i })).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: /reset search/i }),
+    ).toBeInTheDocument();
   });
 
   it("defaults actionLabel to 'Clear Filters' when not specified", () => {
@@ -88,7 +96,9 @@ describe("EmptyState — legacy onRetry prop (backward-compatible)", () => {
         onRetry={() => {}}
       />,
     );
-    expect(screen.getByRole("button", { name: /clear filters/i })).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: /clear filters/i }),
+    ).toBeInTheDocument();
   });
 });
 
@@ -103,7 +113,9 @@ describe("EmptyState — action prop (new CTA slot)", () => {
         action={{ label: "Add wallet", onClick: () => {} }}
       />,
     );
-    expect(screen.getByRole("button", { name: /add wallet/i })).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: /add wallet/i }),
+    ).toBeInTheDocument();
   });
 
   it("calls action.onClick when the button is clicked", () => {
@@ -168,8 +180,12 @@ describe("EmptyState — action prop (new CTA slot)", () => {
     expect(buttons).toHaveLength(1);
 
     // It must show the action label, not the retry label.
-    expect(screen.getByRole("button", { name: /primary cta/i })).toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: /retry/i })).not.toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: /primary cta/i }),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: /retry/i }),
+    ).not.toBeInTheDocument();
   });
 
   it("clicking the button when action takes precedence calls action.onClick, not onRetry", () => {
@@ -194,7 +210,9 @@ describe("EmptyState — action prop (new CTA slot)", () => {
 describe("EmptyState — layout regression (no action)", () => {
   it("renders the title as an h3", () => {
     render(<EmptyState title="Empty" description="Nothing here." />);
-    expect(screen.getByRole("heading", { level: 3, name: "Empty" })).toBeInTheDocument();
+    expect(
+      screen.getByRole("heading", { level: 3, name: "Empty" }),
+    ).toBeInTheDocument();
   });
 
   it("renders the description as a paragraph", () => {

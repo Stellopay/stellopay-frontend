@@ -41,6 +41,38 @@ describe("DestructiveActionDialog", () => {
     expect(getConfirmButton()).toBeDisabled();
   });
 
+  it("never fires onConfirm when the button is clicked while disabled", () => {
+    const { onConfirm } = renderOpenDialog();
+
+    fireEvent.click(getConfirmButton());
+    expect(onConfirm).not.toHaveBeenCalled();
+
+    fireEvent.change(getInput(), { target: { value: "deactivate" } });
+    fireEvent.click(getConfirmButton());
+    expect(onConfirm).not.toHaveBeenCalled();
+  });
+
+  it("clears the typed value and re-disables the confirm button when the dialog is reopened", () => {
+    const { onConfirm } = renderOpenDialog();
+    const input = getInput();
+    const confirmButton = getConfirmButton();
+
+    fireEvent.change(input, { target: { value: "DEACTIVATE" } });
+    expect(confirmButton).toBeEnabled();
+    expect(input).toHaveValue("DEACTIVATE");
+
+    fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "Deactivate account" }));
+    const reopenedInput = getInput();
+    const reopenedConfirmButton = getConfirmButton();
+
+    expect(reopenedInput).toHaveValue("");
+    expect(reopenedConfirmButton).toBeDisabled();
+    expect(onConfirm).not.toHaveBeenCalled();
+  });
+
   it("hints at invisible whitespace when only spaces differ", () => {
     const { onConfirm } = renderOpenDialog();
     const input = getInput();
