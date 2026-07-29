@@ -19,37 +19,9 @@ import { truncateStellarAddress } from "@/utils/stellarAddress";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Checkbox } from "@/components/ui/checkbox";
 import { TRANSACTIONS_PAGE_SIZE } from "./transactions-config";
-import { safeStorage } from "@/utils/safeStorage";
-import { useRef, useState, useEffect, useCallback, type KeyboardEvent } from "react";
+import { useRef, type KeyboardEvent } from "react";
 import { DownloadReceiptButton } from "./download-receipt-button";
-
-export type TableDensity = "compact" | "comfortable" | "spacious";
-
-const DENSITY_STORAGE_KEY = "transactions-table-density";
-
-const DENSITY_CONFIG: Record<TableDensity, { cell: string; head: string; skeleton: string }> = {
-  compact: {
-    cell: "py-2 px-3 text-xs",
-    head: "py-2 px-3 text-xs",
-    skeleton: "py-2 px-3",
-  },
-  comfortable: {
-    cell: "py-4 px-6 text-sm",
-    head: "py-4 px-6 text-sm",
-    skeleton: "py-4 px-6",
-  },
-  spacious: {
-    cell: "py-6 px-8 text-base",
-    head: "py-6 px-8 text-base",
-    skeleton: "py-6 px-8",
-  },
-};
-
-const DENSITY_OPTIONS: { value: TableDensity; label: string }[] = [
-  { value: "compact", label: "Compact" },
-  { value: "comfortable", label: "Comfortable" },
-  { value: "spacious", label: "Spacious" },
-];
+import { Dialog, DialogContent } from "@/components/ui/dialog";
 
 interface TransactionsTablePropsExtended extends TransactionsTableProps {
   isLoading?: boolean;
@@ -278,6 +250,19 @@ export function TransactionsTable({
   onSelectRow,
   onSelectAll,
 }: TransactionsTablePropsExtended) {
+  const [selectedTransaction, setSelectedTransaction] = useState<TransactionsTablePropsExtended["transactions"][number] | null>(null);
+
+  const openReceipt = useCallback(
+    (transaction: TransactionsTablePropsExtended["transactions"][number]) => {
+      setSelectedTransaction(transaction);
+    },
+    [],
+  );
+
+  const closeReceipt = useCallback(() => {
+    setSelectedTransaction(null);
+  }, []);
+
   const isEmpty = !isLoading && transactions.length === 0;
 
   const [density, setDensity] = useState<TableDensity>("comfortable");
@@ -558,8 +543,7 @@ export function TransactionsTable({
                     />
                   </TableCell>
                 </TableRow>
-              ))
-            )}
+              )            ))}
           </TableBody>
         </Table>
       </div>
@@ -645,13 +629,24 @@ export function TransactionsTable({
         )}
       </div>
 
-      {/* Quick-view Dialog */}
-      <TransactionQuickViewDialog
-        transaction={selectedTransaction}
-        open={isDialogOpen}
-        onOpenChange={handleDialogClose}
-        triggerRef={triggerRef}
-      />
+      <Dialog open={!!selectedTransaction} onOpenChange={(open) => { if (!open) closeReceipt(); }}>
+        {selectedTransaction && (
+          <DialogContent>
+            <div className="p-6">
+              <h2 className="text-lg font-bold mb-4">Transaction Receipt</h2>
+              <DownloadReceiptButton
+                transaction={{
+                  id: selectedTransaction.id,
+                  hash: (selectedTransaction as any).hash ?? "",
+                  amount: selectedTransaction.amount,
+                  counterparty: selectedTransaction.address,
+                  timestamp: `${selectedTransaction.date} ${selectedTransaction.time}`,
+                }}
+              />
+            </div>
+          </DialogContent>
+        )}
+      </Dialog>
     </>
   );
 }

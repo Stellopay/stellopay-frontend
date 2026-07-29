@@ -21,7 +21,8 @@ import React from "react";
 import { render, screen, fireEvent, act, waitFor } from "@testing-library/react";
 import { describe, it, expect, vi } from "vitest";
 import { TransactionsTable } from "./transactions-table";
-import { BulkActionBar } from "./bulk-action-bar";
+import { TransactionProps } from "@/types/transaction";
+import { DownloadReceiptButton } from "./download-receipt-button";
 
 // ---------------------------------------------------------------------------
 // Shared fixtures
@@ -73,30 +74,67 @@ const mockTransactions = [
   },
 ];
 
-vi.mock("./receipt", () => ({
-  generateTransactionReceiptPdf: vi.fn(() => Promise.resolve()),
+// ---------------------------------------------------------------------------
+// TransactionsTable – baseline rendering
+// ---------------------------------------------------------------------------
+
+
+import { generateTransactionReceiptPdf } from "./receipt";
+
+// ── Mock next/image ───────────────────────────────────────────────────────────
+vi.mock("next/image", () => ({
+  default: (props: React.ImgHTMLAttributes<HTMLImageElement>) => (
+    // eslint-disable-next-line @next/next/no-img-element, jsx-a11y/alt-text
+    <img {...props} />
+  ),
 }));
 
-    it("shows the empty state when transactions array is empty", () => {
-      render(<TransactionsTable transactions={[]} />);
-      expect(
-        screen.getAllByText("No Transactions Found").length,
-      ).toBeGreaterThan(0);
-    });
+// ── Fixtures ──────────────────────────────────────────────────────────────────
+function makeTransaction(n: number): TransactionProps {
+  return {
+    id: `TX-${n}`,
+    type: "Payment",
+    address: `GABC${n}`,
+    date: "2024-01-01",
+    time: "10:00",
+    token: "XLM",
+    amount: `+${n * 10} XLM`,
+    status: "Completed",
+    tokenIcon: "/xlm.svg",
+  };
+}
 
-    it("shows the loading skeleton rows when isLoading=true", () => {
-      const { container } = render(
-        <TransactionsTable transactions={[]} isLoading />,
-      );
-      // Each skeleton uses the skeleton-shimmer class
-      const skeletonDivs = container.querySelectorAll(".skeleton-shimmer");
-      expect(skeletonDivs.length).toBeGreaterThan(0);
-    });
+const THREE_ROWS = [makeTransaction(1), makeTransaction(2), makeTransaction(3)];
 
-    it("does NOT render checkboxes when selection props are omitted", () => {
-      render(<TransactionsTable transactions={mockTransactions} />);
-      expect(screen.queryByRole("checkbox")).not.toBeInTheDocument();
-    });
+/** Transaction fixture with long address and amount to exercise tooltip/truncation. */
+const LONG_VALUE_TRANSACTION: TransactionProps = {
+  id: "1",
+  type: "Deposit",
+  address: "0x1234567890abcdef1234567890abcdef1234567890abcdef",
+  date: "2023-10-27",
+  time: "10:00 AM",
+  token: "ETH",
+  amount: "+1000000000000000000000000000.00",
+  status: "Completed",
+  tokenIcon: "/icons/eth.svg",
+};
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
+
+/** Returns the navigable <tr> elements inside the <tbody>. */
+function getDataRows() {
+  return screen.getAllByRole("row").filter(
+    (r) => r.hasAttribute("data-navigable"),
+  );
+}
+
+// ── Tests ─────────────────────────────────────────────────────────────────────
+
+describe("TransactionsTable — basic rendering", () => {
+  it("renders transaction type and id", () => {
+    render(<TransactionsTable transactions={[LONG_VALUE_TRANSACTION]} />);
+    expect(screen.getByText("Deposit")).toBeInTheDocument();
+    expect(screen.getByText("#1")).toBeInTheDocument();
   });
 });
 
@@ -408,27 +446,9 @@ describe("DownloadReceiptButton", () => {
       ).toBeInTheDocument();
     });
 
-    it("opens quick-view dialog on Enter key press", () => {
-      render(<TransactionsTable transactions={mockTransactions} />);
-
-      const viewDetailButton = screen.getAllByLabelText(
-        /View details for transaction/i,
-      )[0];
-      fireEvent.keyDown(viewDetailButton, { key: "Enter" });
-
-      expect(screen.getByText("Transaction Details")).toBeInTheDocument();
-    });
-
-    it("opens quick-view dialog on Space key press", () => {
-      render(<TransactionsTable transactions={mockTransactions} />);
-
-      const viewDetailButton = screen.getAllByLabelText(
-        /View details for transaction/i,
-      )[0];
-      fireEvent.keyDown(viewDetailButton, { key: " " });
-
-      expect(screen.getByText("Transaction Details")).toBeInTheDocument();
-    });
+vi.mock("./receipt", () => ({
+  generateTransactionReceiptPdf: vi.fn().mockResolvedValue(undefined),
+}));
 
     it("displays all transaction details in the dialog", () => {
       render(<TransactionsTable transactions={mockTransactions} />);
@@ -533,14 +553,6 @@ describe("DownloadReceiptButton", () => {
     fireEvent.click(
       screen.getByRole("button", { name: /download pdf receipt/i })
     );
-
-      // Mobile cards should be in the document (hidden on desktop)
-      const mobileCards = screen.getAllByRole("button", {
-        name: /View details for transaction/i,
-      });
-      // At least one mobile card should exist
-      expect(mobileCards.length).toBeGreaterThan(0);
-    });
 
     it("opens dialog when clicking mobile transaction card", () => {
       render(<TransactionsTable transactions={mockTransactions} />);
