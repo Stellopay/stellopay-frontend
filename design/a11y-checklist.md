@@ -234,5 +234,5 @@
 | `components/auth/sign-up/sign-up-form.tsx` | Password toggles → `<button>`, aria-describedby, aria-live on requirements |
 | `components/auth/sign-up/sign-up-email-modal.tsx` | `DialogDescription`, aria-live resend status, button types, focus rings |
 | `components/transactions/transactions-table.tsx` | `<caption>`, `scope="col"`, aria-label on badges, aria-hidden on icons, `<time>` element |
-| `components/common/side-bar.tsx` | aria-label, aria-expanded, aria-hidden icons, focus rings |
+| `components/common/side-bar.tsx` / `components/common/nav-link.tsx` | aria-label, aria-expanded, aria-hidden icons, focus rings, active link `aria-current="page"` |
 | `design/a11y-checklist.md` | This document |
