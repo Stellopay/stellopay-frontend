@@ -352,3 +352,12 @@ export default function LoadingState() {
 - **Fluid Width**: Components use `w-full` to fit within their parent containers.
 - **Heights**: `AccountSummaryCardSkeleton` uses a fixed height `h-[7.5rem]` while `CardSkeleton` grows based on the `lines` prop. Both respect fluid layout breakpoints (`sm` to `xl`).
 
+
+## Feature Card Grid Entrance Animation
+
+### Accessibility Notes (WCAG 2.1 AA)
+
+- **Reduced Motion**: The staggered entrance animation is gated behind the useReducedMotion hook. Users who prefer reduced motion will see the grid appear instantly at full opacity.
+- **Layout Stability**: The animation uses only opacity and 	ransform (y-axis translation) to avoid layout recalculations and ensure smooth, jank-free performance.
+- **Contrast & ARIA**: Existing contrast ratios and ARIA attributes are preserved without interference from the Framer Motion wrapper.
+
