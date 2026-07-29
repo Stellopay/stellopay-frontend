@@ -101,6 +101,31 @@ const KNOWN_EXCEPTIONS: TriagedViolation[] = [
 
 Every exception **must** include a reason and a tracking-issue link. Remove the entry once the underlying issue is resolved. The allowlist is intentionally small — it is not a mechanism for silencing the gate wholesale.
 
+## Design System
+
+The application's visual language is built on a set of CSS custom properties defined in [`app/globals.css`](app/globals.css) and exposed as Tailwind utility classes via the `@theme inline` block. Every colour, border-radius, and typography token resolves to either a light or dark value automatically when the `.dark` class is applied to the root element.
+
+### Token reference
+
+**[`design/design-token-mapping.md`](design/design-token-mapping.md)** is the single source of truth for:
+
+- Every CSS custom property (`--background`, `--primary`, `--destructive`, `--chart-1`, etc.) and its generated Tailwind class (`bg-background`, `bg-primary`, `text-destructive`, `bg-chart-1`, …)
+- Light **and** dark mode resolved values (oklch / hex) for each token
+- One-line usage guidance per token
+- Composition examples (buttons, cards, inputs, error text)
+- Anti-patterns — common raw-hex usages and their token replacements
+- Instructions for adding a new token
+
+Consult this document before reaching for a raw hex value or a plain Tailwind palette step (e.g. `text-gray-500`). If the right token does not exist, add it to `app/globals.css` and document it in `design/design-token-mapping.md` in the same PR.
+
+### Dark mode
+
+Dark mode is controlled by the `useTheme` hook in `context/theme-context.tsx` and the `.dark` class on `<html>`. Use the `dark:` Tailwind modifier only when a component needs to override a token beyond what the CSS variable already provides; most dark-mode changes are handled automatically by the token.
+
+### Adding icons
+
+Use `lucide-react` exclusively. See [Iconography](#iconography) in the README for details.
+
 ## Project Structure (App Router)
 
 We exclusively use the **Next.js App Router** (no `pages/` directory). Here is our core structure:
