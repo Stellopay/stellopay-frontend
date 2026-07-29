@@ -50,6 +50,7 @@ export default defineConfig({
         "components/analytics/client-analytics-view.tsx",
         "components/common/notification-panel.tsx",
         "components/common/app-layout.tsx",
+        "components/common/network-switcher.tsx",
         "components/ui/pagination.tsx",
       ],
       exclude: [
