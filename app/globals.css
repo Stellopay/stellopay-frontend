@@ -179,6 +179,52 @@ html {
   }
 }
 
+/* Statement output intentionally has its own print scope; table print rules and
+   navigation never leak into the reconciliation document. */
+@media print {
+  body * {
+    visibility: hidden;
+  }
+
+  .statement-print-root,
+  .statement-print-root * {
+    visibility: visible;
+  }
+
+  .statement-print-root {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    margin: 0;
+    border: 0;
+    box-shadow: none;
+    color: #111827 !important;
+    background: #ffffff !important;
+  }
+
+  .statement-print-root .statement-actions {
+    display: none !important;
+  }
+
+  .statement-print-root * {
+    color: #111827 !important;
+    background-color: transparent !important;
+  }
+
+  .statement-print-root table,
+  .statement-print-root tr {
+    break-inside: avoid;
+  }
+
+  .statement-print-root thead {
+    display: table-header-group;
+  }
+
+  @page {
+    margin: 16mm;
+  }
+}
+
 @layer utilities {
   .scrollbar-hide {
     -ms-overflow-style: none; /* IE and Edge */
