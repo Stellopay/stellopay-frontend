@@ -139,6 +139,90 @@ Tests in `components/auth/sign-up/sign-up-form.test.tsx` cover:
 
 ---
 
+---
+
+## Forgot-Password Enumeration Safety
+
+### Overview
+
+The forgot-password flow (`app/auth/forgot-password/`) is designed to prevent user enumeration. Regardless of whether the submitted email matches an existing account, the client always renders **identical** confirmation copy. This prevents attackers from probing the endpoint to discover registered email addresses.
+
+### Implementation
+
+#### API Layer (`lib/api/auth.ts`)
+
+The `sendPasswordResetEmail()` function:
+- POSTs to `/auth/forgot-password`
+- On **2xx** responses: returns successfully (no distinction exposed)
+- On **4xx** responses: **swallows the error** silently — the client never learns whether the email was found
+- On **5xx** responses: throws an `AuthError` with `kind: "network"` (user-facing connectivity message only)
+
+```typescript
+// lib/api/auth.ts — enumeration-safe forgot-password
+if (!response.ok) {
+  if (response.status >= 500) {
+    throw new AuthError("We're having trouble reaching our servers. Please try again.", "network");
+  }
+  // Intentionally swallow 4xx responses — the client must never
+  // distinguish between "email exists" and "email not found".
+}
+```
+
+#### Confirmation Copy
+
+The confirmation screen always displays the same generic message:
+
+> **Check your email**
+> If an account exists for this email, you will receive a password reset link shortly.
+
+No account-specific details (e.g. "We sent a link to user@example.com") are ever rendered.
+
+### Accessibility (WCAG 2.1 AA)
+
+| Concern | Implementation |
+|---------|---------------|
+| Confirmation announcement | `<div role="status" aria-live="polite">` wraps the confirmation content |
+| Error announcement | `<div role="alert" aria-live="polite">` for error states |
+| Resend cooldown | Button is disabled during cooldown, with `aria-label` describing remaining seconds |
+| Focus management | Form fields use standard HTML autofocus via `autoComplete` and `inputMode` |
+| Keyboard navigation | All interactive elements are native `<button>` and `<a>` elements |
+| Link to sign in | "Back to sign in" link returns to `/auth/login` |
+
+### Responsive Behavior
+
+| Breakpoint | Layout |
+|------------|--------|
+| `sm` (640px) | Single-column, centered |
+| `md` (768px) | Single-column, centered with showcase below |
+| `lg` (1024px) | Two-column: form + showcase side-by-side |
+| `xl` (1280px) | Same as lg with max-width constraint |
+
+### Test Coverage
+
+Tests in `components/auth/forgot-password/forgot-password-form.test.tsx` cover:
+
+| Test | Scenario |
+|------|----------|
+| Renders form elements | Email input + submit button present |
+| Email validation | Invalid email shows "Please enter a valid email address." |
+| Generic confirmation on success | API returns 2xx → confirmation shown |
+| Generic confirmation on 4xx | API returns 4xx → still shows confirmation (never reveals "not found") |
+| Network error (5xx) | Server error shows connectivity message |
+| Unexpected error | Generic "An error occurred" message |
+| Loading state | Button shows spinner and "Sending..." text |
+| Back navigation | User can return to form from confirmation |
+| ARIA live region | `role="status"` with `aria-live="polite"` on confirmation |
+| Resend cooldown | Button disabled with countdown after first send |
+| Sign-in link | "Back to sign in" href points to `/auth/login` |
+| Form autocomplete | `autoComplete="email"` and `inputMode="email"` on email input |
+| Error role | `role="alert"` on error messages |
+
+### Future Considerations
+
+- Rate-limiting should be implemented server-side on `/auth/forgot-password` to prevent abuse
+- The server should use a constant-time comparison / response path for registered vs. unregistered emails
+- Logging should record the request without exposing whether an account exists (log the email but not whether it matched)
+
 ## Email Typo Suggestion
 
 ### Overview
@@ -150,3 +234,93 @@ To resolve this, we offer a non-blocking one-click "did you mean..." correction 
 - If a typo is detected, a suggestion is shown with a "Yes, fix it" button.
 - The UI includes `role="status"` and `aria-live="polite"` so screen readers proactively announce the suggestion.
 - The correction applies locally in the modal without forcing a full page reload or form re-entry.
+
+---
+
+## Session-Expired Interstitial Page
+
+### Overview
+
+A dedicated interstitial at `app/auth/session-expired/page.tsx` explains when a user's session has timed out mid-visit. Instead of landing on a bare login form with no explanation, the user sees a clear message and a direct path back, with the original destination preserved as a `returnTo` query parameter.
+
+### Middleware (`middleware.ts`)
+
+The middleware checks for a session cookie (`next-auth.session-token` or `stellopay:session`) on protected routes.
+
+| Route | Behavior |
+|-------|----------|
+| `/dashboard`, `/transactions`, `/settings`, `/account-summary` | Redirects to `/auth/session-expired?returnTo=<path>` if no session cookie |
+| `/auth/*`, `/verify-email`, `/help`, `/offline` | Allowed through (public) |
+| Static assets | Excluded via matcher |
+
+Protected routes are defined in `middleware.ts`:
+
+```typescript
+const PROTECTED_ROUTES = [
+  "/dashboard",
+  "/transactions",
+  "/settings",
+  "/account-summary",
+];
+```
+
+### Session-Expired Page
+
+**Route:** `/auth/session-expired?returnTo=<original-path>`
+
+**Key behaviors:**
+- Explains the session timed out due to inactivity
+- Displays the original destination path the user was trying to reach
+- Primary CTA: **"Log in again"** — links to `/auth/login?returnTo=<original-path>`
+- Secondary link: **"Go to sign in"** — links to `/auth/login` without returnTo
+- Follows the same layout as other auth pages (`AuthShowcase` + form column)
+
+### Login Form `returnTo` Support
+
+The login form (`components/auth/login/login-form.tsx`) now:
+- Accepts a `returnTo` prop from `app/auth/login/page.tsx`
+- On successful password sign-in, redirects to `returnTo ?? "/dashboard"`
+- Uses `next/navigation`'s `useRouter().push()`
+
+### Accessibility (WCAG 2.1 AA)
+
+| Concern | Implementation |
+|---------|---------------|
+| Heading hierarchy | `<h1>` for "Session Expired" heading |
+| Color contrast | Button `#92569D` on dark bg passes AA (contrast ratio ≥ 4.5:1) |
+| Focus indicators | `focus:ring-2 focus:ring-[#F8D2FE]` on primary CTA |
+| Decorative icon | `aria-hidden="true"` on clock icon container |
+| Keyboard navigation | All CTAs are native `<a>` elements |
+| Descriptive link text | "Log in again" and "Go to sign in" are self-describing |
+
+### Responsive Behavior
+
+| Breakpoint | Layout |
+|------------|--------|
+| `sm` (640px) | Single-column, centered |
+| `md` (768px) | Single-column, centered with showcase below |
+| `lg` (1024px) | Two-column: form + showcase side-by-side |
+| `xl` (1280px) | Same as lg with max-width constraint |
+
+### Test Coverage
+
+Tests in `app/auth/session-expired/page.test.tsx` cover:
+
+| Test | Scenario |
+|------|----------|
+| Renders heading | "Session Expired" `<h1>` present |
+| Explains inactivity | Body text explains timeout reason |
+| Log in again link | Primary CTA links to login with encoded `returnTo` |
+| Go to sign in link | Secondary link to login without `returnTo` |
+| Shows returnTo path | Original destination displayed when present |
+| Defaults to /dashboard | No returnTo param → defaults to dashboard |
+| Renders AuthShowcase | Showcase section with timeout description |
+| Branding heading | "Stellopay" text rendered |
+| Focus styles | Primary CTA has focus ring classes |
+| Decorative icon hidden | `aria-hidden="true"` on icon container |
+
+### Cookie Names
+
+The middleware checks these cookies (in order):
+1. `next-auth.session-token` — standard next-auth cookie
+2. `stellopay:session` — custom session cookie for non-next-auth auth

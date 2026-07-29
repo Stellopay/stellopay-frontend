@@ -46,4 +46,48 @@ describe("NotFound", () => {
     expect(homeLink).toBeVisible();
     expect(dashboardLink).toBeVisible();
   });
+
+  it("renders a search input for help center search", () => {
+    render(<NotFound />);
+
+    const searchInput = screen.getByPlaceholderText("Search help center…");
+    expect(searchInput).toBeInTheDocument();
+    expect(searchInput).toHaveAttribute("type", "search");
+    expect(searchInput).toHaveAttribute("aria-label", "Search help topics");
+  });
+
+  it("renders popular-destination links", () => {
+    render(<NotFound />);
+
+    expect(screen.getByRole("link", { name: /Transactions/ })).toHaveAttribute(
+      "href",
+      "/transactions",
+    );
+    expect(screen.getByRole("link", { name: /Settings/ })).toHaveAttribute(
+      "href",
+      "/settings",
+    );
+    expect(screen.getByRole("link", { name: /Help & Support/ })).toHaveAttribute(
+      "href",
+      "/help/support",
+    );
+    expect(screen.getByRole("link", { name: /Dashboard/ })).toHaveAttribute(
+      "href",
+      "/dashboard",
+    );
+  });
+
+  it("renders a popular destinations navigation landmark", () => {
+    render(<NotFound />);
+
+    const nav = screen.getByRole("navigation", { name: "Popular destinations" });
+    expect(nav).toBeInTheDocument();
+  });
+
+  it("renders a search landmark", () => {
+    render(<NotFound />);
+
+    const search = screen.getByRole("search", { name: "Search help center" });
+    expect(search).toBeInTheDocument();
+  });
 });

@@ -209,6 +209,52 @@ function getErrorMessage(code: OAuthCallbackError["code"]): string {
   }
 }
 /**
+ * Sends a password-reset email to the given address (enumeration-safe).
+ *
+ * The function always returns successfully to the caller regardless of
+ * whether the email matches an existing account. This prevents user
+ * enumeration via the forgot-password flow. The server is responsible
+ * for conditionally sending the email; the client must never know
+ * whether an account exists.
+ *
+ * @param email - The email address to send the reset link to.
+ * @throws {AuthError} If the request fails due to a network error.
+ */
+export async function sendPasswordResetEmail(email: string): Promise<void> {
+  const baseUrl =
+    process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:3000/api";
+
+  try {
+    const response = await fetch(`${baseUrl}/auth/forgot-password`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ email }),
+    });
+
+    if (!response.ok) {
+      if (response.status >= 500) {
+        throw new AuthError(
+          "We're having trouble reaching our servers. Please try again.",
+          "network"
+        );
+      }
+    }
+    // Intentionally swallow 4xx responses — the client must never
+    // distinguish between "email exists" and "email not found".
+  } catch (error) {
+    if (error instanceof AuthError) {
+      throw error;
+    }
+    throw new AuthError(
+      "Unable to connect. Please check your internet connection and try again.",
+      "network"
+    );
+  }
+}
+
+/**
  * Sends a passwordless magic-link sign-in email to the given address.
  *
  * The email contains a one-time sign-in link that authenticates the user

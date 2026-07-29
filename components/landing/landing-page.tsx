@@ -55,6 +55,34 @@ const EnterpriseSolutionSection = dynamic(
   },
 );
 
+const TestimonialsSection = dynamic(
+  () => import("@/components/landing/testimonials-section"),
+  {
+    loading: () => (
+      <div
+        className="w-full py-16 sm:py-20 lg:py-24 bg-[#FAFAFA] dark:bg-[#0D0D0D]"
+        aria-busy="true"
+        aria-live="polite"
+        role="status"
+      >
+        <span className="sr-only">Loading testimonials...</span>
+        <div className="max-w-6xl mx-auto px-4 space-y-12">
+          <div className="flex flex-col items-center space-y-4">
+            <Skeleton className="h-6 w-24 rounded-full" shade="dark" />
+            <Skeleton className="h-10 w-72 rounded-lg" shade="dark" />
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            <Skeleton className="h-56 rounded-2xl" shade="dark" />
+            <Skeleton className="h-56 rounded-2xl" shade="dark" />
+            <Skeleton className="h-56 rounded-2xl" shade="dark" />
+          </div>
+        </div>
+      </div>
+    ),
+    ssr: true,
+  },
+);
+
 const FAQSection = dynamic(() => import("@/components/landing/faq-section"), {
   loading: () => (
     <div
@@ -108,6 +136,7 @@ export default function LandingPage() {
       </section>
       <FeaturesIntro />
       <HowItWorks />
+      <TestimonialsSection />
       <ValuePropositions />
       <EnterpriseSolutionSection />
       <BenefitsSection />

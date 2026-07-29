@@ -3,6 +3,7 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm, type FieldErrors } from "react-hook-form";
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Form } from "@/components/ui/form";
@@ -41,7 +42,8 @@ type SignInMethod = "password" | "magic-link";
  *           Password values are never logged. `autoComplete="current-password"`
  *           is preserved for password-manager compatibility.
  */
-export function LoginForm() {
+export function LoginForm({ returnTo }: { returnTo?: string }) {
+  const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
   const [isNetworkError, setIsNetworkError] = useState(false);
@@ -91,7 +93,7 @@ export function LoginForm() {
       } else {
         safeStorage.removeItem(REMEMBERED_EMAIL_KEY);
       }
-      // Handle successful login redirect or state update here
+      router.push(returnTo || "/dashboard");
     } catch (error) {
       if (error instanceof AuthError) {
         setErrorMessage(error.message);

@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/utils/commonUtils";
 import { safeStorage } from "@/utils/safeStorage";
+import { EmptyState } from "@/components/ui/empty-state";
 import {
   Dialog,
   DialogContent,
@@ -308,7 +309,7 @@ export function AnalyticsInsights({
     <section
       className={cn(
         "rounded-2xl border p-6 transition-all",
-        "bg-white dark:bg-[#111111] border-zinc-200 dark:border-zinc-800 shadow-sm",
+        "bg-white dark:bg-[#111111] border-zinc-200 dark:border-zinc-800 shadow-elevation-1",
       )}
     >
       {/* Header */}
@@ -399,7 +400,7 @@ export function AnalyticsInsights({
             <div
               key={item.id}
               className={cn(
-                "rounded-2xl border p-5 flex flex-col group hover:shadow-md transition-all",
+                "rounded-2xl border p-5 flex flex-col group hover:shadow-elevation-2 transition-all",
                 "bg-zinc-50/50 dark:bg-zinc-900/30 border-zinc-100 dark:border-zinc-800/50",
               )}
             >
@@ -418,17 +419,17 @@ export function AnalyticsInsights({
                     {item.change}
                   </span>
                 </div>
+                <p className="text-3xl font-bold text-zinc-900 dark:text-white mt-4 tracking-tight">
+                  {item.value}
+                </p>
+                <p className="text-sm font-bold text-zinc-400 dark:text-zinc-500 mt-1 uppercase tracking-wider">
+                  {item.label}
+                </p>
               </div>
-              <p className="text-3xl font-bold text-zinc-900 dark:text-white mt-4 tracking-tight">
-                {item.value}
-              </p>
-              <p className="text-sm font-bold text-zinc-400 dark:text-zinc-500 mt-1 uppercase tracking-wider">
-                {item.label}
-              </p>
-            </div>
-          );
-        })}
-      </div>
+            );
+          })}
+        </div>
+      )}
     </section>
   );
 }

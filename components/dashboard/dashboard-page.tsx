@@ -1,6 +1,12 @@
 "use client";
 
-import React, { useState, useEffect, useMemo } from "react";
+import React, {
+  useState,
+  useEffect,
+  useMemo,
+  useRef,
+  useCallback,
+} from "react";
 import DashboardNavbar from "@/components/dashboard/dashboard-navbar";
 import AccountOverview from "@/components/dashboard/account-overview";
 import { QuickActions } from "@/components/dashboard/quick-actions";
@@ -11,6 +17,36 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { ErrorState } from "@/components/ui/error-state";
 import ClientAnalyticsView from "@/components/analytics/client-analytics-view";
 import { allTransactions } from "@/lib/transactions";
+import type { Transaction } from "@/types/transaction";
+import { safeStorage } from "@/utils/safeStorage";
+import {
+  DndContext,
+  DragOverlay,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+} from "@dnd-kit/core";
+import {
+  SortableContext,
+  useSortable,
+  verticalListSortingStrategy,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
+import {
+  GripVertical,
+  ChevronUp,
+  ChevronDown,
+  FileText,
+  Wallet,
+  Shield,
+  Settings,
+  Clock3,
+  ChevronRight,
+} from "lucide-react";
+import Link from "next/link";
+import { DashboardTour } from "@/components/dashboard/dashboard-tour";
+import { useTransactions } from "@/hooks/useTransactions";
 
 const AnalyticsInsights = dynamic(
   () =>
@@ -47,6 +83,29 @@ const AnalyticsInsights = dynamic(
     ssr: true,
   },
 );
+
+export type WidgetId =
+  | "account-overview"
+  | "quick-transfer"
+  | "quick-actions"
+  | "analytics-insights"
+  | "client-analytics";
+
+export const WIDGET_IDS: WidgetId[] = [
+  "account-overview",
+  "quick-transfer",
+  "quick-actions",
+  "analytics-insights",
+  "client-analytics",
+];
+
+export const WIDGET_LABELS: Record<WidgetId, string> = {
+  "account-overview": "Account overview",
+  "quick-transfer": "Quick transfer",
+  "quick-actions": "Quick actions",
+  "analytics-insights": "Analytics insights",
+  "client-analytics": "Client analytics",
+};
 
 export type RecentActivityType =
   "transaction" | "wallet" | "security" | "settings";
@@ -311,7 +370,7 @@ export function RecentActivityFeed({
   return (
     <section
       aria-labelledby="recent-activity-heading"
-      className={`w-full rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm transition-colors dark:border-zinc-800 dark:bg-[#111111] sm:p-6 ${className}`}
+      className={`w-full rounded-2xl border border-zinc-200 bg-white p-4 shadow-elevation-1 transition-colors dark:border-zinc-800 dark:bg-[#111111] sm:p-6 ${className}`}
     >
       <div className="flex flex-col gap-4 border-b border-zinc-100 pb-5 dark:border-zinc-800/70 sm:flex-row sm:items-start sm:justify-between">
         <div className="flex min-w-0 items-start gap-3">
@@ -445,6 +504,129 @@ export function RecentActivityFeed({
   );
 }
 
+function getWidgetLabel(id: WidgetId): string {
+  return WIDGET_LABELS[id];
+}
+
+function WidgetDragHandle({
+  listeners,
+  id,
+  index,
+  total,
+  onMove,
+}: {
+  listeners: Record<string, unknown>;
+  id: WidgetId;
+  index: number;
+  total: number;
+  onMove: (id: WidgetId, direction: "up" | "down") => void;
+}) {
+  return (
+    <div className="flex items-center justify-between border-b border-zinc-100 pb-2 mb-4 dark:border-zinc-800">
+      <button
+        {...listeners}
+        className="inline-flex items-center justify-center rounded-lg p-1 text-zinc-400 hover:bg-zinc-100 hover:text-zinc-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900 focus-visible:ring-offset-1 dark:hover:bg-zinc-800 dark:hover:text-zinc-300 dark:focus-visible:ring-white"
+        aria-label={`Drag ${getWidgetLabel(id)} to reorder`}
+        aria-roledescription="sortable"
+        type="button"
+      >
+        <GripVertical className="h-4 w-4" aria-hidden="true" />
+        <span className="ml-1.5 text-xs font-medium text-zinc-400 dark:text-zinc-500">
+          {getWidgetLabel(id)}
+        </span>
+      </button>
+      <div className="flex items-center gap-0.5" role="group" aria-label={`Reorder ${getWidgetLabel(id)}`}>
+        <button
+          type="button"
+          onClick={() => onMove(id, "up")}
+          disabled={index === 0}
+          aria-label={`Move ${getWidgetLabel(id)} up`}
+          className="inline-flex items-center justify-center rounded-md p-1 text-zinc-400 hover:bg-zinc-100 hover:text-zinc-600 disabled:cursor-not-allowed disabled:opacity-30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900 focus-visible:ring-offset-1 dark:hover:bg-zinc-800 dark:hover:text-zinc-300 dark:focus-visible:ring-white"
+        >
+          <ChevronUp className="h-3.5 w-3.5" aria-hidden="true" />
+        </button>
+        <button
+          type="button"
+          onClick={() => onMove(id, "down")}
+          disabled={index === total - 1}
+          aria-label={`Move ${getWidgetLabel(id)} down`}
+          className="inline-flex items-center justify-center rounded-md p-1 text-zinc-400 hover:bg-zinc-100 hover:text-zinc-600 disabled:cursor-not-allowed disabled:opacity-30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900 focus-visible:ring-offset-1 dark:hover:bg-zinc-800 dark:hover:text-zinc-300 dark:focus-visible:ring-white"
+        >
+          <ChevronDown className="h-3.5 w-3.5" aria-hidden="true" />
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function SortableWidget({
+  id,
+  index,
+  total,
+  onMove,
+  tourRef,
+  children,
+}: {
+  id: WidgetId;
+  index: number;
+  total: number;
+  onMove: (id: WidgetId, direction: "up" | "down") => void;
+  tourRef?: React.RefObject<HTMLDivElement | null>;
+  children: React.ReactNode;
+}) {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id });
+
+  const style: React.CSSProperties = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+  };
+
+  return (
+    <div
+      ref={setNodeRef}
+      style={style}
+      className={`relative ${isDragging ? "z-10" : ""}`}
+      role="listitem"
+      aria-label={`${getWidgetLabel(id)} widget`}
+      {...attributes}
+    >
+      <div className={`${isDragging ? "opacity-60" : ""}`}>
+        <WidgetDragHandle
+          listeners={listeners}
+          id={id}
+          index={index}
+          total={total}
+          onMove={onMove}
+        />
+        <div ref={tourRef}>{children}</div>
+      </div>
+    </div>
+  );
+}
+
+function DashboardDragOverlay({ id }: { id: WidgetId }) {
+  return (
+    <div className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-xl dark:border-zinc-700 dark:bg-[#1A1A1A]">
+      <div className="flex items-center gap-2 pb-2 mb-3 border-b border-zinc-100 dark:border-zinc-800">
+        <GripVertical className="h-4 w-4 text-zinc-400" aria-hidden="true" />
+        <span className="text-sm font-medium text-zinc-600 dark:text-zinc-300">
+          {getWidgetLabel(id)}
+        </span>
+      </div>
+      <p className="text-sm text-zinc-500 dark:text-zinc-400">
+        {getWidgetLabel(id)}
+      </p>
+    </div>
+  );
+}
+
 /**
  * Dashboard component displaying the main user analytics, quick actions,
  * recent account activity, and account overview. Dynamically imports
@@ -453,10 +635,23 @@ export function RecentActivityFeed({
  */
 export default function Dashboard() {
   const [isLoading, setIsLoading] = useState(true);
+  const [widgetOrder, setWidgetOrder] = useState<WidgetId[]>([...WIDGET_IDS]);
+  const [hasHydrated, setHasHydrated] = useState(false);
+  const [activeDragId, setActiveDragId] = useState<WidgetId | null>(null);
   const accountSummaryRef = useRef<HTMLDivElement>(null);
   const quickActionsRef = useRef<HTMLDivElement>(null);
   const analyticsInsightsRef = useRef<HTMLDivElement>(null);
   const clientAnalyticsRef = useRef<HTMLDivElement>(null);
+
+  const refMap: Partial<Record<WidgetId, React.RefObject<HTMLDivElement | null>>> = useMemo(
+    () => ({
+      "account-overview": accountSummaryRef,
+      "quick-actions": quickActionsRef,
+      "analytics-insights": analyticsInsightsRef,
+      "client-analytics": clientAnalyticsRef,
+    }),
+    [],
+  );
 
   const recentRecipients = useMemo(() => {
     const seen = new Map<string, { address: string; label?: string }>();
@@ -469,7 +664,23 @@ export default function Dashboard() {
     return Array.from(seen.values());
   }, []);
 
-  // Simulate loading for demo purposes
+  useEffect(() => {
+    const saved = safeStorage.getWidgetOrder();
+    if (
+      saved &&
+      saved.length === WIDGET_IDS.length &&
+      saved.every((id) => WIDGET_IDS.includes(id as WidgetId))
+    ) {
+      setWidgetOrder(saved as WidgetId[]);
+    }
+    setHasHydrated(true);
+  }, []);
+
+  useEffect(() => {
+    if (!hasHydrated) return;
+    safeStorage.setWidgetOrder(widgetOrder);
+  }, [widgetOrder, hasHydrated]);
+
   useEffect(() => {
     const timer = setTimeout(() => {
       setIsLoading(false);
@@ -477,32 +688,94 @@ export default function Dashboard() {
     return () => clearTimeout(timer);
   }, []);
 
-  return (
-    <div className="w-full min-h-screen bg-white dark:bg-[#0D0D0D] transition-colors duration-200">
-      <DashboardNavbar />
+  const handleDragEnd = useCallback((event: DragEndEvent) => {
+    setActiveDragId(null);
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+    setWidgetOrder((items) => {
+      const oldIndex = items.indexOf(active.id as WidgetId);
+      const newIndex = items.indexOf(over.id as WidgetId);
+      if (oldIndex === -1 || newIndex === -1) return items;
+      const result = [...items];
+      const [moved] = result.splice(oldIndex, 1);
+      result.splice(newIndex, 0, moved);
+      return result;
+    });
+  }, []);
 
-      <div className="flex-1 p-6 lg:p-10 max-w-[1600px] mx-auto w-full space-y-10">
-        <div ref={accountSummaryRef}>
-          <AccountOverview />
-        </div>
+  const handleMove = useCallback(
+    (id: WidgetId, direction: "up" | "down") => {
+      setWidgetOrder((items) => {
+        const index = items.indexOf(id);
+        if (index === -1) return items;
+        const targetIndex = direction === "up" ? index - 1 : index + 1;
+        if (targetIndex < 0 || targetIndex >= items.length) return items;
+        const result = [...items];
+        const [moved] = result.splice(index, 1);
+        result.splice(targetIndex, 0, moved);
+        return result;
+      });
+    },
+    [],
+  );
 
-        <QuickTransfer recentRecipients={recentRecipients} />
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: { distance: 8 },
+    }),
+  );
 
-        <QuickActions />
-
-        <div ref={analyticsInsightsRef}>
-          <AnalyticsInsights />
-        </div>
-
-        <div ref={clientAnalyticsRef}>
+  const renderWidget = (id: WidgetId) => {
+    switch (id) {
+      case "account-overview":
+        return <AccountOverview />;
+      case "quick-transfer":
+        return <QuickTransfer recentRecipients={recentRecipients} />;
+      case "quick-actions":
+        return <QuickActions />;
+      case "analytics-insights":
+        return <AnalyticsInsights />;
+      case "client-analytics":
+        return (
           <ClientAnalyticsView
             isLoading={isLoading}
             showNotifications={true}
             showDropdown={true}
           />
-        </div>
+        );
+    }
+  };
 
-        {/* <TransactionHistory /> */}
+  return (
+    <div className="w-full min-h-screen bg-white dark:bg-[#0D0D0D] transition-colors duration-200">
+      <DashboardNavbar />
+
+      <div className="flex-1 p-6 lg:p-10 max-w-[1600px] mx-auto w-full">
+        <DndContext
+          onDragStart={(event) => setActiveDragId(event.active.id as WidgetId)}
+          onDragEnd={handleDragEnd}
+          sensors={sensors}
+        >
+          <SortableContext items={widgetOrder} strategy={verticalListSortingStrategy}>
+            <div className="space-y-10" role="list" aria-label="Dashboard widgets">
+              {widgetOrder.map((id, index) => (
+                <SortableWidget
+                  key={id}
+                  id={id}
+                  index={index}
+                  total={widgetOrder.length}
+                  onMove={handleMove}
+                  tourRef={refMap[id]}
+                >
+                  {renderWidget(id)}
+                </SortableWidget>
+              ))}
+            </div>
+          </SortableContext>
+          <DragOverlay>
+            {activeDragId ? <DashboardDragOverlay id={activeDragId} /> : null}
+          </DragOverlay>
+        </DndContext>
       </div>
 
       <DashboardTour
