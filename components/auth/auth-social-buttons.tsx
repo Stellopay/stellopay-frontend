@@ -124,7 +124,6 @@ export function AuthSocialButtons() {
         </span>
         <Separator className="flex-1 bg-muted-foreground" />
       </div>
-    </>
     <div className="flex md:flex-row flex-col justify-center items-center gap-3 mt-10">
       {errorState ? (
         <div className="p-4 bg-error-100 border-error border-error-300 rounded-lg text-error-800">
@@ -204,5 +203,6 @@ export function AuthSocialButtons() {
         </div>
       )}
     </div>
+    </>
   );
 }

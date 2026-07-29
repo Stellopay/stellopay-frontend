@@ -42,9 +42,9 @@
 
 ## Step 4: Documentation
 
-- [ ] Add TSDoc comments documenting cancellation semantics
+- [x] Add TSDoc comments documenting cancellation semantics
 
 ## Step 5: Run & verify
 
-- [ ] Run `npm run test`
-- [ ] Confirm Vitest coverage thresholds pass
+- [x] Run `npm run test`
+- [x] Confirm Vitest coverage thresholds pass

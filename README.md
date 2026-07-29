@@ -135,6 +135,82 @@ The app surfaces network-connectivity changes through a persistent banner render
 - [`components/common/offline-banner.test.tsx`](components/common/offline-banner.test.tsx) — Vitest unit suite covering online/offline transitions, dismiss behaviour, reconnection state, auto-dismiss timeout, event-listener cleanup, and the negative case where an `online` event fires on an already-online browser.
 - [`app/layout.test.tsx`](app/layout.test.tsx) — Integration test verifying the banner is rendered inside the root layout shell.
 
+## Sitemap & Robots
+
+The App Router generates both files automatically using the [Next.js file-convention handlers](https://nextjs.org/docs/app/api-reference/file-conventions/metadata):
+
+| File | Served at | Purpose |
+|------|-----------|---------|
+| `app/sitemap.ts` | `/sitemap.xml` | Enumerates public marketing and help routes for crawler discovery |
+| `app/robots.ts` | `/robots.txt` | Disallows authenticated app routes from being indexed |
+
+### Public routes (sitemap)
+
+| URL | changeFrequency | priority |
+|-----|----------------|----------|
+| `https://stellopay.com` | weekly | 1.0 |
+| `https://stellopay.com/help/support` | monthly | 0.8 |
+| `https://stellopay.com/help/support/accountManagement` | monthly | 0.6 |
+
+Auth flows (`/auth/login`, `/auth/sign-up`, `/verify-email`) are **excluded** from the sitemap. They already carry `robots: { index: false }` in their route metadata and have no organic search value.
+
+### Disallowed routes (robots.txt)
+
+The following path prefixes are disallowed for all crawlers (`*`) and Googlebot:
+
+```
+/dashboard
+/transactions
+/account-summary
+/analytics-view
+/settings
+/auth
+/verify-email
+```
+
+These rules are a belt-and-suspenders defence: the routes also set `robots: { index: false, follow: false }` in their Next.js metadata, so search engines receive two independent signals not to index them.
+
+### Exported constants
+
+Both files export named constants so tests can assert canonical values without duplicating strings:
+
+```ts
+import sitemap, { BASE_URL, PUBLIC_ROUTES } from "@/app/sitemap";
+import robots, { DISALLOWED_PATHS } from "@/app/robots";
+
+BASE_URL         // "https://stellopay.com"
+PUBLIC_ROUTES    // MetadataRoute.Sitemap — array of public route entries
+DISALLOWED_PATHS // string[] — private route prefixes
+```
+
+### Verifying locally
+
+After starting the dev server (`npm run dev`) or after a production build (`npm run build && npm run start`), inspect the generated files directly:
+
+```bash
+# Sitemap
+curl http://localhost:3000/sitemap.xml
+
+# Robots
+curl http://localhost:3000/robots.txt
+```
+
+### Tests
+
+Sitemap and robots behaviour is covered in `app/metadata.test.ts`:
+
+```bash
+npm test app/metadata.test.ts
+```
+
+The suite asserts:
+- `BASE_URL` matches the canonical domain
+- Every sitemap entry URL is absolute and starts with `BASE_URL`
+- Every entry has a valid `lastModified` date, `changeFrequency`, and `priority`
+- Authenticated and auth-flow routes are absent from the sitemap
+- Every disallowed path is present in the robots rules for both `*` and `Googlebot`
+- The sitemap pointer in `robots.txt` is `https://stellopay.com/sitemap.xml`
+
 ## Metadata & Viewport
 
 Following Next.js 15 conventions, global metadata (titles, descriptions, OpenGraph) and viewport configurations are exported as separate objects in `app/layout.tsx`.
@@ -228,7 +304,7 @@ stellopay-frontend
 │  ├─ auth/              # login, sign-up
 │  ├─ dashboard/
 │  ├─ help/support/
-│  ├─ settings/          # preferences, profile
+│  ├─ settings/          # preferences (tabbed shell — see design/settings-ia.md)
 │  ├─ transactions/
 │  ├─ layout.tsx
 │  └─ page.tsx           # landing page
@@ -252,6 +328,26 @@ stellopay-frontend
 ├─ e2e/                  # Additional Playwright specs
 └─ pages/                # Legacy Pages Router landing page assets
 ```
+
+### Settings section structure
+
+`app/settings/preferences` is a tabbed shell with five sections — **Account**
+(profile, identity, and locale defaults), **Notifications** (transaction alerts
+and delivery-channel toggles), **Security** (password, 2-FA, and session
+management), **Wallets** (connected Stellar wallets and transfer safeguards),
+and **Statements** (downloadable tax summaries and periodic statements) — each
+driven by a `?section=<value>` deep-link parameter.
+
+See [design/settings-ia.md](design/settings-ia.md) for the full information
+architecture: per-tab breakdown, routing behaviour, unsaved-changes guard,
+accessibility requirements, and step-by-step instructions for adding a new
+settings section.
+
+> **Adding a new settings section?** Follow the checklist in
+> `design/settings-ia.md` → *Adding a new settings section*, then update the
+> tab table at the top of that file and add a corresponding subsection. Keep
+> the spec, the code (`buildSections()` in `settings-page-shell.tsx`), and the
+> tests in sync — the spec is the single source of truth for the settings IA.
 
 ## Design Resources
 
@@ -431,3 +527,19 @@ To prevent hardcoded realistic PII (Personal Identifiable Information) and fabri
 - **Security Compliance**: All mockup emails, phone numbers, and wallet addresses are set to standard, obvious placeholder domains/values (e.g. `example.com`, `+1 555 0100`, and redacted addresses like `GB-REDACTED-DEMO-STELLAR-ADDRESS-XXXX`). This reduces compliance exposure and prevents test/seed data from being mistaken for active production credentials.
 - **Illustrative Marketing Stats**: Landing page statistics are managed via the same config file and clearly decorated with visual badges indicating they are illustrative placeholders.
 - **Backend Integration**: These structures are designed to be easily replaced by backend API hooks once user authentication, profile retrieval, and wallet connectivity endpoints are finalized.
+
+## Metadata and Open Graph Architecture
+
+Route-level metadata is defined across application routes in the Next.js App Router to ensure optimal SEO, canonical URLs, and distinct social preview cards (Open Graph / Twitter).
+
+### Metadata Configurations
+
+- **Root Layout (`app/layout.tsx`)**: Defines root default title templates, fallback description, global site name, and default dynamic `/opengraph-image` preview card.
+- **Dashboard (`app/dashboard/layout.tsx`)**: Configures route title, description, canonical URL (`https://stellopay.com/dashboard`), custom Open Graph image (`/dashboard-preview.jpg`), and private route `robots: { index: false, follow: false }` directives.
+- **Transactions (`app/transactions/layout.tsx`)**: Configures route title, description, canonical URL (`https://stellopay.com/transactions`), Open Graph image (`/opengraph-image`), and `robots: { index: false, follow: false }` directives.
+- **Settings & Preferences (`app/settings/preferences/layout.tsx`)**: Configures route title, description, canonical URL (`https://stellopay.com/settings/preferences`), Open Graph image (`/opengraph-image`), and `robots: { index: false, follow: false }` directives.
+
+### Testing and Validation
+
+All metadata exports are covered by unit tests in `app/metadata.test.ts` to verify uniqueness of titles/descriptions, correct canonical URLs, Open Graph parameters, and fallback logic.
+

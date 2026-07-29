@@ -90,5 +90,24 @@ describe("safeStorage", () => {
       });
       expect(() => safeStorage.removeItem("key")).not.toThrow();
     });
+
+    it("isDashboardTourCompleted returns true when storage item is 'true'", () => {
+      vi.mocked(window.localStorage.getItem).mockReturnValue("true");
+      expect(safeStorage.isDashboardTourCompleted()).toBe(true);
+    });
+
+    it("isDashboardTourCompleted returns false when storage item is null or not 'true'", () => {
+      vi.mocked(window.localStorage.getItem).mockReturnValue(null);
+      expect(safeStorage.isDashboardTourCompleted()).toBe(false);
+    });
+
+    it("setDashboardTourCompleted sets the tour storage key to 'true'", () => {
+      safeStorage.setDashboardTourCompleted();
+      expect(window.localStorage.setItem).toHaveBeenCalledWith(
+        "stellopay_dashboard_tour_completed",
+        "true",
+      );
+    });
   });
 });
+

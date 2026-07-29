@@ -11,6 +11,39 @@ export const metadata: Metadata = {
   title: "Preferences",
   description:
     "Customize your StelloPay dashboard preferences, currency view, theme, and security parameters.",
+  alternates: {
+    canonical: "https://stellopay.com/settings/preferences",
+  },
+  openGraph: {
+    title: "Preferences | StelloPay",
+    description:
+      "Customize your StelloPay dashboard preferences, currency view, theme, and security parameters.",
+    url: "https://stellopay.com/settings/preferences",
+    siteName: "StelloPay",
+    images: [
+      {
+        url: "/opengraph-image",
+        width: 1200,
+        height: 630,
+        alt: "StelloPay Preferences — Customize application and security settings.",
+        type: "image/png",
+      },
+    ],
+    locale: "en_US",
+    type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Preferences | StelloPay",
+    description:
+      "Customize your StelloPay dashboard preferences, currency view, theme, and security parameters.",
+    images: [
+      {
+        url: "/opengraph-image",
+        alt: "StelloPay Preferences — Customize application and security settings.",
+      },
+    ],
+  },
   robots: {
     index: false,
     follow: false,
