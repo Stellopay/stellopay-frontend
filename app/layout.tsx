@@ -6,6 +6,7 @@ import { SidebarProvider } from "@/context/sidebar-context";
 import { ThemeProvider } from "@/context/theme-context";
 import { WalletProvider } from "@/context/wallet-context";
 import { OfflineBanner } from "@/components/common/offline-banner";
+import { CookieConsentBanner } from "@/components/common/cookie-consent-banner";
 import { Toaster } from "@/components/ui/toaster";
 
 const inter = Inter({
@@ -147,6 +148,7 @@ export default function RootLayout({
           Skip to main content
         </a>
         <OfflineBanner />
+        <CookieConsentBanner />
         <ThemeProvider>
           <WalletProvider>
             <SidebarProvider>{children}</SidebarProvider>
