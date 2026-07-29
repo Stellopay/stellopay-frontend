@@ -119,6 +119,7 @@ export default function SettingsPageShell({
         pageDescription="Grouped sections keep high-frequency work within a couple of taps, while advanced and destructive actions stay clearly separated."
         sections={sections}
         activeSection={activeSection}
+        onSectionChange={handleSectionChange}
       />
 
       <div className="mx-auto flex w-full max-w-screen-xl flex-1 flex-col gap-8 px-4 py-8 md:px-6">
