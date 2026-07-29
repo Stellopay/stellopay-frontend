@@ -267,3 +267,8 @@
 | `components/transactions/transactions-table.tsx`  | `<caption>`, `scope="col"`, aria-label on badges, aria-hidden on icons, `<time>` element |
 | `components/common/side-bar.tsx`                  | aria-label, aria-expanded, aria-hidden icons, focus rings                                |
 | `design/a11y-checklist.md`                        | This document                                                                            |
+
+### Transaction Table Tooltips
+- **Contrast**: Focus ring (ocus:ring-[#D7E0EF]) provides clear 3:1 contrast against dark background.
+- **Keyboard Nav**: 	abIndex={0} makes truncated addresses and amounts focusable, revealing the 	itle tooltip.
+- **ARIA**: Screen readers read the full content within the span natively, while sighted users see tooltips on hover/focus.
