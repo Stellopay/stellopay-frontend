@@ -1,17 +1,28 @@
-'use client';
+"use client";
 
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import AccountSummaryCard from './account-summary-card';
-import { summaryCardsData, SummaryCardsSkeleton, AccountSummaryCardProps } from './summary-data';
-import { Wallet, BarChart3, ArrowRight, PieChart, AlertCircle, RefreshCw } from "lucide-react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
+import AccountSummaryCard from "./account-summary-card";
+import {
+  summaryCardsData,
+  SummaryCardsSkeleton,
+  AccountSummaryCardProps,
+} from "./summary-data";
+import {
+  Wallet,
+  BarChart3,
+  ArrowRight,
+  PieChart,
+  AlertCircle,
+  RefreshCw,
+} from "lucide-react";
 import { formatAddress, useWallet } from "@/context/wallet-context";
 
 // ─── Loading / error state types ─────────────────────────────────────────────
 
 type SummaryState =
-  | { status: 'loading' }
-  | { status: 'success'; cards: AccountSummaryCardProps[] }
-  | { status: 'error'; message: string };
+  | { status: "loading" }
+  | { status: "success"; cards: AccountSummaryCardProps[] }
+  | { status: "error"; message: string };
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
@@ -24,34 +35,58 @@ export default function AccountOverview() {
   }, [connect]);
 
   // ── Data resolution ─────────────────────────────────────────────────────
-  const [summaryState, setSummaryState] = useState<SummaryState>({ status: 'loading' });
+  const [summaryState, setSummaryState] = useState<SummaryState>({
+    status: "loading",
+  });
 
   // Keep static icon/card render data stable across wallet context ticks.
   const icons = useMemo(
     () => [
-      <Wallet key="wallet" className="w-6 h-6 text-blue-600 dark:text-blue-400" />,
-      <BarChart3 key="chart" className="w-6 h-6 text-emerald-600 dark:text-emerald-400" />,
-      <PieChart key="pie" className="w-6 h-6 text-amber-600 dark:text-amber-400" />
+      <Wallet
+        key="wallet"
+        className="w-6 h-6 text-blue-600 dark:text-blue-400"
+      />,
+      <BarChart3
+        key="chart"
+        className="w-6 h-6 text-emerald-600 dark:text-emerald-400"
+      />,
+      <PieChart
+        key="pie"
+        className="w-6 h-6 text-amber-600 dark:text-amber-400"
+      />,
     ],
     [],
   );
 
   const loadSummary = useCallback(() => {
-    setSummaryState({ status: 'loading' });
+    setSummaryState({ status: "loading" });
 
     // The data currently comes from a static module (summaryCardsData).
     // This async wrapper keeps the loading/error contract intact so that
     // when a real API replaces the static import the component needs no
     // structural changes — only the Promise body changes.
-    Promise.resolve(summaryCardsData)
+    //
+    // NOTE: summaryCardsData is accessed inside new Promise() so that
+    // synchronous throws (e.g. from a vi.spyOn getter in tests, or from a
+    // future API helper that throws before returning a Promise) are captured
+    // by the rejection path rather than propagating as uncaught exceptions.
+    new Promise<typeof summaryCardsData>((resolve, reject) => {
+      try {
+        resolve(summaryCardsData);
+      } catch (err) {
+        reject(err);
+      }
+    })
       .then((data) => {
         const cards = data.map((card, idx) => ({ ...card, icon: icons[idx] }));
-        setSummaryState({ status: 'success', cards });
+        setSummaryState({ status: "success", cards });
       })
       .catch((err: unknown) => {
         const message =
-          err instanceof Error ? err.message : 'Failed to load account summary.';
-        setSummaryState({ status: 'error', message });
+          err instanceof Error
+            ? err.message
+            : "Failed to load account summary.";
+        setSummaryState({ status: "error", message });
       });
   }, [icons]);
 
@@ -97,24 +132,29 @@ export default function AccountOverview() {
 
       {/* Header */}
       <div className="flex items-center justify-between mb-8">
-        <h2 className="text-2xl font-bold text-zinc-900 dark:text-white">Account Overview</h2>
+        <h2 className="text-2xl font-bold text-zinc-900 dark:text-white">
+          Account Overview
+        </h2>
         <button className="hidden sm:flex items-center gap-2 px-4 py-2 bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 rounded-lg text-sm font-semibold hover:opacity-90 transition-opacity cursor-pointer">
           View Full Account <ArrowRight className="w-4 h-4" />
         </button>
       </div>
 
       {/* Cards Grid — loading / error / success */}
-      {summaryState.status === 'loading' && (
+      {summaryState.status === "loading" && (
         <SummaryCardsSkeleton shade="dark" />
       )}
 
-      {summaryState.status === 'error' && (
+      {summaryState.status === "error" && (
         <div
           role="alert"
           data-testid="summary-error"
           className="flex flex-col items-center justify-center gap-4 rounded-2xl border border-destructive/20 bg-destructive/5 px-6 py-10 text-center"
         >
-          <AlertCircle className="h-8 w-8 text-destructive" aria-hidden="true" />
+          <AlertCircle
+            className="h-8 w-8 text-destructive"
+            aria-hidden="true"
+          />
           <p className="text-sm font-medium text-destructive">
             {summaryState.message}
           </p>
@@ -129,16 +169,13 @@ export default function AccountOverview() {
         </div>
       )}
 
-      {summaryState.status === 'success' && (
+      {summaryState.status === "success" && (
         <div
           data-testid="summary-cards-grid"
           className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
         >
           {summaryState.cards.map((card) => (
-            <AccountSummaryCard
-              key={card.title}
-              {...card}
-            />
+            <AccountSummaryCard key={card.title} {...card} />
           ))}
         </div>
       )}

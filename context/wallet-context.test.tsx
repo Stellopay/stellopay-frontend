@@ -10,6 +10,11 @@ import {
   useWallet,
 } from "@/context/wallet-context";
 import { WALLET_NETWORK_STORAGE_KEY } from "@/types/wallet";
+import {
+  INVALID_SECRET_SEED,
+  VALID_WALLET_ADDRESS,
+  VALID_WALLET_CONNECTION_PAYLOAD,
+} from "@/types/wallet.fixtures";
 
 // Stellar is the only supported network now that the placeholder EVM chains
 // have been removed, so network-switching/persistence is exercised against it.
@@ -104,14 +109,26 @@ describe("WalletProvider", () => {
       wrapper: ({ children }) => wrap(children),
     });
 
-    const publicAddress =
-      "GAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAW";
-
     act(() => {
-      result.current.connect(publicAddress);
+      result.current.connect(VALID_WALLET_ADDRESS);
     });
 
-    expect(result.current.address).toBe(publicAddress);
+    expect(result.current.address).toBe(VALID_WALLET_ADDRESS);
+  });
+
+  // Keep connect-flow fixture shape covered in types/wallet.test.ts; this
+  // assertion only verifies WalletProvider consumes the shared validated shape.
+  it("connect accepts a guarded wallet connection payload", () => {
+    const { result } = renderHook(() => useWallet(), {
+      wrapper: ({ children }) => wrap(children),
+    });
+
+    act(() => {
+      result.current.connect(VALID_WALLET_CONNECTION_PAYLOAD);
+    });
+
+    expect(result.current.address).toBe(VALID_WALLET_ADDRESS);
+    expect(result.current.network.id).toBe("stellar");
   });
 
   it("connect rejects values that look like a Stellar secret key", () => {
@@ -119,11 +136,9 @@ describe("WalletProvider", () => {
       wrapper: ({ children }) => wrap(children),
     });
 
-    const fakeSecret = "S" + "A".repeat(55);
-
     expect(() => {
       act(() => {
-        result.current.connect(fakeSecret);
+        result.current.connect(INVALID_SECRET_SEED);
       });
     }).toThrow(/secret key/i);
     expect(result.current.address).toBeNull();
@@ -184,10 +199,9 @@ describe("WalletProvider", () => {
       wrapper: ({ children }) => wrap(children),
     });
 
-    const fakeSecret = "S" + "A".repeat(55);
     expect(() => {
       act(() => {
-        result.current.connect(fakeSecret);
+        result.current.connect(INVALID_SECRET_SEED);
       });
     }).toThrow();
     expect(window.localStorage.getItem("stellopay.wallet.address")).toBeNull();
@@ -204,7 +218,9 @@ describe("useWallet outside provider", () => {
 
 describe("formatAddress", () => {
   it("truncates long Stellar addresses", () => {
-    expect(formatAddress("GABCDEFGHIJKLMNOPQRSTUVWXYZF123")).toBe("GABC...F123");
+    expect(formatAddress("GABCDEFGHIJKLMNOPQRSTUVWXYZF123")).toBe(
+      "GABC...F123",
+    );
   });
 
   it("returns empty string for null", () => {
@@ -313,7 +329,7 @@ describe("WalletProvider storage edge cases", () => {
 
 describe("WalletProvider initial props", () => {
   it("respects initialAddress for SSR seeding", () => {
-    const seeded = "GAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAW";
+    const seeded = VALID_WALLET_ADDRESS;
     function Probe() {
       const { address, isConnected } = useWallet();
       return (
@@ -329,9 +345,7 @@ describe("WalletProvider initial props", () => {
       </WalletProvider>,
     );
 
-    expect(screen.getByTestId("probe").textContent).toBe(
-      `connected:${seeded}`,
-    );
+    expect(screen.getByTestId("probe").textContent).toBe(`connected:${seeded}`);
   });
 });
 
@@ -358,9 +372,13 @@ describe("WalletProvider – network-change event handling", () => {
     let _cb: ((networkId: string) => void) | null = null;
     const subscribe = vi.fn((cb: (networkId: string) => void) => {
       _cb = cb;
-      return () => { _cb = null; }; // cleanup
+      return () => {
+        _cb = null;
+      }; // cleanup
     });
-    const emit = (networkId: string) => { _cb?.(networkId); };
+    const emit = (networkId: string) => {
+      _cb?.(networkId);
+    };
     return { subscribe, emit };
   }
 
@@ -400,7 +418,9 @@ describe("WalletProvider – network-change event handling", () => {
       ),
     });
 
-    act(() => { emit("stellar"); });
+    act(() => {
+      emit("stellar");
+    });
 
     expect(result.current.network.id).toBe("stellar");
     expect(result.current.isUnsupportedNetwork).toBe(false);
@@ -416,7 +436,9 @@ describe("WalletProvider – network-change event handling", () => {
       ),
     });
 
-    act(() => { emit("stellar"); });
+    act(() => {
+      emit("stellar");
+    });
 
     expect(window.localStorage.getItem(STORAGE_KEY)).toBe("stellar");
   });
@@ -431,7 +453,9 @@ describe("WalletProvider – network-change event handling", () => {
       ),
     });
 
-    act(() => { emit("ethereum"); });
+    act(() => {
+      emit("ethereum");
+    });
 
     expect(result.current.isUnsupportedNetwork).toBe(true);
   });
@@ -447,7 +471,9 @@ describe("WalletProvider – network-change event handling", () => {
     });
 
     const previousId = result.current.network.id;
-    act(() => { emit("polygon"); });
+    act(() => {
+      emit("polygon");
+    });
 
     // Network id must not change to an unsupported value.
     expect(result.current.network.id).toBe(previousId);
@@ -463,10 +489,14 @@ describe("WalletProvider – network-change event handling", () => {
       ),
     });
 
-    act(() => { emit("ethereum"); });
+    act(() => {
+      emit("ethereum");
+    });
     expect(result.current.isUnsupportedNetwork).toBe(true);
 
-    act(() => { emit("stellar"); });
+    act(() => {
+      emit("stellar");
+    });
     expect(result.current.isUnsupportedNetwork).toBe(false);
     expect(result.current.network.id).toBe("stellar");
   });

@@ -11,12 +11,12 @@ import {
   FormFieldPassword,
   FormFieldCheckbox,
 } from "@/components/ui/form-field";
-import { Separator } from "@/components/ui/separator";
 import { Check, X } from "lucide-react";
 import { SignUpEmailModal } from "./sign-up-email-modal";
 import { AuthSocialButtons } from "../auth-social-buttons";
 import { passwordPolicy, signUpSchema, SignUpFormValues } from "@/types/auth";
-import { checkPasswordRequirements } from "@/utils/authUtils";
+import { checkPasswordRequirements, calculatePasswordStrength, PasswordStrengthResult } from "@/utils/authUtils";
+import { PasswordStrengthIndicator } from "@/components/ui/password-strength-indicator";
 
 /**
  * SignUpForm – renders the `/auth/sign-up` page form.
@@ -38,10 +38,20 @@ export function SignUpForm() {
   const [showPasswordRequirements, setShowPasswordRequirements] =
     useState(false);
   const [isPasswordStrong, setIsPasswordStrong] = useState(false);
+  const [passwordStrength, setPasswordStrength] = useState<PasswordStrengthResult>({
+    strength: "weak",
+    score: 0,
+    feedback: "Enter a password",
+  });
   const [showEmailModal, setShowEmailModal] = useState(false);
   const [submittedEmail, setSubmittedEmail] = useState("");
 
   const handlePasswordCheck = (password: string) => {
+    // Calculate strength for the live meter
+    const strengthResult = calculatePasswordStrength(password);
+    setPasswordStrength(strengthResult);
+    
+    // Keep existing requirements checking for the checklist UI
     const requirements = checkPasswordRequirements(password);
     setPasswordRequirements(requirements);
     const allMet = Object.values(requirements).every((req) => req);
@@ -88,14 +98,8 @@ export function SignUpForm() {
           </div>
         </div>
       </div>
-      {/* Social Login */}
+      {/* Social Login (includes accessible divider) */}
       <AuthSocialButtons />
-      {/* Divider */}
-      <div className="flex items-center my-6 gap-2">
-        <Separator className="flex-1 bg-muted-foreground" />
-        <span className="text-sm text-muted-foreground">Or</span>
-        <Separator className="flex-1 bg-muted-foreground" />
-      </div>
       {/* Form */}
       <Form {...form}>
         <form
@@ -135,9 +139,23 @@ export function SignUpForm() {
                 handlePasswordCheck(value);
               } else {
                 setShowPasswordRequirements(false);
+                // Reset strength meter when password is cleared
+                setPasswordStrength({
+                  strength: "weak",
+                  score: 0,
+                  feedback: "Enter a password",
+                });
               }
             }}
           />
+          {/* Password Strength Indicator */}
+          {showPasswordRequirements && (
+            <PasswordStrengthIndicator
+              strengthResult={passwordStrength}
+              className="mt-2"
+              showFeedback={true}
+            />
+          )}
           {/* Password Requirements */}
           {showPasswordRequirements && (
             <div

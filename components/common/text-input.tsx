@@ -9,6 +9,7 @@ interface EnhancedTextInputProps extends TextInputProps {
   required?: boolean;
   disabled?: boolean;
   className?: string;
+  onBlur?: (event: React.FocusEvent<HTMLInputElement>) => void;
 }
 
 const TextInput: React.FC<EnhancedTextInputProps> = ({
@@ -23,6 +24,7 @@ const TextInput: React.FC<EnhancedTextInputProps> = ({
   required = false,
   disabled = false,
   className,
+  onBlur,
 }) => {
   const fieldId = React.useId();
   const descriptionId = helperText ? `${fieldId}-description` : undefined;
@@ -35,7 +37,7 @@ const TextInput: React.FC<EnhancedTextInputProps> = ({
    * so that keystrokes aren't silently dropped during typing.
    * Other input types are forwarded directly.
    *
-   * SECURITY NOTE: This only provides UI-level validation to allow typing. 
+   * SECURITY NOTE: This only provides UI-level validation to allow typing.
    * Numeric values must still be properly bounded and validated by consuming forms.
    *
    * @param event - The change event from the input element
@@ -92,6 +94,7 @@ const TextInput: React.FC<EnhancedTextInputProps> = ({
           placeholder={placeholder}
           value={value}
           onChange={handleChange}
+          onBlur={onBlur}
           disabled={disabled}
           className={cn(
             "px-3 w-full bg-transparent focus:outline-none text-foreground",

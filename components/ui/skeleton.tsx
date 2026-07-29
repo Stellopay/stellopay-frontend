@@ -3,22 +3,10 @@
 import { cn } from "@/utils/commonUtils";
 
 interface SkeletonProps extends React.HTMLAttributes<HTMLDivElement> {
-  /**
-   * The shade variant of the skeleton
-   * - light: For lighter backgrounds (#3A3A3A base with lighter shimmer)
-   * - dark: For darker backgrounds (#2D2D2D base with lighter shimmer)
-   */
   shade?: "light" | "dark";
-  /**
-   * Whether to show the shimmer animation
-   */
   animate?: boolean;
 }
 
-/**
- * Skeleton loading component with shimmer animation
- * Matches the Figma design system with light/dark variants
- */
 export function Skeleton({
   className,
   shade = "dark",
@@ -36,7 +24,7 @@ export function Skeleton({
         "rounded-md",
         baseColors[shade],
         animate && "skeleton-shimmer",
-        className
+        className,
       )}
       {...props}
     />
@@ -44,7 +32,26 @@ export function Skeleton({
 }
 
 /**
- * Skeleton text line - for simulating text content
+ * SkeletonLine - single horizontal line primitive for simulating text.
+ * Use width to hint at the line length (e.g. "w-3/4", "w-32").
+ */
+export function SkeletonLine({
+  className,
+  shade = "dark",
+  width,
+  ...props
+}: SkeletonProps & { width?: string }) {
+  return (
+    <Skeleton
+      shade={shade}
+      className={cn("h-4", width ?? "w-full", className)}
+      {...props}
+    />
+  );
+}
+
+/**
+ * SkeletonText - multi-line text placeholder (backward compatible).
  */
 export function SkeletonText({
   className,
@@ -60,7 +67,7 @@ export function SkeletonText({
           shade={shade}
           className={cn(
             "h-3",
-            i === lines - 1 && lines > 1 ? "w-3/4" : "w-full"
+            i === lines - 1 && lines > 1 ? "w-3/4" : "w-full",
           )}
         />
       ))}
@@ -69,9 +76,9 @@ export function SkeletonText({
 }
 
 /**
- * Skeleton circle - for avatars and icons
+ * SkeletonAvatar - circular primitive for avatar / icon placeholders.
  */
-export function SkeletonCircle({
+export function SkeletonAvatar({
   className,
   shade = "dark",
   size = 40,
@@ -80,15 +87,88 @@ export function SkeletonCircle({
   return (
     <Skeleton
       shade={shade}
-      className={cn("rounded-full", className)}
+      className={cn("rounded-full shrink-0", className)}
       style={{ width: size, height: size }}
       {...props}
     />
   );
 }
 
+/** @deprecated Use `SkeletonAvatar` instead */
+export const SkeletonCircle = SkeletonAvatar;
+
 /**
- * Skeleton button - for button placeholders
+ * SkeletonRow - horizontal layout combining an optional avatar with text lines.
+ *
+ * ```
+ * [avatar]  [line 1]
+ *           [line 2]
+ * ```
+ */
+export function SkeletonRow({
+  className,
+  shade = "dark",
+  avatarSize,
+  lines = 1,
+  ...props
+}: SkeletonProps & { avatarSize?: number; lines?: number }) {
+  return (
+    <div className={cn("flex items-center gap-3", className)} {...props}>
+      {avatarSize !== undefined && (
+        <SkeletonAvatar size={avatarSize} shade={shade} />
+      )}
+      <div className="flex-1 space-y-2">
+        {Array.from({ length: lines }).map((_, i) => (
+          <Skeleton
+            key={i}
+            shade={shade}
+            className={cn(
+              "h-3",
+              i === lines - 1 && lines > 1 ? "w-3/4" : "w-full",
+            )}
+          />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+/**
+ * SkeletonCard - card-shaped container with optional header and content lines.
+ */
+export function SkeletonCard({
+  className,
+  shade = "dark",
+  showHeader = true,
+  lines = 3,
+  ...props
+}: SkeletonProps & { showHeader?: boolean; lines?: number }) {
+  return (
+    <div
+      className={cn("rounded-xl border border-[#2D2D2D] p-4", className)}
+      {...props}
+    >
+      {showHeader && (
+        <div className="mb-4 flex items-center gap-3">
+          <SkeletonAvatar size={32} shade={shade} className="rounded-lg" />
+          <SkeletonLine shade={shade} width="w-32" />
+        </div>
+      )}
+      <div className="space-y-2">
+        {Array.from({ length: lines }).map((_, i) => (
+          <SkeletonLine
+            key={i}
+            shade={shade}
+            className={cn(i === lines - 1 ? "w-2/3" : "w-full")}
+          />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+/**
+ * SkeletonButton - button-shaped placeholder (backward compatible).
  */
 export function SkeletonButton({
   className,

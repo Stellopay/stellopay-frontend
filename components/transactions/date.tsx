@@ -1,8 +1,8 @@
 "use client";
 import type { ComponentProps } from "react";
-import { format } from "date-fns";
 import { CalendarIcon } from "lucide-react";
 import { cn } from "@/utils/commonUtils";
+import { formatDateForDisplay } from "@/utils/date-utils";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
 import {
@@ -34,7 +34,7 @@ export function Date({
         >
           <CalendarIcon className="mr-2 h-4 w-4 text-[#CBD2EB]" />
           {date ? (
-            format(date, "dd-MM-yyyy")
+            formatDateForDisplay(date)
           ) : (
             <span className="text-sm">{placeholder}</span>
           )}
@@ -54,34 +54,36 @@ export function Date({
           // these keys are the pre-existing (react-day-picker v8) shape and
           // are cast through to avoid a larger, visually-sensitive rewrite
           // for the v10 API that is out of scope here.
-          classNames={{
-            months:
-              "flex flex-col sm:flex-row space-y-4 sm:space-x-4 sm:space-y-0",
-            month: "space-y-4",
-            caption:
-              "flex justify-center pt-1 relative items-center text-white",
-            caption_label: "text-sm font-medium text-white",
-            nav: "space-x-1 flex items-center",
-            nav_button:
-              "h-7 w-7 bg-transparent p-0 text-[#CBD2EB] hover:bg-[#2a2a2a]",
-            nav_button_previous: "absolute left-1",
-            nav_button_next: "absolute right-1",
-            table: "w-full border-collapse space-y-1",
-            head_row: "flex",
-            head_cell:
-              "text-[#CBD2EB] rounded-md w-8 font-normal text-[0.8rem] text-center",
-            row: "flex w-full mt-2",
-            cell: "text-center text-sm p-0 relative [&:has([aria-selected])]:bg-[#2a2a2a] first:[&:has([aria-selected])]:rounded-l-md last:[&:has([aria-selected])]:rounded-r-md focus-within:relative focus-within:z-20",
-            day: "h-8 w-8 p-0 font-normal text-white hover:bg-[#2a2a2a] hover:text-white rounded-md",
-            day_selected:
-              "bg-[#04842E] text-white hover:bg-[#04842E] hover:text-white focus:bg-[#04842E] focus:text-white",
-            day_today: "bg-[#2a2a2a] text-white",
-            day_outside: "text-[#666] opacity-50",
-            day_disabled: "text-[#666] opacity-50",
-            day_range_middle:
-              "aria-selected:bg-[#2a2a2a] aria-selected:text-white",
-            day_hidden: "invisible",
-          } as ComponentProps<typeof Calendar>["classNames"]}
+          classNames={
+            {
+              months:
+                "flex flex-col sm:flex-row space-y-4 sm:space-x-4 sm:space-y-0",
+              month: "space-y-4",
+              caption:
+                "flex justify-center pt-1 relative items-center text-white",
+              caption_label: "text-sm font-medium text-white",
+              nav: "space-x-1 flex items-center",
+              nav_button:
+                "h-7 w-7 bg-transparent p-0 text-[#CBD2EB] hover:bg-[#2a2a2a]",
+              nav_button_previous: "absolute left-1",
+              nav_button_next: "absolute right-1",
+              table: "w-full border-collapse space-y-1",
+              head_row: "flex",
+              head_cell:
+                "text-[#CBD2EB] rounded-md w-8 font-normal text-[0.8rem] text-center",
+              row: "flex w-full mt-2",
+              cell: "text-center text-sm p-0 relative [&:has([aria-selected])]:bg-[#2a2a2a] first:[&:has([aria-selected])]:rounded-l-md last:[&:has([aria-selected])]:rounded-r-md focus-within:relative focus-within:z-20",
+              day: "h-8 w-8 p-0 font-normal text-white hover:bg-[#2a2a2a] hover:text-white rounded-md",
+              day_selected:
+                "bg-[#04842E] text-white hover:bg-[#04842E] hover:text-white focus:bg-[#04842E] focus:text-white",
+              day_today: "bg-[#2a2a2a] text-white",
+              day_outside: "text-[#666] opacity-50",
+              day_disabled: "text-[#666] opacity-50",
+              day_range_middle:
+                "aria-selected:bg-[#2a2a2a] aria-selected:text-white",
+              day_hidden: "invisible",
+            } as ComponentProps<typeof Calendar>["classNames"]
+          }
         />
       </PopoverContent>
     </Popover>

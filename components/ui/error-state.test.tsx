@@ -56,13 +56,7 @@ describe("ErrorState — baseline rendering", () => {
 
 describe("ErrorState — onRetry prop", () => {
   it("renders a retry button when onRetry is provided", () => {
-    render(
-      <ErrorState
-        title="Error"
-        description="Desc"
-        onRetry={() => {}}
-      />,
-    );
+    render(<ErrorState title="Error" description="Desc" onRetry={() => {}} />);
     expect(
       screen.getByRole("button", { name: /try again/i }),
     ).toBeInTheDocument();
@@ -70,43 +64,35 @@ describe("ErrorState — onRetry prop", () => {
 
   it("calls onRetry when the button is clicked", () => {
     const onRetry = vi.fn();
-    render(
-      <ErrorState title="Error" description="Desc" onRetry={onRetry} />,
-    );
+    render(<ErrorState title="Error" description="Desc" onRetry={onRetry} />);
     fireEvent.click(screen.getByRole("button", { name: /try again/i }));
     expect(onRetry).toHaveBeenCalledTimes(1);
   });
 
   it("calls onRetry exactly once per click (no double-fire)", async () => {
     const onRetry = vi.fn();
-    render(
-      <ErrorState title="Error" description="Desc" onRetry={onRetry} />,
-    );
+    render(<ErrorState title="Error" description="Desc" onRetry={onRetry} />);
     await userEvent.click(screen.getByRole("button", { name: /try again/i }));
     expect(onRetry).toHaveBeenCalledTimes(1);
   });
 
   it("renders no button when onRetry is explicitly undefined", () => {
-    render(
-      <ErrorState title="Error" description="Desc" onRetry={undefined} />,
-    );
+    render(<ErrorState title="Error" description="Desc" onRetry={undefined} />);
     expect(screen.queryByRole("button")).not.toBeInTheDocument();
   });
 
   it("button label is 'Try Again' in the idle state", () => {
-    render(
-      <ErrorState title="Error" description="Desc" onRetry={() => {}} />,
-    );
+    render(<ErrorState title="Error" description="Desc" onRetry={() => {}} />);
     expect(
       screen.getByRole("button", { name: "Try Again" }),
     ).toBeInTheDocument();
   });
 
   it("button is enabled (not disabled) in the idle state", () => {
-    render(
-      <ErrorState title="Error" description="Desc" onRetry={() => {}} />,
-    );
-    expect(screen.getByRole("button", { name: /try again/i })).not.toBeDisabled();
+    render(<ErrorState title="Error" description="Desc" onRetry={() => {}} />);
+    expect(
+      screen.getByRole("button", { name: /try again/i }),
+    ).not.toBeDisabled();
   });
 });
 
@@ -148,9 +134,10 @@ describe("ErrorState — retrying prop", () => {
         retrying
       />,
     );
-    expect(
-      screen.getByRole("button", { name: /retrying/i }),
-    ).toHaveAttribute("aria-disabled", "true");
+    expect(screen.getByRole("button", { name: /retrying/i })).toHaveAttribute(
+      "aria-disabled",
+      "true",
+    );
   });
 
   it("changes the button label to 'Retrying…' when retrying=true", () => {
@@ -198,21 +185,15 @@ describe("ErrorState — retrying prop", () => {
   });
 
   it("defaults retrying to false when the prop is omitted", () => {
-    render(
-      <ErrorState title="Error" description="Desc" onRetry={() => {}} />,
-    );
-    expect(screen.getByRole("button", { name: /try again/i })).not.toBeDisabled();
+    render(<ErrorState title="Error" description="Desc" onRetry={() => {}} />);
+    expect(
+      screen.getByRole("button", { name: /try again/i }),
+    ).not.toBeDisabled();
     expect(document.querySelector("svg.animate-spin")).not.toBeInTheDocument();
   });
 
   it("retrying=true has no effect when onRetry is not provided (no button rendered)", () => {
-    render(
-      <ErrorState
-        title="Error"
-        description="Desc"
-        retrying
-      />,
-    );
+    render(<ErrorState title="Error" description="Desc" retrying />);
     expect(screen.queryByRole("button")).not.toBeInTheDocument();
   });
 
@@ -243,9 +224,7 @@ describe("ErrorState — retrying state transitions", () => {
       />,
     );
 
-    expect(
-      screen.getByRole("button", { name: /retrying/i }),
-    ).toBeDisabled();
+    expect(screen.getByRole("button", { name: /retrying/i })).toBeDisabled();
 
     rerender(
       <ErrorState
@@ -284,9 +263,7 @@ describe("ErrorState — retrying state transitions", () => {
       />,
     );
 
-    expect(
-      screen.getByRole("button", { name: /retrying/i }),
-    ).toBeDisabled();
+    expect(screen.getByRole("button", { name: /retrying/i })).toBeDisabled();
     expect(document.querySelector("svg.animate-spin")).toBeInTheDocument();
   });
 });

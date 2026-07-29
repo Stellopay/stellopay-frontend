@@ -7,7 +7,8 @@ import { AuthShowcase } from "@/components/auth/auth-showcase";
  */
 export const metadata: Metadata = {
   title: "Sign Up",
-  description: "Create a new StelloPay account to get started with fast, secure global blockchain payroll.",
+  description:
+    "Create a new StelloPay account to get started with fast, secure global blockchain payroll.",
 };
 
 export default function SignUpPage() {

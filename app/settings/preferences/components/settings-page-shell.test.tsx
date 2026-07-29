@@ -32,9 +32,12 @@ vi.mock("next/image", () => ({
 
 /** Return the summary card element identified by its label text. */
 function summaryValue(label: string): HTMLElement {
-  const card = screen.getByText(label).closest('[data-slot="card"]');
+  const card = screen
+    .getAllByText(label)
+    .map((element) => element.closest('[data-slot="card"]'))
+    .find((element): element is HTMLElement => element !== null);
   if (!card) throw new Error(`Summary card for "${label}" not found`);
-  return card as HTMLElement;
+  return card;
 }
 
 describe("SettingsPageShell summary cards", () => {
@@ -46,22 +49,30 @@ describe("SettingsPageShell summary cards", () => {
     render(<SettingsPageShell />);
 
     // Defaults: profile fully seeded, 5 notification prefs on, 2FA on, 2 wallets.
-    expect(within(summaryValue("Profile readiness")).getByText("Complete"))
-      .toBeInTheDocument();
-    expect(within(summaryValue("Alerts enabled")).getByText("5 active"))
-      .toBeInTheDocument();
-    expect(within(summaryValue("Security posture")).getByText("2-step on"))
-      .toBeInTheDocument();
-    expect(within(summaryValue("Wallet coverage")).getByText("2 linked"))
-      .toBeInTheDocument();
+    expect(
+      within(summaryValue("Profile readiness")).getByText("Complete"),
+    ).toBeInTheDocument();
+    expect(
+      within(summaryValue("Alerts enabled")).getByText("5 active"),
+    ).toBeInTheDocument();
+    expect(
+      within(summaryValue("Security posture")).getByText("2-step on"),
+    ).toBeInTheDocument();
+    expect(
+      within(summaryValue("Wallet coverage")).getByText("2 linked"),
+    ).toBeInTheDocument();
+    expect(
+      within(summaryValue("Statements")).getByText("3 ready"),
+    ).toBeInTheDocument();
   });
 
   it("updates the Alerts enabled card when a notification toggle changes", () => {
     // Open straight on the Notifications section so its toggles are mounted.
     render(<SettingsPageShell initialSection="notifications" />);
 
-    expect(within(summaryValue("Alerts enabled")).getByText("5 active"))
-      .toBeInTheDocument();
+    expect(
+      within(summaryValue("Alerts enabled")).getByText("5 active"),
+    ).toBeInTheDocument();
 
     // Disable one alert in the section editor.
     const transactionToggle = screen.getByRole("switch", {
@@ -70,8 +81,9 @@ describe("SettingsPageShell summary cards", () => {
     fireEvent.click(transactionToggle);
 
     // The always-visible summary card reflects the change immediately.
-    expect(within(summaryValue("Alerts enabled")).getByText("4 active"))
-      .toBeInTheDocument();
+    expect(
+      within(summaryValue("Alerts enabled")).getByText("4 active"),
+    ).toBeInTheDocument();
     expect(
       within(summaryValue("Alerts enabled")).queryByText("5 active"),
     ).not.toBeInTheDocument();
