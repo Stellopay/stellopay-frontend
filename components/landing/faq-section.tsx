@@ -3,6 +3,7 @@
 import React, { useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Plus, Minus } from "lucide-react";
+import { useReducedMotion } from "@/hooks/useReducedMotion";
 import { cn } from "@/utils/commonUtils";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
@@ -42,12 +43,14 @@ const AccordionItem = ({
   onToggle,
   buttonRef,
   onKeyDown,
+  reducedMotion,
 }: {
   item: FAQItem;
   isOpen: boolean;
   onToggle: () => void;
   buttonRef: React.RefObject<HTMLButtonElement>;
   onKeyDown: (e: React.KeyboardEvent<HTMLButtonElement>) => void;
+  reducedMotion: boolean;
 }) => {
   return (
     <div
@@ -84,28 +87,39 @@ const AccordionItem = ({
         </div>
       </button>
 
-      <AnimatePresence initial={false}>
-        {isOpen && (
-          <motion.div
-            initial={{ height: 0, opacity: 0 }}
-            animate={{ height: "auto", opacity: 1 }}
-            exit={{ height: 0, opacity: 0 }}
-            transition={{ duration: 0.3, ease: "easeInOut" }}
-            className="overflow-hidden"
-          >
-            <div className="px-6 pb-6 md:px-8 md:pb-8">
-              <p className="text-[#71717A] dark:text-[#A1A1AA] text-base md:text-lg leading-relaxed font-sans">
-                {item.answer}
-              </p>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+      {reducedMotion ? (
+        isOpen && (
+          <div className="px-6 pb-6 md:px-8 md:pb-8">
+            <p className="text-[#71717A] dark:text-[#A1A1AA] text-base md:text-lg leading-relaxed font-sans">
+              {item.answer}
+            </p>
+          </div>
+        )
+      ) : (
+        <AnimatePresence initial={false}>
+          {isOpen && (
+            <motion.div
+              initial={{ height: 0, opacity: 0 }}
+              animate={{ height: "auto", opacity: 1 }}
+              exit={{ height: 0, opacity: 0 }}
+              transition={{ duration: 0.3, ease: "easeInOut" }}
+              className="overflow-hidden"
+            >
+              <div className="px-6 pb-6 md:px-8 md:pb-8">
+                <p className="text-[#71717A] dark:text-[#A1A1AA] text-base md:text-lg leading-relaxed font-sans">
+                  {item.answer}
+                </p>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      )}
     </div>
   );
 };
 
 export default function FAQSection() {
+  const reducedMotion = useReducedMotion();
   const [openIndex, setOpenIndex] = useState<number | null>(0);
   const buttonRefs = useRef<Array<React.RefObject<HTMLButtonElement>>>(
     faqData.map(() => React.createRef<HTMLButtonElement>()),
@@ -173,6 +187,7 @@ export default function FAQSection() {
               onToggle={() => toggleAccordion(index)}
               buttonRef={buttonRefs.current[index]}
               onKeyDown={(e) => handleKeyDown(e, index)}
+              reducedMotion={reducedMotion}
             />
           ))}
         </div>
