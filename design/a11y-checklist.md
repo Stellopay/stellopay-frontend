@@ -702,3 +702,22 @@ animation utilities are disabled when that media query is active.
 | `components/common/shortcut-help-modal.test.tsx` | New — rendering, accessibility, and behaviour unit tests |
 | `components/common/app-layout.test.tsx` | Updated — shortcut modal integration tests |
 | `design/a11y-checklist.md` | Updated — this section |
+
+---
+
+## Auth Showcase Panel Contrast Audit (Dark Mode)
+
+**Branch:** `design-system/auth-showcase-dark-contrast`  
+**Scope:** `components/auth/auth-showcase.tsx`  
+**Standard:** WCAG 2.1 Level AA  
+**Date:** 2026-07-29
+
+### Issue
+In dark mode, the overlay text elements (`title` and `description`) fall below the 4.5:1 contrast ratio against the underlying artwork/background.
+
+### Fix
+Added a scrim/gradient overlay token (`dark:bg-gradient-to-b dark:from-black/80 dark:to-transparent`) behind the text content region.
+This ensures a contrast ratio of at least 4.5:1 for standard text and 3:1 for large text.
+
+**WCAG:** 1.4.3 Contrast (Minimum)
+**axe rule:** `color-contrast`
