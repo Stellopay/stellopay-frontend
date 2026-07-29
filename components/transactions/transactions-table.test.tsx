@@ -1,42 +1,260 @@
-import { render, screen } from "@testing-library/react";
-import { describe, expect, it } from "vitest";
+/**
+ * Tests for TransactionsTable — keyboard navigation, ARIA semantics,
+ * and tooltip/truncation behaviour for long address/amount values.
+ *
+ * Covers:
+ * - Basic rendering of transaction data.
+ * - Correct native table semantics (table / rowgroup / columnheader / row / cell).
+ * - Each data row is focusable via tabIndex=0.
+ * - ArrowDown moves focus to the next row.
+ * - ArrowUp moves focus to the previous row.
+ * - ArrowDown on the last row keeps focus on the last row.
+ * - ArrowUp on the first row keeps focus on the first row.
+ * - Home moves focus to the first row.
+ * - End moves focus to the last row.
+ * - Unrelated keys (Enter) do not change focus.
+ * - Empty-state row is rendered when the transactions array is empty.
+ * - Loading skeleton rows are rendered when isLoading=true.
+ * - Address and amount cells truncate long values with a title tooltip.
+ */
+import React from "react";
+import { render, screen, fireEvent, act } from "@testing-library/react";
+import { describe, it, expect, vi } from "vitest";
 import { TransactionsTable } from "./transactions-table";
+import { TransactionProps } from "@/types/transaction";
 
-const mockTransactions = [
-  {
-    id: "1",
-    type: "Deposit",
-    txId: "TX123",
-    address: "0x1234567890abcdef1234567890abcdef1234567890abcdef", // Very long address
-    date: "2023-10-27",
-    time: "10:00 AM",
-    token: "ETH",
-    amount: "+1000000000000000000000000000.00", // Very long amount
-    status: "Completed" as const,
-    tokenIcon: "/icons/eth.svg",
-    statusColor: "success" as const,
-  },
-];
+// ── Mock next/image ───────────────────────────────────────────────────────────
+vi.mock("next/image", () => ({
+  default: (props: React.ImgHTMLAttributes<HTMLImageElement>) => (
+    // eslint-disable-next-line @next/next/no-img-element, jsx-a11y/alt-text
+    <img {...props} />
+  ),
+}));
 
-describe("TransactionsTable", () => {
-  it("renders transactions correctly", () => {
-    render(<TransactionsTable transactions={mockTransactions} />);
+// ── Fixtures ──────────────────────────────────────────────────────────────────
+function makeTransaction(n: number): TransactionProps {
+  return {
+    id: `TX-${n}`,
+    type: "Payment",
+    address: `GABC${n}`,
+    date: "2024-01-01",
+    time: "10:00",
+    token: "XLM",
+    amount: `+${n * 10} XLM`,
+    status: "Completed",
+    tokenIcon: "/xlm.svg",
+  };
+}
+
+const THREE_ROWS = [makeTransaction(1), makeTransaction(2), makeTransaction(3)];
+
+/** Transaction fixture with long address and amount to exercise tooltip/truncation. */
+const LONG_VALUE_TRANSACTION: TransactionProps = {
+  id: "1",
+  type: "Deposit",
+  address: "0x1234567890abcdef1234567890abcdef1234567890abcdef",
+  date: "2023-10-27",
+  time: "10:00 AM",
+  token: "ETH",
+  amount: "+1000000000000000000000000000.00",
+  status: "Completed",
+  tokenIcon: "/icons/eth.svg",
+};
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
+
+/** Returns the navigable <tr> elements inside the <tbody>. */
+function getDataRows() {
+  return screen.getAllByRole("row").filter(
+    (r) => r.hasAttribute("data-navigable"),
+  );
+}
+
+// ── Tests ─────────────────────────────────────────────────────────────────────
+
+describe("TransactionsTable — basic rendering", () => {
+  it("renders transaction type and id", () => {
+    render(<TransactionsTable transactions={[LONG_VALUE_TRANSACTION]} />);
     expect(screen.getByText("Deposit")).toBeInTheDocument();
     expect(screen.getByText("#1")).toBeInTheDocument();
   });
+});
 
-  it("applies tooltips for long address and amount values", () => {
-    render(<TransactionsTable transactions={mockTransactions} />);
-    
-    // Desktop View checks
-    const addressElements = screen.getAllByTitle("0x1234567890abcdef1234567890abcdef1234567890abcdef");
+describe("TransactionsTable — ARIA roles", () => {
+  it("renders a native table element", () => {
+    render(<TransactionsTable transactions={THREE_ROWS} />);
+    expect(screen.getByRole("table")).toBeInTheDocument();
+  });
+
+  it("renders column header cells with role=columnheader", () => {
+    render(<TransactionsTable transactions={THREE_ROWS} />);
+    const headers = screen.getAllByRole("columnheader");
+    const labels = headers.map((h) => h.textContent?.trim());
+    expect(labels).toEqual(
+      expect.arrayContaining([
+        "Transaction Type",
+        "Address",
+        "Date",
+        "Token",
+        "Amount",
+        "Status",
+      ]),
+    );
+  });
+
+  it("renders data rows with role=row", () => {
+    render(<TransactionsTable transactions={THREE_ROWS} />);
+    // 1 header row + 3 data rows = 4
+    expect(screen.getAllByRole("row").length).toBeGreaterThanOrEqual(4);
+  });
+
+  it("renders data cells with role=cell", () => {
+    render(<TransactionsTable transactions={THREE_ROWS} />);
+    expect(screen.getAllByRole("cell").length).toBeGreaterThan(0);
+  });
+
+  it("includes a visually-hidden caption for screen readers", () => {
+    render(<TransactionsTable transactions={THREE_ROWS} />);
+    expect(
+      document.querySelector("caption")?.textContent,
+    ).toMatch(/transaction history/i);
+  });
+});
+
+describe("TransactionsTable — tooltip and truncation", () => {
+  it("renders address cells with title tooltip and truncate class", () => {
+    render(<TransactionsTable transactions={[LONG_VALUE_TRANSACTION]} />);
+
+    const addressElements = screen.getAllByTitle(
+      "0x1234567890abcdef1234567890abcdef1234567890abcdef",
+    );
     expect(addressElements.length).toBeGreaterThan(0);
-    expect(addressElements[0]).toHaveAttribute("tabIndex", "0");
     expect(addressElements[0]).toHaveClass("truncate");
+  });
 
-    const amountElements = screen.getAllByTitle("+1000000000000000000000000000.00");
+  it("renders amount cells with title tooltip and truncate class", () => {
+    render(<TransactionsTable transactions={[LONG_VALUE_TRANSACTION]} />);
+
+    const amountElements = screen.getAllByTitle(
+      "+1000000000000000000000000000.00",
+    );
     expect(amountElements.length).toBeGreaterThan(0);
-    expect(amountElements[0]).toHaveAttribute("tabIndex", "0");
     expect(amountElements[0]).toHaveClass("truncate");
+  });
+
+  it("address tooltip element has tabIndex=0 for keyboard accessibility", () => {
+    render(<TransactionsTable transactions={[LONG_VALUE_TRANSACTION]} />);
+
+    const addressElements = screen.getAllByTitle(
+      "0x1234567890abcdef1234567890abcdef1234567890abcdef",
+    );
+    expect(addressElements[0]).toHaveAttribute("tabIndex", "0");
+  });
+
+  it("amount tooltip element has tabIndex=0 for keyboard accessibility", () => {
+    render(<TransactionsTable transactions={[LONG_VALUE_TRANSACTION]} />);
+
+    const amountElements = screen.getAllByTitle(
+      "+1000000000000000000000000000.00",
+    );
+    expect(amountElements[0]).toHaveAttribute("tabIndex", "0");
+  });
+});
+
+describe("TransactionsTable — keyboard navigation", () => {
+  it("each data row has tabIndex=0 and data-navigable attribute", () => {
+    render(<TransactionsTable transactions={THREE_ROWS} />);
+    const rows = getDataRows();
+    expect(rows).toHaveLength(3);
+    rows.forEach((r) => expect(r).toHaveAttribute("tabindex", "0"));
+  });
+
+  it("ArrowDown moves focus from row 0 to row 1", () => {
+    render(<TransactionsTable transactions={THREE_ROWS} />);
+    const [row0, row1] = getDataRows();
+    act(() => row0.focus());
+    fireEvent.keyDown(row0, { key: "ArrowDown" });
+    expect(document.activeElement).toBe(row1);
+  });
+
+  it("ArrowDown moves focus from row 1 to row 2", () => {
+    render(<TransactionsTable transactions={THREE_ROWS} />);
+    const [, row1, row2] = getDataRows();
+    act(() => row1.focus());
+    fireEvent.keyDown(row1, { key: "ArrowDown" });
+    expect(document.activeElement).toBe(row2);
+  });
+
+  it("ArrowUp moves focus from row 2 to row 1", () => {
+    render(<TransactionsTable transactions={THREE_ROWS} />);
+    const [, row1, row2] = getDataRows();
+    act(() => row2.focus());
+    fireEvent.keyDown(row2, { key: "ArrowUp" });
+    expect(document.activeElement).toBe(row1);
+  });
+
+  it("ArrowUp moves focus from row 1 to row 0", () => {
+    render(<TransactionsTable transactions={THREE_ROWS} />);
+    const [row0, row1] = getDataRows();
+    act(() => row1.focus());
+    fireEvent.keyDown(row1, { key: "ArrowUp" });
+    expect(document.activeElement).toBe(row0);
+  });
+
+  it("ArrowDown on the last row keeps focus on the last row", () => {
+    render(<TransactionsTable transactions={THREE_ROWS} />);
+    const rows = getDataRows();
+    const last = rows[rows.length - 1];
+    act(() => last.focus());
+    fireEvent.keyDown(last, { key: "ArrowDown" });
+    expect(document.activeElement).toBe(last);
+  });
+
+  it("ArrowUp on the first row keeps focus on the first row", () => {
+    render(<TransactionsTable transactions={THREE_ROWS} />);
+    const [first] = getDataRows();
+    act(() => first.focus());
+    fireEvent.keyDown(first, { key: "ArrowUp" });
+    expect(document.activeElement).toBe(first);
+  });
+
+  it("Home moves focus to the first row from anywhere", () => {
+    render(<TransactionsTable transactions={THREE_ROWS} />);
+    const rows = getDataRows();
+    const last = rows[rows.length - 1];
+    act(() => last.focus());
+    fireEvent.keyDown(last, { key: "Home" });
+    expect(document.activeElement).toBe(rows[0]);
+  });
+
+  it("End moves focus to the last row from anywhere", () => {
+    render(<TransactionsTable transactions={THREE_ROWS} />);
+    const [first, , last] = getDataRows();
+    act(() => first.focus());
+    fireEvent.keyDown(first, { key: "End" });
+    expect(document.activeElement).toBe(last);
+  });
+
+  it("unrelated keys (Enter) do not move focus", () => {
+    render(<TransactionsTable transactions={THREE_ROWS} />);
+    const [row0] = getDataRows();
+    act(() => row0.focus());
+    fireEvent.keyDown(row0, { key: "Enter" });
+    expect(document.activeElement).toBe(row0);
+  });
+});
+
+describe("TransactionsTable — empty and loading states", () => {
+  it("renders the empty state when no transactions are provided", () => {
+    render(<TransactionsTable transactions={[]} />);
+    expect(screen.getAllByText(/no transactions found/i).length).toBeGreaterThan(0);
+  });
+
+  it("renders skeleton rows when isLoading is true", () => {
+    render(<TransactionsTable transactions={[]} isLoading />);
+    // No data rows, no empty state text
+    expect(screen.queryAllByText(/no transactions found/i)).toHaveLength(0);
+    // Skeleton rows still produce <tr> elements
+    expect(screen.getAllByRole("row").length).toBeGreaterThan(1);
   });
 });

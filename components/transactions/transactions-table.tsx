@@ -15,21 +15,95 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { getStatusColor } from "@/utils/transactionUtils";
 import { EmptyState } from "@/components/ui/empty-state";
 import { TRANSACTIONS_PAGE_SIZE } from "./transactions-config";
+import { useRef, type KeyboardEvent } from "react";
 
 interface TransactionsTablePropsExtended extends TransactionsTableProps {
   isLoading?: boolean;
 }
 
+/**
+ * TransactionsTable
+ *
+ * Renders the main transactions data grid with:
+ * - Native `<table>` semantics so screen readers announce table/row/cell roles
+ *   automatically without extra `role` attributes.
+ * - A visually-hidden `<caption>` that screen readers announce as the table label.
+ * - Truncated address and amount cells with a `title` tooltip so long values
+ *   are accessible on hover/focus without breaking the table layout.
+ * - Arrow-key row navigation (ArrowDown / ArrowUp / Home / End) so keyboard
+ *   users can move between rows without leaving the table.
+ * - Each data row has `tabIndex=0` and `data-navigable` so focus can land on
+ *   rows and tests can locate navigable rows reliably.
+ */
 export function TransactionsTable({
   transactions,
   isLoading = false,
 }: TransactionsTablePropsExtended) {
   const isEmpty = !isLoading && transactions.length === 0;
 
+  /** Ref to the table wrapper div so we can query its navigable rows. */
+  const tableWrapperRef = useRef<HTMLDivElement>(null);
+
+  /** Returns all data rows that have keyboard navigation enabled. */
+  function getNavigableRows(): HTMLTableRowElement[] {
+    if (!tableWrapperRef.current) return [];
+    return Array.from(
+      tableWrapperRef.current.querySelectorAll<HTMLTableRowElement>(
+        "tr[data-navigable]",
+      ),
+    );
+  }
+
+  /**
+   * Keyboard handler attached to each navigable row.
+   * - ArrowDown  → focus next row (clamped at last)
+   * - ArrowUp    → focus previous row (clamped at first)
+   * - Home       → focus first row
+   * - End        → focus last row
+   * All other keys are left for default browser handling.
+   */
+  function handleRowKeyDown(
+    e: KeyboardEvent<HTMLTableRowElement>,
+    index: number,
+  ) {
+    const rows = getNavigableRows();
+    if (rows.length === 0) return;
+
+    switch (e.key) {
+      case "ArrowDown": {
+        e.preventDefault();
+        const next = rows[Math.min(index + 1, rows.length - 1)];
+        next?.focus();
+        break;
+      }
+      case "ArrowUp": {
+        e.preventDefault();
+        const prev = rows[Math.max(index - 1, 0)];
+        prev?.focus();
+        break;
+      }
+      case "Home": {
+        e.preventDefault();
+        rows[0]?.focus();
+        break;
+      }
+      case "End": {
+        e.preventDefault();
+        rows[rows.length - 1]?.focus();
+        break;
+      }
+      default:
+        break;
+    }
+  }
+
   return (
     <>
       {/* Desktop Table */}
-      <div className="hidden md:block w-full rounded-[12px] overflow-auto border border-[#2D2D2D]">
+      <div
+        ref={tableWrapperRef}
+        className="hidden md:block w-full rounded-[12px] overflow-auto border border-[#2D2D2D]"
+      >
         <Table>
           {/* caption is visually hidden but announced by screen readers */}
           <caption className="sr-only">Transaction history</caption>
@@ -115,7 +189,11 @@ export function TransactionsTable({
               transactions.map((transaction, index) => (
                 <TableRow
                   key={transaction.id ?? index}
-                  className="border border-[#2D2D2D]"
+                  // Keyboard navigation attributes
+                  data-navigable
+                  tabIndex={0}
+                  onKeyDown={(e) => handleRowKeyDown(e, index)}
+                  className="border border-[#2D2D2D] focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-blue-500"
                 >
                   <TableCell className="font-medium border border-[#2D2D2D] py-4 px-6">
                     <span className="text-[#D7E0EF]">{transaction.type}</span>
@@ -210,7 +288,7 @@ export function TransactionsTable({
                   <p className="font-medium">
                     {transaction.type} #{transaction.id}
                   </p>
-                  <p 
+                  <p
                     className="text-sm text-muted-foreground block truncate max-w-[180px] cursor-help focus:outline-none focus:ring-2 focus:ring-[#D7E0EF] rounded px-1 -ml-1"
                     title={transaction.address}
                     tabIndex={0}
