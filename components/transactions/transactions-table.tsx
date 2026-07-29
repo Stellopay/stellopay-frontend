@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useRef, type KeyboardEvent } from "react";
 import {
   Table,
   TableBody,
@@ -9,15 +9,14 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { TransactionTableSkeleton } from "@/components/ui/table-skeleton";
 import { TransactionsTableProps } from "@/types/transaction";
 import { Badge } from "@/components/ui/badge";
 import Image from "next/image";
-import { Skeleton } from "@/components/ui/skeleton";
 import { getStatusColor } from "@/utils/transactionUtils";
 import { truncateStellarAddress } from "@/utils/stellarAddress";
 import { EmptyState } from "@/components/ui/empty-state";
 import { TRANSACTIONS_PAGE_SIZE } from "./transactions-config";
-import { useRef, type KeyboardEvent } from "react";
 import { DownloadReceiptButton } from "./download-receipt-button";
 
 interface TransactionsTablePropsExtended extends TransactionsTableProps {
@@ -153,33 +152,11 @@ export function TransactionsTable({
           </TableHeader>
           <TableBody>
             {isLoading ? (
-              Array.from({ length: TRANSACTIONS_PAGE_SIZE }).map((_, index) => (
-                <TableRow
-                  key={`skeleton-${index}`}
-                  className="border border-[#2D2D2D]"
-                >
-                  <TableCell className="font-medium border border-[#2D2D2D] py-4 px-6">
-                    <Skeleton className="h-4 w-20 mb-1" />
-                    <Skeleton className="h-3 w-16" />
-                  </TableCell>
-                  <TableCell className="border border-[#2D2D2D] py-4 px-6">
-                    <Skeleton className="h-4 w-32" />
-                  </TableCell>
-                  <TableCell className="border border-[#2D2D2D] py-4 px-6">
-                    <Skeleton className="h-4 w-24" />
-                  </TableCell>
-                  <TableCell className="flex place-items-center gap-2 py-8 px-6">
-                    <Skeleton className="w-5 h-5 rounded-full" />
-                    <Skeleton className="h-4 w-12" />
-                  </TableCell>
-                  <TableCell className="border border-[#2D2D2D] py-4 px-6">
-                    <Skeleton className="h-4 w-20" />
-                  </TableCell>
-                  <TableCell className="py-4 px-6">
-                    <Skeleton className="h-6 w-16 rounded-full" />
-                  </TableCell>
-                </TableRow>
-              ))
+              <TableRow>
+                <TableCell colSpan={6} className="p-0">
+                  <TransactionTableSkeleton rows={TRANSACTIONS_PAGE_SIZE} />
+                </TableCell>
+              </TableRow>
             ) : isEmpty ? (
               <TableRow>
                 <TableCell colSpan={6} className="py-12 text-center">
@@ -263,30 +240,9 @@ export function TransactionsTable({
       {/* Mobile Cards */}
       <div className="md:hidden space-y-4">
         {isLoading ? (
-          Array.from({ length: TRANSACTIONS_PAGE_SIZE }).map((_, index) => (
-            <div
-              key={`skeleton-mobile-${index}`}
-              className="p-4 border rounded-lg border-[#2D2D2D]"
-            >
-              <div className="flex justify-between items-start">
-                <div className="space-y-2">
-                  <Skeleton className="h-4 w-32" />
-                  <Skeleton className="h-3 w-24" />
-                </div>
-                <Skeleton className="h-6 w-16 rounded-full" />
-              </div>
-              <div className="mt-2 grid grid-cols-2 gap-2">
-                <div className="space-y-1">
-                  <Skeleton className="h-3 w-12" />
-                  <Skeleton className="h-4 w-20" />
-                </div>
-                <div className="space-y-1">
-                  <Skeleton className="h-3 w-12" />
-                  <Skeleton className="h-4 w-16" />
-                </div>
-              </div>
-            </div>
-          ))
+          <div className="p-4 border rounded-lg border-[#2D2D2D]">
+            <TransactionTableSkeleton rows={TRANSACTIONS_PAGE_SIZE} />
+          </div>
         ) : isEmpty ? (
           <div className="p-8 border rounded-lg border-[#2D2D2D]">
             <EmptyState
