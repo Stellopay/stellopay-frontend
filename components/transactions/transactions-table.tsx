@@ -12,6 +12,8 @@ import {
 import { TransactionsTableProps, TransactionProps } from "@/types/transaction";
 import { Badge } from "@/components/ui/badge";
 import Image from "next/image";
+import { Skeleton } from "@/components/ui/skeleton";
+import { TransactionTableSkeleton } from "@/components/ui/table-skeleton";
 import { getStatusColor } from "@/utils/transactionUtils";
 import { truncateStellarAddress } from "@/utils/stellarAddress";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -106,7 +108,9 @@ function TransactionQuickViewDialog({
               <p className="text-sm font-semibold">#{transaction.id}</p>
             </div>
             <div>
-              <p className="text-sm font-medium text-muted-foreground">Status</p>
+              <p className="text-sm font-medium text-muted-foreground">
+                Status
+              </p>
               <p className="text-sm font-semibold">{transaction.status}</p>
             </div>
           </div>
@@ -114,7 +118,9 @@ function TransactionQuickViewDialog({
           {/* Address & Counterparty */}
           <div className="space-y-2">
             <div>
-              <p className="text-sm font-medium text-muted-foreground">Address</p>
+              <p className="text-sm font-medium text-muted-foreground">
+                Address
+              </p>
               <p
                 className="text-sm font-mono break-all cursor-help focus:outline-none focus:ring-2 focus:ring-[#D7E0EF] rounded px-1 -ml-1"
                 title={transaction.address}
@@ -125,7 +131,9 @@ function TransactionQuickViewDialog({
             </div>
             {transaction.counterparty && (
               <div>
-                <p className="text-sm font-medium text-muted-foreground">Counterparty</p>
+                <p className="text-sm font-medium text-muted-foreground">
+                  Counterparty
+                </p>
                 <p
                   className="text-sm font-mono break-all cursor-help focus:outline-none focus:ring-2 focus:ring-[#D7E0EF] rounded px-1 -ml-1"
                   title={transaction.counterparty}
@@ -141,13 +149,19 @@ function TransactionQuickViewDialog({
           <div className="grid grid-cols-2 gap-4">
             <div>
               <p className="text-sm font-medium text-muted-foreground">Date</p>
-              <time dateTime={transaction.date} className="text-sm font-semibold">
+              <time
+                dateTime={transaction.date}
+                className="text-sm font-semibold"
+              >
                 {transaction.date}
               </time>
             </div>
             <div>
               <p className="text-sm font-medium text-muted-foreground">Time</p>
-              <time dateTime={transaction.time} className="text-sm font-semibold">
+              <time
+                dateTime={transaction.time}
+                className="text-sm font-semibold"
+              >
                 {transaction.time}
               </time>
             </div>
@@ -164,11 +178,15 @@ function TransactionQuickViewDialog({
                   width={16}
                   height={16}
                 />
-                <span className="text-sm font-semibold">{transaction.token}</span>
+                <span className="text-sm font-semibold">
+                  {transaction.token}
+                </span>
               </div>
             </div>
             <div>
-              <p className="text-sm font-medium text-muted-foreground">Amount</p>
+              <p className="text-sm font-medium text-muted-foreground">
+                Amount
+              </p>
               <p
                 className={`text-sm font-semibold ${
                   transaction.amount.startsWith("+")
@@ -202,7 +220,9 @@ function TransactionQuickViewDialog({
           {/* Transaction Hash */}
           {transaction.hash && (
             <div>
-              <p className="text-sm font-medium text-muted-foreground">Transaction Hash</p>
+              <p className="text-sm font-medium text-muted-foreground">
+                Transaction Hash
+              </p>
               <p
                 className="text-sm font-mono break-all cursor-help focus:outline-none focus:ring-2 focus:ring-[#D7E0EF] rounded px-1 -ml-1"
                 title={transaction.hash}
@@ -238,22 +258,28 @@ export function TransactionsTable({
   onSelectRow,
   onSelectAll,
 }: TransactionsTablePropsExtended) {
-  const [selectedTransaction, setSelectedTransaction] = useState<TransactionsTablePropsExtended["transactions"][number] | null>(null);
-
   const isEmpty = !isLoading && transactions.length === 0;
-  
+
   // State for quick-view dialog
-  const [selectedTransaction, setSelectedTransaction] = React.useState<TransactionProps | null>(null);
+  const [selectedTransaction, setSelectedTransaction] =
+    React.useState<TransactionProps | null>(null);
   const [isDialogOpen, setIsDialogOpen] = React.useState(false);
   const triggerRef = React.useRef<HTMLButtonElement | null>(null);
+  const tableWrapperRef = React.useRef<HTMLDivElement | null>(null);
 
-  const handleRowClick = (transaction: TransactionProps, event: React.MouseEvent<HTMLButtonElement>) => {
+  const handleRowClick = (
+    transaction: TransactionProps,
+    event: React.MouseEvent<HTMLButtonElement>,
+  ) => {
     triggerRef.current = event.currentTarget;
     setSelectedTransaction(transaction);
     setIsDialogOpen(true);
   };
 
-  const handleRowKeyDown = (transaction: TransactionProps, event: React.KeyboardEvent<HTMLButtonElement>) => {
+  const handleRowKeyDown = (
+    transaction: TransactionProps,
+    event: React.KeyboardEvent<HTMLButtonElement>,
+  ) => {
     // Open dialog on Enter or Space
     if (event.key === "Enter" || event.key === " ") {
       event.preventDefault();
@@ -299,7 +325,9 @@ export function TransactionsTable({
       >
         <Table>
           {/* caption is visually hidden but announced by screen readers */}
-          <caption className="sr-only">Transaction history. Click a row to view transaction details.</caption>
+          <caption className="sr-only">
+            Transaction history. Click a row to view transaction details.
+          </caption>
           <TableHeader>
             <TableRow className="bg-[#191919]">
               {isSelectable && (
@@ -410,7 +438,22 @@ export function TransactionsTable({
                 <TableRow
                   key={transaction.id ?? index}
                   className="border border-[#2D2D2D]"
+                  aria-selected={
+                    isSelectable ? selectedIds.has(transaction.id) : undefined
+                  }
                 >
+                  {isSelectable && (
+                    <TableCell className="border border-[#2D2D2D] py-4 px-4 w-12">
+                      <Checkbox
+                        aria-label={`Select transaction ${transaction.id}`}
+                        checked={selectedIds.has(transaction.id)}
+                        onCheckedChange={(checked) =>
+                          onSelectRow?.(transaction.id, checked === true)
+                        }
+                        className="border-[#555] data-[state=checked]:border-white"
+                      />
+                    </TableCell>
+                  )}
                   <TableCell className="font-medium border border-[#2D2D2D] py-4 px-6">
                     <span className="text-[#D7E0EF]">{transaction.type}</span>
                     <p>#{transaction.id}</p>
@@ -421,7 +464,7 @@ export function TransactionsTable({
                       title={transaction.address}
                       tabIndex={0}
                     >
-                      {transaction.address}
+                      {truncateStellarAddress(transaction.address)}
                     </span>
                   </TableCell>
                   <TableCell className="border border-[#2D2D2D] py-4 px-6">
@@ -483,16 +526,6 @@ export function TransactionsTable({
                 </TableRow>
               ))
             )}
-
-            <DownloadReceiptButton
-            transaction={{
-              id: transaction.id,
-              hash: transaction.hash,
-              amount: transaction.amount,
-              counterparty: transaction.counterparty,
-              timestamp: transaction.timestamp,
-            }}
-          />
           </TableBody>
         </Table>
       </div>
@@ -525,14 +558,14 @@ export function TransactionsTable({
                   <p className="font-medium">
                     {transaction.type} #{transaction.id}
                   </p>
-                  <p 
+                  <p
                     className="text-sm text-muted-foreground block truncate max-w-[180px] cursor-help focus:outline-none focus:ring-2 focus:ring-[#D7E0EF] rounded px-1 -ml-1"
                     title={transaction.address}
                     tabIndex={0}
                     onClick={(e) => e.stopPropagation()}
                   >
-                    {transaction.status}
-                  </Badge>
+                    {truncateStellarAddress(transaction.address)}
+                  </p>
                 </div>
                 <Badge
                   variant={
