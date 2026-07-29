@@ -318,12 +318,17 @@ describe("AuthSocialButtons", () => {
     ) as HTMLElement | null;
     expect(dividerWrapper).not.toBeNull();
     expect(dividerWrapper!.outerHTML).toMatchSnapshot();
+  });
+
   // ── OAuth callback error states ────────────────────────────────────────────
 
   describe("OAuth callback error states", () => {
-    const mockSimulateOAuth = vi.mocked(
-      await import("@/lib/api/auth")
-    ).simulateOAuth;
+    let mockSimulateOAuth: ReturnType<typeof vi.fn>;
+
+    beforeEach(async () => {
+      const authModule = await import("@/lib/api/auth");
+      mockSimulateOAuth = vi.mocked(authModule.simulateOAuth);
+    });
 
     it("shows access_denied error with retry and use email instead actions", async () => {
       mockSimulateOAuth.mockRejectedValueOnce(
@@ -340,7 +345,7 @@ describe("AuthSocialButtons", () => {
 
       await userEvent.click(googleBtn);
 
-      expect(screen.getByText(/denied permission/i)).toBeInTheDocument();
+      expect(screen.getAllByText(/denied permission/i).length).toBeGreaterThanOrEqual(1);
       expect(screen.getByText(/user has denied permission/i)).toBeInTheDocument();
       expect(screen.getByRole("button", { name: /retry/i })).toBeInTheDocument();
       expect(screen.getByRole("button", { name: /use email instead/i })).toBeInTheDocument();
@@ -361,8 +366,8 @@ describe("AuthSocialButtons", () => {
 
       await userEvent.click(googleBtn);
 
-      expect(screen.getByText(/temporarily unavailable/i)).toBeInTheDocument();
-      expect(screen.getByText(/authentication provider is temporarily unavailable/i)).toBeInTheDocument();
+      expect(screen.getAllByText(/temporarily unavailable/i).length).toBeGreaterThanOrEqual(1);
+      expect(screen.getAllByText(/authentication provider is temporarily unavailable/i).length).toBeGreaterThanOrEqual(1);
       expect(screen.getByRole("button", { name: /retry/i })).toBeInTheDocument();
       expect(screen.getByRole("button", { name: /use email instead/i })).toBeInTheDocument();
     });

@@ -234,7 +234,39 @@ The Transactions list component distinguishes between an empty result (e.g. no t
 - **Keyboard Nav**: The "Try Again" button is fully keyboard navigable. Focus order is maintained.
 - **ARIA**: The `ErrorState` component utilizes `role="alert"` and `aria-live="assertive"` so screen readers can proactively announce network failures. Loading/Retrying indicators use `aria-hidden="true"` on non-text elements and `aria-label` or `aria-disabled` where appropriate to ensure status is accurately conveyed.
 
-## Advanced Filter Panel (Added: feature/transactions-advanced-filter-panel)
+## Transactions table — density toggle (#900)
+
+### Overview
+`components/transactions/transactions-table.tsx` now exposes a three-way density toggle (compact, comfortable, spacious) above the desktop table. The chosen density adjusts row padding and font size across the table head, body cells, and skeleton rows, and is persisted to `localStorage` via `utils/safeStorage.ts` so the preference survives reloads.
+
+### Density config
+
+| Level | Cell padding | Font size | Use case |
+|-------|-------------|-----------|----------|
+| **Compact** | `py-2 px-3` | `text-xs` | Dense data review |
+| **Comfortable** | `py-4 px-6` | `text-sm` | Default viewing |
+| **Spacious** | `py-6 px-8` | `text-base` | Readability / presentation |
+
+### Behavior
+- Defaults to `comfortable` on first visit.
+- Stored under `localStorage` key `transactions-table-density`.
+- Restored on mount; invalid stored values fall back to the default.
+- Toggle is hidden on mobile (`hidden md:flex`) where card layout is used.
+
+### Accessibility (WCAG 2.1 AA)
+- **Role**: The toggle group uses `role="radiogroup"` with `aria-label="Table density"`.
+- **State**: Each option uses `role="radio"` with `aria-checked` reflecting the current selection.
+- **Keyboard**: All buttons are natively focusable and activate via Enter/Space.
+- **Focus**: `focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500` provides a high-contrast focus ring.
+- **Contrast**: White text (`text-white`) on `bg-white/10` for the active option; `text-zinc-400` / `hover:text-white` on `bg-[#191919]` for inactive options — all exceed 4.5:1 AA thresholds.
+
+### Responsive
+| Breakpoint | Behavior |
+|------------|----------|
+| `< 768px` (md) | Toggle hidden; card layout used |
+| `≥ 768px` (md) | Toggle shown above desktop table |
+
+## Zinc vs. Token Audit — `components/analytics/analytics-view.tsx` (#763)
 
 The Advanced Filter Panel is a togglable drawer that combines all transaction filter dimensions (status, amount range, counterparty address) into a single, auditable interface. It slides in from the right on desktop and takes full width on mobile (< 640px). Active filters are represented as removable chips below the filter bar.
 

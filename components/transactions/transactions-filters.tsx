@@ -109,15 +109,12 @@ export default function TransactionsFilters({
         {/* Search Input */}
         <div className="relative">
           <span className="absolute left-3 top-1/2 transform -translate-y-1/2">
-            <Search
-              size={16}
-              color="#9CA3AF"
-              strokeWidth={1.5}
-            />
+            <Search size={16} color="#9CA3AF" strokeWidth={1.5} />
           </span>
           {/* Debounced Search Input */}
           <SearchBar
             placeholder="Search"
+            ariaLabel="Search transactions"
             value={searchQuery}
             onSearch={onSearchChange}
             debounceMs={debounceMs}
@@ -153,19 +150,19 @@ export default function TransactionsFilters({
           </Button>
         )}
 
-          {/* Clear All Filters */}
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => {
-              onSearchChange('');
-              onFilterChange('All Transactions');
-            }}
-            aria-label="Clear all filters"
-            className="text-gray-400 hover:text-white"
-          >
-            Clear all
-          </Button>
+        {/* Clear All Filters */}
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => {
+            onSearchChange("");
+            onFilterChange("All Transactions");
+          }}
+          aria-label="Clear all filters"
+          className="text-gray-400 hover:text-white"
+        >
+          Clear all
+        </Button>
 
         {/* Filter Dropdown */}
         <DropdownMenu>
