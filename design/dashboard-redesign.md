@@ -1,4 +1,24 @@
-Here is the figma link to the Dashboard Redesign
+# Typography System: Line-Height & Letter-Spacing Scale (#764)
+
+This document specifies the tokenized typographic scale mapping for the **Clash Display**, **General Sans**, and **Inter** font family stacks across StelloPay landing and dashboard surfaces.
+
+## Typography Scale Matrix
+
+| Role | Utility Class | Font Family | Size | Line Height (Leading) | Letter Spacing (Tracking) | Usage Surface |
+| :--- | :--- | :--- | :--- | :--- | :--- | :--- |
+| **Display 2XL** | `.text-display-2xl` | Clash Display | 72px (`4.5rem`) | 1.05 | `-0.03em` | Hero main headlines |
+| **Display XL** | `.text-display-xl` | Clash Display | 60px (`3.75rem`) | 1.1 | `-0.025em` | Major section headers |
+| **Heading LG** | `.text-heading-lg` | Clash Display | 36px (`2.25rem`) | 1.2 | `-0.02em` | Dashboard section titles |
+| **Heading MD** | `.text-heading-md` | Clash Display | 24px (`1.5rem`) | 1.25 | `-0.015em` | Card & modal titles |
+| **Body LG** | `.text-body-lg` | General Sans / Inter | 18px (`1.125rem`) | 1.6 | `-0.01em` | Lead paragraphs |
+| **Body MD** | `.text-body-md` | General Sans / Inter | 16px (`1rem`) | 1.5 | `0em` | Standard interface copy |
+| **Caption SM** | `.text-caption-sm` | Inter | 14px (`0.875rem`) | 1.43 | `+0.01em` | Table headers & captions |
+
+## Accessibility & Guidelines
+- **WCAG 2.1 AA Compliance:** Minimum relative line-height threshold of `1.4` enforced across all body and caption copy to ensure reading legibility.
+- **Responsive Behavior:** Scale scales down proportionally at `< sm` (`640px`) breakpoints using responsive utility overrides.
+
+---
 
 https://www.figma.com/design/TzFU3lyfPfsM4Jzh6rXGzl/Stellopay-Dashboard-Redesign?node-id=2067-1817&t=PZ6D5lwLGX9gwnOJ-1
 
@@ -276,19 +296,3 @@ The Advanced Filter Panel is a togglable drawer that combines all transaction fi
 - **Amount Range**: Two-column grid (`grid-cols-2`) adapts well at all breakpoints.
 - **Advanced Toggle Button**: Label text is hidden on mobile (`hidden sm:inline`) to conserve space; the sliders icon remains visible.
 - **Chips**: Use `flex-wrap` for natural wrapping on narrow viewports.
-
-## Enterprise Solution Card (components/ui/enterprise-solution-card.tsx)
-
-Migrated hardcoded hex colors to semantic tokens for better theme consistency and maintenance.
-
-### Accessibility Notes (WCAG 2.1 AA)
-
-- **Contrast**: `text-muted-foreground` ensures sufficient contrast against the card's background in both light and dark modes. The `font-bold text-4xl` value text uses the default foreground color, guaranteeing readability.
-- **Keyboard Nav**: The card itself is non-interactive. No custom focus management is necessary for its current static state.
-- **ARIA**: The component utilizes semantic HTML allowing screen readers to interpret the layout natively.
-
-### Responsive Behavior
-
-- **Flex Layout**: Uses `flex flex-col gap-2` to stack the value and label vertically, adapting to varying text lengths gracefully.
-- **Dimensions**: Retains a fixed height (`h-[118px]`) with `w-full`, allowing the card to stretch fluidly across CSS grid or flex layouts across breakpoints (`sm`, `md`, `lg`, `xl`).
-- **Text Wrapping**: The text is centered (`text-center`) and breaks naturally, preserving readability on smaller screens.
