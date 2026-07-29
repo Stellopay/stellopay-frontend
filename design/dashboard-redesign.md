@@ -65,3 +65,19 @@ The Advanced Filter Panel is a togglable drawer that combines all transaction fi
 - **Amount Range**: Two-column grid (`grid-cols-2`) adapts well at all breakpoints.
 - **Advanced Toggle Button**: Label text is hidden on mobile (`hidden sm:inline`) to conserve space; the sliders icon remains visible.
 - **Chips**: Use `flex-wrap` for natural wrapping on narrow viewports.
+
+## Enterprise Solution Card (components/ui/enterprise-solution-card.tsx)
+
+Migrated hardcoded hex colors to semantic tokens for better theme consistency and maintenance.
+
+### Accessibility Notes (WCAG 2.1 AA)
+
+- **Contrast**: `text-muted-foreground` ensures sufficient contrast against the card's background in both light and dark modes. The `font-bold text-4xl` value text uses the default foreground color, guaranteeing readability.
+- **Keyboard Nav**: The card itself is non-interactive. No custom focus management is necessary for its current static state.
+- **ARIA**: The component utilizes semantic HTML allowing screen readers to interpret the layout natively.
+
+### Responsive Behavior
+
+- **Flex Layout**: Uses `flex flex-col gap-2` to stack the value and label vertically, adapting to varying text lengths gracefully.
+- **Dimensions**: Retains a fixed height (`h-[118px]`) with `w-full`, allowing the card to stretch fluidly across CSS grid or flex layouts across breakpoints (`sm`, `md`, `lg`, `xl`).
+- **Text Wrapping**: The text is centered (`text-center`) and breaks naturally, preserving readability on smaller screens.
