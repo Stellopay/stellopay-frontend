@@ -1,12 +1,13 @@
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { LoginForm } from "./login-form";
-import { login, AuthError } from "@/lib/api/auth";
+import { login, sendMagicLink, AuthError } from "@/lib/api/auth";
 
 // Mock the auth api adapter
 vi.mock("@/lib/api/auth", () => ({
   login: vi.fn(),
+  sendMagicLink: vi.fn(),
   AuthError: class AuthError extends Error {
     constructor(message: string) {
       super(message);
@@ -45,6 +46,12 @@ describe("LoginForm", () => {
     vi.clearAllMocks();
     mockStore.clear();
   });
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  // ─── Password sign-in ──────────────────────────────────────────────────
 
   it("submits the form with provided values and calls login adapter (rememberMe: true)", async () => {
     const mockLogin = vi.mocked(login).mockResolvedValue();
@@ -146,7 +153,7 @@ describe("LoginForm", () => {
     expect(passwordInput).toHaveAttribute("autoComplete", "current-password");
   });
 
-  // ─── Show/hide password toggle ──────────────────────────────────────────────
+  // ─── Show/hide password toggle ──────────────────────────────────────────
 
   it("renders the password field masked (type=password) by default", () => {
     render(<LoginForm />);
@@ -371,5 +378,224 @@ describe("LoginForm", () => {
     render(<LoginForm />);
     const emailInput = screen.getByPlaceholderText(/Enter your email/i);
     expect(emailInput).toHaveValue("");
+  });
+
+  // ─── Magic-link sign-in ────────────────────────────────────────────────
+
+  it("renders sign-in method tabs with Password and Send Link options", () => {
+    render(<LoginForm />);
+    expect(
+      screen.getByRole("tab", { name: /password/i }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("tab", { name: /send link/i }),
+    ).toBeInTheDocument();
+  });
+
+  it("password tab is selected by default", () => {
+    render(<LoginForm />);
+    const passwordTab = screen.getByRole("tab", { name: /password/i });
+    expect(passwordTab).toHaveAttribute("aria-selected", "true");
+  });
+
+  it("switching to Send Link tab shows the magic-link form", async () => {
+    render(<LoginForm />);
+    const sendLinkTab = screen.getByRole("tab", { name: /send link/i });
+    await userEvent.click(sendLinkTab);
+
+    expect(
+      screen.getByText(/send you a one-time sign-in link/i),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: /send login link/i }),
+    ).toBeInTheDocument();
+  });
+
+  it("magic-link form sends a magic link when submitted with a valid email", async () => {
+    const mockSendMagicLink = vi.mocked(sendMagicLink).mockResolvedValue();
+    render(<LoginForm />);
+
+    // Switch to magic-link tab
+    await userEvent.click(screen.getByRole("tab", { name: /send link/i }));
+
+    const emailInput = screen.getByPlaceholderText(/Enter your email/i);
+    const submitButton = screen.getByRole("button", { name: /send login link/i });
+
+    await userEvent.type(emailInput, "user@example.com");
+    await userEvent.click(submitButton);
+
+    await waitFor(() => {
+      expect(mockSendMagicLink).toHaveBeenCalledWith("user@example.com");
+    });
+
+    // Should show the "Check your email" confirmation
+    expect(screen.getByText(/check your email/i)).toBeInTheDocument();
+    expect(screen.getByText(/user@example.com/i)).toBeInTheDocument();
+  });
+
+  it("magic-link confirmation shows a resend button with cooldown", async () => {
+    vi.mocked(sendMagicLink).mockResolvedValue();
+    render(<LoginForm />);
+
+    await userEvent.click(screen.getByRole("tab", { name: /send link/i }));
+    await userEvent.type(
+      screen.getByPlaceholderText(/Enter your email/i),
+      "user@example.com",
+    );
+    await userEvent.click(screen.getByRole("button", { name: /send login link/i }));
+
+    await waitFor(() => {
+      expect(screen.getByText(/check your email/i)).toBeInTheDocument();
+    });
+
+    // Resend button should show cooldown
+    expect(screen.getByRole("button", { name: /resend/i })).toBeInTheDocument();
+  });
+
+  it("magic-link error shows an alert message", async () => {
+    vi.mocked(sendMagicLink).mockRejectedValue(
+      new AuthError("Could not send login link."),
+    );
+    render(<LoginForm />);
+
+    await userEvent.click(screen.getByRole("tab", { name: /send link/i }));
+    await userEvent.type(
+      screen.getByPlaceholderText(/Enter your email/i),
+      "bad@example.com",
+    );
+    await userEvent.click(screen.getByRole("button", { name: /send login link/i }));
+
+    await waitFor(() => {
+      expect(screen.getByRole("alert")).toHaveTextContent(
+        /could not send login link/i,
+      );
+    });
+  });
+
+  it("navigating back from magic-link confirmation goes to password sign-in", async () => {
+    vi.mocked(sendMagicLink).mockResolvedValue();
+    render(<LoginForm />);
+
+    await userEvent.click(screen.getByRole("tab", { name: /send link/i }));
+    await userEvent.type(
+      screen.getByPlaceholderText(/Enter your email/i),
+      "user@example.com",
+    );
+    await userEvent.click(screen.getByRole("button", { name: /send login link/i }));
+
+    await waitFor(() => {
+      expect(screen.getByText(/check your email/i)).toBeInTheDocument();
+    });
+
+    // Click "Back to password sign-in"
+    await userEvent.click(
+      screen.getByRole("button", { name: /back to password sign-in/i }),
+    );
+
+    // Should show the password form again
+    expect(
+      screen.getByRole("button", { name: /sign in/i }),
+    ).toBeInTheDocument();
+  });
+
+  // ─── Accessibility: aria-live, aria-describedby & focus ─────────────────
+
+  it("wraps each field validation error in a polite aria-live region", async () => {
+    render(<LoginForm />);
+
+    // Submit with empty fields to trigger zod validation errors
+    const submitButton = screen.getByRole("button", { name: /Sign In/i });
+    await userEvent.click(submitButton);
+
+    // Wait for validation error messages to appear
+    const emailError = await screen.findByText(/Please enter a valid email address/i);
+    const passwordError = await screen.findByText(/Password must be at least 8 characters/i);
+
+    // Each FormMessage renders with aria-live="polite" and role="alert"
+    expect(emailError).toHaveAttribute("aria-live", "polite");
+    expect(emailError).toHaveAttribute("role", "alert");
+    expect(passwordError).toHaveAttribute("aria-live", "polite");
+    expect(passwordError).toHaveAttribute("role", "alert");
+  });
+
+  it("connects each input to its error via aria-describedby (non-empty) and marks fields as invalid", async () => {
+    render(<LoginForm />);
+
+    const emailInput = screen.getByPlaceholderText(/Enter your email/i);
+    const passwordInput = screen.getByPlaceholderText(/Enter your password/i);
+    const submitButton = screen.getByRole("button", { name: /Sign In/i });
+
+    await userEvent.click(submitButton);
+
+    // Wait for validation error messages to appear
+    await screen.findByText(/Please enter a valid email address/i);
+    await screen.findByText(/Password must be at least 8 characters/i);
+
+    // Each input carries a non-empty aria-describedby so screen readers
+    // can associate it with descriptive text.
+    const emailDescribedBy = emailInput.getAttribute("aria-describedby");
+    const passwordDescribedBy = passwordInput.getAttribute("aria-describedby");
+
+    expect(emailDescribedBy).toBeTruthy();
+    expect(passwordDescribedBy).toBeTruthy();
+
+    // aria-invalid must be set so screen readers know the field is in error
+    expect(emailInput).toHaveAttribute("aria-invalid", "true");
+    expect(passwordInput).toHaveAttribute("aria-invalid", "true");
+  });
+
+  it("moves focus to the first invalid field after a failed submit", async () => {
+    render(<LoginForm />);
+
+    const emailInput = screen.getByPlaceholderText(/Enter your email/i);
+    const submitButton = screen.getByRole("button", { name: /Sign In/i });
+
+    // Focus the submit button first so we know focus moves away from it
+    submitButton.focus();
+    expect(document.activeElement).toBe(submitButton);
+
+    await userEvent.click(submitButton);
+
+    // After zod validation fails, focus should move to the first invalid field (email)
+    await waitFor(() => {
+      expect(document.activeElement).toBe(emailInput);
+    });
+  });
+
+  it("focuses password field when email is valid but password fails validation", async () => {
+    render(<LoginForm />);
+
+    const emailInput = screen.getByPlaceholderText(/Enter your email/i);
+    const passwordInput = screen.getByPlaceholderText(/Enter your password/i);
+    const submitButton = screen.getByRole("button", { name: /Sign In/i });
+
+    // Fill email with a valid value but leave password empty
+    await userEvent.type(emailInput, "user@example.com");
+    await userEvent.click(submitButton);
+
+    // Focus should move to password (the first — and only — invalid field)
+    await waitFor(() => {
+      expect(document.activeElement).toBe(passwordInput);
+    });
+  });
+
+  // ─── Magic-link: tab accessibility ──────────────────────────────────────
+
+  it("sign-in method tabs have proper ARIA roles and labels", () => {
+    render(<LoginForm />);
+
+    const tablist = screen.getByRole("tablist");
+    expect(tablist).toHaveAttribute("aria-label", "Sign-in method");
+
+    const tabs = screen.getAllByRole("tab");
+    expect(tabs).toHaveLength(2);
+    expect(tabs[0]).toHaveAttribute("aria-controls", "password-signin-panel");
+    expect(tabs[1]).toHaveAttribute("aria-controls", "magic-link-signin-panel");
+  });
+
+  it("active tab panel has proper aria-labelledby linking back to its tab", () => {
+    render(<LoginForm />);
+    const panel = screen.getByRole("tabpanel");
+    expect(panel).toHaveAttribute("aria-labelledby", "password-signin-tab");
   });
 });

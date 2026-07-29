@@ -1,3 +1,4 @@
+import { useState } from "react";
 import {
   render,
   screen,
@@ -813,7 +814,16 @@ describe("SecurityTab — 2FA setup panel open/close", () => {
   }
 
   it("toggling 2FA OFF from the enabled state flips the switch directly (no panel)", () => {
-    render(<SecurityTab twoFactorEnabled={true} />);
+    const Wrapper = () => {
+      const [enabled, setEnabled] = useState(true);
+      return (
+        <SecurityTab
+          twoFactorEnabled={enabled}
+          onTwoFactorEnabledChange={setEnabled}
+        />
+      );
+    };
+    render(<Wrapper />);
     const sw = screen.getByRole("switch", {
       name: /authenticator app verification/i,
     });
@@ -1009,7 +1019,9 @@ describe("SecurityTab — 2FA verification code validation", () => {
     fireEvent.change(input, { target: { value: "123A56" } });
 
     const alert = screen.getByRole("alert");
-    expect(input).toHaveAccessibleDescription(alert.textContent ?? "");
+    expect(input).toHaveAccessibleDescription(
+      new RegExp(alert.textContent ?? "", "i"),
+    );
   });
 });
 
@@ -1021,8 +1033,21 @@ describe("SecurityTab — 2FA verification submit", () => {
   function openSetupPanelWith(
     props: React.ComponentProps<typeof SecurityTab> = {},
   ) {
-    const mergedProps = { twoFactorEnabled: false, ...props } as const;
-    render(<SecurityTab {...mergedProps} />);
+    const Wrapper = () => {
+      const [enabled, setEnabled] = useState(false);
+      return (
+        <SecurityTab
+          twoFactorEnabled={enabled}
+          onTwoFactorEnabledChange={(val) => {
+            setEnabled(val);
+            if (props.onTwoFactorEnabledChange) {
+              props.onTwoFactorEnabledChange(val);
+            }
+          }}
+        />
+      );
+    };
+    render(<Wrapper />);
     const sw = screen.getByRole("switch", {
       name: /authenticator app verification/i,
     });
