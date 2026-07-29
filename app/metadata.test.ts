@@ -15,6 +15,7 @@ import { metadata as settingsMetadata } from "@/app/settings/preferences/layout"
 import { metadata as loginMetadata } from "@/app/auth/login/page";
 import { metadata as signUpMetadata } from "@/app/auth/sign-up/page";
 import { metadata as verifyEmailMetadata } from "@/app/verify-email/layout";
+import { landingStructuredData } from "@/app/structured-data";
 
 describe("Route Metadata Exports", () => {
   it("defines standard metadata properties on the root layout", () => {
@@ -112,6 +113,99 @@ describe("Route Metadata Exports", () => {
       // Ensure no dynamically interpolated session/user tags exist in static metadata text
       expect(titleStr).not.toContain("${");
       expect(descStr).not.toContain("${");
+    });
+  });
+
+  describe("Landing Page JSON-LD Structured Data", () => {
+    it("exports a valid structured data object with @graph", () => {
+      expect(landingStructuredData).toBeDefined();
+      expect(landingStructuredData).toHaveProperty(
+        "@context",
+        "https://schema.org",
+      );
+      expect(landingStructuredData).toHaveProperty("@graph");
+    });
+
+    it("@graph contains exactly three schema.org entities", () => {
+      const { "@graph": graph } = landingStructuredData;
+      expect(Array.isArray(graph)).toBe(true);
+      expect(graph).toHaveLength(3);
+    });
+
+    it("includes an Organization entity with required properties", () => {
+      const org = landingStructuredData["@graph"].find(
+        (item: Record<string, unknown>) => item["@type"] === "Organization",
+      );
+      expect(org).toBeDefined();
+      expect(org).toHaveProperty("name", "StelloPay");
+      expect(org).toHaveProperty("url", "https://stellopay.com");
+      expect(org).toHaveProperty("logo");
+      expect(org).toHaveProperty("description");
+      expect(org).toHaveProperty("sameAs");
+      expect(Array.isArray(org!.sameAs)).toBe(true);
+    });
+
+    it("includes a WebSite entity with SearchAction", () => {
+      const site = landingStructuredData["@graph"].find(
+        (item: Record<string, unknown>) => item["@type"] === "WebSite",
+      );
+      expect(site).toBeDefined();
+      expect(site).toHaveProperty("name", "StelloPay");
+      expect(site).toHaveProperty("url", "https://stellopay.com");
+      expect(site).toHaveProperty("potentialAction");
+      expect(
+        (site!.potentialAction as Record<string, unknown>)["@type"],
+      ).toBe("SearchAction");
+    });
+
+    it("includes a WebApplication entity with required SoftwareApplication properties", () => {
+      const app = landingStructuredData["@graph"].find(
+        (item: Record<string, unknown>) => {
+          const types = item["@type"];
+          return (
+            Array.isArray(types) &&
+            types.includes("WebApplication") &&
+            types.includes("SoftwareApplication")
+          );
+        },
+      );
+      expect(app).toBeDefined();
+      expect(app).toHaveProperty("name", "StelloPay");
+      expect(app).toHaveProperty("url", "https://stellopay.com");
+      expect(app).toHaveProperty("applicationCategory", "FinanceApplication");
+      expect(app).toHaveProperty("operatingSystem", "Web");
+      expect(app).toHaveProperty("description");
+      expect(app).toHaveProperty("offers");
+      expect(app).toHaveProperty("provider");
+    });
+
+    it("WebApplication offers freemium pricing data", () => {
+      const app = landingStructuredData["@graph"].find(
+        (item: Record<string, unknown>) =>
+          Array.isArray(item["@type"]) &&
+          item["@type"].includes("WebApplication"),
+      );
+      const offers = app!.offers as Record<string, unknown>;
+      expect(offers).toHaveProperty("@type", "Offer");
+      expect(offers).toHaveProperty("price", "0");
+      expect(offers).toHaveProperty("priceCurrency", "USD");
+    });
+
+    it("JSON-LD does not contain sensitive or PII data", () => {
+      const json = JSON.stringify(landingStructuredData);
+      // No Stellar secret keys (S-prefixed base32)
+      expect(json).not.toMatch(/\bS[A-Z2-7]{55}\b/);
+      // No template interpolation artifacts
+      expect(json).not.toContain("${");
+    });
+
+    it("all URLs in structured data use HTTPS", () => {
+      const json = JSON.stringify(landingStructuredData);
+      const urls = json.match(/"https?:\/\/[^"]+"/g) || [];
+      expect(urls.length).toBeGreaterThan(0);
+      urls.forEach((url: string) => {
+        expect(url).toMatch(/^"https:\/\//);
+      });
     });
   });
 });

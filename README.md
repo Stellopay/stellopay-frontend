@@ -119,6 +119,45 @@ Following Next.js 15 conventions, global metadata (titles, descriptions, OpenGra
 - **`metadata`**: Contains SEO tags, OpenGraph data, and Twitter cards.
 - **`viewport`**: Contains responsive design parameters (e.g., `width`, `initialScale`) and theme colors for dark/light modes.
 
+## Structured Data (JSON-LD)
+
+The landing page (`app/page.tsx`) includes a JSON-LD `@graph` block that describes three schema.org entities, improving how StelloPay surfaces in search results:
+
+| Entity         | @type                                       | Purpose                                                |
+| -------------- | ------------------------------------------- | ------------------------------------------------------ |
+| Organization   | `Organization`                              | Describes StelloPay as a company / provider            |
+| WebSite        | `WebSite`                                   | Enables sitelinks searchbox and website identification |
+| WebApplication | `WebApplication`, `SoftwareApplication`     | Describes the StelloPay payroll/payments software product |
+
+### Why `WebApplication`?
+
+StelloPay is a **web-based software product** delivered as a SaaS — not a physical financial institution. `WebApplication` (a subtype of `SoftwareApplication`) is the most accurate schema.org type for describing a browser-based payroll and payments platform. It captures the application category (`FinanceApplication`), operating system requirements (`Web`), and pricing model — all signals that search engines use to understand software products.
+
+### Validation
+
+- The structured data validates against [Google's Rich Results Test](https://search.google.com/test/rich-results) and the [Schema.org Validator](https://validator.schema.org/).
+- All URLs use HTTPS.
+- No personally identifiable information (PII) or Stellar secret keys are included.
+- The `@graph` pattern keeps all three entities in a single `<script>` tag, minimizing HTML payload size.
+
+### Testing
+
+Structured data is tested in `app/metadata.test.ts`. The tests verify:
+
+- The `@graph` shape and entity count
+- Required properties for each `@type` (`name`, `url`, `applicationCategory`, etc.)
+- The `Offer` freemium pricing model
+- No sensitive data leaks (secret keys, template interpolation)
+- All URLs use HTTPS
+
+```bash
+npm test -- app/metadata.test.ts
+```
+
+### Updating
+
+When the product description, pricing model, or feature list changes, update the `landingStructuredData` object in `app/page.tsx` and adjust the corresponding tests.
+
 ## Project Structure
 
 ```
