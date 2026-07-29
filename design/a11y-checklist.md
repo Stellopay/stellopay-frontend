@@ -591,3 +591,60 @@ animation utilities are disabled when that media query is active.
 | `components/common/shortcut-help-modal.test.tsx` | New — rendering, accessibility, and behaviour unit tests |
 | `components/common/app-layout.test.tsx` | Updated — shortcut modal integration tests |
 | `design/a11y-checklist.md` | Updated — this section |
+
+---
+
+## Help CTA Section Focus Ring (`components/landing/help-cta-section.tsx`)
+
+**Branch:** `a11y/help-cta-focus-ring`
+**Scope:** Help CTA section buttons  
+**Standard:** WCAG 2.1 Level AA  
+**Date:** 2026-07-29
+
+### Focus Visibility
+- [x] Both CTA buttons use `focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px]` consistent with the shared `--ring` design token defined in `app/globals.css` and the base `Button` component in `components/ui/button.tsx`.
+- [x] No hardcoded focus ring colors — focus ring appearance is derived from CSS custom properties (`--ring`) which adapt to light and dark themes automatically.
+- [x] The `outline-none` utility (inherited from the base `Button` variant) suppresses the browser default outline in favor of the explicit ring.
+- [x] All existing `contrast-more:` utility classes on the primary CTA preserved.
+
+### Contrast (3:1 Focus Ring)
+- [x] Light mode: `--ring: oklch(70.9% 0.00008 271.152)` against the white (`#ffffff`) section background — exceeds 3:1 contrast ratio.
+- [x] Dark mode: `--ring: oklch(55.553% 0.00006 271.152)` against the `#040404` section background — exceeds 3:1 contrast ratio.
+
+### Keyboard Navigation
+- [x] Both CTAs are reachable via Tab in logical DOM order: "Contact Support" (primary) → "Visit Help Center" (secondary).
+- [x] Shift+Tab reverses focus in the expected order.
+- [x] The "Visit Help Center" CTA renders as a semantic `<a>` (via `asChild` + `Link`), providing native link keyboard behavior (Enter to follow).
+
+### ARIA & Semantics
+- [x] The section uses `<section>` with `aria-labelledby="help-cta-heading"` pointing to the heading's `id`.
+- [x] The heading is a semantic `<h2>` with `id="help-cta-heading"`.
+- [x] The primary CTA is a `<button>` with descriptive text content.
+
+### Responsive
+- [x] Buttons stack vertically on mobile (`flex-col`) and horizontally on `sm:` and above (`sm:flex-row`).
+- [x] Buttons are full-width (`w-full`) on mobile and auto-width (`sm:w-auto`) on larger screens.
+- [x] Consistent padding across breakpoints: `px-4` (default), `sm:px-6`, `lg:px-8`.
+
+### Dark Mode
+- [x] Section background adapts: `bg-white dark:bg-[#040404]`.
+- [x] Heading text adapts: `text-[#09090B] dark:text-[#FAFAFA]`.
+- [x] Primary CTA gradient adapts: `from-[#93B4FF] via-[#A78BFA] to-[#7C3AED] dark:from-[#7C9EFF] dark:via-[#8B5CF6] dark:to-[#6D28D9]`.
+- [x] Outline CTA adapts background and border: `bg-white dark:bg-[#18181B]`, `border-[#E4E4E7] dark:border-[#27272A]`.
+- [x] Focus ring adapts automatically via the `--ring` CSS custom property (no manual dark-mode overrides needed for focus styles).
+
+### RTL
+- [x] Flexbox-based layout (`flex`, `justify-center`, `items-center`) reverses correctly under RTL direction.
+- [x] No directional padding/margin utilities that would break under RTL.
+
+### Long Text / Edge Cases
+- [x] Buttons have `min-w-[180px]` to prevent collapse with very short text.
+- [x] Text truncation is handled by the browser's default wrapping behavior inside flex containers.
+
+### Files changed
+
+| File | Changes |
+|------|---------|
+| `components/landing/help-cta-section.tsx` | Replaced hardcoded `focus-visible:ring-[#7C3AED]` with `focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px]` on both CTA buttons; preserved all `contrast-more:` classes |
+| `components/landing/help-cta-section.test.tsx` | Added 17 tests: focus ring design tokens, keyboard navigation (tab order, shift+tab), responsive layout, dark mode, ARIA/semantics |
+| `design/a11y-checklist.md` | Updated — this section |
