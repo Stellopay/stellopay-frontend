@@ -16,8 +16,37 @@ import { getStatusColor } from "@/utils/transactionUtils";
 import { truncateStellarAddress } from "@/utils/stellarAddress";
 import { EmptyState } from "@/components/ui/empty-state";
 import { TRANSACTIONS_PAGE_SIZE } from "./transactions-config";
-import { useRef, type KeyboardEvent } from "react";
+import { safeStorage } from "@/utils/safeStorage";
+import { useRef, useState, useEffect, useCallback, type KeyboardEvent } from "react";
 import { DownloadReceiptButton } from "./download-receipt-button";
+
+export type TableDensity = "compact" | "comfortable" | "spacious";
+
+const DENSITY_STORAGE_KEY = "transactions-table-density";
+
+const DENSITY_CONFIG: Record<TableDensity, { cell: string; head: string; skeleton: string }> = {
+  compact: {
+    cell: "py-2 px-3 text-xs",
+    head: "py-2 px-3 text-xs",
+    skeleton: "py-2 px-3",
+  },
+  comfortable: {
+    cell: "py-4 px-6 text-sm",
+    head: "py-4 px-6 text-sm",
+    skeleton: "py-4 px-6",
+  },
+  spacious: {
+    cell: "py-6 px-8 text-base",
+    head: "py-6 px-8 text-base",
+    skeleton: "py-6 px-8",
+  },
+};
+
+const DENSITY_OPTIONS: { value: TableDensity; label: string }[] = [
+  { value: "compact", label: "Compact" },
+  { value: "comfortable", label: "Comfortable" },
+  { value: "spacious", label: "Spacious" },
+];
 
 interface TransactionsTablePropsExtended extends TransactionsTableProps {
   isLoading?: boolean;
@@ -42,6 +71,22 @@ export function TransactionsTable({
   isLoading = false,
 }: TransactionsTablePropsExtended) {
   const isEmpty = !isLoading && transactions.length === 0;
+
+  const [density, setDensity] = useState<TableDensity>("comfortable");
+
+  useEffect(() => {
+    const stored = safeStorage.getItem(DENSITY_STORAGE_KEY) as TableDensity | null;
+    if (stored && ["compact", "comfortable", "spacious"].includes(stored)) {
+      setDensity(stored);
+    }
+  }, []);
+
+  const handleDensityChange = useCallback((value: TableDensity) => {
+    setDensity(value);
+    safeStorage.setItem(DENSITY_STORAGE_KEY, value);
+  }, []);
+
+  const s = DENSITY_CONFIG[density];
 
   /** Ref to the table wrapper div so we can query its navigable rows. */
   const tableWrapperRef = useRef<HTMLDivElement>(null);
@@ -101,6 +146,33 @@ export function TransactionsTable({
 
   return (
     <>
+      {/* Density Toggle */}
+      <div className="hidden md:flex items-center gap-2 mb-3">
+        <span className="text-xs text-zinc-400">Density:</span>
+        <div
+          role="radiogroup"
+          aria-label="Table density"
+          className="inline-flex rounded-lg border border-[#2D2D2D] bg-[#191919] p-0.5"
+        >
+          {DENSITY_OPTIONS.map((opt) => (
+            <button
+              key={opt.value}
+              type="button"
+              role="radio"
+              aria-checked={density === opt.value}
+              onClick={() => handleDensityChange(opt.value)}
+              className={`rounded-md px-3 py-1 text-xs font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 ${
+                density === opt.value
+                  ? "bg-white/10 text-white"
+                  : "text-zinc-400 hover:text-white"
+              }`}
+            >
+              {opt.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
       {/* Desktop Table */}
       <div
         ref={tableWrapperRef}
@@ -113,39 +185,45 @@ export function TransactionsTable({
             <TableRow className="bg-[#191919]">
               <TableHead
                 scope="col"
-                className="text-white font-bold border-[#2D2D2D] border-y-2 border-t-0 py-4 px-6"
+                className={`text-white font-bold border-[#2D2D2D] border-y-2 border-t-0 ${s.head}`}
               >
                 Transaction Type
               </TableHead>
               <TableHead
                 scope="col"
-                className="text-white font-bold border-[#2D2D2D] border-y-2 border-t-0 py-4 px-6 w-[200px]"
+                className={`text-white font-bold border-[#2D2D2D] border-y-2 border-t-0 ${s.head} w-[200px]`}
               >
                 Address
               </TableHead>
               <TableHead
                 scope="col"
-                className="text-white font-bold border-[#2D2D2D] border-y-2 border-t-0 py-4 px-6"
+                className={`text-white font-bold border-[#2D2D2D] border-y-2 border-t-0 ${s.head}`}
               >
                 Date
               </TableHead>
               <TableHead
                 scope="col"
-                className="text-white font-bold border-[#2D2D2D] border-y-2 border-t-0 py-4 px-6"
+                className={`text-white font-bold border-[#2D2D2D] border-y-2 border-t-0 ${s.head}`}
               >
                 Token
               </TableHead>
               <TableHead
                 scope="col"
-                className="text-white font-bold border-[#2D2D2D] border-y-2 border-t-0 py-4 px-6 w-[140px]"
+                className={`text-white font-bold border-[#2D2D2D] border-y-2 border-t-0 ${s.head} w-[140px]`}
               >
                 Amount
               </TableHead>
               <TableHead
                 scope="col"
-                className="text-white font-bold border-[#2D2D2D] border-y-2 border-t-0 py-4 px-6 w-[120px]"
+                className={`text-white font-bold border-[#2D2D2D] border-y-2 border-t-0 ${s.head} w-[120px]`}
               >
                 Status
+              </TableHead>
+              <TableHead
+                scope="col"
+                className={`text-white font-bold border-[#2D2D2D] border-y-2 border-t-0 ${s.head} w-[140px]`}
+              >
+                Receipt
               </TableHead>
             </TableRow>
           </TableHeader>
@@ -156,31 +234,34 @@ export function TransactionsTable({
                   key={`skeleton-${index}`}
                   className="border border-[#2D2D2D]"
                 >
-                  <TableCell className="font-medium border border-[#2D2D2D] py-4 px-6">
+                  <TableCell className={`font-medium border border-[#2D2D2D] ${s.skeleton}`}>
                     <Skeleton className="h-4 w-20 mb-1" />
                     <Skeleton className="h-3 w-16" />
                   </TableCell>
-                  <TableCell className="border border-[#2D2D2D] py-4 px-6">
+                  <TableCell className={`border border-[#2D2D2D] ${s.skeleton}`}>
                     <Skeleton className="h-4 w-32" />
                   </TableCell>
-                  <TableCell className="border border-[#2D2D2D] py-4 px-6">
+                  <TableCell className={`border border-[#2D2D2D] ${s.skeleton}`}>
                     <Skeleton className="h-4 w-24" />
                   </TableCell>
-                  <TableCell className="flex place-items-center gap-2 py-8 px-6">
+                  <TableCell className={`flex place-items-center gap-2 ${s.skeleton}`}>
                     <Skeleton className="w-5 h-5 rounded-full" />
                     <Skeleton className="h-4 w-12" />
                   </TableCell>
-                  <TableCell className="border border-[#2D2D2D] py-4 px-6">
+                  <TableCell className={`border border-[#2D2D2D] ${s.skeleton}`}>
                     <Skeleton className="h-4 w-20" />
                   </TableCell>
-                  <TableCell className="py-4 px-6">
+                  <TableCell className={s.skeleton}>
                     <Skeleton className="h-6 w-16 rounded-full" />
+                  </TableCell>
+                  <TableCell className={s.skeleton}>
+                    <Skeleton className="h-4 w-24" />
                   </TableCell>
                 </TableRow>
               ))
             ) : isEmpty ? (
               <TableRow>
-                <TableCell colSpan={6} className="py-12 text-center">
+                <TableCell colSpan={7} className="py-12 text-center">
                   <EmptyState
                     title="No Transactions Found"
                     description="No transactions found. Try adjusting your filters."
@@ -197,11 +278,11 @@ export function TransactionsTable({
                   onKeyDown={(e) => handleRowKeyDown(e, index)}
                   className="border border-[#2D2D2D] focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-blue-500"
                 >
-                  <TableCell className="font-medium border border-[#2D2D2D] py-4 px-6">
+                  <TableCell className={`font-medium border border-[#2D2D2D] ${s.cell}`}>
                     <span className="text-[#D7E0EF]">{transaction.type}</span>
                     <p>#{transaction.id}</p>
                   </TableCell>
-                  <TableCell className="border border-[#2D2D2D] py-4 px-6 w-[180px] max-w-[180px]">
+                  <TableCell className={`border border-[#2D2D2D] ${s.cell} w-[180px] max-w-[180px]`}>
                     <span
                       className="block truncate cursor-help focus:outline-none focus:ring-2 focus:ring-[#D7E0EF] rounded px-1 -ms-1"
                       title={transaction.address}
@@ -210,12 +291,12 @@ export function TransactionsTable({
                       {truncateStellarAddress(transaction.address)}
                     </span>
                   </TableCell>
-                  <TableCell className="border border-[#2D2D2D] py-4 px-6">
+                  <TableCell className={`border border-[#2D2D2D] ${s.cell}`}>
                     <time dateTime={transaction.date}>
                       {transaction.date} {transaction.time}
                     </time>
                   </TableCell>
-                  <TableCell className="flex place-items-center gap-2 py-8 px-6">
+                  <TableCell className={`flex place-items-center gap-2 ${s.cell}`}>
                     <Image
                       src={transaction.tokenIcon}
                       alt={`${transaction.token} token icon`}
@@ -224,7 +305,7 @@ export function TransactionsTable({
                     />
                     <span>{transaction.token}</span>
                   </TableCell>
-                  <TableCell className="border border-[#2D2D2D] py-4 px-6 max-w-[150px]">
+                  <TableCell className={`border border-[#2D2D2D] ${s.cell} max-w-[150px]`}>
                     <span
                       className="block truncate cursor-help focus:outline-none focus:ring-2 focus:ring-[#D7E0EF] rounded px-1 -ms-1"
                       title={transaction.amount}
@@ -233,7 +314,7 @@ export function TransactionsTable({
                       {transaction.amount}
                     </span>
                   </TableCell>
-                  <TableCell className="py-4 px-6">
+                  <TableCell className={s.cell}>
                     <Badge
                       aria-label={`Status: ${transaction.status}`}
                       className={getStatusColor(transaction.status)}
@@ -241,19 +322,20 @@ export function TransactionsTable({
                       <span className="text-sm">{transaction.status}</span>
                     </Badge>
                   </TableCell>
+                  <TableCell className={s.cell}>
+                    <DownloadReceiptButton
+                      transaction={{
+                        id: transaction.id,
+                        hash: transaction.hash,
+                        amount: transaction.amount,
+                        counterparty: transaction.counterparty,
+                        timestamp: transaction.timestamp,
+                      }}
+                    />
+                  </TableCell>
                 </TableRow>
               ))
             )}
-
-            <DownloadReceiptButton
-            transaction={{
-              id: transaction.id,
-              hash: transaction.hash,
-              amount: transaction.amount,
-              counterparty: transaction.counterparty,
-              timestamp: transaction.timestamp,
-            }}
-          />
           </TableBody>
         </Table>
       </div>

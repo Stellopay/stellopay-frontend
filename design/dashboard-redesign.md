@@ -21,6 +21,38 @@ already include a `sort` param are never overridden.
 - **Keyboard Nav**: The "Try Again" button is fully keyboard navigable. Focus order is maintained.
 - **ARIA**: The `ErrorState` component utilizes `role="alert"` and `aria-live="assertive"` so screen readers can proactively announce network failures. Loading/Retrying indicators use `aria-hidden="true"` on non-text elements and `aria-label` or `aria-disabled` where appropriate to ensure status is accurately conveyed.
 
+## Transactions table — density toggle (#900)
+
+### Overview
+`components/transactions/transactions-table.tsx` now exposes a three-way density toggle (compact, comfortable, spacious) above the desktop table. The chosen density adjusts row padding and font size across the table head, body cells, and skeleton rows, and is persisted to `localStorage` via `utils/safeStorage.ts` so the preference survives reloads.
+
+### Density config
+
+| Level | Cell padding | Font size | Use case |
+|-------|-------------|-----------|----------|
+| **Compact** | `py-2 px-3` | `text-xs` | Dense data review |
+| **Comfortable** | `py-4 px-6` | `text-sm` | Default viewing |
+| **Spacious** | `py-6 px-8` | `text-base` | Readability / presentation |
+
+### Behavior
+- Defaults to `comfortable` on first visit.
+- Stored under `localStorage` key `transactions-table-density`.
+- Restored on mount; invalid stored values fall back to the default.
+- Toggle is hidden on mobile (`hidden md:flex`) where card layout is used.
+
+### Accessibility (WCAG 2.1 AA)
+- **Role**: The toggle group uses `role="radiogroup"` with `aria-label="Table density"`.
+- **State**: Each option uses `role="radio"` with `aria-checked` reflecting the current selection.
+- **Keyboard**: All buttons are natively focusable and activate via Enter/Space.
+- **Focus**: `focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500` provides a high-contrast focus ring.
+- **Contrast**: White text (`text-white`) on `bg-white/10` for the active option; `text-zinc-400` / `hover:text-white` on `bg-[#191919]` for inactive options — all exceed 4.5:1 AA thresholds.
+
+### Responsive
+| Breakpoint | Behavior |
+|------------|----------|
+| `< 768px` (md) | Toggle hidden; card layout used |
+| `≥ 768px` (md) | Toggle shown above desktop table |
+
 ## Zinc vs. Token Audit — `components/analytics/analytics-view.tsx` (#763)
 
 `analytics-view.tsx` previously reached for Tailwind's built-in `zinc-*` palette directly instead of the semantic tokens defined in `app/globals.css` (the shadcn neutral base color). This meant its grays didn't move together with the rest of the dashboard if the neutral base color is ever retuned. All 18 `zinc-*` usages in the file have been mapped to tokens.

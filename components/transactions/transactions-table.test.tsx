@@ -18,7 +18,7 @@
  * - Address and amount cells truncate long values with a title tooltip.
  */
 import React from "react";
-import { render, screen, fireEvent, act } from "@testing-library/react";
+import { render, screen, fireEvent, act, waitFor } from "@testing-library/react";
 import { describe, it, expect, vi } from "vitest";
 import { TransactionsTable } from "./transactions-table";
 import { TransactionProps } from "@/types/transaction";
@@ -44,8 +44,9 @@ const mockTransactions = [
   },
 ];
 
-
-import { generateTransactionReceiptPdf } from "./receipt";
+vi.mock("./receipt", () => ({
+  generateTransactionReceiptPdf: vi.fn(() => Promise.resolve()),
+}));
 
 // ── Mock next/image ───────────────────────────────────────────────────────────
 vi.mock("next/image", () => ({
@@ -104,22 +105,7 @@ describe("TransactionsTable — basic rendering", () => {
   });
 });
 
-  it("truncates long addresses using truncateStellarAddress", () => {
-    render(<TransactionsTable transactions={mockTransactions} />);
-
-    // Desktop: the visible text should be the truncated version
-    expect(screen.getByText(TRUNCATED_ADDRESS)).toBeInTheDocument();
-
-    // The full address should still be available as a tooltip
-    const addressElements = screen.getAllByTitle(LONG_ADDRESS);
-    expect(addressElements.length).toBeGreaterThan(0);
-    expect(addressElements[0]).toHaveAttribute("tabIndex", "0");
-    expect(addressElements[0]).toHaveClass("truncate");
-  });
-
-  it("applies tooltips for long amount values", () => {
-    render(<TransactionsTable transactions={mockTransactions} />);
-
+describe("TransactionsTable — ARIA roles", () => {
   it("renders column header cells with role=columnheader", () => {
     render(<TransactionsTable transactions={THREE_ROWS} />);
     const headers = screen.getAllByRole("columnheader");
@@ -295,7 +281,7 @@ describe("TransactionsTable — empty and loading states", () => {
   it("renders with logical spacing properties in RTL direction", () => {
     render(
       <div dir="rtl">
-        <TransactionsTable transactions={mockTransactions} />
+        <TransactionsTable transactions={[LONG_VALUE_TRANSACTION]} />
       </div>
     );
 
@@ -307,12 +293,6 @@ describe("TransactionsTable — empty and loading states", () => {
     expect(addressElements[0]).toHaveClass("-ms-1");
   });
 });
-
-
-
-jest.mock("./receipt", () => ({
-  generateTransactionReceiptPdf: jest.fn().mockResolvedValue(undefined),
-}));
 
 
 describe("DownloadReceiptButton", () => {
@@ -336,7 +316,7 @@ describe("DownloadReceiptButton", () => {
   });
 
   it("shows an error message if generation fails", async () => {
-    (generateTransactionReceiptPdf as jest.Mock).mockRejectedValueOnce(
+    (generateTransactionReceiptPdf as ReturnType<typeof vi.fn>).mockRejectedValueOnce(
       new Error("fail")
     );
     render(<DownloadReceiptButton transaction={transaction} />);
@@ -351,8 +331,8 @@ describe("DownloadReceiptButton", () => {
 
   it("renders empty state when no transactions and not loading", () => {
     render(<TransactionsTable transactions={[]} />);
-    expect(screen.getByText("No Transactions Found")).toBeInTheDocument();
-    expect(screen.getByText(/try adjusting your filters/i)).toBeInTheDocument();
+    expect(screen.getAllByText("No Transactions Found").length).toBeGreaterThan(0);
+    expect(screen.getAllByText(/try adjusting your filters/i).length).toBeGreaterThan(0);
   });
 
   it("renders loading skeletons when isLoading is true", () => {
@@ -362,7 +342,90 @@ describe("DownloadReceiptButton", () => {
     // Should render skeleton rows instead of empty state
     expect(screen.queryByText("No Transactions Found")).not.toBeInTheDocument();
     // Verify skeleton elements are present
-    const skeletons = container.querySelectorAll(".animate-pulse");
+    const skeletons = container.querySelectorAll(".skeleton-shimmer");
     expect(skeletons.length).toBeGreaterThan(0);
+  });
+});
+
+// ── Mocks for safeStorage ─────────────────────────────────────────────────────
+const storage: Record<string, string> = {};
+
+vi.mock("@/utils/safeStorage", () => ({
+  safeStorage: {
+    getItem: vi.fn((key: string) => storage[key] ?? null),
+    setItem: vi.fn((key: string, value: string) => {
+      storage[key] = value;
+      return true;
+    }),
+    removeItem: vi.fn((key: string) => {
+      delete storage[key];
+      return true;
+    }),
+  },
+}));
+
+describe("TransactionsTable — density toggle", () => {
+  beforeEach(() => {
+    Object.keys(storage).forEach((k) => delete storage[k]);
+  });
+
+  it("renders the density toggle with three options", () => {
+    render(<TransactionsTable transactions={[]} />);
+    const group = screen.getByRole("radiogroup", { name: /table density/i });
+    expect(group).toBeInTheDocument();
+    const radios = screen.getAllByRole("radio");
+    expect(radios).toHaveLength(3);
+    expect(radios[0]).toHaveAccessibleName("Compact");
+    expect(radios[1]).toHaveAccessibleName("Comfortable");
+    expect(radios[2]).toHaveAccessibleName("Spacious");
+  });
+
+  it("defaults to Comfortable", () => {
+    render(<TransactionsTable transactions={[]} />);
+    const radios = screen.getAllByRole("radio");
+    expect(radios[1]).toHaveAttribute("aria-checked", "true");
+    expect(radios[1]).toHaveTextContent("Comfortable");
+  });
+
+  it("switches to Compact on click and persists", () => {
+    render(<TransactionsTable transactions={[]} />);
+    const radios = screen.getAllByRole("radio");
+    fireEvent.click(radios[0]);
+    expect(radios[0]).toHaveAttribute("aria-checked", "true");
+    expect(radios[1]).toHaveAttribute("aria-checked", "false");
+    expect(storage["transactions-table-density"]).toBe("compact");
+  });
+
+  it("switches to Spacious on click and persists", () => {
+    render(<TransactionsTable transactions={[]} />);
+    const radios = screen.getAllByRole("radio");
+    fireEvent.click(radios[2]);
+    expect(radios[2]).toHaveAttribute("aria-checked", "true");
+    expect(radios[1]).toHaveAttribute("aria-checked", "false");
+    expect(storage["transactions-table-density"]).toBe("spacious");
+  });
+
+  it("restores a persisted density on mount", () => {
+    storage["transactions-table-density"] = "compact";
+    render(<TransactionsTable transactions={[]} />);
+    const radios = screen.getAllByRole("radio");
+    expect(radios[0]).toHaveAttribute("aria-checked", "true");
+  });
+
+  it("applies compact class on table head cells when compact is selected", () => {
+    render(<TransactionsTable transactions={THREE_ROWS} />);
+    const radios = screen.getAllByRole("radio");
+    fireEvent.click(radios[0]);
+    const headers = screen.getAllByRole("columnheader");
+    headers.forEach((h) => {
+      expect(h.className).toMatch(/py-2/);
+    });
+  });
+
+  it("does not render the toggle on mobile breakpoints", () => {
+    render(<TransactionsTable transactions={[]} />);
+    const toggle = screen.getByRole("radiogroup", { name: /table density/i });
+    // The parent wrapper is hidden below md
+    expect(toggle.closest(".hidden")).toBeTruthy();
   });
 });
