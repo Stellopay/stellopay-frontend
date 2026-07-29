@@ -21,34 +21,49 @@ already include a `sort` param are never overridden.
 - **Keyboard Nav**: The "Try Again" button is fully keyboard navigable. Focus order is maintained.
 - **ARIA**: The `ErrorState` component utilizes `role="alert"` and `aria-live="assertive"` so screen readers can proactively announce network failures. Loading/Retrying indicators use `aria-hidden="true"` on non-text elements and `aria-label` or `aria-disabled` where appropriate to ensure status is accurately conveyed.
 
-## Zinc vs. Token Audit — `components/analytics/analytics-view.tsx` (#763)
+---
 
-`analytics-view.tsx` previously reached for Tailwind's built-in `zinc-*` palette directly instead of the semantic tokens defined in `app/globals.css` (the shadcn neutral base color). This meant its grays didn't move together with the rest of the dashboard if the neutral base color is ever retuned. All 18 `zinc-*` usages in the file have been mapped to tokens.
+## Multi-Select and Bulk Actions – Transactions Table
 
-### Catalogue and mapping
+### Overview
 
-| Zinc usage | Purpose | Token replacement |
-|---|---|---|
-| `border-zinc-200 dark:border-zinc-800` | Card / panel outer border | `border-border` |
-| `border-zinc-100 dark:border-zinc-800/50` | Subtler inner border (chart wells) | `border-border/50` |
-| `bg-zinc-50 dark:bg-zinc-900/50` | Chip / icon-well / button background | `bg-muted` |
-| `bg-zinc-50/30 dark:bg-zinc-900/20` | Very subtle chart-well background | `bg-muted/30 dark:bg-muted/20` |
-| `text-zinc-900 dark:text-white` | Headings (`Analytics views`, `Notifications`) | `text-foreground` |
-| `text-zinc-700 dark:text-zinc-300` / `text-zinc-600 dark:text-zinc-400` | Body/label text (dropdown trigger, dropdown items, "View All") | `text-foreground` (see contrast note below) |
-| `text-zinc-400` | Decorative chevron icons | `text-muted-foreground` |
-| `hover:bg-zinc-100 dark:hover:bg-zinc-800` / `hover:bg-zinc-50 dark:hover:bg-zinc-900/50` | Hover feedback on chips/menu items | `hover:bg-muted-foreground/10` (see flagged gap below) |
+Users can now select one or more transaction rows and act on the whole group at
+once — without opening each row individually.  The feature adds three surfaces:
 
-### Flagged: no distinct hover/accent token exists yet
+1. **Checkbox column** – first column in the desktop table and on each mobile
+   card.
+2. **Select-all header control** – single checkbox in the `<th>` of the
+   checkbox column; supports three visual states.
+3. **Floating bulk-action bar** – fixed to the viewport bottom when ≥ 1 row is
+   selected; provides Export, Tag, and Archive actions plus a clear-selection
+   dismiss button.
 
-`app/globals.css` currently defines `--muted`, `--accent`, and `--secondary` with **identical** OKLCH values in both light and dark mode. That means a literal semantic mapping of the old `hover:bg-zinc-100` state to `hover:bg-accent` (the conventionally "correct" token for hover treatment) would be a visual no-op, since `bg-accent` renders identically to the `bg-muted` base it would be hovering from — a real loss of hover affordance versus the previous zinc-based behavior.
+### Component anatomy
 
-As a stopgap that doesn't invent a new CSS variable, this PR uses the existing `--muted-foreground` token at low opacity (`hover:bg-muted-foreground/10`) as a neutral overlay: it reliably darkens the surface in light mode and lightens it in dark mode, restoring the escalation without depending on `--accent`.
+```
+TransactionsContent
+├── (sr-only aria-live region – announces count to screen readers)
+├── TransactionsTable
+│   ├── Checkbox (header – select-all / deselect-all)
+│   └── Checkbox (per row – select / deselect individual transaction)
+└── BulkActionBar (visible only when selectedIds.size > 0)
+    ├── "{n} transaction(s) selected" label
+    ├── [Export]  (Download icon)
+    ├── [Tag]     (Tag icon)
+    ├── [Archive] (Archive icon)
+    └── [×]       (Clear selection – aria-label="Clear selection")
+```
 
-**Recommendation for the design-system owner**: give `--accent` (and/or `--secondary`) a value distinct from `--muted` so components can use the canonical `bg-accent` hover token directly instead of this opacity-based workaround.
+**Files changed / added:**
 
-### Flagged: `text-zinc-700`/`text-zinc-600` mapped to `foreground`, not `muted-foreground`
+| File | Change |
+|------|--------|
+| `components/transactions/transactions-table.tsx` | Added `selectedIds`, `onSelectRow`, `onSelectAll` props; checkbox column; `aria-selected` on rows; indeterminate header state; adjusted empty-state `colSpan`. |
+| `components/transactions/transactions-content.tsx` | Lifted selection state; `clearSelection` called on every filter/sort/page change; `aria-live` sr-only region; renders `BulkActionBar`. |
+| `components/transactions/bulk-action-bar.tsx` | **New** – floating action bar with Export/Tag/Archive/Clear. |
+| `components/transactions/transactions-table.test.tsx` | Full Vitest coverage for all new behaviour. |
 
-The obvious "one step down from full text" token is `--muted-foreground`, but at `oklch(55.553%)` (light) it produces roughly a 4:1 contrast ratio against the card background — below the 4.5:1 AA threshold for normal (non-large) 14px text such as the dropdown trigger label and "View All". To avoid regressing contrast, this text was mapped to `text-foreground` instead, which keeps the original ~10:1+ contrast the `zinc-700`/`zinc-900` values had. `text-muted-foreground` remains reserved for decorative, non-text-bearing elements (chevrons) where the WCAG 1.4.11 non-text 3:1 threshold applies instead.
+### Selection state management
 
 ### Props
 - `value` (string): The primary large metric value to display.
@@ -75,9 +90,16 @@ export default function MetricView() {
 
 ### Accessibility Notes (WCAG 2.1 AA)
 
-The file also hardcodes non-token hex values that are **not** `zinc-*` utilities and were left untouched per this issue's scope (e.g. `bg-white dark:bg-[#111111]`, `bg-[#0D0D0D80]`, `border-[#2D2D2D]`, `bg-[#121212]`). These represent the same class of design-token debt and would be a reasonable follow-up issue, but reconciling them changes a much larger surface area of the component (including the non-`showNotifications` dark-card visual treatment) than a zinc-vs-token audit calls for.
+The table receives selection as **controlled props**:
 
-### Responsive & accessibility validation
+```tsx
+<TransactionsTable
+  transactions={paginatedTransactions}
+  selectedIds={selectedIds}         // Set<string>
+  onSelectRow={handleSelectRow}     // (id, checked) => void
+  onSelectAll={handleSelectAllForPage} // (checked) => void
+/>
+```
 
 - **Flex Layout**: Uses `flex flex-col gap-2` to stack the value and label vertically, adapting to varying text lengths gracefully.
 - **Dimensions**: Retains a fixed height (`h-[118px]`) with `w-full`, allowing the card to stretch fluidly across CSS grid or flex layouts across breakpoints (`sm`, `md`, `lg`, `xl`).

@@ -1,6 +1,6 @@
 "use client";
 import { usePathname } from "next/navigation";
-import { ChevronRight } from "lucide-react";
+import { ChevronRight, ArrowLeft } from "lucide-react";
 import Link from "next/link";
 import EmailInput from "@/components/common/email-input";
 import TextareaInput from "@/components/common/text-area-input";
@@ -299,16 +299,28 @@ export default function SupportTabs({
     <div className="space-y-4">
       {/* Dynamic Breadcrumb - show when on sub-pages */}
       {isSubPage && currentPageTitle && (
-        <div className="flex items-center text-2xl font-semibold  gap-2 ">
-          <Link
-            href="/help/support"
-            className="text-[#707070] hover:text-white transition-colors"
-          >
-            Help/Support
-          </Link>
-          <ChevronRight className="text-[#E5E5E5]" />
-          <span className="text-[#E5E5E5]">{currentPageTitle}</span>
-        </div>
+        <nav aria-label="Breadcrumb" className="flex items-center text-2xl font-semibold gap-2">
+          <ol className="flex items-center gap-2">
+            <li>
+              <Link
+                href="/help/support"
+                className="inline-flex items-center gap-1.5 text-[#A0A0A0] hover:text-white transition-colors"
+                aria-label="Back to Help Center"
+              >
+                <ArrowLeft className="h-5 w-5" aria-hidden="true" />
+                <span>Help/Support</span>
+              </Link>
+            </li>
+            <li aria-hidden="true">
+              <ChevronRight className="text-[#E5E5E5]" />
+            </li>
+            <li>
+              <span className="text-[#E5E5E5]" aria-current="page">
+                {currentPageTitle}
+              </span>
+            </li>
+          </ol>
+        </nav>
       )}
 
       {/* Title - only show when on main help/support page */}
