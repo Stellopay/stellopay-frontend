@@ -34,7 +34,7 @@ export default function ClientAnalyticsView(props: AnalyticsViewsProps) {
           role="status"
         >
           <span className="sr-only">Loading analytics...</span>
-          <div className="w-full md:w-2/3 border border-zinc-200 dark:border-zinc-800 rounded-2xl p-6 bg-white dark:bg-[#111111] transition-colors flex flex-col justify-between">
+          <div className="w-full md:w-2/3 border border-zinc-200 dark:border-zinc-800 rounded-2xl p-6 bg-card transition-colors flex flex-col justify-between">
             <div className="flex justify-between items-center mb-4 flex-wrap gap-2">
               <div className="flex items-center gap-2">
                 <Skeleton className="w-10 h-10 rounded-lg" shade="dark" />
@@ -55,7 +55,7 @@ export default function ClientAnalyticsView(props: AnalyticsViewsProps) {
               </div>
             </div>
           </div>
-          <div className="w-full md:w-1/3 border border-zinc-200 dark:border-zinc-800 rounded-2xl p-6 bg-white dark:bg-[#111111] flex flex-col gap-6 transition-colors">
+          <div className="w-full md:w-1/3 border border-zinc-200 dark:border-zinc-800 rounded-2xl p-6 bg-card flex flex-col gap-6 transition-colors">
             <div className="flex justify-between items-center">
               <div className="flex items-center gap-4">
                 <Skeleton className="w-10 h-10 rounded-xl" shade="dark" />

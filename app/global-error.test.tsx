@@ -82,4 +82,61 @@ describe("GlobalError", () => {
     render(<GlobalError {...makeProps()} />);
     expect(screen.getByText(/unexpected error occurred/i)).toBeInTheDocument();
   });
+
+  // ── Report-this-issue action ───────────────────────────────────────────
+
+  it("renders a Report this issue link", () => {
+    render(<GlobalError {...makeProps()} />);
+    expect(
+      screen.getByRole("link", { name: /report this issue/i }),
+    ).toBeInTheDocument();
+  });
+
+  it("renders a mailto: href containing the error digest", () => {
+    const error = Object.assign(new Error("boom"), { digest: "abc123" });
+    render(<GlobalError error={error} />);
+
+    const link = screen.getByRole("link", { name: /report this issue/i });
+    expect(link).toHaveAttribute("href");
+    expect(link.getAttribute("href")).toContain("mailto:");
+    expect(link.getAttribute("href")).toContain("abc123");
+  });
+
+  it("does not include the error message or stack in the mailto href", () => {
+    render(<GlobalError {...makeProps()} />);
+    const link = screen.getByRole("link", { name: /report this issue/i });
+    const href = link.getAttribute("href") ?? "";
+
+    // The error message "boom" should NOT appear in the link payload
+    expect(href).not.toContain("boom");
+    // Stack traces are never rendered
+  });
+
+  it("renders the report link with an accessible aria-label", () => {
+    const error = Object.assign(new Error("boom"), { digest: "abc123" });
+    render(<GlobalError error={error} />);
+
+    const link = screen.getByRole("link", { name: /report this issue/i });
+    expect(link).toHaveAttribute("aria-label");
+    expect(link.getAttribute("aria-label")).toContain("abc123");
+  });
+
+  it("still renders the report link when digest is empty", () => {
+    const error = new Error("boom"); // no digest
+    render(<GlobalError error={error} />);
+
+    const link = screen.getByRole("link", { name: /report this issue/i });
+    expect(link).toBeInTheDocument();
+    expect(link.getAttribute("href")).toContain("mailto:");
+  });
+
+  it("the Try again button remains present alongside the report link", () => {
+    render(<GlobalError {...makeProps()} />);
+    expect(
+      screen.getByRole("button", { name: /try again/i }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("link", { name: /report this issue/i }),
+    ).toBeInTheDocument();
+  });
 });

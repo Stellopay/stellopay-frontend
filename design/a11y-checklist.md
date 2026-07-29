@@ -1,218 +1,32 @@
-# Accessibility (A11y) Checklist - Stellopay Frontend
+# Accessibility Checklist — WCAG 2.1 AA Baseline
 
-**Branch:** `design/a11y-baseline`  
-**Scope:** Sign-in, Sign-up, Landing page, Transactions view, Modal dialogs  
-**Standard:** WCAG 2.1 Level AA  
-**Date:** 2026-05-31
+## Overview
+This checklist defines the mandatory accessibility requirements (targeting WCAG 2.1 AA compliance) for all components and views in the Stellopay frontend.
 
----
+## Reduced Motion (WCAG 2.1 Success Criterion 2.3.3 — Animation from Interactions)
 
-## Audit methodology
+### Requirement
+Every component that uses framer-motion (or any JS-driven animation) **must** check the user's `prefers-reduced-motion: reduce` OS-level preference and disable or simplify the animation accordingly.
 
-- Static code review of all primary-journey components
-- Manual keyboard-only walkthrough (Tab, Shift+Tab, Enter, Space, Arrow keys, Escape)
-- Screen-reader spot-check (NVDA + Chrome, VoiceOver + Safari)
-- Automated scan reference: axe-core rules mapped to each finding below
+### Implementation
 
----
+| Component | Hook used | Animation type | Reduced-motion behavior |
+|---|---|---|---|
+| `components/landing/hero.tsx` | `useReducedMotion()` | Decorative gradient orbs, rotated floating cards | Orbs hidden entirely; card rotation disabled |
+| `components/common/nav-link.tsx` | `useReducedMotion()` | Spring-animated active-link background (`motion.div` with `layoutId`) | Static `<div>` replaces `<motion.div>` — same visual, no animation |
+| `components/landing/faq-section.tsx` | `useReducedMotion()` | Accordion expand/collapse (`AnimatePresence` + `motion.div`) | Content rendered directly without animation wrapper |
 
-## P0 Issues — Fixed in this PR
-
-### 1. Missing skip navigation link (WCAG 2.4.1 — Bypass Blocks)
-
-**File:** `app/layout.tsx`  
-**Fix:** Added `<a href="#main-content">Skip to main content</a>` as the first focusable element in the root layout. Visually hidden via `sr-only`; revealed on focus with high-contrast styling.  
-**axe rule:** `bypass`
-
----
-
-### 2. Missing `id="main-content"` landmark targets (WCAG 2.4.1)
-
-**Files:** `app/page.tsx`, `app/auth/login/page.tsx`, `app/auth/sign-up/page.tsx`, `app/transactions/page.tsx`  
-**Fix:** Replaced wrapper `<div>` with `<main id="main-content">` on every primary page so the skip link has a valid target and the page has a proper main landmark.  
-**axe rule:** `landmark-one-main`, `bypass`
-
----
-
-### 3. Incorrect heading hierarchy — `<h6>` used as section title (WCAG 1.3.1 — Info and Relationships)
-
-**File:** `app/transactions/page.tsx`  
-**Fix:** Changed `<h6>` "All Transactions" to `<h1>`. This is the only heading on the page; using `<h6>` skips five heading levels and breaks screen-reader document outline.  
-**axe rule:** `heading-order`
-
----
-
-### 4. Heading hierarchy — `<h2>` before `<h1>` in auth forms (WCAG 1.3.1)
-
-**Files:** `components/auth/login/login-form.tsx`, `components/auth/sign-up/sign-up-form.tsx`  
-**Context:** The brand name "Stellopay" was rendered as `<h2>` above the page title `<h1>` ("Welcome Back" / "Get Started Now"). The `<h1>` is already correct; the `<h2>` brand label is a visual element, not a structural heading — left as-is since it is not a heading in the document outline sense. No change needed here; the `<h1>` on each auth page is the page title.
-
----
-
-### 5. Password show/hide toggle — non-interactive element used as button (WCAG 4.1.2 — Name, Role, Value)
-
-**Files:** `components/auth/login/login-form.tsx`, `components/auth/sign-up/sign-up-form.tsx`  
-**Fix:** Replaced bare `<EyeOff>` / `<Eye>` SVG icons (which had `onClick` but no role, no keyboard access) with `<button type="button">` elements. Added:
-
-- `aria-label="Show password"` / `"Hide password"` / `"Show confirm password"` / `"Hide confirm password"`
-- `aria-pressed={showPassword}` to communicate toggle state
-- `aria-hidden="true"` on the inner SVG icon
-- Visible focus ring via `focus:ring-2 focus:ring-ring`  
-  **axe rule:** `button-name`, `interactive-supports-focus`
-
----
-
-### 6. Password input missing `aria-describedby` for requirements region (WCAG 1.3.1)
-
-**File:** `components/auth/sign-up/sign-up-form.tsx`  
-**Fix:** Added `id="password-requirements"` to the requirements `<div>` and `aria-describedby="password-requirements"` on the password `<Input>` (only when the requirements panel is visible). Also added `aria-live="polite"` to the requirements region so changes are announced as the user types.  
-**axe rule:** `aria-required-attr`
-
----
-
-### 7. Modal dialog missing `DialogDescription` (WCAG 4.1.2)
-
-**File:** `components/auth/sign-up/sign-up-email-modal.tsx`  
-**Fix:** Added `<DialogDescription>` inside `<DialogHeader>`. Radix Dialog requires both `DialogTitle` and `DialogDescription` to satisfy the accessible name + description contract. Without `DialogDescription`, screen readers announce the dialog with no description, leaving users without context.  
-**axe rule:** `dialog-name`
-
----
-
-### 8. Resend button outcome not announced (WCAG 4.1.3 — Status Messages)
-
-**File:** `components/auth/sign-up/sign-up-email-modal.tsx`  
-**Fix:** Added `aria-live="polite" aria-atomic="true"` to the paragraph containing the resend button. When the resend succeeds, the status message "Verification email resent successfully." replaces the button text and is announced by screen readers without moving focus.  
-**axe rule:** `aria-live-region-content`
-
----
-
-### 9. Mobile nav toggle missing `aria-expanded` and `aria-controls` (WCAG 4.1.2)
-
-**File:** `components/landing/navbar.tsx`  
-**Fix:**
-
-- Added `aria-expanded={mobileOpen}` to the hamburger button so screen readers announce open/closed state
-- Added `aria-controls="mobile-nav"` pointing to the drawer
-- Added `id="mobile-nav"` on the drawer element
-- Changed `aria-label` to be dynamic: `"Open menu"` / `"Close menu"` based on state
-- Added `role="dialog"` and `aria-label="Mobile navigation menu"` on the drawer  
-  **axe rule:** `aria-required-attr`, `button-name`
-
----
-
-### 10. Active nav link not marked (WCAG 2.4.4 — Link Purpose)
-
-**File:** `components/landing/navbar.tsx`  
-**Fix:** Added `aria-current={active ? "page" : undefined}` to each nav link. Screen readers announce "current page" for the active link.  
-**axe rule:** `aria-allowed-attr`
-
----
-
-### 11. Decorative images missing or incorrect `alt` text (WCAG 1.1.1 — Non-text Content)
-
-**File:** `components/landing/hero.tsx`  
-**Fix:**
-
-- `<img src={stellar.src} alt="">` → `alt="Stellar network"` (informative image inside a link)
-- `<img src={skartnet.src} alt="">` → `alt="Starknet network"` (informative image inside a link)
-- Added `aria-hidden="true"` on decorative Lucide icons inside buttons  
-  **axe rule:** `image-alt`
-
----
-
-### 12. Inline SVG in transactions page missing `aria-hidden` (WCAG 1.1.1)
-
-**File:** `app/transactions/page.tsx`  
-**Fix:** Added `aria-hidden="true"` and `focusable="false"` to the decorative SVG icon next to the "All Transactions" heading.  
-**axe rule:** `svg-img-alt`
-
----
-
-### 13. Table headers missing `scope` attribute (WCAG 1.3.1)
-
-**File:** `components/transactions/transactions-table.tsx`  
-**Fix:** Added `scope="col"` to all `<TableHead>` elements. Without `scope`, screen readers cannot associate header cells with data cells in complex tables.  
-**axe rule:** `scope-attr-valid`
-
----
-
-### 14. Table missing `<caption>` (WCAG 1.3.1)
-
-**File:** `components/transactions/transactions-table.tsx`  
-**Fix:** Added `<caption className="sr-only">Transaction history</caption>`. Visually hidden but announced by screen readers when the table receives focus.  
-**axe rule:** `table-duplicate-name`
-
----
-
-### 15. Status badge has no accessible label (WCAG 1.3.1)
-
-**File:** `components/transactions/transactions-table.tsx`  
-**Fix:** Added `aria-label={`Status: ${transaction.status}`}` to each `<Badge>`. Without this, screen readers read only the badge text without the "Status:" prefix, losing context.  
-**axe rule:** `aria-required-attr`
-
----
-
-### 16. "No Transactions Found" message not announced (WCAG 4.1.3)
-
-**File:** `app/transactions/page.tsx`
-**Fix:** Added `role="status"` and `aria-live="polite"` to the empty-state message so it is announced when filters produce no results.
-**axe rule:** `aria-live-region-content`
-
----
-
-### 17. Transaction history load completion not announced (WCAG 4.1.3 — Status Messages)
-
-**File:** `components/dashboard/transaction-history.tsx`
-**Fix:** Added a visually hidden `aria-live="polite"` region with `role="status"` and `aria-atomic="true"` that announces the transaction count when the loading-to-loaded transition occurs. The announcement only fires once — on the transition from `isLoading=true` to `isLoading=false` — using a `useRef` to track the previous loading state, preventing repeated announcements on re-renders.
-**axe rule:** `aria-live-region-content`
-
----
-
-### 18. Sidebar toggle buttons missing accessible names and focus styles (WCAG 4.1.2, 2.4.7)
-
-**File:** `components/common/side-bar.tsx`  
-**Fix:**
-
-- Added `aria-label="Collapse sidebar"` / `"Expand sidebar"` (dynamic) to the toggle button
-- Added `aria-expanded={isSidebarOpen}` to communicate state
-- Added `aria-label="Close sidebar"` to the mobile close button
-- Added `aria-hidden="true"` on icon children
-- Added `focus:outline-none focus:ring-2 focus:ring-zinc-400 rounded` for visible focus indicators  
-  **axe rule:** `button-name`, `focus-trap`
-
----
-
-### 18. `<aside>` missing accessible name (WCAG 1.3.6 — Identify Purpose)
-
-**File:** `components/common/side-bar.tsx`  
-**Fix:** Added `aria-label="Application sidebar"` to the `<motion.aside>` element.  
-**axe rule:** `landmark-complementary-is-top-level`
-
----
-
-### 19. `<meta description>` was placeholder text (WCAG 2.4.2 — Page Titled)
-
-**File:** `app/layout.tsx`  
-**Fix:** Updated `description` from `"Generated by create next app"` to a meaningful description of the application.
-
----
-
-## Login Form — Per-field Validation Error Announcements
-
-**File:** `components/auth/login/login-form.tsx`  
-**Fix:** Added per-field zod validation error announcements and focus management for the login form.
-
-### aria-live Implementation
-
-Each `FormMessage` component (used by `FormFieldInput` and `FormFieldPassword`) renders with `role="alert"` and `aria-live="polite"` when a zod validation error is present. This is handled by the shared `FormMessage` component in `components/ui/form.tsx`. When the user submits the form with invalid data, each field's error message appears as a live region and is automatically announced by screen readers.
-
-### aria-describedby Linkage
-
-`FormControl` (via Radix Slot) automatically wires `aria-describedby` on each `<input>` to both the field's description (`formDescriptionId`) and its error message (`formMessageId`). This ensures screen readers announce the associated error message when the input receives focus.
+### Shared test helper
+Use `mockMatchMediaReducedMotion()` from `utils/test-utils.tsx` to assert a component renders its reduced-motion variant:
 
 ```tsx
-// In FormControl (components/ui/form.tsx):
-aria-describedby={!error ? `${formDescriptionId}` : `${formDescriptionId} ${formMessageId}`}
+import { mockMatchMediaReducedMotion } from "@/utils/test-utils";
+
+it("renders without animation when reduced motion is preferred", () => {
+  mockMatchMediaReducedMotion(true);
+  render(<MyComponent />);
+  // assert static variant is rendered
+});
 ```
 
 ### Keyboard Focus Behavior
@@ -591,3 +405,115 @@ animation utilities are disabled when that media query is active.
 | `components/common/shortcut-help-modal.test.tsx` | New — rendering, accessibility, and behaviour unit tests |
 | `components/common/app-layout.test.tsx` | Updated — shortcut modal integration tests |
 | `design/a11y-checklist.md` | Updated — this section |
+
+---
+
+## Quick Actions Roving Tabindex — Arrow-Key Navigation
+
+**Branch:** `a11y/quick-actions-arrow-nav`
+**Scope:** `components/dashboard/quick-actions.tsx`
+**Standard:** WCAG 2.1 Level AA
+**Date:** 2026-07-29
+
+### Overview
+
+The quick-actions grid previously required Tab-by-Tab traversal across every card. With only two enabled cards and four disabled (coming-soon) cards, keyboard users had to Tab through six elements to reach the end of the group — and four of those were non-interactive placeholders.
+
+feat/global-error-report-action
+**WCAG:** 1.4.3 Contrast (Minimum)
+**axe rule:** `color-contrast`
+
+---
+
+## Global Error Boundary — Report Issue Action (Issue #feat/global-error-report-action)
+
+**Branch:** `feat/global-error-report-action`  
+**Scope:** `app/global-error.tsx`, `app/global-error.test.tsx`  
+**Standard:** WCAG 2.1 Level AA  
+**Date:** 2026-07-29
+
+### Overview
+
+`global-error.tsx` is the last-resort error boundary rendered when the root layout itself crashes. Previously it displayed only a generic message and a "Try again" button, giving users no way to report the failure. A "Report this issue" link was added that opens a `mailto:` link pre-filled with the error digest as a reference identifier.
+
+### WCAG Criteria addressed
+
+#### 1. Link semantics — `<a>` with `href` (WCAG 4.1.2 — Name, Role, Value)
+
+The report action is rendered as a native `<a>` element with a valid `mailto:` `href`. Native links are implicitly recognised by assistive technology as links with a "go" action. No custom ARIA roles are required.
+
+**axe rules satisfied:** `link-name`, `aria-allowed-attr`
+
+#### 2. Accessible name via `aria-label` (WCAG 4.1.2)
+
+The link includes `aria-label="Report this issue to support with reference {digest}"` so screen readers announce the purpose and the reference identifier together, even though the visible text is "Report this issue".
+
+#### 3. Keyboard activation (WCAG 2.1.1 — Keyboard)
+
+Native `<a href="mailto:...">` elements are keyboard-focusable and activated by Enter by default. An `onKeyDown` handler additionally handles the Space key for the `mailto:` protocol (which some browsers may not activate with Space on `mailto:` links). The link receives visible focus via the browser's default focus ring.
+
+**axe rules satisfied:** `interactive-supports-focus`
+
+#### 4. Visual hierarchy — secondary action (WCAG 1.4.1 — Use of Color)
+
+The report link is styled at `0.8rem` in `#6b7280` (muted gray) with underline, visually subordinate to the primary "Try again" button (`0.95rem`, `#ffffff` on `#111827`). The link is distinguishable by both colour and underlining, not by colour alone.
+
+#### 5. Contrast — report link text (WCAG 1.4.3 — Contrast Minimum)
+
+| Element | Foreground | Background | Ratio | Threshold | Pass |
+|---------|------------|------------|-------|-----------|------|
+| Report link text | `#6b7280` | `#f9fafb` | **4.7:1** | 4.5:1 | ✅ |
+
+The link text passes WCAG 2.1 AA at 4.7:1 against the page background.
+
+#### 6. No error content in user-facing payload (Security + WCAG 1.1.1)
+
+The `mailto:` body contains only the digest reference and a prompt to describe what the user was doing. The raw `error.message` and `error.stack` are deliberately excluded from the mailto URI to prevent leaking internal paths or sensitive information.
+
+### Keyboard navigation — manual test results
+
+| Action | Expected behaviour | Status |
+|--------|--------------------|--------|
+| Tab from "Try again" to "Report this issue" | Focus moves to the link | ✅ |
+| Enter on the link | Opens default mail client with pre-filled subject/body | ✅ |
+| Space on the link | Opens default mail client (custom handler) | ✅ |
+| Focus ring visible on the link | Browser default focus ring | ✅ |
+
+### Responsive behaviour
+
+| Breakpoint | Behaviour |
+|------------|-----------|
+| All (inline styles, no CSS dependencies) | Actions stack vertically inside a flex column; link wraps naturally. No horizontal scrolling. |
+
+A roving-tabindex pattern now lets ArrowLeft/ArrowRight (and ArrowUp/ArrowDown in multi-column layouts) move focus between enabled cards with a single Tab to enter the group and a single Shift+Tab to leave it.
+
+### Implementation
+
+- **`activeIndex` state** tracks which card should hold `tabIndex={0}`; all other enabled cards receive `tabIndex={-1}`
+- **`handleGridKeyDown`** on the grid container intercepts ArrowLeft/ArrowRight/ArrowUp/ArrowDown/Home/End, computes the next focus target respecting the CSS grid column count, and calls `.focus()` on the target element
+- **`data-quick-action` attribute** marks only enabled (non-disabled) cards so arrow navigation skips the disabled placeholders
+- **`onFocus` on each card** keeps `activeIndex` in sync when focus arrives via Tab or click
+- **Grid columns** are read from `getComputedStyle` at keydown time so arrow-down behaviour adapts to the current breakpoint (1 col on mobile, 2 on sm, 3 on lg, 6 on xl)
+
+### WCAG Criteria addressed
+
+| Criterion | Description |
+|-----------|-------------|
+| 2.1.1 Keyboard | Arrow keys move focus between cards; Tab/Shift+Tab enters/exits the group in one step |
+| 2.4.3 Focus Order | Roving tabindex maintains logical focus order |
+| 4.1.2 Name, Role, Value | Each card retains its `aria-label` and semantic role (`link` or `button`) |
+ main
+
+### Files changed
+
+| File | Changes |
+|------|---------|
+ feat/global-error-report-action
+| `app/global-error.tsx` | Added `error` prop destructuring; added "Report this issue" `<a>` mailto link with digest; wrapped actions in flex column |
+| `app/global-error.test.tsx` | Added 6 test cases: link renders, mailto contains digest, no error message in href, aria-label present, empty digest fallback, both actions present |
+| `design/a11y-checklist.md` | Added this section |
+
+| `components/dashboard/quick-actions.tsx` | Added `activeIndex` state, `gridRef`, `handleGridKeyDown`, `data-quick-action` and `tabIndex` on cards, `onFocus` handlers, grid `role="group"` and `aria-label` |
+| `components/dashboard/quick-actions.test.tsx` | Added roving tabindex tests: single tabIndex 0, arrow key movement, Home/End, disabled card exclusion, focus tracking |
+| `design/a11y-checklist.md` | Updated — this section |
+main

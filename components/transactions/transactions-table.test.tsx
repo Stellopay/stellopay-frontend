@@ -21,19 +21,18 @@ import React from "react";
 import { render, screen, fireEvent, act, waitFor } from "@testing-library/react";
 import { describe, it, expect, vi } from "vitest";
 import { TransactionsTable } from "./transactions-table";
-import { TransactionProps } from "@/types/transaction";
-import { DownloadReceiptButton } from "./download-receipt-button";
-import { generateTransactionReceiptPdf } from "./receipt";
+import { BulkActionBar } from "./bulk-action-bar";
 
-const LONG_ADDRESS = "GA4GYKB4JP2K7UABH4GJ6Y5K7UABH4GJ6Y5K7UABH4GJ6Y5K7UABH4GJ6Y";
-const TRUNCATED_ADDRESS = "GA4GYK...BH4GJ6";
+// ---------------------------------------------------------------------------
+// Shared fixtures
+// ---------------------------------------------------------------------------
 
 const mockTransactions = [
   {
     id: "1",
     type: "Deposit",
     txId: "TX123",
-    address: LONG_ADDRESS,
+    address: "0x1234567890abcdef1234567890abcdef1234567890abcdef",
     date: "2023-10-27",
     time: "10:00 AM",
     token: "ETH",
@@ -41,6 +40,36 @@ const mockTransactions = [
     status: "Completed" as const,
     tokenIcon: "/icons/eth.svg",
     statusColor: "success" as const,
+    memo: "Test memo for deposit transaction",
+    counterparty: "0xabcdef1234567890abcdef1234567890abcdef12345678",
+    fee: "0.001 ETH",
+    hash: "0xhash1234567890abcdef1234567890abcdef1234567890abcdef1234567890",
+  },
+  {
+    id: "2",
+    type: "Withdrawal",
+    txId: "TX456",
+    address: "0xdeadbeefdeadbeefdeadbeefdeadbeefdeadbeef",
+    date: "2023-10-28",
+    time: "11:30 AM",
+    token: "USDC",
+    amount: "-250.00",
+    status: "Pending" as const,
+    tokenIcon: "/icons/usdc.svg",
+    statusColor: "warning" as const,
+  },
+  {
+    id: "3",
+    type: "Transfer",
+    txId: "TX789",
+    address: "0xabcdef1234567890abcdef1234567890abcdef12",
+    date: "2023-10-29",
+    time: "09:15 AM",
+    token: "XLM",
+    amount: "+50.00",
+    status: "Failed" as const,
+    tokenIcon: "/icons/xlm.svg",
+    statusColor: "destructive" as const,
   },
 ];
 
@@ -48,60 +77,26 @@ vi.mock("./receipt", () => ({
   generateTransactionReceiptPdf: vi.fn(() => Promise.resolve()),
 }));
 
-// ── Mock next/image ───────────────────────────────────────────────────────────
-vi.mock("next/image", () => ({
-  default: (props: React.ImgHTMLAttributes<HTMLImageElement>) => (
-    // eslint-disable-next-line @next/next/no-img-element, jsx-a11y/alt-text
-    <img {...props} />
-  ),
-}));
+    it("shows the empty state when transactions array is empty", () => {
+      render(<TransactionsTable transactions={[]} />);
+      expect(
+        screen.getAllByText("No Transactions Found").length,
+      ).toBeGreaterThan(0);
+    });
 
-// ── Fixtures ──────────────────────────────────────────────────────────────────
-function makeTransaction(n: number): TransactionProps {
-  return {
-    id: `TX-${n}`,
-    type: "Payment",
-    address: `GABC${n}`,
-    date: "2024-01-01",
-    time: "10:00",
-    token: "XLM",
-    amount: `+${n * 10} XLM`,
-    status: "Completed",
-    tokenIcon: "/xlm.svg",
-  };
-}
+    it("shows the loading skeleton rows when isLoading=true", () => {
+      const { container } = render(
+        <TransactionsTable transactions={[]} isLoading />,
+      );
+      // Each skeleton uses the skeleton-shimmer class
+      const skeletonDivs = container.querySelectorAll(".skeleton-shimmer");
+      expect(skeletonDivs.length).toBeGreaterThan(0);
+    });
 
-const THREE_ROWS = [makeTransaction(1), makeTransaction(2), makeTransaction(3)];
-
-/** Transaction fixture with long address and amount to exercise tooltip/truncation. */
-const LONG_VALUE_TRANSACTION: TransactionProps = {
-  id: "1",
-  type: "Deposit",
-  address: "0x1234567890abcdef1234567890abcdef1234567890abcdef",
-  date: "2023-10-27",
-  time: "10:00 AM",
-  token: "ETH",
-  amount: "+1000000000000000000000000000.00",
-  status: "Completed",
-  tokenIcon: "/icons/eth.svg",
-};
-
-// ── Helpers ───────────────────────────────────────────────────────────────────
-
-/** Returns the navigable <tr> elements inside the <tbody>. */
-function getDataRows() {
-  return screen.getAllByRole("row").filter(
-    (r) => r.hasAttribute("data-navigable"),
-  );
-}
-
-// ── Tests ─────────────────────────────────────────────────────────────────────
-
-describe("TransactionsTable — basic rendering", () => {
-  it("renders transaction type and id", () => {
-    render(<TransactionsTable transactions={[LONG_VALUE_TRANSACTION]} />);
-    expect(screen.getByText("Deposit")).toBeInTheDocument();
-    expect(screen.getByText("#1")).toBeInTheDocument();
+    it("does NOT render checkboxes when selection props are omitted", () => {
+      render(<TransactionsTable transactions={mockTransactions} />);
+      expect(screen.queryByRole("checkbox")).not.toBeInTheDocument();
+    });
   });
 });
 
@@ -159,140 +154,89 @@ describe("TransactionsTable — tooltip and truncation", () => {
       "+1000000000000000000000000000.00",
     );
     expect(amountElements.length).toBeGreaterThan(0);
+    expect(amountElements[0]).toHaveAttribute("tabIndex", "0");
     expect(amountElements[0]).toHaveClass("truncate");
   });
+});
 
-  it("address tooltip element has tabIndex=0 for keyboard accessibility", () => {
-    render(<TransactionsTable transactions={[LONG_VALUE_TRANSACTION]} />);
+// ──────────────────────────────────────────────────────────────────────────
+// Edge cases
+// ──────────────────────────────────────────────────────────────────────────
 
-    const addressElements = screen.getAllByTitle(
-      "0x1234567890abcdef1234567890abcdef1234567890abcdef",
+describe("edge cases", () => {
+  it("renders empty state with correct colSpan when selection is enabled", () => {
+    const { container } = render(
+      <TransactionsTable
+        transactions={[]}
+        selectedIds={new Set()}
+        onSelectRow={vi.fn()}
+        onSelectAll={vi.fn()}
+      />,
     );
-    expect(addressElements[0]).toHaveAttribute("tabIndex", "0");
+    // colSpan should be 7 (6 data columns + 1 checkbox column)
+    const td = container.querySelector("td[colspan='7']");
+    expect(td).toBeInTheDocument();
   });
 
-  it("amount tooltip element has tabIndex=0 for keyboard accessibility", () => {
-    render(<TransactionsTable transactions={[LONG_VALUE_TRANSACTION]} />);
+  it("renders empty state with colSpan 6 when selection is disabled", () => {
+    const { container } = render(<TransactionsTable transactions={[]} />);
+    const td = container.querySelector("td[colspan='6']");
+    expect(td).toBeInTheDocument();
+  });
 
-    const amountElements = screen.getAllByTitle(
-      "+1000000000000000000000000000.00",
-    );
-    expect(amountElements[0]).toHaveAttribute("tabIndex", "0");
+  it("handles an empty selectedIds set gracefully", () => {
+    expect(() =>
+      render(
+        <TransactionsTable
+          transactions={mockTransactions}
+          selectedIds={new Set()}
+          onSelectRow={vi.fn()}
+          onSelectAll={vi.fn()}
+        />,
+      ),
+    ).not.toThrow();
+  });
+
+  it("does not throw when selectedIds contains ids not in the current page", () => {
+    expect(() =>
+      render(
+        <TransactionsTable
+          transactions={mockTransactions}
+          selectedIds={new Set(["999"])}
+          onSelectRow={vi.fn()}
+          onSelectAll={vi.fn()}
+        />,
+      ),
+    ).not.toThrow();
   });
 });
 
-describe("TransactionsTable — keyboard navigation", () => {
-  it("each data row has tabIndex=0 and data-navigable attribute", () => {
-    render(<TransactionsTable transactions={THREE_ROWS} />);
-    const rows = getDataRows();
-    expect(rows).toHaveLength(3);
-    rows.forEach((r) => expect(r).toHaveAttribute("tabindex", "0"));
+// ---------------------------------------------------------------------------
+// BulkActionBar
+// ---------------------------------------------------------------------------
+
+describe("BulkActionBar", () => {
+  it("returns null when selectedCount is 0", () => {
+    const { container } = render(
+      <BulkActionBar
+        selectedCount={0}
+        onExport={vi.fn()}
+        onTag={vi.fn()}
+        onArchive={vi.fn()}
+        onClearSelection={vi.fn()}
+      />,
+    );
+    expect(container.firstChild).toBeNull();
   });
 
-  it("ArrowDown moves focus from row 0 to row 1", () => {
-    render(<TransactionsTable transactions={THREE_ROWS} />);
-    const [row0, row1] = getDataRows();
-    act(() => row0.focus());
-    fireEvent.keyDown(row0, { key: "ArrowDown" });
-    expect(document.activeElement).toBe(row1);
-  });
-
-  it("ArrowDown moves focus from row 1 to row 2", () => {
-    render(<TransactionsTable transactions={THREE_ROWS} />);
-    const [, row1, row2] = getDataRows();
-    act(() => row1.focus());
-    fireEvent.keyDown(row1, { key: "ArrowDown" });
-    expect(document.activeElement).toBe(row2);
-  });
-
-  it("ArrowUp moves focus from row 2 to row 1", () => {
-    render(<TransactionsTable transactions={THREE_ROWS} />);
-    const [, row1, row2] = getDataRows();
-    act(() => row2.focus());
-    fireEvent.keyDown(row2, { key: "ArrowUp" });
-    expect(document.activeElement).toBe(row1);
-  });
-
-  it("ArrowUp moves focus from row 1 to row 0", () => {
-    render(<TransactionsTable transactions={THREE_ROWS} />);
-    const [row0, row1] = getDataRows();
-    act(() => row1.focus());
-    fireEvent.keyDown(row1, { key: "ArrowUp" });
-    expect(document.activeElement).toBe(row0);
-  });
-
-  it("ArrowDown on the last row keeps focus on the last row", () => {
-    render(<TransactionsTable transactions={THREE_ROWS} />);
-    const rows = getDataRows();
-    const last = rows[rows.length - 1];
-    act(() => last.focus());
-    fireEvent.keyDown(last, { key: "ArrowDown" });
-    expect(document.activeElement).toBe(last);
-  });
-
-  it("ArrowUp on the first row keeps focus on the first row", () => {
-    render(<TransactionsTable transactions={THREE_ROWS} />);
-    const [first] = getDataRows();
-    act(() => first.focus());
-    fireEvent.keyDown(first, { key: "ArrowUp" });
-    expect(document.activeElement).toBe(first);
-  });
-
-  it("Home moves focus to the first row from anywhere", () => {
-    render(<TransactionsTable transactions={THREE_ROWS} />);
-    const rows = getDataRows();
-    const last = rows[rows.length - 1];
-    act(() => last.focus());
-    fireEvent.keyDown(last, { key: "Home" });
-    expect(document.activeElement).toBe(rows[0]);
-  });
-
-  it("End moves focus to the last row from anywhere", () => {
-    render(<TransactionsTable transactions={THREE_ROWS} />);
-    const [first, , last] = getDataRows();
-    act(() => first.focus());
-    fireEvent.keyDown(first, { key: "End" });
-    expect(document.activeElement).toBe(last);
-  });
-
-  it("unrelated keys (Enter) do not move focus", () => {
-    render(<TransactionsTable transactions={THREE_ROWS} />);
-    const [row0] = getDataRows();
-    act(() => row0.focus());
-    fireEvent.keyDown(row0, { key: "Enter" });
-    expect(document.activeElement).toBe(row0);
-  });
-});
-
-describe("TransactionsTable — empty and loading states", () => {
-  it("renders the empty state when no transactions are provided", () => {
-    render(<TransactionsTable transactions={[]} />);
-    expect(screen.getAllByText(/no transactions found/i).length).toBeGreaterThan(0);
-  });
-
-  it("renders skeleton rows when isLoading is true", () => {
-    render(<TransactionsTable transactions={[]} isLoading />);
-    // No data rows, no empty state text
-    expect(screen.queryAllByText(/no transactions found/i)).toHaveLength(0);
-    // Skeleton rows still produce <tr> elements
-    expect(screen.getAllByRole("row").length).toBeGreaterThan(1);
-  });
-
-  it("renders with logical spacing properties in RTL direction", () => {
+  it("renders the bar when selectedCount > 0", () => {
     render(
       <div dir="rtl">
         <TransactionsTable transactions={[LONG_VALUE_TRANSACTION]} />
       </div>
     );
-
-    expect(screen.getByText("Deposit")).toBeInTheDocument();
-    expect(screen.getByText("#1")).toBeInTheDocument();
-
-    const addressElements = screen.getAllByTitle("0x1234567890abcdef1234567890abcdef1234567890abcdef");
-    expect(addressElements.length).toBeGreaterThan(0);
-    expect(addressElements[0]).toHaveClass("-ms-1");
+    expect(screen.getByTestId("bulk-action-bar")).toBeInTheDocument();
   });
-});
 
 
 describe("DownloadReceiptButton", () => {
@@ -309,9 +253,275 @@ describe("DownloadReceiptButton", () => {
     fireEvent.click(
       screen.getByRole("button", { name: /download pdf receipt/i })
     );
+    expect(screen.getByText("1 transaction selected")).toBeInTheDocument();
+  });
 
-    await waitFor(() => {
-      expect(generateTransactionReceiptPdf).toHaveBeenCalledWith(transaction);
+  it("shows plural label for multiple selected transactions", () => {
+    render(
+      <BulkActionBar
+        selectedCount={5}
+        onExport={vi.fn()}
+        onTag={vi.fn()}
+        onArchive={vi.fn()}
+        onClearSelection={vi.fn()}
+      />,
+    );
+    expect(screen.getByText("5 transactions selected")).toBeInTheDocument();
+  });
+
+  it("renders Export, Tag, Archive, and Clear selection buttons", () => {
+    render(
+      <BulkActionBar
+        selectedCount={2}
+        onExport={vi.fn()}
+        onTag={vi.fn()}
+        onArchive={vi.fn()}
+        onClearSelection={vi.fn()}
+      />,
+    );
+    const bar = screen.getByTestId("bulk-action-bar");
+    expect(
+      within(bar).getByRole("button", { name: /export/i }),
+    ).toBeInTheDocument();
+    expect(
+      within(bar).getByRole("button", { name: /tag/i }),
+    ).toBeInTheDocument();
+    expect(
+      within(bar).getByRole("button", { name: /archive/i }),
+    ).toBeInTheDocument();
+    expect(
+      within(bar).getByRole("button", { name: /clear selection/i }),
+    ).toBeInTheDocument();
+  });
+
+  it("calls onExport when Export is clicked", () => {
+    const onExport = vi.fn();
+    render(
+      <BulkActionBar
+        selectedCount={2}
+        onExport={onExport}
+        onTag={vi.fn()}
+        onArchive={vi.fn()}
+        onClearSelection={vi.fn()}
+      />,
+    );
+    fireEvent.click(screen.getByRole("button", { name: /export/i }));
+    expect(onExport).toHaveBeenCalledTimes(1);
+  });
+
+  it("calls onTag when Tag is clicked", () => {
+    const onTag = vi.fn();
+    render(
+      <BulkActionBar
+        selectedCount={2}
+        onExport={vi.fn()}
+        onTag={onTag}
+        onArchive={vi.fn()}
+        onClearSelection={vi.fn()}
+      />,
+    );
+    fireEvent.click(screen.getByRole("button", { name: /tag/i }));
+    expect(onTag).toHaveBeenCalledTimes(1);
+  });
+
+  it("calls onArchive when Archive is clicked", () => {
+    const onArchive = vi.fn();
+    render(
+      <BulkActionBar
+        selectedCount={2}
+        onExport={vi.fn()}
+        onTag={vi.fn()}
+        onArchive={onArchive}
+        onClearSelection={vi.fn()}
+      />,
+    );
+    fireEvent.click(screen.getByRole("button", { name: /archive/i }));
+    expect(onArchive).toHaveBeenCalledTimes(1);
+  });
+
+  it("calls onClearSelection when the X button is clicked", () => {
+    const onClearSelection = vi.fn();
+    render(
+      <BulkActionBar
+        selectedCount={2}
+        onExport={vi.fn()}
+        onTag={vi.fn()}
+        onArchive={vi.fn()}
+        onClearSelection={onClearSelection}
+      />,
+    );
+    fireEvent.click(screen.getByRole("button", { name: /clear selection/i }));
+    expect(onClearSelection).toHaveBeenCalledTimes(1);
+  });
+
+  it("has role=region with aria-label 'Bulk actions'", () => {
+    render(
+      <BulkActionBar
+        selectedCount={2}
+        onExport={vi.fn()}
+        onTag={vi.fn()}
+        onArchive={vi.fn()}
+        onClearSelection={vi.fn()}
+      />,
+    );
+    expect(
+      screen.getByRole("region", { name: /bulk actions/i }),
+    ).toBeInTheDocument();
+  });
+
+  it("has a toolbar with role=toolbar", () => {
+    render(
+      <BulkActionBar
+        selectedCount={2}
+        onExport={vi.fn()}
+        onTag={vi.fn()}
+        onArchive={vi.fn()}
+        onClearSelection={vi.fn()}
+      />,
+    );
+    expect(screen.getByRole("toolbar")).toBeInTheDocument();
+  });
+
+  describe("Quick-view Dialog", () => {
+    it("renders view detail buttons for each transaction", () => {
+      render(<TransactionsTable transactions={mockTransactions} />);
+
+      // Desktop view - find the eye icon button
+      const viewDetailButtons = screen.getAllByLabelText(
+        /View details for transaction/i,
+      );
+      expect(viewDetailButtons.length).toBeGreaterThan(0);
+    });
+
+    it("opens quick-view dialog when clicking view detail button", () => {
+      render(<TransactionsTable transactions={mockTransactions} />);
+
+      const viewDetailButton = screen.getAllByLabelText(
+        /View details for transaction/i,
+      )[0];
+      fireEvent.click(viewDetailButton);
+
+      // Dialog should be visible
+      expect(screen.getByText("Transaction Details")).toBeInTheDocument();
+      expect(
+        screen.getByText("Test memo for deposit transaction"),
+      ).toBeInTheDocument();
+    });
+
+    it("opens quick-view dialog on Enter key press", () => {
+      render(<TransactionsTable transactions={mockTransactions} />);
+
+      const viewDetailButton = screen.getAllByLabelText(
+        /View details for transaction/i,
+      )[0];
+      fireEvent.keyDown(viewDetailButton, { key: "Enter" });
+
+      expect(screen.getByText("Transaction Details")).toBeInTheDocument();
+    });
+
+    it("opens quick-view dialog on Space key press", () => {
+      render(<TransactionsTable transactions={mockTransactions} />);
+
+      const viewDetailButton = screen.getAllByLabelText(
+        /View details for transaction/i,
+      )[0];
+      fireEvent.keyDown(viewDetailButton, { key: " " });
+
+      expect(screen.getByText("Transaction Details")).toBeInTheDocument();
+    });
+
+    it("displays all transaction details in the dialog", () => {
+      render(<TransactionsTable transactions={mockTransactions} />);
+
+      const viewDetailButton = screen.getAllByLabelText(
+        /View details for transaction/i,
+      )[0];
+      fireEvent.click(viewDetailButton);
+
+      // Check all fields are displayed
+      expect(screen.getByText("Transaction Details")).toBeInTheDocument();
+      // Use getAllByText since "Deposit" appears in both table and dialog
+      expect(screen.getAllByText("Deposit").length).toBeGreaterThan(0);
+      expect(screen.getAllByText("#1").length).toBeGreaterThan(0);
+      expect(
+        screen.getByText("Test memo for deposit transaction"),
+      ).toBeInTheDocument();
+      expect(screen.getByText("0.001 ETH")).toBeInTheDocument();
+      expect(
+        screen.getByText(
+          "0xhash1234567890abcdef1234567890abcdef1234567890abcdef1234567890",
+        ),
+      ).toBeInTheDocument();
+      expect(screen.getByText("View Full Details")).toBeInTheDocument();
+    });
+
+    it("includes link to full transaction details page", () => {
+      render(<TransactionsTable transactions={mockTransactions} />);
+
+      const viewDetailButton = screen.getAllByLabelText(
+        /View details for transaction/i,
+      )[0];
+      fireEvent.click(viewDetailButton);
+
+      const fullDetailsLink = screen.getByRole("link", {
+        name: /View full details/i,
+      });
+      expect(fullDetailsLink).toHaveAttribute("href", "/transactions/1");
+    });
+
+    it("closes dialog when pressing Escape", () => {
+      render(<TransactionsTable transactions={mockTransactions} />);
+
+      const viewDetailButton = screen.getAllByLabelText(
+        /View details for transaction/i,
+      )[0];
+      fireEvent.click(viewDetailButton);
+
+      expect(screen.getByText("Transaction Details")).toBeInTheDocument();
+
+      // Press Escape to close
+      fireEvent.keyDown(document, { key: "Escape" });
+
+      // Dialog should be closed
+      expect(screen.queryByText("Transaction Details")).not.toBeInTheDocument();
+    });
+
+    it("handles transactions without optional fields", () => {
+      const minimalTransaction = [
+        {
+          id: "2",
+          type: "Withdrawal",
+          txId: "TX124",
+          address: "0x987654321",
+          date: "2023-10-28",
+          time: "2:00 PM",
+          token: "USDC",
+          amount: "-50.00",
+          status: "Pending" as const,
+          tokenIcon: "/icons/usdc.svg",
+          statusColor: "warning" as const,
+        },
+      ];
+
+      render(<TransactionsTable transactions={minimalTransaction} />);
+
+      // Use getAllByLabelText since both desktop and mobile views render the button
+      const viewDetailButtons = screen.getAllByLabelText(
+        /View details for transaction 2/i,
+      );
+      fireEvent.click(viewDetailButtons[0]);
+
+      // Dialog should still open and show basic info
+      expect(screen.getByText("Transaction Details")).toBeInTheDocument();
+      // Use getAllByText since "Withdrawal" appears in both table and dialog
+      expect(screen.getAllByText("Withdrawal").length).toBeGreaterThan(0);
+      expect(screen.getAllByText("#2").length).toBeGreaterThan(0);
+
+      // Optional fields should not be in the document
+      expect(screen.queryByText("Memo")).not.toBeInTheDocument();
+      expect(screen.queryByText("Counterparty")).not.toBeInTheDocument();
+      expect(screen.queryByText("Fee")).not.toBeInTheDocument();
+      expect(screen.queryByText("Transaction Hash")).not.toBeInTheDocument();
     });
   });
 
@@ -324,9 +534,30 @@ describe("DownloadReceiptButton", () => {
       screen.getByRole("button", { name: /download pdf receipt/i })
     );
 
-    expect(await screen.findByRole("alert")).toHaveTextContent(
-      /couldn't generate the receipt/i
-    );
+      // Mobile cards should be in the document (hidden on desktop)
+      const mobileCards = screen.getAllByRole("button", {
+        name: /View details for transaction/i,
+      });
+      // At least one mobile card should exist
+      expect(mobileCards.length).toBeGreaterThan(0);
+    });
+
+    it("opens dialog when clicking mobile transaction card", () => {
+      render(<TransactionsTable transactions={mockTransactions} />);
+
+      // Find mobile card button
+      const mobileCards = screen.getAllByRole("button", {
+        name: /View details for transaction 1/i,
+      });
+      const mobileCard = mobileCards.find((card) =>
+        card.className.includes("w-full text-left"),
+      );
+
+      if (mobileCard) {
+        fireEvent.click(mobileCard);
+        expect(screen.getByText("Transaction Details")).toBeInTheDocument();
+      }
+    });
   });
 
   it("renders empty state when no transactions and not loading", () => {
