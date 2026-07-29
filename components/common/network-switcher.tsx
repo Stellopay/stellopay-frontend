@@ -60,6 +60,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { StellarIcon } from "@/public/svg/svg";
 import { SUPPORTED_NETWORKS, useWallet } from "@/context/wallet-context";
 import type { Network } from "@/types/wallet";
+import { toast } from "sonner";
 
 export type { Network };
 
@@ -127,11 +128,17 @@ export default function NetworkSwitcher({
   const handleSwitchToSupported = () => {
     if (!resolvedNetworks.length) return;
     const target = resolvedNetworks[0];
-    if (!selectedNetwork) {
-      wallet.setNetwork(target);
+    try {
+      if (!selectedNetwork) {
+        wallet.setNetwork(target);
+      }
+      onNetworkChange?.(target);
+      setBannerDismissed(true);
+      toast.success(`Switched to ${target.name}.`);
+    } catch (err) {
+      const reason = err instanceof Error ? err.message : "Unknown error";
+      toast.error(`Failed to switch network. ${reason}`);
     }
-    onNetworkChange?.(target);
-    setBannerDismissed(true);
   };
 
   const handleNetworkSelect = (network: Network) => {
@@ -144,10 +151,16 @@ export default function NetworkSwitcher({
     // Only commit to the shared context when there is no caller override.
     // When selectedNetwork is provided, the parent is treating this as a
     // controlled component and is responsible for the source of truth.
-    if (!selectedNetwork) {
-      wallet.setNetwork(pendingNetwork);
+    try {
+      if (!selectedNetwork) {
+        wallet.setNetwork(pendingNetwork);
+      }
+      onNetworkChange?.(pendingNetwork);
+      toast.success(`Switched to ${pendingNetwork.name}.`);
+    } catch (err) {
+      const reason = err instanceof Error ? err.message : "Unknown error";
+      toast.error(`Failed to switch to ${pendingNetwork.name}. ${reason}`);
     }
-    onNetworkChange?.(pendingNetwork);
     setPendingNetwork(null);
     // Focus returns to the trigger via onCloseAutoFocus on DialogContent
     // (issue #343).
