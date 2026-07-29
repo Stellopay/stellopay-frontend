@@ -22,6 +22,12 @@ import { render, screen, fireEvent, act } from "@testing-library/react";
 import { describe, it, expect, vi } from "vitest";
 import { TransactionsTable } from "./transactions-table";
 import { TransactionProps } from "@/types/transaction";
+import { DownloadReceiptButton } from "./download-receipt-button";
+import { generateTransactionReceiptPdf } from "./receipt";
+
+
+
+import { generateTransactionReceiptPdf } from "./receipt";
 
 // ── Mock next/image ───────────────────────────────────────────────────────────
 vi.mock("next/image", () => ({
@@ -256,5 +262,47 @@ describe("TransactionsTable — empty and loading states", () => {
     expect(screen.queryAllByText(/no transactions found/i)).toHaveLength(0);
     // Skeleton rows still produce <tr> elements
     expect(screen.getAllByRole("row").length).toBeGreaterThan(1);
+  });
+});
+
+
+
+jest.mock("./receipt", () => ({
+  generateTransactionReceiptPdf: jest.fn().mockResolvedValue(undefined),
+}));
+
+
+describe("DownloadReceiptButton", () => {
+  const transaction = {
+    id: "tx_1",
+    hash: "0xabc123",
+    amount: "$100.00",
+    counterparty: "Jane Doe",
+    timestamp: new Date().toISOString(),
+  };
+
+  it("generates a PDF receipt when clicked", async () => {
+    render(<DownloadReceiptButton transaction={transaction} />);
+    fireEvent.click(
+      screen.getByRole("button", { name: /download pdf receipt/i })
+    );
+
+    await waitFor(() => {
+      expect(generateTransactionReceiptPdf).toHaveBeenCalledWith(transaction);
+    });
+  });
+
+  it("shows an error message if generation fails", async () => {
+    (generateTransactionReceiptPdf as jest.Mock).mockRejectedValueOnce(
+      new Error("fail")
+    );
+    render(<DownloadReceiptButton transaction={transaction} />);
+    fireEvent.click(
+      screen.getByRole("button", { name: /download pdf receipt/i })
+    );
+
+    expect(await screen.findByRole("alert")).toHaveTextContent(
+      /couldn't generate the receipt/i
+    );
   });
 });

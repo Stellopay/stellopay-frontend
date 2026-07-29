@@ -227,3 +227,28 @@ The Transactions list component distinguishes between an empty result (e.g. no t
 - **ARIA**: The `ErrorState` component utilizes `role="alert"` and `aria-live="assertive"` so screen readers can proactively announce network failures. Loading/Retrying indicators use `aria-hidden="true"` on non-text elements and `aria-label` or `aria-disabled` where appropriate to ensure status is accurately conveyed.
 
 
+## Transaction PDF receipt with QR verification
+
+### Overview
+Each row in `components/transactions/transactions-table.tsx` has a
+"Download receipt" action that generates a real, downloadable PDF
+(via `jspdf`) — distinct from the existing print stylesheet and
+on-page receipt view.
+
+### Contents
+- StelloPay logo (from `public/logos`)
+- Transaction hash, amount, counterparty, and timestamp
+- A QR code (via `qrcode`) encoding a link to the transaction's
+  detail/verification URL
+
+### Accessibility (WCAG 2.1 AA)
+- Button has a descriptive `aria-label` including the transaction hash
+- Generation errors surface via `role="alert"`
+- Visible focus ring (`focus-visible:ring-2`)
+- Button is disabled (not hidden) while generating, keeping it in the
+  tab order with an updated accessible label ("Generating…")
+
+### Responsive
+Verified at sm (640px), md (768px), lg (1024px), xl (1280px) — button
+sits inline with existing row actions and wraps under the row on
+narrow widths.

@@ -16,6 +16,7 @@ import { getStatusColor } from "@/utils/transactionUtils";
 import { EmptyState } from "@/components/ui/empty-state";
 import { TRANSACTIONS_PAGE_SIZE } from "./transactions-config";
 import { useRef, type KeyboardEvent } from "react";
+import { DownloadReceiptButton } from "./download-receipt-button";
 
 interface TransactionsTablePropsExtended extends TransactionsTableProps {
   isLoading?: boolean;
@@ -242,6 +243,16 @@ export function TransactionsTable({
                 </TableRow>
               ))
             )}
+
+            <DownloadReceiptButton
+            transaction={{
+              id: transaction.id,
+              hash: transaction.hash,
+              amount: transaction.amount,
+              counterparty: transaction.counterparty,
+              timestamp: transaction.timestamp,
+            }}
+          />
           </TableBody>
         </Table>
       </div>
