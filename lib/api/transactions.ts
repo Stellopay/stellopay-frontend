@@ -8,7 +8,7 @@
 
 import type { Transaction, TransactionFilters } from "@/types/transaction";
 import { allTransactions } from "@/lib/transactions";
-import { filterTransactions, sortTransactions } from "@/utils/transactionUtils";
+import { filterTransactions, sortTransactionsMulti } from "@/utils/transactionUtils";
 
 export interface PaginatedTransactions {
   data: Transaction[];
@@ -106,8 +106,7 @@ export async function getTransactions(
     selectedFilter = "All Transactions",
     fromDate = MOCK_FROM_DATE,
     toDate = MOCK_TO_DATE,
-    sortField = "date",
-    sortDirection = "desc",
+    sortConfigs = [{ field: "date" as const, direction: "desc" as const }],
   } = filters;
 
   const safePageSize = normalizePositiveInteger(
@@ -170,7 +169,7 @@ export async function getTransactions(
     filterQuery,
   );
 
-  const sorted = sortTransactions(filtered, sortField, sortDirection);
+  const sorted = sortTransactionsMulti(filtered, sortConfigs);
 
   const total = sorted.length;
   const totalPages = Math.max(1, Math.ceil(total / safePageSize));

@@ -2,6 +2,7 @@ import type {
   Transaction,
   SortField,
   SortDirection,
+  SortConfig,
 } from "@/types/transaction";
 import { formatCurrency } from "./formatUtils";
 import { formatDate } from "./date-utils";
@@ -123,10 +124,48 @@ const compareSortValues = (
 };
 
 /**
- * Sorts transactions by a type-checked transaction field.
+ * Sorts transactions by an ordered list of sort criteria (multi-column sort).
+ *
+ * When two transactions have equal values for the first criterion, the second
+ * criterion is used as a tiebreaker, and so on through the list.
  *
  * Invalid dates and non-finite amounts are normalized to stable fallback values
  * so malformed transaction data cannot throw while rendering the sorted view.
+ *
+ * @param transactions - Array of transactions to sort
+ * @param sortConfigs - Ordered list of (field, direction) pairs.
+ *   The first entry is the primary sort; subsequent entries are tiebreakers.
+ * @returns Sorted array of transactions
+ */
+export const sortTransactionsMulti = (
+  transactions: Transaction[],
+  sortConfigs: SortConfig[],
+): Transaction[] => {
+  if (sortConfigs.length === 0) {
+    return [...transactions];
+  }
+
+  return [...transactions].sort((a, b) => {
+    for (const { field, direction } of sortConfigs) {
+      const comparison = compareSortValues(
+        getSortValue(a, field),
+        getSortValue(b, field),
+      );
+
+      if (comparison !== 0) {
+        return direction === "asc" ? comparison : -comparison;
+      }
+    }
+
+    return 0;
+  });
+};
+
+/**
+ * Sorts transactions by a single sort criterion.
+ *
+ * Delegates to {@link sortTransactionsMulti} with a single-element config array
+ * so behaviour is identical to the previous single-key implementation.
  *
  * @param transactions - Array of transactions to sort
  * @param sortField - Transaction field to sort by (date, amount, type, status)
@@ -138,14 +177,7 @@ export const sortTransactions = (
   sortField: SortField,
   sortDirection: SortDirection,
 ): Transaction[] => {
-  return [...transactions].sort((a, b) => {
-    const comparison = compareSortValues(
-      getSortValue(a, sortField),
-      getSortValue(b, sortField),
-    );
-
-    return sortDirection === "asc" ? comparison : -comparison;
-  });
+  return sortTransactionsMulti(transactions, [{ field: sortField, direction: sortDirection }]);
 };
 
 /**
