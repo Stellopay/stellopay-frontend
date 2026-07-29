@@ -2,6 +2,57 @@
 
 Standardized form patterns for Stellopay to ensure consistent validation, loading, and feedback states.
 
+## Shared Input Token Contract
+
+All common input components (`TextInput`, `TextareaInput`) now consume design tokens from `components/common/input-tokens.ts`, ensuring pixel-identical visual styling with the canonical shadcn `Input` (`components/ui/input.tsx`).
+
+### Token Definitions
+
+| Token | Export | Description |
+|---|---|---|
+| Wrapper base | `INPUT_WRAPPER_CLASSES` | Border, radius, shadow, transition, dark mode background |
+| Default state | `INPUT_DEFAULT_CLASSES` | Input border + `focus-within` ring on wrapper |
+| Error state | `INPUT_ERROR_CLASSES` | Destructive border/ring + destructive focus ring |
+| Disabled state | `INPUT_DISABLED_CLASSES` | Reduced opacity, no pointer events, not-allowed cursor |
+| Inner element | `INPUT_INNER_CLASSES` | Transparent background, no outline, foreground text, muted placeholder |
+
+### Styling Philosophy
+
+- **Semantic tokens only** — never hardcode colors. Use `--destructive`, `--ring`, `--input`, `--background`, `--foreground`, `--muted-foreground`.
+- **`focus-within` on the wrapper** — because the border/ring is painted on the wrapper `<div>` (not the inner `<input>`/`<textarea>`), use `focus-within:` variants rather than `focus-visible:`.
+- **`transition-[color,box-shadow]`** — matches the shadcn input transition for smooth state changes.
+- **`shadow-xs`** — subtle depth identical to shadcn input.
+- **Dark mode** — `dark:bg-input/30` resolves correctly in both themes.
+
+### Interaction States
+
+| State | Visual | Tokens |
+|---|---|---|
+| **Default** | Neutral border, no ring | `INPUT_DEFAULT_CLASSES` |
+| **Hover** | Inherits default (no separate hover token) | — |
+| **Focus** | Blue ring (`--ring`) on wrapper | `focus-within:border-ring focus-within:ring-ring/50 focus-within:ring-[3px]` |
+| **Error** | Red border + red ring | `INPUT_ERROR_CLASSES` |
+| **Error + Focus** | Red border + red focus ring | `focus-within:border-destructive focus-within:ring-destructive/50` (included in `INPUT_ERROR_CLASSES`) |
+| **Disabled** | 50% opacity, no pointer events, not-allowed cursor | `INPUT_DISABLED_CLASSES` |
+
+### Accessibility Considerations
+
+- **`aria-invalid`**: Set to `"true"` when in error state; `"false"` otherwise. Screen readers announce invalid state.
+- **`aria-describedby`**: Links the input to its helper text and/or error message elements.
+- **Error messages**: Rendered with `role="alert"` and `aria-live="polite"` for live region announcement.
+- **Disabled state**: Uses `disabled:pointer-events-none` and `disabled:cursor-not-allowed` in addition to opacity.
+- **Focus indicators**: Visible focus ring via `focus-within:ring-[3px]` meets WCAG 2.4.7 (Focus Visible).
+- **Color contrast**: All foreground/background combinations use semantic tokens that comply with WCAG 2.1 AA (4.5:1 for normal text).
+
+### Guidance for Future Input Components
+
+1. Import tokens from `components/common/input-tokens.ts`.
+2. Apply `INPUT_WRAPPER_CLASSES` to the outermost border/ring container.
+3. Conditionally apply `INPUT_DEFAULT_CLASSES` or `INPUT_ERROR_CLASSES` based on state.
+4. Apply `INPUT_DISABLED_CLASSES` when disabled.
+5. Apply `INPUT_INNER_CLASSES` to the inner `<input>`, `<textarea>`, or `<select>` element.
+6. Use `focus-within:` variants on the wrapper for focus ring (the inner element uses `focus:outline-none`).
+
 ## Shared Tokens
 
 We use semantic tokens for form states to ensure brand consistency:
@@ -22,7 +73,15 @@ The base `Input` component handles all semantic states:
 - `warning`: Amber border and ring.
 - `loading`: Shows a spinner on the right.
 
-### 2. FormField (Abstractions)
+### 2. TextInput (Common)
+
+Common text input used across the application. Uses the shared input token contract.
+
+### 3. TextareaInput (Common)
+
+Common textarea input with character counter support. Uses the shared input token contract.
+
+### 4. FormField (Abstractions)
 
 Use high-level abstractions for common patterns:
 

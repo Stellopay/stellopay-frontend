@@ -2,6 +2,13 @@ import React, { ChangeEvent } from "react";
 import { TextInputProps } from "@/types/ui";
 import { Label } from "@/components/ui/label";
 import { cn } from "@/utils/commonUtils";
+import {
+  INPUT_WRAPPER_CLASSES,
+  INPUT_DEFAULT_CLASSES,
+  INPUT_ERROR_CLASSES,
+  INPUT_DISABLED_CLASSES,
+  INPUT_INNER_CLASSES,
+} from "./input-tokens";
 
 interface EnhancedTextInputProps extends TextInputProps {
   error?: boolean;
@@ -77,9 +84,10 @@ const TextInput: React.FC<EnhancedTextInputProps> = ({
       )}
       <div
         className={cn(
-          "flex items-center border rounded-md h-12 overflow-hidden transition-colors",
-          error ? "border-destructive ring-destructive/20" : "border-input",
-          disabled && "opacity-50 cursor-not-allowed",
+          INPUT_WRAPPER_CLASSES,
+          "h-12 items-center",
+          error ? INPUT_ERROR_CLASSES : INPUT_DEFAULT_CLASSES,
+          disabled && INPUT_DISABLED_CLASSES,
         )}
       >
         {icon && (
@@ -96,10 +104,7 @@ const TextInput: React.FC<EnhancedTextInputProps> = ({
           onChange={handleChange}
           onBlur={onBlur}
           disabled={disabled}
-          className={cn(
-            "px-3 w-full bg-transparent focus:outline-none text-foreground",
-            icon && "pl-0",
-          )}
+          className={cn(INPUT_INNER_CLASSES, icon && "pl-0")}
           aria-invalid={error ? "true" : "false"}
           aria-describedby={describedBy}
           aria-required={required}
