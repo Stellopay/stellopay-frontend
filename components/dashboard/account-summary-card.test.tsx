@@ -1,8 +1,15 @@
 import React from 'react';
 import { render, screen } from '@testing-library/react';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import AccountSummaryCard from './account-summary-card';
 import { AccountSummaryCardProps } from './summary-data';
+
+vi.mock('next/dynamic', () => ({
+  default: () => {
+    const MockChart = () => <div data-testid="recharts-mini-bar-chart-mock" />;
+    return MockChart;
+  },
+}));
 
 const defaultProps: AccountSummaryCardProps = {
   title: "Total Balance",

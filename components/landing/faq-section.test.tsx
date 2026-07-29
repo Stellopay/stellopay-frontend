@@ -1,7 +1,13 @@
 import { fireEvent, render, screen } from "@testing-library/react";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
 import FAQSection from "./faq-section";
+
+const mockUseReducedMotion = vi.hoisted(() => vi.fn().mockReturnValue(false));
+
+vi.mock("@/hooks/useReducedMotion", () => ({
+  useReducedMotion: () => mockUseReducedMotion(),
+}));
 
 describe("FAQSection", () => {
   it("uses Stellar-accurate wallet, asset, and fee copy", () => {
@@ -54,6 +60,39 @@ describe("FAQSection", () => {
     fireEvent.click(currenciesQuestion);
     expect(currenciesQuestion).toHaveAttribute("aria-expanded", "true");
     expect(screen.getByText(/XLM and USDC on Stellar/i)).toBeInTheDocument();
+  });
+
+  describe("reduced motion", () => {
+    it("renders answer content without animation when reduced motion is preferred", () => {
+      mockUseReducedMotion.mockReturnValue(true);
+      render(<FAQSection />);
+
+      expect(
+        screen.getByText(
+          /StelloPay never asks for your seed phrase or private key/i,
+        ),
+      ).toBeInTheDocument();
+      mockUseReducedMotion.mockReturnValue(false);
+    });
+
+    it("toggles accordion correctly even without animation", () => {
+      mockUseReducedMotion.mockReturnValue(true);
+      render(<FAQSection />);
+
+      const walletQuestion = screen.getByRole("button", {
+        name: /Do I need a crypto wallet/i,
+      });
+      expect(walletQuestion).toHaveAttribute("aria-expanded", "true");
+
+      fireEvent.click(walletQuestion);
+      expect(walletQuestion).toHaveAttribute("aria-expanded", "false");
+      expect(
+        screen.queryByText(
+          /StelloPay never asks for your seed phrase or private key/i,
+        ),
+      ).not.toBeInTheDocument();
+      mockUseReducedMotion.mockReturnValue(false);
+    });
   });
 
   describe("keyboard navigation", () => {
