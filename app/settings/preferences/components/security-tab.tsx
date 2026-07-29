@@ -25,8 +25,12 @@ import { Badge } from "@/components/ui/badge";
 import { Form } from "@/components/ui/form";
 import { FormFieldPassword } from "@/components/ui/form-field";
 import { Input } from "@/components/ui/input";
+import { PasswordStrengthIndicator } from "@/components/ui/password-strength-indicator";
 import { changePasswordSchema, ChangePasswordFormValues } from "@/types/auth";
-import { checkPasswordRequirements } from "@/utils/authUtils";
+import {
+  calculatePasswordStrength,
+  checkPasswordRequirements,
+} from "@/utils/authUtils";
 import DestructiveActionDialog from "./destructive-action-dialog";
 import { DEMO_SECURITY } from "@/lib/demo-data";
 
@@ -276,6 +280,10 @@ export default function SecurityTab({
   const watchedPassword = form.watch("newPassword");
   const watchedConfirm = form.watch("confirmPassword");
   const passwordRequirements = checkPasswordRequirements(watchedPassword);
+  const passwordStrengthResult = useMemo(
+    () => calculatePasswordStrength(watchedPassword),
+    [watchedPassword],
+  );
   const passwordsMatch =
     watchedPassword.length > 0 && watchedPassword === watchedConfirm;
 
@@ -358,14 +366,21 @@ export default function SecurityTab({
                   autoComplete="new-password"
                   disabled={isSaving}
                 />
-                <FormFieldPassword
-                  control={form.control}
-                  name="confirmPassword"
-                  label="Confirm password"
-                  placeholder="Repeat the new password"
-                  autoComplete="new-password"
-                  disabled={isSaving}
-                />
+                <div className="space-y-4">
+                  <FormFieldPassword
+                    control={form.control}
+                    name="confirmPassword"
+                    label="Confirm password"
+                    placeholder="Repeat the new password"
+                    autoComplete="new-password"
+                    disabled={isSaving}
+                  />
+                  {watchedPassword.length > 0 && (
+                    <PasswordStrengthIndicator
+                      strengthResult={passwordStrengthResult}
+                    />
+                  )}
+                </div>
               </div>
 
               <div className="grid gap-3 sm:grid-cols-2">
