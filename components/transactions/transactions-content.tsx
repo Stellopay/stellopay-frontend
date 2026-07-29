@@ -59,7 +59,7 @@ export default function TransactionsContent() {
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = TRANSACTIONS_PAGE_SIZE;
 
-  const { data, isLoading, error } = useTransactions({
+  const { data, isLoading, error, refetch } = useTransactions({
     filters,
     page: currentPage,
     pageSize: itemsPerPage,
@@ -122,8 +122,8 @@ export default function TransactionsContent() {
             {!isLoading && error && (
               <ErrorState
                 title="Failed to Load"
-                description="Failed to load transactions. Please try again."
-                onRetry={() => window.location.reload()}
+                description={error}
+                onRetry={refetch}
               />
             )}
 
