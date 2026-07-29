@@ -1,6 +1,6 @@
 import React from "react";
 import { render, screen, fireEvent } from "@testing-library/react";
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { Send, BarChart3 } from "lucide-react";
 
 // next/link is only available inside the Next.js runtime; render it as a plain
@@ -11,16 +11,25 @@ vi.mock("next/link", () => ({
     children,
     className,
     "aria-label": ariaLabel,
+    title,
   }: {
     href: string;
     children: React.ReactNode;
     className?: string;
     "aria-label"?: string;
+    title?: string;
   }) => (
-    <a href={href} className={className} aria-label={ariaLabel}>
+    <a href={href} className={className} aria-label={ariaLabel} title={title}>
       {children}
     </a>
   ),
+}));
+
+const mockPush = vi.fn();
+vi.mock("next/navigation", () => ({
+  useRouter: () => ({
+    push: mockPush,
+  }),
 }));
 
 import { QuickActions, type QuickActionItem } from "./quick-actions";
@@ -47,6 +56,10 @@ function renderDefault() {
 // ---------------------------------------------------------------------------
 
 describe("QuickActions – default destinations", () => {
+  beforeEach(() => {
+    mockPush.mockClear();
+  });
+
   it("renders all six action cards", () => {
     renderDefault();
 
@@ -95,6 +108,10 @@ describe("QuickActions – default destinations", () => {
 // ---------------------------------------------------------------------------
 
 describe("QuickActions – disabled (coming soon) cards", () => {
+  beforeEach(() => {
+    mockPush.mockClear();
+  });
+
   it.each(COMING_SOON_TITLES)(
     '"%s" is not rendered as a link or button',
     (title) => {
@@ -144,6 +161,10 @@ describe("QuickActions – disabled (coming soon) cards", () => {
 // ---------------------------------------------------------------------------
 
 describe("QuickActions – accessibility", () => {
+  beforeEach(() => {
+    mockPush.mockClear();
+  });
+
   it("all icons inside active cards are aria-hidden", () => {
     renderDefault();
 
@@ -190,6 +211,10 @@ describe("QuickActions – accessibility", () => {
 // ---------------------------------------------------------------------------
 
 describe("QuickActions – onClick button variant", () => {
+  beforeEach(() => {
+    mockPush.mockClear();
+  });
+
   it("fires the onClick handler when the button card is clicked", () => {
     const handler = vi.fn();
     const customActions: QuickActionItem[] = [
@@ -236,6 +261,10 @@ describe("QuickActions – onClick button variant", () => {
 // ---------------------------------------------------------------------------
 
 describe("QuickActions – href link variant", () => {
+  beforeEach(() => {
+    mockPush.mockClear();
+  });
+
   it("link card has aria-label equal to its title", () => {
     const customActions: QuickActionItem[] = [
       {
@@ -273,6 +302,10 @@ describe("QuickActions – href link variant", () => {
 // ---------------------------------------------------------------------------
 
 describe("QuickActions – Customize control", () => {
+  beforeEach(() => {
+    mockPush.mockClear();
+  });
+
   it("renders a Customize button when onCustomize is provided", () => {
     const onCustomize = vi.fn();
     render(<QuickActions onCustomize={onCustomize} />);
@@ -294,6 +327,10 @@ describe("QuickActions – Customize control", () => {
 // ---------------------------------------------------------------------------
 
 describe("QuickActions – custom actions prop", () => {
+  beforeEach(() => {
+    mockPush.mockClear();
+  });
+
   it("renders only the supplied custom actions", () => {
     const customActions: QuickActionItem[] = [
       {
@@ -321,5 +358,189 @@ describe("QuickActions – custom actions prop", () => {
     expect(screen.getByRole("link", { name: "Alpha" })).toHaveAttribute("href", "/alpha");
     expect(screen.queryByRole("link", { name: "Beta" })).not.toBeInTheDocument();
     expect(screen.getByLabelText("Beta, coming soon")).toBeInTheDocument();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Keyboard shortcuts
+// ---------------------------------------------------------------------------
+
+describe("QuickActions – keyboard shortcuts", () => {
+  beforeEach(() => {
+    mockPush.mockClear();
+  });
+
+  it("triggers router.push when key for default href action is pressed", () => {
+    renderDefault();
+
+    fireEvent.keyDown(window, { key: "s" });
+    expect(mockPush).toHaveBeenCalledWith("/transactions");
+
+    fireEvent.keyDown(window, { key: "r" });
+    expect(mockPush).toHaveBeenCalledWith("/analytics-view");
+  });
+
+  it("triggers onClick callback when key for custom onClick action is pressed", () => {
+    const onClickMock = vi.fn();
+    const customActions: QuickActionItem[] = [
+      {
+        icon: Send,
+        title: "Quick Send",
+        subtitle: "Send money",
+        shortcut: "q",
+        onClick: onClickMock,
+        borderColor: "border-zinc-200",
+        bgColor: "bg-zinc-50",
+        iconColor: "text-zinc-500",
+      },
+    ];
+
+    render(<QuickActions actions={customActions} />);
+
+    fireEvent.keyDown(window, { key: "q" });
+    expect(onClickMock).toHaveBeenCalledTimes(1);
+    expect(mockPush).not.toHaveBeenCalled();
+  });
+
+  it("shortcuts are case-insensitive", () => {
+    renderDefault();
+
+    fireEvent.keyDown(window, { key: "S" });
+    expect(mockPush).toHaveBeenCalledWith("/transactions");
+
+    fireEvent.keyDown(window, { key: "R" });
+    expect(mockPush).toHaveBeenCalledWith("/analytics-view");
+  });
+
+  it("suppresses shortcuts when an input field has focus", () => {
+    render(
+      <div>
+        <input data-testid="test-input" type="text" />
+        <QuickActions />
+      </div>
+    );
+
+    const input = screen.getByTestId("test-input");
+    input.focus();
+
+    fireEvent.keyDown(input, { key: "s" });
+    expect(mockPush).not.toHaveBeenCalled();
+  });
+
+  it("suppresses shortcuts when a textarea has focus", () => {
+    render(
+      <div>
+        <textarea data-testid="test-textarea" />
+        <QuickActions />
+      </div>
+    );
+
+    const textarea = screen.getByTestId("test-textarea");
+    textarea.focus();
+
+    fireEvent.keyDown(textarea, { key: "s" });
+    expect(mockPush).not.toHaveBeenCalled();
+  });
+
+  it("suppresses shortcuts when a select element has focus", () => {
+    render(
+      <div>
+        <select data-testid="test-select">
+          <option value="1">Option 1</option>
+        </select>
+        <QuickActions />
+      </div>
+    );
+
+    const select = screen.getByTestId("test-select");
+    select.focus();
+
+    fireEvent.keyDown(select, { key: "s" });
+    expect(mockPush).not.toHaveBeenCalled();
+  });
+
+  it("suppresses shortcuts when target is contentEditable", () => {
+    render(
+      <div>
+        <div data-testid="test-editable" contentEditable="true" />
+        <QuickActions />
+      </div>
+    );
+
+    const editable = screen.getByTestId("test-editable");
+    editable.focus();
+
+    fireEvent.keyDown(editable, { key: "s" });
+    expect(mockPush).not.toHaveBeenCalled();
+  });
+
+  it("suppresses shortcuts when modifier keys are pressed", () => {
+    renderDefault();
+
+    fireEvent.keyDown(window, { key: "s", ctrlKey: true });
+    expect(mockPush).not.toHaveBeenCalled();
+
+    fireEvent.keyDown(window, { key: "s", metaKey: true });
+    expect(mockPush).not.toHaveBeenCalled();
+
+    fireEvent.keyDown(window, { key: "s", altKey: true });
+    expect(mockPush).not.toHaveBeenCalled();
+  });
+
+  it("does not trigger shortcut for disabled actions", () => {
+    const customActions: QuickActionItem[] = [
+      {
+        icon: Send,
+        title: "Disabled Action",
+        subtitle: "Not ready",
+        shortcut: "d",
+        disabled: true,
+        borderColor: "border-zinc-200",
+        bgColor: "bg-zinc-50",
+        iconColor: "text-zinc-500",
+      },
+    ];
+
+    render(<QuickActions actions={customActions} />);
+
+    fireEvent.keyDown(window, { key: "d" });
+    expect(mockPush).not.toHaveBeenCalled();
+  });
+
+  it("renders visual shortcut hint badge (<kbd>) and title hint", () => {
+    renderDefault();
+
+    expect(screen.getByText("S")).toBeInTheDocument();
+    expect(screen.getByText("R")).toBeInTheDocument();
+
+    const sendLink = screen.getByRole("link", { name: "Send Payment" });
+    expect(sendLink).toHaveAttribute("title", "Send Payment (Shortcut: S)");
+  });
+
+  it("does not navigate or call handler if action has shortcut but no onClick or href", () => {
+    const customActions: QuickActionItem[] = [
+      {
+        icon: Send,
+        title: "No-op Action",
+        subtitle: "Nothing defined",
+        shortcut: "n",
+        borderColor: "border-zinc-200",
+        bgColor: "bg-zinc-50",
+        iconColor: "text-zinc-500",
+      },
+    ];
+
+    render(<QuickActions actions={customActions} />);
+
+    fireEvent.keyDown(window, { key: "n" });
+    expect(mockPush).not.toHaveBeenCalled();
+  });
+
+  it("cleans up keydown listener when unmounted", () => {
+    const { unmount } = renderDefault();
+    unmount();
+
+    fireEvent.keyDown(window, { key: "s" });
+    expect(mockPush).not.toHaveBeenCalled();
   });
 });

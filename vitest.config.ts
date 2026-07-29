@@ -50,6 +50,7 @@ export default defineConfig({
         "components/common/notification-panel.tsx",
         "components/common/app-layout.tsx",
         "components/ui/pagination.tsx",
+        "components/dashboard/quick-actions.tsx",
       ],
       exclude: [
         "**/*.test.{ts,tsx}",

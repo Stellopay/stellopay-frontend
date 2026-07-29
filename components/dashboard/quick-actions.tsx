@@ -1,6 +1,8 @@
 "use client";
 
+import { useEffect } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import {
   Send,
   ArrowDownToLine,
@@ -39,6 +41,8 @@ export interface QuickActionItem {
   borderColor: string;
   bgColor: string;
   iconColor: string;
+  /** Optional keyboard shortcut key (e.g. "s", "r") */
+  shortcut?: string;
 }
 
 /** Default set of quick actions shown on the dashboard. */
@@ -48,6 +52,7 @@ const defaultActions: QuickActionItem[] = [
     title: "Send Payment",
     subtitle: "Transfer funds instantly",
     href: "/transactions",
+    shortcut: "s",
     borderColor: "border-[#3B82F6] dark:border-[#2563EB]",
     bgColor: "bg-[#EFF6FF] dark:bg-[#1E3A5F]",
     iconColor: "text-[#2563EB] dark:text-[#60A5FA]",
@@ -57,6 +62,7 @@ const defaultActions: QuickActionItem[] = [
     title: "Request Payment",
     subtitle: "Create payment request",
     disabled: true,
+    shortcut: "p",
     borderColor: "border-[#E5E5E5] dark:border-[#2E2E2E]",
     bgColor: "bg-[#F5F5F5] dark:bg-[#1A1A1A]",
     iconColor: "text-[#16A34A] dark:text-[#4ADE80]",
@@ -66,6 +72,7 @@ const defaultActions: QuickActionItem[] = [
     title: "New Contract",
     subtitle: "Setup escrow contract",
     disabled: true,
+    shortcut: "c",
     borderColor: "border-[#E5E5E5] dark:border-[#2E2E2E]",
     bgColor: "bg-[#F5F5F5] dark:bg-[#1A1A1A]",
     iconColor: "text-[#7C3AED] dark:text-[#A78BFA]",
@@ -75,6 +82,7 @@ const defaultActions: QuickActionItem[] = [
     title: "Create Invoice",
     subtitle: "Generate invoice",
     disabled: true,
+    shortcut: "i",
     borderColor: "border-[#E5E5E5] dark:border-[#2E2E2E]",
     bgColor: "bg-[#F5F5F5] dark:bg-[#1A1A1A]",
     iconColor: "text-[#EA580C] dark:text-[#FB923C]",
@@ -84,6 +92,7 @@ const defaultActions: QuickActionItem[] = [
     title: "Add Recipient",
     subtitle: "Save new contact",
     disabled: true,
+    shortcut: "a",
     borderColor: "border-[#E5E5E5] dark:border-[#2E2E2E]",
     bgColor: "bg-[#F5F5F5] dark:bg-[#1A1A1A]",
     iconColor: "text-[#EC4899] dark:text-[#F472B6]",
@@ -93,6 +102,7 @@ const defaultActions: QuickActionItem[] = [
     title: "View Reports",
     subtitle: "Analytics & insights",
     href: "/analytics-view",
+    shortcut: "r",
     borderColor: "border-[#E5E5E5] dark:border-[#2E2E2E]",
     bgColor: "bg-[#F5F5F5] dark:bg-[#1A1A1A]",
     iconColor: "text-[#0D9488] dark:text-[#2DD4BF]",
@@ -113,11 +123,81 @@ const cardBase =
 const cardInteractive =
   "group cursor-pointer hover:bg-zinc-100 dark:hover:bg-zinc-800/50 hover:shadow-md active:scale-[0.98]";
 
+/**
+ * Checks whether an element is an active text input field, textarea, select,
+ * or contenteditable container where keyboard shortcuts should be suppressed.
+ */
+function isInputTarget(element: EventTarget | Element | null): boolean {
+  if (!element || !("tagName" in element) || typeof (element as Element).tagName !== "string") {
+    return false;
+  }
+  const el = element as HTMLElement;
+  const tagName = el.tagName.toUpperCase();
+  if (tagName === "INPUT" || tagName === "TEXTAREA" || tagName === "SELECT") {
+    return true;
+  }
+  if (
+    el.isContentEditable ||
+    el.getAttribute?.("contenteditable") === "true" ||
+    el.getAttribute?.("contenteditable") === "" ||
+    (typeof el.closest === "function" &&
+      el.closest("[contenteditable]:not([contenteditable='false'])") !== null)
+  ) {
+    return true;
+  }
+  return false;
+}
+
 export function QuickActions({
   actions = defaultActions,
   customizeHref,
   onCustomize,
 }: QuickActionsProps) {
+  const router = useRouter();
+
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (
+        event.defaultPrevented ||
+        event.ctrlKey ||
+        event.metaKey ||
+        event.altKey
+      ) {
+        return;
+      }
+
+      const activeEl = document.activeElement;
+      const targetEl = event.target as Element | null;
+
+      if (isInputTarget(activeEl) || isInputTarget(targetEl)) {
+        return;
+      }
+
+      const pressedKey = event.key.toLowerCase();
+
+      for (const action of actions) {
+        if (
+          !action.disabled &&
+          action.shortcut &&
+          action.shortcut.toLowerCase() === pressedKey
+        ) {
+          event.preventDefault();
+          if (action.onClick) {
+            action.onClick();
+          } else if (action.href) {
+            router.push(action.href);
+          }
+          break;
+        }
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [actions, router]);
+
   return (
     <section
       className={cn(
@@ -177,9 +257,11 @@ export function QuickActions({
                 <div className="flex items-center gap-4">
                   {iconNode}
                   <div className="min-w-0 flex-1">
-                    <p className="font-bold text-zinc-900 dark:text-white text-sm truncate">
-                      {action.title}
-                    </p>
+                    <div className="flex items-center justify-between gap-2">
+                      <p className="font-bold text-zinc-900 dark:text-white text-sm truncate">
+                        {action.title}
+                      </p>
+                    </div>
                     <p className="text-xs font-medium text-zinc-500 dark:text-zinc-400 truncate mt-0.5">
                       {action.subtitle}
                     </p>
@@ -192,13 +274,28 @@ export function QuickActions({
             );
           }
 
+          const titleHint =
+            action.shortcut && !action.disabled
+              ? `${action.title} (Shortcut: ${action.shortcut.toUpperCase()})`
+              : action.title;
+
           const content = (
             <div className="flex items-center gap-4">
               {iconNode}
               <div className="min-w-0 flex-1">
-                <p className="font-bold text-zinc-900 dark:text-white text-sm truncate">
-                  {action.title}
-                </p>
+                <div className="flex items-center justify-between gap-2">
+                  <p className="font-bold text-zinc-900 dark:text-white text-sm truncate">
+                    {action.title}
+                  </p>
+                  {action.shortcut && (
+                    <kbd
+                      aria-label={`Shortcut ${action.shortcut.toUpperCase()}`}
+                      className="hidden sm:inline-flex items-center justify-center h-5 px-1.5 text-[10px] font-mono font-semibold text-zinc-500 dark:text-zinc-400 bg-zinc-100 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded shadow-xs select-none shrink-0"
+                    >
+                      {action.shortcut.toUpperCase()}
+                    </kbd>
+                  )}
+                </div>
                 <p className="text-xs font-medium text-zinc-500 dark:text-zinc-400 truncate mt-0.5">
                   {action.subtitle}
                 </p>
@@ -213,6 +310,7 @@ export function QuickActions({
                 href={action.href}
                 className={cn(cardBase, cardInteractive)}
                 aria-label={action.title}
+                title={titleHint}
               >
                 {content}
               </Link>
@@ -225,6 +323,7 @@ export function QuickActions({
               type="button"
               onClick={action.onClick}
               aria-label={action.title}
+              title={titleHint}
               className={cn(cardBase, cardInteractive, "text-left w-full")}
             >
               {content}
