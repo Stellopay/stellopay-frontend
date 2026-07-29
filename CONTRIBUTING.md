@@ -190,3 +190,6 @@ We expect all new utility functions and business logic to have **minimum 95% tes
 ### Security Notes
 
 Examples must not include real secrets, tokens, or addresses. Always use placeholder domains (e.g., `example.com`) and redacted addresses in your tests and mockups.
+## Local Accessibility Testing Guide
+Before opening a pull request, please ensure your changes comply with our accessibility guidelines (targeting WCAG 2.1 AA compliance).
+Refer to the full manual and automated criteria in [design/a11y-checklist.md](design/a11y-checklist.md).
