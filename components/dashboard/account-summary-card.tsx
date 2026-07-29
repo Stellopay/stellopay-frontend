@@ -43,7 +43,7 @@ export default function AccountSummaryCard({
       : value;
 
   return (
-    <div className="bg-white dark:bg-[#111111] border border-zinc-200 dark:border-zinc-800 rounded-2xl p-6 flex flex-col gap-4 shadow-sm hover:shadow-md transition-shadow min-w-0 overflow-hidden">
+    <div className="bg-white dark:bg-[#111111] border border-zinc-200 dark:border-zinc-800 rounded-2xl p-6 flex flex-col gap-4 shadow-elevation-1 hover:shadow-elevation-2 transition-shadow min-w-0 overflow-hidden">
       <div className="flex items-start justify-between min-w-0">
         <div className="flex items-center gap-3 min-w-0">
           <div className={`w-12 h-12 rounded-xl ${iconBgColor} flex items-center justify-center shrink-0`}>

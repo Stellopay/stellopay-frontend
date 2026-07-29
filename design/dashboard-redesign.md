@@ -312,3 +312,81 @@ The `resolveVariants(prefersReduced, delay?)` helper returns `fadeOnly` (zero-du
 - **No Content Loss**: Hidden decorative elements (gradient orbs, rotating cards) remain visually hidden without animation; all content stays accessible and functional.
 - **Focus Management**: Sidebar open/close preserves focus order and returns focus to `#main-content` on close (handled in `AppLayout`).
 - **Contrast**: All transition elements use the existing color token system with `dark:` variants for sufficient contrast.
+
+---
+
+## Card Elevation / Shadow Scale (#759)
+
+### Token Definition
+
+A 4-step elevation scale defined as CSS custom properties in `app/globals.css` and exposed as Tailwind v4 utility classes via `@theme inline`.
+
+| Token | Tailwind Class | Light value | Dark value | Elevation intent |
+| :---- | :------------- | :---------- | :--------- | :--------------- |
+| `--elevation-1` / `--shadow-elevation-1` | `shadow-elevation-1` | `0 1px 2px 0 rgb(0 0 0 / 0.03), 0 1px 1px 0 rgb(0 0 0 / 0.02)` | `0 1px 3px 0 rgb(0 0 0 / 0.4), 0 1px 2px -1px rgb(0 0 0 / 0.3)` | Static / default cards |
+| `--elevation-2` / `--shadow-elevation-2` | `shadow-elevation-2` | `0 4px 6px -1px rgb(0 0 0 / 0.05), 0 2px 4px -2px rgb(0 0 0 / 0.03)` | `0 4px 6px -1px rgb(0 0 0 / 0.5), 0 2px 4px -2px rgb(0 0 0 / 0.4)` | Hoverable / interactive cards |
+| `--elevation-3` / `--shadow-elevation-3` | `shadow-elevation-3` | `0 10px 15px -3px rgb(0 0 0 / 0.08), 0 4px 6px -4px rgb(0 0 0 / 0.04)` | `0 10px 15px -3px rgb(0 0 0 / 0.55), 0 4px 6px -4px rgb(0 0 0 / 0.45)` | Floating panels (popovers, dropdowns) |
+| `--elevation-4` / `--shadow-elevation-4` | `shadow-elevation-4` | `0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.05)` | `0 20px 25px -5px rgb(0 0 0 / 0.65), 0 8px 10px -6px rgb(0 0 0 / 0.5)` | Modals / dialogs |
+
+### Component-to-elevation mapping
+
+| Component | Default elevation | Hover / interactive elevation |
+| :-------- | :---------------- | :---------------------------- |
+| `Card` (`components/ui/card.tsx`) | 1 (static) | N/A (use interactive wrapper if needed) |
+| `AccountSummaryCard` (`components/dashboard/account-summary-card.tsx`) | 1 | 2 (`hover:shadow-elevation-2`) |
+| `SummaryCardSkeleton` (`components/dashboard/summary-data.tsx`) | 1 | N/A (skeleton) |
+| `TransactionHistory` (`components/dashboard/transaction-history.tsx`) | 1 | N/A |
+| `QuickTransfer` (`components/dashboard/quick-transfer.tsx`) | 1 | N/A |
+| `AnalyticsInsights` section wrapper | 1 | N/A |
+| `AnalyticsInsights` KPI cards | 1 | 2 (`hover:shadow-elevation-2`) |
+| `QuickActions` section wrapper | 1 | N/A |
+| `QuickActions` interactive cards | 1 | 2 (`hover:shadow-elevation-2`) |
+| `DashboardPage` section | 1 | N/A |
+| `<DropdownMenuContent>`, `<PopoverContent>` | 3 (floating) | N/A |
+| `<DialogContent>`, `<CoachMarkOverlay>` | 4 (modal) | N/A |
+
+### Usage
+
+```tsx
+// Default static card (elevation 1)
+<Card>Content</Card>
+
+// Custom elevation
+<Card elevation={2}>Interactive card</Card>
+<Card elevation={3}>Floating panel</Card>
+
+// Hoverable card pattern (elevation 1 → 2)
+<div className="shadow-elevation-1 hover:shadow-elevation-2 transition-shadow">
+  ...
+</div>
+```
+
+### Accessibility
+
+- **Contrast**: Shadows are purely decorative (`content` layer per WCAG 1.4.1). No information is conveyed through shadow alone.
+- **Reduced motion**: The `transition-shadow` duration (default 150-300 ms) is not animated when `prefers-reduced-motion: reduce` is set because Tailwind's `transition-*` utilities are disabled by the browser.
+- **Dark mode**: Dark-mode shadow values are defined via `.dark` CSS variables, selected to provide sufficient depth on dark surfaces without creating high-contrast artifacts.
+
+### Validation criteria
+
+1. Every `<Card>` usage either omits `elevation` (defaults to 1) or explicitly sets a valid value.
+2. Dashboard summary cards transition from `shadow-elevation-1` → `shadow-elevation-2` on hover.
+3. No raw `shadow-sm`/`shadow-md`/hand-rolled `boxShadow` remains in migrated components.
+4. Dark-mode shadows are deeper (higher opacity) to maintain legibility on dark backgrounds.
+5. All existing tests pass without modification (elevation is additive, not breaking).
+
+### Migrated files
+
+| File | Changes |
+| :--- | :------ |
+| `app/globals.css` | Added `--elevation-1` through `--elevation-4` CSS vars in `:root` and `.dark`, plus `@theme inline` entries |
+| `components/ui/card.tsx` | Added `elevation` prop (1-4) mapping to `shadow-elevation-*` classes |
+| `components/ui/card.test.tsx` | New test suite verifying `elevation` prop behaviour |
+| `components/dashboard/account-summary-card.tsx` | `shadow-sm` → `shadow-elevation-1`, `hover:shadow-md` → `hover:shadow-elevation-2` |
+| `components/dashboard/summary-data.tsx` | `shadow-sm` → `shadow-elevation-1` |
+| `components/dashboard/transaction-history.tsx` | `shadow-sm` → `shadow-elevation-1` |
+| `components/dashboard/quick-transfer.tsx` | `shadow-sm` → `shadow-elevation-1` |
+| `components/dashboard/quick-actions.tsx` | `shadow-sm` → `shadow-elevation-1`, `hover:shadow-md` → `hover:shadow-elevation-2` |
+| `components/dashboard/analytics-insights.tsx` | `shadow-sm` → `shadow-elevation-1`, `hover:shadow-md` → `hover:shadow-elevation-2` |
+| `components/dashboard/dashboard-page.tsx` | `shadow-sm` → `shadow-elevation-1` |
+| `design/dashboard-redesign.md` | Added this section |

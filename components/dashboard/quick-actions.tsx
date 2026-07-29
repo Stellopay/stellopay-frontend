@@ -124,7 +124,7 @@ const cardBase =
 
 /** Additional styles applied only to interactive (enabled) cards. */
 const cardInteractive =
-  "group cursor-pointer hover:bg-zinc-100 dark:hover:bg-zinc-800/50 hover:shadow-md active:scale-[0.98]";
+  "group cursor-pointer hover:bg-zinc-100 dark:hover:bg-zinc-800/50 hover:shadow-elevation-2 active:scale-[0.98]";
 
 /**
  * Checks whether an element is an active text input field, textarea, select,
@@ -265,7 +265,7 @@ export function QuickActions({
     <section
       className={cn(
         "rounded-2xl border p-6 transition-all",
-        "bg-white dark:bg-[#111111] border-zinc-200 dark:border-zinc-800 shadow-sm",
+        "bg-white dark:bg-[#111111] border-zinc-200 dark:border-zinc-800 shadow-elevation-1",
       )}
     >
       {/* Header */}

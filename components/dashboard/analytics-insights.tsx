@@ -308,7 +308,7 @@ export function AnalyticsInsights({
     <section
       className={cn(
         "rounded-2xl border p-6 transition-all",
-        "bg-white dark:bg-[#111111] border-zinc-200 dark:border-zinc-800 shadow-sm",
+        "bg-white dark:bg-[#111111] border-zinc-200 dark:border-zinc-800 shadow-elevation-1",
       )}
     >
       {/* Header */}
@@ -399,7 +399,7 @@ export function AnalyticsInsights({
             <div
               key={item.id}
               className={cn(
-                "rounded-2xl border p-5 flex flex-col group hover:shadow-md transition-all",
+                "rounded-2xl border p-5 flex flex-col group hover:shadow-elevation-2 transition-all",
                 "bg-zinc-50/50 dark:bg-zinc-900/30 border-zinc-100 dark:border-zinc-800/50",
               )}
             >
