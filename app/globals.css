@@ -125,58 +125,107 @@ html {
 }
 
 @layer base {
-  * {
-    @apply border-border outline-ring/50;
-  }
-  body {
-    @apply bg-background text-foreground font-sans;
-  }
+  :root {
+    --font-clash: "Clash Display", sans-serif;
+    --font-general-sans: "General Sans", sans-serif;
+    --font-inter: "Inter", sans-serif;
 
-  input:-webkit-autofill,
-  input:-webkit-autofill:hover,
-  input:-webkit-autofill:focus,
-  textarea:-webkit-autofill,
-  textarea:-webkit-autofill:hover,
-  textarea:-webkit-autofill:focus,
-  select:-webkit-autofill,
-  select:-webkit-autofill:hover,
-  select:-webkit-autofill:focus {
-    box-shadow: 0 0 0 1000px transparent inset !important;
-    -webkit-box-shadow: 0 0 0 1000px transparent inset !important;
-    -webkit-text-fill-color: #ffffff !important;
-    transition: background-color 5000s ease-in-out 0s;
+    /* Clash Display (Display & Headings) Token Scale */
+    --font-display-2xl: 4.5rem;
+    --leading-display-2xl: 1.05;
+    --tracking-display-2xl: -0.03em;
+
+    --font-display-xl: 3.75rem;
+    --leading-display-xl: 1.1;
+    --tracking-display-xl: -0.025em;
+
+    --font-heading-lg: 2.25rem;
+    --leading-heading-lg: 1.2;
+    --tracking-heading-lg: -0.02em;
+
+    --font-heading-md: 1.5rem;
+    --leading-heading-md: 1.25;
+    --tracking-heading-md: -0.015em;
+
+    /* General Sans / Inter (Body Copy & UI) Token Scale */
+    --font-body-lg: 1.125rem;
+    --leading-body-lg: 1.6;
+    --tracking-body-lg: -0.01em;
+
+    --font-body-md: 1rem;
+    --leading-body-md: 1.5;
+    --tracking-body-md: 0em;
+
+    --font-caption-sm: 0.875rem;
+    --leading-caption-sm: 1.43;
+    --tracking-caption-sm: 0.01em;
   }
 }
 
-/* Skeleton shimmer animation */
-.skeleton-shimmer {
-  position: relative;
-  overflow: hidden;
+@utility text-display-2xl {
+  font-family: var(--font-clash);
+  font-size: var(--font-display-2xl);
+  line-height: var(--leading-display-2xl);
+  letter-spacing: var(--tracking-display-2xl);
 }
 
-.skeleton-shimmer::after {
-  content: "";
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: linear-gradient(
-    90deg,
-    transparent,
-    rgba(255, 255, 255, 0.1),
-    transparent
-  );
-  transform: translateX(-100%);
-  animation: shimmer 2s infinite;
+@utility text-display-xl {
+  font-family: var(--font-clash);
+  font-size: var(--font-display-xl);
+  line-height: var(--leading-display-xl);
+  letter-spacing: var(--tracking-display-xl);
 }
 
-@keyframes shimmer {
-  0% {
-    transform: translateX(-100%);
+@utility text-heading-lg {
+  font-family: var(--font-clash);
+  font-size: var(--font-heading-lg);
+  line-height: var(--leading-heading-lg);
+  letter-spacing: var(--tracking-heading-lg);
+}
+
+/* Statement output intentionally has its own print scope; table print rules and
+   navigation never leak into the reconciliation document. */
+@media print {
+  body * {
+    visibility: hidden;
   }
-  100% {
-    transform: translateX(100%);
+
+  .statement-print-root,
+  .statement-print-root * {
+    visibility: visible;
+  }
+
+  .statement-print-root {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    margin: 0;
+    border: 0;
+    box-shadow: none;
+    color: #111827 !important;
+    background: #ffffff !important;
+  }
+
+  .statement-print-root .statement-actions {
+    display: none !important;
+  }
+
+  .statement-print-root * {
+    color: #111827 !important;
+    background-color: transparent !important;
+  }
+
+  .statement-print-root table,
+  .statement-print-root tr {
+    break-inside: avoid;
+  }
+
+  .statement-print-root thead {
+    display: table-header-group;
+  }
+
+  @page {
+    margin: 16mm;
   }
 }
 

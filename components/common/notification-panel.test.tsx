@@ -1,7 +1,7 @@
 import { render, screen, fireEvent } from "@testing-library/react";
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import NotificationPanel from "./notification-panel";
+import NotificationPanel, { CATEGORY_STORAGE_KEY } from "./notification-panel";
 import { NotificationItem } from "@/types/notification-item";
 
 const buildNotifications = (count: number): NotificationItem[] =>
@@ -10,9 +10,21 @@ const buildNotifications = (count: number): NotificationItem[] =>
     title: `Title ${index}`,
     message: `Message ${index}`,
     read: index % 2 === 0,
+    category: index % 3 === 0 ? "payments" : index % 3 === 1 ? "security" : "system",
   }));
 
+const buildCategorizedNotifications = (): NotificationItem[] => [
+  { id: "notif-p1", title: "Payment Received", message: "Received 500 XLM", read: false, category: "payments" },
+  { id: "notif-p2", title: "Payment Sent", message: "Sent 100 USDC", read: true, category: "payments" },
+  { id: "notif-s1", title: "Password Reset", message: "Security alert", read: false, category: "security" },
+  { id: "notif-sys1", title: "System Maintenance", message: "Scheduled downtime", read: true, category: "system" },
+];
+
 describe("NotificationPanel", () => {
+  beforeEach(() => {
+    sessionStorage.clear();
+  });
+
   it("renders a loading skeleton when isLoading is true", () => {
     render(<NotificationPanel notifications={[]} isLoading />);
 
@@ -50,10 +62,6 @@ describe("NotificationPanel", () => {
       expect(screen.getByText(notification.title)).toBeInTheDocument();
     });
 
-    // Remove the first item (simulating a dismissal). If the list were keyed
-    // by array index, React would mutate the existing DOM node for index 0
-    // in place instead of removing it; keying by `id` ensures the node for
-    // the removed notification (notif-0) is actually removed from the DOM.
     const remaining = notifications.slice(1);
     rerender(<NotificationPanel notifications={remaining} />);
 
@@ -87,6 +95,7 @@ describe("NotificationPanel", () => {
         title: "<img src=x onerror=alert(1)>",
         message: "<script>alert('xss')</script>",
         read: false,
+        category: "security",
       },
     ];
     render(<NotificationPanel notifications={malicious} />);
@@ -103,15 +112,118 @@ describe("NotificationPanel", () => {
 
   it("shows the unread indicator only for unread notifications", () => {
     const notifications: NotificationItem[] = [
-      { id: "read", title: "Read item", message: "msg", read: true },
-      { id: "unread", title: "Unread item", message: "msg", read: false },
+      { id: "read", title: "Read item", message: "msg", read: true, category: "system" },
+      { id: "unread", title: "Unread item", message: "msg", read: false, category: "system" },
     ];
     const { container } = render(
       <NotificationPanel notifications={notifications} />,
     );
 
-    const unreadDots = container.querySelectorAll(".bg-\\[\\#EB6945\\]");
+    const unreadDots = container.querySelectorAll(".w-1.h-1.bg-\\[\\#EB6945\\]");
     expect(unreadDots).toHaveLength(1);
+  });
+
+  // ── Category Filter Tests ──────────────────────────────────────────
+
+  describe("category filtering", () => {
+    it("renders category filter tabs with accurate item counts", () => {
+      const notifications = buildCategorizedNotifications();
+      render(<NotificationPanel notifications={notifications} />);
+
+      expect(screen.getByRole("tablist", { name: "Filter notifications by category" })).toBeInTheDocument();
+
+      const tabs = screen.getAllByRole("tab");
+      expect(tabs).toHaveLength(4);
+
+      expect(screen.getByTestId("count-all")).toHaveTextContent("(4)");
+      expect(screen.getByTestId("count-payments")).toHaveTextContent("(2)");
+      expect(screen.getByTestId("count-security")).toHaveTextContent("(1)");
+      expect(screen.getByTestId("count-system")).toHaveTextContent("(1)");
+    });
+
+    it("filters notifications by selected category when clicked", () => {
+      const notifications = buildCategorizedNotifications();
+      render(<NotificationPanel notifications={notifications} />);
+
+      // Initially All is selected (4 items)
+      expect(screen.getByText("Payment Received")).toBeInTheDocument();
+      expect(screen.getByText("Password Reset")).toBeInTheDocument();
+      expect(screen.getByText("System Maintenance")).toBeInTheDocument();
+
+      // Click Payments tab
+      const paymentsTab = screen.getByRole("tab", { name: /Payments/i });
+      fireEvent.click(paymentsTab);
+
+      expect(screen.getByText("Payment Received")).toBeInTheDocument();
+      expect(screen.getByText("Payment Sent")).toBeInTheDocument();
+      expect(screen.queryByText("Password Reset")).not.toBeInTheDocument();
+      expect(screen.queryByText("System Maintenance")).not.toBeInTheDocument();
+
+      // Click Security tab
+      const securityTab = screen.getByRole("tab", { name: /Security/i });
+      fireEvent.click(securityTab);
+
+      expect(screen.queryByText("Payment Received")).not.toBeInTheDocument();
+      expect(screen.getByText("Password Reset")).toBeInTheDocument();
+      expect(screen.queryByText("System Maintenance")).not.toBeInTheDocument();
+    });
+
+    it("persists selected filter in sessionStorage", () => {
+      const notifications = buildCategorizedNotifications();
+      render(<NotificationPanel notifications={notifications} />);
+
+      const securityTab = screen.getByRole("tab", { name: /Security/i });
+      fireEvent.click(securityTab);
+
+      expect(sessionStorage.getItem(CATEGORY_STORAGE_KEY)).toBe("security");
+    });
+
+    it("restores last-selected filter from sessionStorage on initial render", () => {
+      sessionStorage.setItem(CATEGORY_STORAGE_KEY, "payments");
+
+      const notifications = buildCategorizedNotifications();
+      render(<NotificationPanel notifications={notifications} />);
+
+      const paymentsTab = screen.getByRole("tab", { name: /Payments/i });
+      expect(paymentsTab).toHaveAttribute("aria-selected", "true");
+
+      expect(screen.getByText("Payment Received")).toBeInTheDocument();
+      expect(screen.getByText("Payment Sent")).toBeInTheDocument();
+      expect(screen.queryByText("Password Reset")).not.toBeInTheDocument();
+    });
+
+    it("shows empty state when a selected category has no matching notifications", () => {
+      const notifications: NotificationItem[] = [
+        { id: "p1", title: "Payment Received", message: "Received 500 XLM", read: false, category: "payments" },
+      ];
+      render(<NotificationPanel notifications={notifications} />);
+
+      const securityTab = screen.getByRole("tab", { name: /Security/i });
+      fireEvent.click(securityTab);
+
+      expect(screen.getByText("You're all caught up")).toBeInTheDocument();
+      expect(screen.queryByRole("listbox")).not.toBeInTheDocument();
+    });
+
+    it("supports keyboard ArrowRight and ArrowLeft navigation between category tabs", () => {
+      const notifications = buildCategorizedNotifications();
+      render(<NotificationPanel notifications={notifications} />);
+
+      const allTab = screen.getByRole("tab", { name: /All/i });
+      const paymentsTab = screen.getByRole("tab", { name: /Payments/i });
+      const systemTab = screen.getByRole("tab", { name: /System/i });
+
+      // ArrowRight from All to Payments
+      fireEvent.keyDown(allTab, { key: "ArrowRight" });
+      expect(paymentsTab).toHaveAttribute("aria-selected", "true");
+
+      // ArrowLeft from Payments back to All (or ArrowLeft from All wraps to System)
+      fireEvent.keyDown(paymentsTab, { key: "ArrowLeft" });
+      expect(allTab).toHaveAttribute("aria-selected", "true");
+
+      fireEvent.keyDown(allTab, { key: "ArrowLeft" });
+      expect(systemTab).toHaveAttribute("aria-selected", "true");
+    });
   });
 
   // ── Keyboard navigation ────────────────────────────────────────────

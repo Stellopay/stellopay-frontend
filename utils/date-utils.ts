@@ -7,6 +7,24 @@ import { format, parse, isValid, startOfDay } from "date-fns";
  * locale-dependent `Date.prototype.toLocaleDateString`) and the original
  * `utils/date-utils.ts` (date-fns based) into one module so formatting is
  * deterministic regardless of the host machine's locale.
+ *
+ * ---
+ * ## Timezone convention
+ *
+ * **All functions in this module display dates in the viewer's local timezone.**
+ *
+ * - Input: ISO 8601 strings (e.g. `"2023-04-15T23:30:00.000Z"`) are parsed
+ *   into `Date` objects and **normalized to the local calendar day** via
+ *   `date-fns/startOfDay` before formatting.
+ * - This ensures a UTC timestamp near midnight (e.g. 23:30 UTC on Apr 15)
+ *   consistently displays as the correct local calendar date (Apr 16 in
+ *   UTC+2, Apr 15 in UTC-5) rather than silently showing the UTC date.
+ * - The `formatDateTimeWithTimezone` helper is the exception — it accepts an
+ *   explicit IANA timezone and formats accordingly.
+ *
+ * **Never** call `date-fns/format` or `Date.prototype.toLocaleDateString`
+ * directly from components — always route through a helper here so the
+ * convention stays uniform.
  */
 
 /**
@@ -46,7 +64,10 @@ export function parseTransactionDate(dateString: string): Date | null {
 export function formatDate(dateLike: Date | string): string {
   const date = typeof dateLike === "string" ? new Date(dateLike) : dateLike;
   if (!isValid(date)) return "";
-  return format(date, "MMM dd, yyyy");
+  // Normalize to start of local calendar day so a UTC timestamp near
+  // midnight (e.g. 23:30Z on Apr 15 in UTC+2 → local Apr 16) always
+  // displays the correct local date.
+  return format(startOfDay(date), "MMM dd, yyyy");
 }
 
 /**
