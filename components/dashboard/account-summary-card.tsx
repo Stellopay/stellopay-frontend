@@ -4,8 +4,26 @@ import React from "react";
 import Link from "next/link";
 import { TrendingUp, TrendingDown } from "lucide-react";
 import { AccountSummaryCardProps } from './summary-data';
-import { RechartsMiniBarChart } from './RechartsMiniBarChart';
+import dynamic from 'next/dynamic';
+import { Skeleton } from '@/components/ui/skeleton';
 import { formatCurrency } from '@/utils/formatUtils';
+
+const RechartsMiniBarChart = dynamic(
+  () => import('./RechartsMiniBarChart').then(mod => mod.RechartsMiniBarChart),
+  {
+    ssr: false,
+    loading: () => (
+      <div
+        className="flex items-end"
+        style={{ height: '3rem' }}
+        aria-label="Loading chart"
+        role="img"
+      >
+        <Skeleton className="w-full h-full rounded-[4px]" shade="dark" />
+      </div>
+    ),
+  },
+);
 
 export default function AccountSummaryCard({
   title,

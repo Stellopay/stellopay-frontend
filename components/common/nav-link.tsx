@@ -1,11 +1,13 @@
 "use client";
 import {
+  AccountSummaryIcon,
   DashBoardIcon,
   HelpCircleIcon,
   SettinIcon,
   TransactionIcon,
 } from "@/public/svg/svg";
 import { motion } from "framer-motion";
+import { useReducedMotion } from "@/hooks/useReducedMotion";
 import useSidebar from "@/context/sidebar-context";
 import { Tooltip } from "@material-tailwind/react";
 import { usePathname } from "next/navigation";
@@ -21,6 +23,7 @@ export const NavLink = () => {
   const pathname = usePathname() || "/";
   const { theme } = useTheme();
   const { isSidebarOpen, isMobile } = useSidebar();
+  const reducedMotion = useReducedMotion();
 
   const isExpanded = shouldExpandSidebar(isMobile, isSidebarOpen);
 
@@ -29,6 +32,11 @@ export const NavLink = () => {
       link: "Dashboard",
       icon: (color: string) => <DashBoardIcon color={color} />,
       route: "/dashboard",
+    },
+    {
+      link: "Account Summary",
+      icon: (color: string) => <AccountSummaryIcon color={color} />,
+      route: "/account-summary",
     },
     {
       link: "Transactions",
@@ -95,17 +103,23 @@ export const NavLink = () => {
                     </div>
                   )}
 
-                  {isActive && (
-                    <motion.div
-                      className="absolute left-0 top-0 w-full h-full bg-zinc-900 dark:bg-white rounded-xl z-10 shadow-sm"
-                      layoutId={getActiveLinkLayoutId(isMobile, isExpanded)}
-                      transition={{
-                        type: "spring",
-                        bounce: 0.2,
-                        duration: 0.6,
-                      }}
-                    />
-                  )}
+                  {isActive &&
+                    (reducedMotion ? (
+                      <div className="absolute left-0 top-0 w-full h-full bg-zinc-900 dark:bg-white rounded-xl z-10 shadow-sm" />
+                    ) : (
+                      <motion.div
+                        className="absolute left-0 top-0 w-full h-full bg-zinc-900 dark:bg-white rounded-xl z-10 shadow-sm"
+                        layoutId={getActiveLinkLayoutId(
+                          isMobile,
+                          isExpanded,
+                        )}
+                        transition={{
+                          type: "spring",
+                          bounce: 0.2,
+                          duration: 0.6,
+                        }}
+                      />
+                    ))}
                 </Link>
               </li>
             );
@@ -136,18 +150,24 @@ export const NavLink = () => {
                     <div className="bg-[#EB6945] w-2 h-2 rounded-full -top-1 -right-1 absolute z-20 border border-white dark:border-[#101010]" />
                   )}
 
-                  {isActive && (
-                    <motion.div
-                      className="absolute left-0 top-0 w-8 h-8 self-center bg-zinc-900 dark:bg-white rounded-xl z-10 shadow-sm"
-                      style={{ left: "50%", transform: "translateX(-50%)" }}
-                      layoutId="activeLink-collapsed"
-                      transition={{
-                        type: "spring",
-                        bounce: 0.2,
-                        duration: 0.6,
-                      }}
-                    />
-                  )}
+                  {isActive &&
+                    (reducedMotion ? (
+                      <div
+                        className="absolute left-0 top-0 w-8 h-8 self-center bg-zinc-900 dark:bg-white rounded-xl z-10 shadow-sm"
+                        style={{ left: "50%", transform: "translateX(-50%)" }}
+                      />
+                    ) : (
+                      <motion.div
+                        className="absolute left-0 top-0 w-8 h-8 self-center bg-zinc-900 dark:bg-white rounded-xl z-10 shadow-sm"
+                        style={{ left: "50%", transform: "translateX(-50%)" }}
+                        layoutId="activeLink-collapsed"
+                        transition={{
+                          type: "spring",
+                          bounce: 0.2,
+                          duration: 0.6,
+                        }}
+                      />
+                    ))}
                 </Link>
               </li>
             </Tooltip>
