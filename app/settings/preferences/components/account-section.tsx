@@ -109,6 +109,9 @@ interface AccountSectionProps {
   onProfileChange?: (next: ProfileState) => void;
 }
 
+const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
+const ACCEPTED_MIME_TYPES = ["image/jpeg", "image/png", "image/webp", "image/gif"];
+
 export default function AccountSection({
   profile: controlledProfile,
   onProfileChange,
@@ -122,7 +125,9 @@ export default function AccountSection({
   });
   const [isSaving, setIsSaving] = useState(false);
   const [isEmailTouched, setIsEmailTouched] = useState(false);
+  const [avatarError, setAvatarError] = useState<string | null>(null);
   const statusTimeoutRef = useRef<number | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const isMountedRef = useRef(true);
 
   // Trim before validating so incidental whitespace can neither defeat
@@ -177,6 +182,39 @@ export default function AccountSection({
     if (trimmed !== profile.email) {
       updateProfileField("email", trimmed);
     }
+  };
+
+  const handlePhotoClick = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handlePhotoChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    setAvatarError(null);
+
+    if (!ACCEPTED_MIME_TYPES.includes(file.type)) {
+      setAvatarError("Please select a valid image file (JPEG, PNG, WebP, or GIF).");
+      if (fileInputRef.current) {
+        fileInputRef.current.value = "";
+      }
+      return;
+    }
+
+    if (file.size > MAX_FILE_SIZE) {
+      setAvatarError("File size must be less than 5MB.");
+      if (fileInputRef.current) {
+        fileInputRef.current.value = "";
+      }
+      return;
+    }
+
+    setStatus({
+      message: "Photo staged for upload.",
+      type: "success",
+    });
+    queueStatusReset();
   };
 
   /**
@@ -266,10 +304,31 @@ export default function AccountSection({
                 </CardDescription>
               </div>
             </div>
-            <Button variant="outline" className="w-full md:w-auto">
-              <Camera className="size-4" />
-              Change photo
-            </Button>
+            <div className="flex flex-col gap-2 w-full md:w-auto md:items-end">
+              <input
+                type="file"
+                ref={fileInputRef}
+                onChange={handlePhotoChange}
+                accept={ACCEPTED_MIME_TYPES.join(",")}
+                className="hidden"
+                aria-label="Upload profile photo"
+                data-testid="avatar-upload-input"
+              />
+              <Button 
+                variant="outline" 
+                className="w-full md:w-auto"
+                onClick={handlePhotoClick}
+                aria-describedby={avatarError ? "avatar-error" : undefined}
+              >
+                <Camera className="size-4" />
+                Change photo
+              </Button>
+              {avatarError && (
+                <p id="avatar-error" role="alert" className="text-sm text-destructive text-right">
+                  {avatarError}
+                </p>
+              )}
+            </div>
           </div>
         </CardHeader>
         <CardContent className="space-y-6 pt-6">

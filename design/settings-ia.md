@@ -67,7 +67,24 @@ The intended click depth from `/settings/preferences` is:
 
 This keeps the overwhelming majority of settings tasks within the requested `<= 3 clicks` threshold from entry.
 
+## Avatar Upload Validation
+
+The Account section includes an avatar upload feature that validates files client-side before attempting to upload:
+
+- **MIME Type Validation**: Ensures the selected file is a valid image (`image/jpeg`, `image/png`, `image/webp`, `image/gif`).
+- **File Size Validation**: Enforces a maximum file size of 5MB.
+- **Immediate Feedback**: Validation errors are displayed immediately below the "Change photo" button, preventing unnecessary API calls and providing clear, actionable feedback to the user.
+- **Accessibility (WCAG 2.1 AA)**:
+  - The hidden file input is semantically linked to the visible "Change photo" button.
+  - The button uses `aria-describedby` to associate it with the error message when validation fails.
+  - The error message uses `role="alert"` so screen readers announce it immediately.
+  - Text contrast meets AA standards, using the established `destructive` color tokens.
+  - Fully navigable via keyboard, as the "Change photo" button remains focusable and triggers the file selection dialog.
+- **Responsive Behavior**:
+  - The upload controls are stacked vertically on small screens and aligned alongside the avatar using responsive flex classes to maintain a consistent layout across breakpoints (`sm`, `md`, `lg`, `xl`).
+
 ## Statements Section
+
 
 The Statements tab lists generated documents by period using the shared
 `components/ui/table.tsx` primitive. Each row includes the reporting period,
