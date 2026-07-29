@@ -176,6 +176,24 @@ describe("AnalyticsInsights", () => {
       expect(screen.getByText("Avg. Transaction")).toBeInTheDocument();
     });
 
+    it("shows EmptyState when saved metric IDs do not match any known metric", async () => {
+      setupLocalStorage(JSON.stringify(["nonexistent-metric-id"]));
+
+      render(<AnalyticsInsights />);
+
+      await waitFor(() => {
+        expect(
+          screen.getByText("No Metrics Selected"),
+        ).toBeInTheDocument();
+      });
+
+      expect(
+        screen.getByText(
+          /select at least one metric/i,
+        ),
+      ).toBeInTheDocument();
+    });
+
     it("persists metric selection to localStorage when changed", async () => {
       const user = userEvent.setup();
       setupLocalStorage();

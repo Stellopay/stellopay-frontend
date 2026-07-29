@@ -12,14 +12,13 @@ import {
   BarChart3,
   ArrowRight,
   PieChart,
-  AlertCircle,
-  RefreshCw,
   Copy,
   Check,
   X,
 } from "lucide-react";
 import { formatAddress, useWallet } from "@/context/wallet-context";
 import { copyToClipboardWithTimeout } from "@/utils/clipboardUtils";
+import { ErrorState } from "@/components/ui/error-state";
 
 // ─── Copy feedback types ──────────────────────────────────────────────────────
 
@@ -285,27 +284,11 @@ export default function AccountOverview() {
       )}
 
       {summaryState.status === "error" && (
-        <div
-          role="alert"
-          data-testid="summary-error"
-          className="flex flex-col items-center justify-center gap-4 rounded-2xl border border-destructive/20 bg-destructive/5 px-6 py-10 text-center"
-        >
-          <AlertCircle
-            className="h-8 w-8 text-destructive"
-            aria-hidden="true"
-          />
-          <p className="text-sm font-medium text-destructive">
-            {summaryState.message}
-          </p>
-          <button
-            type="button"
-            onClick={loadSummary}
-            className="inline-flex items-center gap-2 rounded-lg bg-zinc-900 dark:bg-white px-4 py-2 text-sm font-semibold text-white dark:text-zinc-900 hover:opacity-90 transition-opacity"
-          >
-            <RefreshCw className="h-4 w-4" aria-hidden="true" />
-            Retry
-          </button>
-        </div>
+        <ErrorState
+          title="Failed to Load"
+          description={summaryState.message}
+          onRetry={loadSummary}
+        />
       )}
 
       {summaryState.status === "success" && (

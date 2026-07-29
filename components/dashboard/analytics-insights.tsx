@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/utils/commonUtils";
 import { safeStorage } from "@/utils/safeStorage";
+import { EmptyState } from "@/components/ui/empty-state";
 import {
   Dialog,
   DialogContent,
@@ -418,17 +419,17 @@ export function AnalyticsInsights({
                     {item.change}
                   </span>
                 </div>
+                <p className="text-3xl font-bold text-zinc-900 dark:text-white mt-4 tracking-tight">
+                  {item.value}
+                </p>
+                <p className="text-sm font-bold text-zinc-400 dark:text-zinc-500 mt-1 uppercase tracking-wider">
+                  {item.label}
+                </p>
               </div>
-              <p className="text-3xl font-bold text-zinc-900 dark:text-white mt-4 tracking-tight">
-                {item.value}
-              </p>
-              <p className="text-sm font-bold text-zinc-400 dark:text-zinc-500 mt-1 uppercase tracking-wider">
-                {item.label}
-              </p>
-            </div>
-          );
-        })}
-      </div>
+            );
+          })}
+        </div>
+      )}
     </section>
   );
 }

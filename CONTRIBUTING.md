@@ -528,6 +528,16 @@ WCAG 2.1 AA contrast, keyboard navigation, ARIA semantics, dark mode, RTL,
 long text, and responsive checks at `sm` 640px, `md` 768px, `lg` 1024px, and
 `xl` 1280px.
 
+### API Testing Coverage
+
+All files within `lib/api/` (such as `auth.ts`) must maintain a minimum 95% unit test coverage.
+Ensure that:
+- You mock `fetch` to cover successful (200) paths, server errors (4xx/5xx), and network rejection scenarios.
+- The functions throw or return the exact documented error shapes.
+- The unit tests verify edge cases for any API utility functions.
+
+When testing API utilities that map to UI elements, annotate accessibility requirements (WCAG 2.1 AA contrast, keyboard navigation, ARIA) and validate responsive behavior across breakpoints (sm 640, md 768, lg 1024, xl 1280) in the connected component test, as well as cover edge states like empty/error/loading, long text, RTL, and dark mode.
+
 ### Test Commands
 
 - **Unit Tests (Vitest):**
