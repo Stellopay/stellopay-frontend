@@ -591,3 +591,42 @@ animation utilities are disabled when that media query is active.
 | `components/common/shortcut-help-modal.test.tsx` | New — rendering, accessibility, and behaviour unit tests |
 | `components/common/app-layout.test.tsx` | Updated — shortcut modal integration tests |
 | `design/a11y-checklist.md` | Updated — this section |
+
+---
+
+## Quick Actions Roving Tabindex — Arrow-Key Navigation
+
+**Branch:** `a11y/quick-actions-arrow-nav`
+**Scope:** `components/dashboard/quick-actions.tsx`
+**Standard:** WCAG 2.1 Level AA
+**Date:** 2026-07-29
+
+### Overview
+
+The quick-actions grid previously required Tab-by-Tab traversal across every card. With only two enabled cards and four disabled (coming-soon) cards, keyboard users had to Tab through six elements to reach the end of the group — and four of those were non-interactive placeholders.
+
+A roving-tabindex pattern now lets ArrowLeft/ArrowRight (and ArrowUp/ArrowDown in multi-column layouts) move focus between enabled cards with a single Tab to enter the group and a single Shift+Tab to leave it.
+
+### Implementation
+
+- **`activeIndex` state** tracks which card should hold `tabIndex={0}`; all other enabled cards receive `tabIndex={-1}`
+- **`handleGridKeyDown`** on the grid container intercepts ArrowLeft/ArrowRight/ArrowUp/ArrowDown/Home/End, computes the next focus target respecting the CSS grid column count, and calls `.focus()` on the target element
+- **`data-quick-action` attribute** marks only enabled (non-disabled) cards so arrow navigation skips the disabled placeholders
+- **`onFocus` on each card** keeps `activeIndex` in sync when focus arrives via Tab or click
+- **Grid columns** are read from `getComputedStyle` at keydown time so arrow-down behaviour adapts to the current breakpoint (1 col on mobile, 2 on sm, 3 on lg, 6 on xl)
+
+### WCAG Criteria addressed
+
+| Criterion | Description |
+|-----------|-------------|
+| 2.1.1 Keyboard | Arrow keys move focus between cards; Tab/Shift+Tab enters/exits the group in one step |
+| 2.4.3 Focus Order | Roving tabindex maintains logical focus order |
+| 4.1.2 Name, Role, Value | Each card retains its `aria-label` and semantic role (`link` or `button`) |
+
+### Files changed
+
+| File | Changes |
+|------|---------|
+| `components/dashboard/quick-actions.tsx` | Added `activeIndex` state, `gridRef`, `handleGridKeyDown`, `data-quick-action` and `tabIndex` on cards, `onFocus` handlers, grid `role="group"` and `aria-label` |
+| `components/dashboard/quick-actions.test.tsx` | Added roving tabindex tests: single tabIndex 0, arrow key movement, Home/End, disabled card exclusion, focus tracking |
+| `design/a11y-checklist.md` | Updated — this section |
