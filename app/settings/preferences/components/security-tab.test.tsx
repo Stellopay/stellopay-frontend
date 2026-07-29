@@ -9,6 +9,7 @@ import {
 import { describe, expect, it, vi, afterEach, beforeEach } from "vitest";
 
 import SecurityTab, {
+  BACKUP_CODE_COUNT,
   DEFAULT_TWO_FACTOR_ENABLED,
   TWO_FACTOR_CODE_LENGTH,
   getVerificationCodeError,

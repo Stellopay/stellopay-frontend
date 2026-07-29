@@ -25,6 +25,7 @@ describe("Route Metadata Exports", () => {
     expect(rootMetadata.description).toBeDefined();
     expect(rootMetadata.openGraph).toBeDefined();
     expect(rootMetadata.twitter).toBeDefined();
+    expect(rootMetadata.manifest).toBe("/manifest.json");
   });
 
   it("exports a dedicated viewport object on the root layout", () => {
@@ -115,6 +116,47 @@ describe("Route Metadata Exports", () => {
       expect(titleStr).not.toContain("${");
       expect(descStr).not.toContain("${");
     });
+  });
+
+  it("exports canonical URLs for dashboard, transactions, and settings routes", () => {
+    expect(dashboardMetadata.alternates?.canonical).toBe(
+      "https://stellopay.com/dashboard"
+    );
+    expect(transactionsMetadata.alternates?.canonical).toBe(
+      "https://stellopay.com/transactions"
+    );
+    expect(settingsMetadata.alternates?.canonical).toBe(
+      "https://stellopay.com/settings/preferences"
+    );
+  });
+
+  it("exports Open Graph and Twitter metadata variants with dedicated images", () => {
+    const routes = [
+      { meta: dashboardMetadata, expectedUrl: "https://stellopay.com/dashboard", expectedImage: "/dashboard-preview.jpg" },
+      { meta: transactionsMetadata, expectedUrl: "https://stellopay.com/transactions", expectedImage: "/opengraph-image" },
+      { meta: settingsMetadata, expectedUrl: "https://stellopay.com/settings/preferences", expectedImage: "/opengraph-image" },
+    ];
+
+    routes.forEach(({ meta, expectedUrl, expectedImage }) => {
+      expect(meta.openGraph).toBeDefined();
+      expect(meta.openGraph?.url).toBe(expectedUrl);
+      expect(meta.openGraph?.siteName).toBe("StelloPay");
+      expect(meta.openGraph?.images).toBeDefined();
+
+      const ogImages = meta.openGraph?.images as Array<{ url: string | URL; alt?: string }>;
+      expect(ogImages.length).toBeGreaterThan(0);
+      expect(String(ogImages[0].url)).toBe(expectedImage);
+
+      expect(meta.twitter).toBeDefined();
+      expect(meta.twitter?.card).toBe("summary_large_image");
+    });
+  });
+
+  it("falls back correctly when optional fields are unset on route metadata", () => {
+    // Unset fields like siteName or locale on sub-routes safely inherit root metadata defaults at runtime
+    expect(dashboardMetadata.publisher).toBeUndefined();
+    expect(dashboardMetadata.keywords).toBeUndefined();
+    expect(rootMetadata.siteName).toBeUndefined(); // Defined inside rootMetadata.openGraph
   });
 });
 

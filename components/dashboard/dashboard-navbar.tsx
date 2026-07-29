@@ -218,11 +218,11 @@ export default function DashboardNavbar({
             </button>
           )}
 
-          {/* Hamburger toggle — visible only below sm breakpoint */}
+          {/* Hamburger toggle — visible only below md breakpoint */}
           <button
             ref={menuButtonRef}
             type="button"
-            className="sm:hidden p-2 rounded-lg text-zinc-500 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors cursor-pointer"
+            className="md:hidden p-2 rounded-lg text-zinc-500 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors cursor-pointer"
             aria-label={mobileDrawerOpen ? "Close navigation menu" : "Open navigation menu"}
             aria-expanded={mobileDrawerOpen}
             aria-controls="dashboard-mobile-drawer"
@@ -240,7 +240,7 @@ export default function DashboardNavbar({
       {/* Mobile drawer overlay */}
       {mobileDrawerOpen && (
         <div
-          className="fixed inset-0 z-40 bg-black/50 sm:hidden"
+          className="fixed inset-0 z-40 bg-black/50 md:hidden"
           aria-hidden="true"
           onClick={() => setMobileDrawerOpen(false)}
         />
@@ -251,7 +251,7 @@ export default function DashboardNavbar({
         <nav
           id="dashboard-mobile-drawer"
           ref={drawerRef}
-          className="fixed top-20 left-0 right-0 z-40 sm:hidden"
+          className="fixed top-20 left-0 right-0 z-40 md:hidden"
           aria-label="Mobile navigation menu"
           aria-modal="true"
           role="dialog"

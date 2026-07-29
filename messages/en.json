@@ -1,0 +1,84 @@
+{
+  "dashboard": {
+    "quickActions": {
+      "headerTitle": "Quick Actions",
+      "customize": "Customize",
+      "comingSoon": "Coming soon",
+      "actions": {
+        "sendPayment": {
+          "title": "Send Payment",
+          "subtitle": "Transfer funds instantly"
+        },
+        "requestPayment": {
+          "title": "Request Payment",
+          "subtitle": "Create payment request"
+        },
+        "newContract": {
+          "title": "New Contract",
+          "subtitle": "Setup escrow contract"
+        },
+        "createInvoice": {
+          "title": "Create Invoice",
+          "subtitle": "Generate invoice"
+        },
+        "addRecipient": {
+          "title": "Add Recipient",
+          "subtitle": "Save new contact"
+        },
+        "viewReports": {
+          "title": "View Reports",
+          "subtitle": "Analytics & insights"
+        }
+      }
+    }
+  },
+  "footer": {
+    "description": "Simplifying crypto payments for businesses. Built on the Stellar blockchain for instant, secure, and affordable global transactions.",
+    "socialLinks": {
+      "twitter": "Twitter",
+      "linkedIn": "LinkedIn",
+      "gitHub": "GitHub",
+      "email": "Email"
+    },
+    "categories": {
+      "product": "Product",
+      "company": "Company",
+      "resources": "Resources",
+      "legal": "Legal"
+    },
+    "links": {
+      "features": "Features",
+      "pricing": "Pricing",
+      "security": "Security",
+      "api": "API",
+      "integrations": "Integrations",
+      "about": "About",
+      "blog": "Blog",
+      "careers": "Careers",
+      "press": "Press",
+      "partners": "Partners",
+      "documentation": "Documentation",
+      "helpCenter": "Help Center",
+      "tutorials": "Tutorials",
+      "community": "Community",
+      "errorPages": "Error Pages",
+      "privacy": "Privacy",
+      "terms": "Terms",
+      "cookiePolicy": "Cookie Policy",
+      "licenses": "Licenses"
+    },
+    "newsletter": {
+      "heading": "Stay updated with StelloPay",
+      "description": "Get the latest news, updates, and tips delivered straight to your inbox.",
+      "placeholder": "Your email address",
+      "subscribe": "Subscribe",
+      "subscribing": "Subscribing..."
+    },
+    "bottomBar": {
+      "copyright": "© 2026 StelloPay. All rights reserved.",
+      "privacyPolicy": "Privacy Policy",
+      "termsOfService": "Terms of Service",
+      "cookiePolicy": "Cookie Policy"
+    }
+  }
+}

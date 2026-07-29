@@ -13,6 +13,9 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { cn } from "@/utils/commonUtils";
+import { messages } from "@/messages";
+
+// TODO: Replace direct import of messages with next-intl useTranslations() hook once i18n is enabled.
 
 /**
  * Configuration for a single quick-action card.
@@ -49,8 +52,8 @@ export interface QuickActionItem {
 const defaultActions: QuickActionItem[] = [
   {
     icon: Send,
-    title: "Send Payment",
-    subtitle: "Transfer funds instantly",
+    title: messages.dashboard.quickActions.actions.sendPayment.title,
+    subtitle: messages.dashboard.quickActions.actions.sendPayment.subtitle,
     href: "/transactions",
     shortcut: "s",
     borderColor: "border-[#3B82F6] dark:border-[#2563EB]",
@@ -59,8 +62,8 @@ const defaultActions: QuickActionItem[] = [
   },
   {
     icon: ArrowDownToLine,
-    title: "Request Payment",
-    subtitle: "Create payment request",
+    title: messages.dashboard.quickActions.actions.requestPayment.title,
+    subtitle: messages.dashboard.quickActions.actions.requestPayment.subtitle,
     disabled: true,
     shortcut: "p",
     borderColor: "border-[#E5E5E5] dark:border-[#2E2E2E]",
@@ -69,8 +72,8 @@ const defaultActions: QuickActionItem[] = [
   },
   {
     icon: Plus,
-    title: "New Contract",
-    subtitle: "Setup escrow contract",
+    title: messages.dashboard.quickActions.actions.newContract.title,
+    subtitle: messages.dashboard.quickActions.actions.newContract.subtitle,
     disabled: true,
     shortcut: "c",
     borderColor: "border-[#E5E5E5] dark:border-[#2E2E2E]",
@@ -79,8 +82,8 @@ const defaultActions: QuickActionItem[] = [
   },
   {
     icon: FileText,
-    title: "Create Invoice",
-    subtitle: "Generate invoice",
+    title: messages.dashboard.quickActions.actions.createInvoice.title,
+    subtitle: messages.dashboard.quickActions.actions.createInvoice.subtitle,
     disabled: true,
     shortcut: "i",
     borderColor: "border-[#E5E5E5] dark:border-[#2E2E2E]",
@@ -89,8 +92,8 @@ const defaultActions: QuickActionItem[] = [
   },
   {
     icon: Users,
-    title: "Add Recipient",
-    subtitle: "Save new contact",
+    title: messages.dashboard.quickActions.actions.addRecipient.title,
+    subtitle: messages.dashboard.quickActions.actions.addRecipient.subtitle,
     disabled: true,
     shortcut: "a",
     borderColor: "border-[#E5E5E5] dark:border-[#2E2E2E]",
@@ -99,8 +102,8 @@ const defaultActions: QuickActionItem[] = [
   },
   {
     icon: BarChart3,
-    title: "View Reports",
-    subtitle: "Analytics & insights",
+    title: messages.dashboard.quickActions.actions.viewReports.title,
+    subtitle: messages.dashboard.quickActions.actions.viewReports.subtitle,
     href: "/analytics-view",
     shortcut: "r",
     borderColor: "border-[#E5E5E5] dark:border-[#2E2E2E]",
@@ -268,7 +271,7 @@ export function QuickActions({
       {/* Header */}
       <div className="flex items-center justify-between mb-8">
         <h2 className="text-xl font-bold text-zinc-900 dark:text-white">
-          Quick Actions
+          {messages.dashboard.quickActions.headerTitle}
         </h2>
         <div className="flex items-center gap-4">
           {customizeHref ? (
@@ -276,7 +279,7 @@ export function QuickActions({
               href={customizeHref}
               className="text-sm font-bold text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white transition-colors"
             >
-              Customize
+              {messages.dashboard.quickActions.customize}
             </Link>
           ) : (
             <button
@@ -284,7 +287,7 @@ export function QuickActions({
               onClick={onCustomize}
               className="text-sm font-bold text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white transition-colors"
             >
-              Customize
+              {messages.dashboard.quickActions.customize}
             </button>
           )}
         </div>
@@ -317,7 +320,7 @@ export function QuickActions({
             return (
               <div
                 key={index}
-                aria-label={`${action.title}, coming soon`}
+                aria-label={`${action.title}, ${messages.dashboard.quickActions.comingSoon.toLowerCase()}`}
                 className={cn(
                   cardBase,
                   "opacity-50 cursor-not-allowed select-none",
@@ -335,7 +338,7 @@ export function QuickActions({
                       {action.subtitle}
                     </p>
                     <span className="inline-block mt-1 text-[10px] font-semibold uppercase tracking-wide text-zinc-400 dark:text-zinc-500">
-                      Coming soon
+                      {messages.dashboard.quickActions.comingSoon}
                     </span>
                   </div>
                 </div>

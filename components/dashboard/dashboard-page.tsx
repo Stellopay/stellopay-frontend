@@ -1,14 +1,16 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import DashboardNavbar from "@/components/dashboard/dashboard-navbar";
 import AccountOverview from "@/components/dashboard/account-overview";
 import { QuickActions } from "@/components/dashboard/quick-actions";
+import QuickTransfer from "@/components/dashboard/quick-transfer";
+import dynamic from "next/dynamic";
 import Skeleton from "@/components/ui/skeleton";
 import { EmptyState } from "@/components/ui/empty-state";
 import { ErrorState } from "@/components/ui/error-state";
 import ClientAnalyticsView from "@/components/analytics/client-analytics-view";
-import { DashboardTour } from "@/components/dashboard/dashboard-tour";
+import { allTransactions } from "@/lib/transactions";
 
 const AnalyticsInsights = dynamic(
   () =>
@@ -456,6 +458,17 @@ export default function Dashboard() {
   const analyticsInsightsRef = useRef<HTMLDivElement>(null);
   const clientAnalyticsRef = useRef<HTMLDivElement>(null);
 
+  const recentRecipients = useMemo(() => {
+    const seen = new Map<string, { address: string; label?: string }>();
+    for (const tx of allTransactions) {
+      const addr = tx.address;
+      if (!seen.has(addr)) {
+        seen.set(addr, { address: addr, label: tx.type });
+      }
+    }
+    return Array.from(seen.values());
+  }, []);
+
   // Simulate loading for demo purposes
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -473,9 +486,9 @@ export default function Dashboard() {
           <AccountOverview />
         </div>
 
-        <div ref={quickActionsRef}>
-          <QuickActions />
-        </div>
+        <QuickTransfer recentRecipients={recentRecipients} />
+
+        <QuickActions />
 
         <div ref={analyticsInsightsRef}>
           <AnalyticsInsights />

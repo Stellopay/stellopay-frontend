@@ -70,6 +70,7 @@ export const metadata: Metadata = {
     locale: "en_US",
     type: "website",
   },
+  manifest: "/manifest.json",
   twitter: {
     card: "summary_large_image",
     title: "StelloPay — The Future of Payroll on Blockchain",
@@ -132,6 +133,31 @@ export default function RootLayout({
                   }
                 } catch (e) {}
               })();
+            `,
+          }}
+        />
+        {/*
+          Service-worker registration — client-side only.
+          Runs after the page has loaded so it never blocks the critical path.
+          The 'load' event guard is intentional: SW registration is deferred
+          until after the page is interactive so it does not compete with
+          first-paint resources.
+        */}
+        <script
+          data-testid="sw-registration-script"
+          dangerouslySetInnerHTML={{
+            __html: `
+              if ('serviceWorker' in navigator) {
+                window.addEventListener('load', function() {
+                  navigator.serviceWorker
+                    .register('/sw.js', { scope: '/' })
+                    .catch(function(err) {
+                      // Registration failure is non-fatal — the app works
+                      // normally without a service worker.
+                      console.warn('[SW] Registration failed:', err);
+                    });
+                });
+              }
             `,
           }}
         />

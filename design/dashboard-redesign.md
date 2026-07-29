@@ -234,7 +234,39 @@ The Transactions list component distinguishes between an empty result (e.g. no t
 - **Keyboard Nav**: The "Try Again" button is fully keyboard navigable. Focus order is maintained.
 - **ARIA**: The `ErrorState` component utilizes `role="alert"` and `aria-live="assertive"` so screen readers can proactively announce network failures. Loading/Retrying indicators use `aria-hidden="true"` on non-text elements and `aria-label` or `aria-disabled` where appropriate to ensure status is accurately conveyed.
 
-## Advanced Filter Panel (Added: feature/transactions-advanced-filter-panel)
+## Transactions table — density toggle (#900)
+
+### Overview
+`components/transactions/transactions-table.tsx` now exposes a three-way density toggle (compact, comfortable, spacious) above the desktop table. The chosen density adjusts row padding and font size across the table head, body cells, and skeleton rows, and is persisted to `localStorage` via `utils/safeStorage.ts` so the preference survives reloads.
+
+### Density config
+
+| Level | Cell padding | Font size | Use case |
+|-------|-------------|-----------|----------|
+| **Compact** | `py-2 px-3` | `text-xs` | Dense data review |
+| **Comfortable** | `py-4 px-6` | `text-sm` | Default viewing |
+| **Spacious** | `py-6 px-8` | `text-base` | Readability / presentation |
+
+### Behavior
+- Defaults to `comfortable` on first visit.
+- Stored under `localStorage` key `transactions-table-density`.
+- Restored on mount; invalid stored values fall back to the default.
+- Toggle is hidden on mobile (`hidden md:flex`) where card layout is used.
+
+### Accessibility (WCAG 2.1 AA)
+- **Role**: The toggle group uses `role="radiogroup"` with `aria-label="Table density"`.
+- **State**: Each option uses `role="radio"` with `aria-checked` reflecting the current selection.
+- **Keyboard**: All buttons are natively focusable and activate via Enter/Space.
+- **Focus**: `focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500` provides a high-contrast focus ring.
+- **Contrast**: White text (`text-white`) on `bg-white/10` for the active option; `text-zinc-400` / `hover:text-white` on `bg-[#191919]` for inactive options — all exceed 4.5:1 AA thresholds.
+
+### Responsive
+| Breakpoint | Behavior |
+|------------|----------|
+| `< 768px` (md) | Toggle hidden; card layout used |
+| `≥ 768px` (md) | Toggle shown above desktop table |
+
+## Zinc vs. Token Audit — `components/analytics/analytics-view.tsx` (#763)
 
 The Advanced Filter Panel is a togglable drawer that combines all transaction filter dimensions (status, amount range, counterparty address) into a single, auditable interface. It slides in from the right on desktop and takes full width on mobile (< 640px). Active filters are represented as removable chips below the filter bar.
 
@@ -285,153 +317,38 @@ The Advanced Filter Panel is a togglable drawer that combines all transaction fi
 - **Advanced Toggle Button**: Label text is hidden on mobile (`hidden sm:inline`) to conserve space; the sliders icon remains visible.
 - **Chips**: Use `flex-wrap` for natural wrapping on narrow viewports.
 
-## Enterprise Solution Card (components/ui/enterprise-solution-card.tsx)
+- Verified visually and via existing tests across the `showNotifications`/`showDropdown` permutations, which drive the `sm`/`md` breakpoint layout switch (`flex-col md:flex-row`) — no layout classes were touched, only color utilities.
+- All existing tests in `components/analytics/analytics-view.test.tsx` pass against the new markup (one unrelated pre-existing failure, `renders empty state component when empty data is provided`, reproduces identically on `main` and is unrelated to this change).
+- No text or non-text contrast regressions: token swaps were chosen to preserve or exceed the contrast ratios of the `zinc-*` values they replaced (see notes above).
 
-Migrated hardcoded hex colors to semantic tokens for better theme consistency and maintenance.
+## Quick Transfer Widget — `components/dashboard/quick-transfer.tsx` (#892)
 
-### Accessibility Notes (WCAG 2.1 AA)
+### Overview
+Added a compact quick-transfer card to the dashboard so repeat senders can initiate a Stellar payment without leaving `components/dashboard/dashboard-page.tsx`. The widget surfaces recent transaction counterparties as autocomplete suggestions, validates the recipient address and amount inline, and requires an explicit confirmation dialog before the transfer is dispatched.
 
-- **Contrast**: `text-muted-foreground` ensures sufficient contrast against the card's background in both light and dark modes. The `font-bold text-4xl` value text uses the default foreground color, guaranteeing readability.
-- **Keyboard Nav**: The card itself is non-interactive. No custom focus management is necessary for its current static state.
-- **ARIA**: The component utilizes semantic HTML allowing screen readers to interpret the layout natively.
+### Component surface
 
-### Responsive Behavior
+| Concern | Implementation |
+|---|---|
+| **Recipient autocomplete** | Custom `combobox` pattern: `role="combobox"` input with `aria-expanded`, `aria-controls`, and `aria-activedescendant`. Suggestions are filtered by address or label, limited to 5 items, and navigable with ArrowUp/ArrowDown/Enter/Escape. |
+| **Address validation** | Reuses `utils/stellarAddress.ts` (`isValidStellarAddress`). Ed25519 public keys (`G...`) and muxed accounts (`M...`) are accepted; secret seeds (`S...`) are rejected. Shows an inline `FormMessage` on blur. |
+| **Amount validation** | Zod schema enforces positive, numeric input with up to 7 decimal places (Stellar precision). The input uses `inputMode="decimal"` for mobile keyboards. |
+| **Confirmation step** | Radix `Dialog` with `role="dialog"`, `aria-labelledby`, and `aria-describedby`. Displays recipient and amount for final review; Cancel aborts, Confirm & Send triggers the provided `onSend` callback. |
+| **Accessibility** | WCAG 2.1 AA: all form fields have `<label>` + `htmlFor`, `aria-invalid` is driven by the Input `error` prop, error messages use `role="alert"`, the dialog focus is trapped by Radix, and no interactive element relies on hover alone. |
+| **Responsive breakpoints** | Card spacing uses `p-5 sm:p-6`; headings resize with `text-lg sm:text-xl`; dialog remains usable at `sm:max-w-lg`. No horizontal overflow at `sm` (640), `md` (768), `lg` (1024), or `xl` (1280). |
+| **Design tokens** | Matches existing dashboard cards (`rounded-2xl`, `border-zinc-200 dark:border-zinc-800`, `bg-white dark:bg-[#111111]`, `shadow-sm`). Text colors use `text-zinc-900/600/500/400` with dark counterparts. |
 
-- **Flex Layout**: Uses `flex flex-col gap-2` to stack the value and label vertically, adapting to varying text lengths gracefully.
-- **Dimensions**: Retains a fixed height (`h-[118px]`) with `w-full`, allowing the card to stretch fluidly across CSS grid or flex layouts across breakpoints (`sm`, `md`, `lg`, `xl`).
-- **Text Wrapping**: The text is centered (`text-center`) and breaks naturally, preserving readability on smaller screens.
+### Keyboard navigation
+- **ArrowDown / ArrowUp** cycles autocomplete suggestions.
+- **Enter** selects the active suggestion or submits the form.
+- **Escape** closes the suggestion list or the confirmation dialog.
+- **Tab** moves focus through fields without trapping.
 
-## Cookie Consent Banner (Issue #810)
+### Edge cases covered in tests
+- Empty recent-recipients list renders without crashing.
+- Invalid Stellar addresses show validation text after blur.
+- Negative values and >7 decimals are rejected.
+- Empty/disconnected states leave the Submit button disabled.
+- `onSend` rejections surface an accessible `role="alert"` message.
+- Suggestion keyboard traversal scrolls the active item into view.
 
-The Cookie Consent Banner ensures compliance with cookie-consent regulations by prompting first-time visitors to accept or decline non-essential cookies before the site sets them.
-
-### Feature Overview
-
-- **First-Visit Detection**: Uses `utils/safeStorage.ts` with storage key `"stellopay.cookie-consent"` to show the banner only once per browser.
-- **Explicit Actions**: Provides **Accept** and **Decline** buttons — not just an acknowledge-and-dismiss.
-- **Policy Link**: Includes a "Learn more" link that navigates to the `/cookies` policy page.
-- **Bottom Fixed Position**: Rendered as a fixed bottom bar that does NOT block page content or trap keyboard focus.
-- **No Focus Trap**: Keyboard users can freely Tab past the banner; focus is not confined.
-
-### Component
-
-| File | Purpose |
-|------|---------|
-| `components/common/cookie-consent-banner.tsx` | Fixed bottom banner with Accept / Decline actions and `/cookies` link |
-| `components/common/cookie-consent-banner.test.tsx` | Unit tests covering happy path, edge cases, a11y, and negative scenarios |
-| `app/layout.tsx` | Renders `<CookieConsentBanner />` in the root layout alongside `<OfflineBanner />` |
-
-### State Model
-
-- **Storage Key**: `"stellopay.cookie-consent"` (follows dot-namespace convention).
-- **Storage Values**: `"accepted"` | `"declined"` — `null` means first visit.
-- **Hydration Pattern**:
-  1. Component mounts with `consent = null` and `hydrated = false`.
-  2. `useEffect` reads from `safeStorage.getItem(STORAGE_KEY)` (SSR-safe, returns `null` on error).
-  3. Sets `consent` and `hydrated = true`.
-  4. Banner renders only when hydrated AND consent is `null` (first visit).
-- **Persistence**: Clicking Accept or Decline calls `safeStorage.setItem(STORAGE_KEY, value)` and sets component state to hide the banner immediately.
-
-### Accessibility (WCAG 2.1 AA)
-
-**ARIA Attributes**
-- Banner container: `role="dialog"` with `aria-label="Cookie consent"`.
-- Accept button: `aria-label="Accept cookies"`.
-- Decline button: `aria-label="Decline cookies"`.
-- Cookie icon: `aria-hidden="true"` (decorative).
-- "Learn more" link: navigates to `/cookies`.
-
-**Keyboard Navigation**
-- All interactive elements (Accept, Decline, Learn more) are fully keyboard-operable.
-- `Tab` moves between buttons and the link naturally — no focus trapping.
-- All elements display visible `focus-visible:ring-2` focus indicators.
-
-**Color Contrast (WCAG AA)**
-- Light mode: `#666666` text on `#FAFAFA` background — meets AA for normal text.
-- Dark mode: `#a1a1aa` text on `#09090B` background — meets AA for normal text.
-- Accept button: white text (`#FFFFFF`) on gradient `#83A7FF → #8B5CF6` — meets AA (4.5:1+ against the darker purple endpoint).
-- Link color: `#7C3AED` on `#FAFAFA` — meets AA for large text.
-
-**Visual Indicators**
-- Hover state on Decline button: border and text change to accent color.
-- Hover state on Accept button: gradient shift.
-- Hover state on "Learn more" link: underline + color shift.
-- Focus indicators: `ring-2` with `ring-offset-2` on all interactive elements.
-
-### Responsive Behavior
-
-- **Mobile (< 640px)**: Stacked layout — message on top, buttons below. Full-width.
-- **Tablet/Desktop (≥ 640px)**: Side-by-side — message left, buttons right.
-- **Max width**: `1200px` to match the footer and main content width.
-- **Padding**: `px-4` on mobile, `px-6` on `sm+`.
-- **Text**: Constrained to a readable measure; wraps naturally on long content.
-
-### Design Tokens & Styling Consistency
-
-**Color System (Light Mode)**
-- Banner background: `bg-[#FAFAFA]` (matches footer background).
-- Border: `border-gray-200`.
-- Text: `text-[#666666]`.
-- Accent link: `text-[#7C3AED]`.
-- Accept button: gradient `from-[#83A7FF] to-[#8B5CF6]` (matches newsletter subscribe button in footer).
-- Decline button: transparent background with `border-gray-200`.
-
-**Color System (Dark Mode)**
-- Banner background: `dark:bg-[#09090B]` (matches footer background).
-- Border: `dark:border-[#1a1a1a]`.
-- Text: `dark:text-[#a1a1aa]`.
-- Accent link: `dark:text-[#a78bfa]`.
-- Accept button: same gradient (white text ensures contrast).
-- Decline button: `dark:border-[#27272a]`, `dark:text-[#a1a1aa]`.
-
-**Spacing & Typography**
-- Font family: `General Sans, sans-serif` (matches footer).
-- Text size: `text-sm`.
-- Button height: `h-9` (36px).
-- Button padding: `px-4` (Decline), `px-5` (Accept).
-- Border radius: `rounded-lg` for buttons.
-
-**Transitions**
-- All interactive elements use `transition-all duration-200`.
-- Hover: border/text color shifts.
-- Banner shadow: subtle upward shadow to separate from content.
-
-### Testing Coverage
-
-**Unit Tests** (`cookie-consent-banner.test.tsx`)
-
-*Default Rendering*
-- ✓ Renders banner when no consent is stored (first visit).
-- ✓ Shows cookie icon, message text, Accept button, Decline button, and Learn more link.
-- ✓ "Learn more" link points to `/cookies`.
-
-*Accept & Decline Actions*
-- ✓ Accept dismisses banner and persists `"accepted"` to safeStorage.
-- ✓ Decline dismisses banner and persists `"declined"` to safeStorage.
-
-*Persistence*
-- ✓ Does NOT render when consent was previously accepted.
-- ✓ Does NOT render when consent was previously declined.
-
-*SSR / Error Handling*
-- ✓ Handles safeStorage.setItem failure gracefully (does not throw).
-- ✓ Banner still dismisses even if persistence write fails.
-
-*Accessibility*
-- ✓ Uses `role="dialog"` with `aria-label="Cookie consent"`.
-- ✓ Cookie icon is decorative (`aria-hidden="true"`).
-- ✓ Action buttons have descriptive `aria-label`s.
-- ✓ Does NOT trap keyboard focus.
-
-*Negative Test*
-- ✓ Does NOT render when hydrated and consent is already decided.
-
-*Responsive & Dark Mode*
-- ✓ Applies dark mode classes on the banner container.
-- ✓ "Learn more" link has dark-mode styling classes.
-
-### Known Limitations
-
-- **No granular category preferences**: The banner is a binary Accept/Decline. Granular cookie category preferences (e.g., analytics vs. marketing) are out of scope for this iteration.
-- **No third-party script blocking**: The banner sets a consent flag but does not actively block third-party scripts. Integration with a tag manager would be needed for production enforcement.
-- **No auto-dismiss**: The banner remains until the user takes explicit action, which is intentional for compliance.
