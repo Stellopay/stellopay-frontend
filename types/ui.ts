@@ -17,6 +17,7 @@ export interface TextareaInputProps {
   placeholder?: string;
   onChange: (value: string) => void;
   rows?: number;
+  maxLength?: number;
 }
 
 export interface EmailInputProps {
