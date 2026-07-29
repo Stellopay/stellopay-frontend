@@ -108,6 +108,8 @@ export async function getTransactions(
     toDate = MOCK_TO_DATE,
     sortField = "date",
     sortDirection = "desc",
+    minAmount,
+    maxAmount,
   } = filters;
 
   const safePageSize = normalizePositiveInteger(
@@ -168,6 +170,8 @@ export async function getTransactions(
     safeFromDate,
     safeToDate,
     filterQuery,
+    minAmount,
+    maxAmount,
   );
 
   const sorted = sortTransactions(filtered, sortField, sortDirection);

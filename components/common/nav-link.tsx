@@ -67,6 +67,7 @@ export const NavLink = () => {
               <li key={index} className="w-full">
                 <Link
                   href={link.route}
+                  aria-current={isActive ? "page" : undefined}
                   className={`cursor-pointer py-3.5 px-4 w-full relative rounded-xl flex justify-between items-center transition-all duration-200 group ${
                     isActive
                       ? "text-white dark:text-[#0D0D0D]"
@@ -120,6 +121,7 @@ export const NavLink = () => {
               <li className="w-fit self-center relative w-full flex justify-center">
                 <Link
                   href={link.route}
+                  aria-current={isActive ? "page" : undefined}
                   className={`cursor-pointer my-1.5 p-3 relative rounded-xl flex items-center justify-center transition-all duration-200 ${
                     isActive
                       ? ""

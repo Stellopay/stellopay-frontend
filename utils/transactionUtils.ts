@@ -42,6 +42,8 @@ export const filterTransactions = (
   fromDate: string,
   toDate: string,
   filterQuery = "",
+  minAmount?: number,
+  maxAmount?: number,
 ): Transaction[] => {
   let filtered = transactions;
 
@@ -81,6 +83,14 @@ export const filterTransactions = (
     const to = new Date(toDate);
     return transactionDate >= from && transactionDate <= to;
   });
+
+  if (minAmount !== undefined) {
+    filtered = filtered.filter((transaction) => Math.abs(transaction.amount) >= minAmount);
+  }
+
+  if (maxAmount !== undefined) {
+    filtered = filtered.filter((transaction) => Math.abs(transaction.amount) <= maxAmount);
+  }
 
   return filtered;
 };

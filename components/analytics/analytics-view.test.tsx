@@ -110,11 +110,12 @@ describe("AnalyticsViews Component", () => {
     expect(parsedData).toEqual(customData);
   });
 
-  it("renders chart with empty data", async () => {
+  it("renders empty state component when empty data is provided", async () => {
     render(<AnalyticsViews data={[]} />);
-    const barChart = await screen.findByTestId("bar-chart");
-    const parsedData = JSON.parse(barChart.getAttribute("data-data") || "[]");
-    expect(parsedData).toEqual([]);
+    const emptyState = await screen.findByTestId("analytics-chart-empty");
+    expect(emptyState).toBeInTheDocument();
+    expect(screen.getByText("No analytics data available")).toBeInTheDocument();
+    expect(screen.queryByTestId("bar-chart")).not.toBeInTheDocument();
   });
 
   it("renders CustomTooltip content correctly inside Tooltip mock", async () => {

@@ -10,18 +10,24 @@ interface UsePaymentHistoryResult {
   refetch: () => void;
 }
 
-/**
- * Hook to fetch payment history items for the dashboard sidebar.
- * Returns a stable `refetch` callback so error states can retry without remounting.
- */
+const MAX_RETRIES = 3;
+const BASE_DELAY_MS = 1_000;
+
 export function usePaymentHistory(): UsePaymentHistoryResult {
   const [data, setData] = useState<PaymentHistoryItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [requestTick, setRequestTick] = useState(0);
   const latestRequestId = useRef(0);
+  const retryCountRef = useRef(0);
+  const retryTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const refetch = useCallback(() => {
+    if (retryTimerRef.current !== null) {
+      clearTimeout(retryTimerRef.current);
+      retryTimerRef.current = null;
+    }
+    retryCountRef.current = 0;
     setError(null);
     setIsLoading(true);
     setRequestTick((tick) => tick + 1);
@@ -55,6 +61,10 @@ export function usePaymentHistory(): UsePaymentHistoryResult {
 
     return () => {
       cancelled = true;
+      if (retryTimerRef.current !== null) {
+        clearTimeout(retryTimerRef.current);
+        retryTimerRef.current = null;
+      }
     };
   }, [requestTick]);
 

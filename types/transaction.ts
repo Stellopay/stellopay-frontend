@@ -25,6 +25,8 @@ export interface TransactionFilters {
   selectedFilter: string;
   sortField: SortField;
   sortDirection: SortDirection;
+  minAmount?: number;
+  maxAmount?: number;
 }
 
 export interface TransactionProps {
@@ -63,4 +65,8 @@ export interface TransactionsFiltersProps {
   onSearchChange: (query: string) => void;
   onFilterChange: (filter: string) => void;
   onSort: (field: SortField) => void;
+  minAmount?: number;
+  maxAmount?: number;
+  onMinAmountChange?: (amount: number | undefined) => void;
+  onMaxAmountChange?: (amount: number | undefined) => void;
 }

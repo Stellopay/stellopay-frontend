@@ -204,6 +204,14 @@
 
 ---
 
+## Settings Preferences Tabs — Verified
+
+**File:** `app/settings/preferences/components/settings-page-shell.tsx`
+**Fix:** Made the settings tab contract explicit with horizontal automatic activation and added regression coverage for Radix Tabs roving tabindex behavior. Only the active tab remains in the page Tab order, ArrowLeft/ArrowRight cycle focus and selection, and Home/End jump to the first/last tab.
+**WCAG:** 2.1.1 Keyboard, 2.4.3 Focus Order, 4.1.2 Name/Role/Value
+
+---
+
 ## Keyboard navigation — manual test results
 
 | Journey                  | Tab order correct | Enter/Space activates | Escape closes modal | Focus visible |

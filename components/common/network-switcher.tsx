@@ -24,6 +24,18 @@
  * - Target network name is wrapped in `<strong>` for semantic emphasis.
  * - Focus returns to the DropdownMenuTrigger when the dialog closes
  *   (either Cancel or Escape).
+ *
+ * Unsupported-network banner (issue #XYZ):
+ * - When {@link WalletContextValue.isUnsupportedNetwork} is `true` a
+ *   warning banner is rendered below the dropdown trigger with a CTA
+ *   to switch to the first supported network.
+ * - The banner is **dismissible**: clicking the close button hides it
+ *   for the current component lifetime (i.e. until navigation or page
+ *   reload).  It is intentionally not persisted to storage — the warning
+ *   should reappear when the user comes back while still on an unsupported
+ *   network.
+ * - The CTA reuses the same `wallet.setNetwork` / `onNetworkChange`
+ *   paths that the confirmation dialog uses.
  */
 
 import React, { useRef, useState } from "react";
@@ -42,7 +54,7 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { ChevronDown } from "lucide-react";
+import { ChevronDown, X } from "lucide-react";
 import { cn } from "@/utils/commonUtils";
 import { Skeleton } from "@/components/ui/skeleton";
 import { StellarIcon } from "@/public/svg/svg";
@@ -108,6 +120,20 @@ export default function NetworkSwitcher({
 
   const isDashboard = variant === "dashboard";
 
+  // ── Unsupported-network banner state ────────────────────────────────
+  const [bannerDismissed, setBannerDismissed] = useState(false);
+  const showUnsupportedBanner = wallet.isUnsupportedNetwork && !bannerDismissed;
+
+  const handleSwitchToSupported = () => {
+    if (!resolvedNetworks.length) return;
+    const target = resolvedNetworks[0];
+    if (!selectedNetwork) {
+      wallet.setNetwork(target);
+    }
+    onNetworkChange?.(target);
+    setBannerDismissed(true);
+  };
+
   const handleNetworkSelect = (network: Network) => {
     if (network.id === currentNetwork.id) return;
     setPendingNetwork(network);
@@ -141,6 +167,47 @@ export default function NetworkSwitcher({
 
   return (
     <>
+      {/* ── Unsupported-network warning banner ────────────────────────── */}
+      {/*
+       * Shown when the wallet reports a network outside
+       * SUPPORTED_NETWORKS.  Dismissed via the close button; reappears on
+       * page reload.
+       *
+       * The CTA calls handleSwitchToSupported which reuses the same
+       * setNetwork / onNetworkChange paths as the confirmation dialog.
+       */}
+      {showUnsupportedBanner && (
+        <div
+          role="alert"
+          className={cn(
+            "flex items-center gap-3 px-4 py-3 rounded-md border mb-3",
+            isDashboard
+              ? "bg-amber-500/10 border-amber-500/30"
+              : "bg-amber-500/10 border-amber-500/30",
+          )}
+        >
+          <span className="text-sm text-amber-400 leading-tight">
+            Unsupported network detected. Switch to a supported network to
+            continue.
+          </span>
+          <Button
+            onClick={handleSwitchToSupported}
+            size="sm"
+            className="shrink-0 bg-amber-500 text-black hover:bg-amber-400 font-semibold"
+            data-testid="switch-to-supported"
+          >
+            Switch to {resolvedNetworks[0]?.name}
+          </Button>
+          <button
+            onClick={() => setBannerDismissed(true)}
+            aria-label="Dismiss unsupported network warning"
+            className="shrink-0 text-amber-400 hover:text-amber-300 transition-colors"
+          >
+            <X className="w-4 h-4" aria-hidden="true" />
+          </button>
+        </div>
+      )}
+
       {/* ── Dropdown ─────────────────────────────────────────────────── */}
       {/* ref wrapper lets us locate the trigger button for focus-return (issue #343) */}
       <div ref={triggerWrapperRef} style={{ display: "contents" }}>

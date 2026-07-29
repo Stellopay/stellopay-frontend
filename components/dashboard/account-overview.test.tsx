@@ -68,7 +68,7 @@ describe("AccountOverview", () => {
     window.localStorage.clear();
   });
 
-  it("renders correctly when wallet is disconnected", () => {
+  it("renders correctly when wallet is disconnected", async () => {
     renderWithWallet(null);
 
     expect(
@@ -82,9 +82,13 @@ describe("AccountOverview", () => {
         "Connect your Stellar wallet to view balances and send payments.",
       ),
     ).toBeInTheDocument();
-    expect(screen.getByText("Total Balance")).toBeInTheDocument();
-    expect(screen.getByText("Paid This Month")).toBeInTheDocument();
-    expect(screen.getByText("To Be Paid")).toBeInTheDocument();
+
+    // Cards load asynchronously — wait for the skeleton to be replaced.
+    await waitFor(() => {
+      expect(screen.getByText("Total Balance")).toBeInTheDocument();
+      expect(screen.getByText("Paid This Month")).toBeInTheDocument();
+      expect(screen.getByText("To Be Paid")).toBeInTheDocument();
+    });
   });
 
   it("renders correctly when wallet is connected", () => {
@@ -441,9 +445,6 @@ describe("AccountOverview – error state", () => {
     await waitFor(() => {
       expect(screen.getByTestId("summary-error")).toBeInTheDocument();
     });
-
-    // Restore so the second call succeeds.
-    spy.mockRestore();
 
     await act(async () => {
       fireEvent.click(screen.getByRole("button", { name: /retry/i }));

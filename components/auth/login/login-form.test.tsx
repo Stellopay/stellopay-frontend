@@ -15,6 +15,23 @@ vi.mock("@/lib/api/auth", () => ({
   },
 }));
 
+// In-memory store standing in for localStorage via safeStorage
+const mockStore = new Map<string, string>();
+vi.mock("@/utils/safeStorage", () => ({
+  safeStorage: {
+    getItem: vi.fn((key: string) => mockStore.get(key) ?? null),
+    setItem: vi.fn((key: string, value: string) => {
+      mockStore.set(key, value);
+    }),
+    removeItem: vi.fn((key: string) => {
+      mockStore.delete(key);
+    }),
+  },
+}));
+
+import { safeStorage } from "@/utils/safeStorage";
+const REMEMBERED_EMAIL_KEY = "stellopay:rememberedEmail";
+
 // Mock ResizeObserver which is needed by Radix UI
 class ResizeObserverMock {
   observe() {}
@@ -26,6 +43,7 @@ global.ResizeObserver = ResizeObserverMock;
 describe("LoginForm", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mockStore.clear();
   });
 
   it("submits the form with provided values and calls login adapter (rememberMe: true)", async () => {
@@ -275,5 +293,83 @@ describe("LoginForm", () => {
       const toggle = screen.getByRole("button", { name: /Show password/i });
       expect(toggle).toBeDisabled();
     });
+  });
+
+  // ─── Remember me persistence ─────────────────────────────────────────────
+
+  it("persists the email via safeStorage when rememberMe is checked on login", async () => {
+    vi.mocked(login).mockResolvedValue();
+    render(<LoginForm />);
+
+    await userEvent.type(screen.getByPlaceholderText(/Enter your email/i), "user@example.com");
+    await userEvent.type(screen.getByPlaceholderText(/Enter your password/i), "Password123!");
+    await userEvent.click(screen.getByRole("checkbox", { name: /Remember me/i }));
+    await userEvent.click(screen.getByRole("button", { name: /Sign In/i }));
+
+    await waitFor(() => {
+      expect(safeStorage.setItem).toHaveBeenCalledWith(REMEMBERED_EMAIL_KEY, "user@example.com");
+    });
+    expect(mockStore.get(REMEMBERED_EMAIL_KEY)).toBe("user@example.com");
+  });
+
+  it("clears any persisted email via safeStorage when rememberMe is unchecked on login", async () => {
+    mockStore.set(REMEMBERED_EMAIL_KEY, "old@example.com");
+    vi.mocked(login).mockResolvedValue();
+    render(<LoginForm />);
+
+    await userEvent.type(screen.getByPlaceholderText(/Enter your password/i), "Password123!");
+    // rememberMe checkbox pre-checked because a remembered email exists;
+    // uncheck it explicitly for this test.
+    const checkbox = screen.getByRole("checkbox", { name: /Remember me/i });
+    if (checkbox.getAttribute("aria-checked") === "true") {
+      await userEvent.click(checkbox);
+    }
+    await userEvent.click(screen.getByRole("button", { name: /Sign In/i }));
+
+    await waitFor(() => {
+      expect(safeStorage.removeItem).toHaveBeenCalledWith(REMEMBERED_EMAIL_KEY);
+    });
+    expect(mockStore.has(REMEMBERED_EMAIL_KEY)).toBe(false);
+  });
+
+  it("never persists the password to storage regardless of rememberMe", async () => {
+    vi.mocked(login).mockResolvedValue();
+    render(<LoginForm />);
+
+    await userEvent.type(screen.getByPlaceholderText(/Enter your email/i), "user@example.com");
+    await userEvent.type(screen.getByPlaceholderText(/Enter your password/i), "S3cr3tPass!");
+    await userEvent.click(screen.getByRole("checkbox", { name: /Remember me/i }));
+    await userEvent.click(screen.getByRole("button", { name: /Sign In/i }));
+
+    await waitFor(() => {
+      expect(safeStorage.setItem).toHaveBeenCalled();
+    });
+
+    for (const call of vi.mocked(safeStorage.setItem).mock.calls) {
+      expect(call[1]).not.toContain("S3cr3tPass!");
+    }
+    expect(Array.from(mockStore.values())).not.toContain("S3cr3tPass!");
+  });
+
+  it("pre-fills the email field from a remembered value on mount", () => {
+    mockStore.set(REMEMBERED_EMAIL_KEY, "remembered@example.com");
+    render(<LoginForm />);
+
+    const emailInput = screen.getByPlaceholderText(/Enter your email/i);
+    expect(emailInput).toHaveValue("remembered@example.com");
+  });
+
+  it("never pre-fills the password field from storage", () => {
+    mockStore.set(REMEMBERED_EMAIL_KEY, "remembered@example.com");
+    render(<LoginForm />);
+
+    const passwordInput = screen.getByPlaceholderText(/Enter your password/i);
+    expect(passwordInput).toHaveValue("");
+  });
+
+  it("does not pre-fill the email field when nothing is remembered", () => {
+    render(<LoginForm />);
+    const emailInput = screen.getByPlaceholderText(/Enter your email/i);
+    expect(emailInput).toHaveValue("");
   });
 });

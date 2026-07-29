@@ -65,7 +65,18 @@ export default function AccountOverview() {
     // This async wrapper keeps the loading/error contract intact so that
     // when a real API replaces the static import the component needs no
     // structural changes — only the Promise body changes.
-    Promise.resolve(summaryCardsData)
+    //
+    // NOTE: summaryCardsData is accessed inside new Promise() so that
+    // synchronous throws (e.g. from a vi.spyOn getter in tests, or from a
+    // future API helper that throws before returning a Promise) are captured
+    // by the rejection path rather than propagating as uncaught exceptions.
+    new Promise<typeof summaryCardsData>((resolve, reject) => {
+      try {
+        resolve(summaryCardsData);
+      } catch (err) {
+        reject(err);
+      }
+    })
       .then((data) => {
         const cards = data.map((card, idx) => ({ ...card, icon: icons[idx] }));
         setSummaryState({ status: "success", cards });
