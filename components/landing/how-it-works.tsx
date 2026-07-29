@@ -46,7 +46,7 @@ const metrics = [
 
 const HowItWorks = () => {
   return (
-    <section className="py-20 px-4 bg-white dark:bg-[#181818] font-['Inter',sans-serif]">
+    <section className="py-16 sm:py-20 lg:py-24 px-4 bg-white dark:bg-[#181818] font-['Inter',sans-serif]">
       {/* Header Section */}
       <div className="max-w-6xl mx-auto text-center mb-16">
         <div className="inline-block px-4 py-1 mb-6 text-sm font-medium text-gray-600 dark:text-gray-400 border border-gray-200 dark:border-[#27272A] rounded-full">

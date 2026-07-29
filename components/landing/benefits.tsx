@@ -82,17 +82,7 @@ const benefits = [
 
 export default function BenefitsSection() {
   return (
-    <section
-      className="relative pt-24 pb-10 px-4 text-white min-h-screen"
-      style={{ backgroundColor: "var(--color-surface-deep)" }}
-      aria-labelledby="benefits-heading"
-      data-testid="benefits-section"
-    >
-      {/*
-       * Decorative radial-gradient glow overlay.
-       * Uses --color-brand-glow RGB channels so the brand blue is defined
-       * in one place. pointer-events-none keeps it inert for mouse/touch.
-       */}
+    <section className="relative bg-[#040404] py-16 sm:py-20 lg:py-24 px-4 text-white min-h-screen">
       <div
         className="absolute inset-0 pointer-events-none z-10"
         aria-hidden="true"

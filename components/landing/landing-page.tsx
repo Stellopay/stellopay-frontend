@@ -13,7 +13,7 @@ import { ILLUSTRATIVE_STATS } from "@/lib/demo-data";
 const HowItWorks = dynamic(() => import("@/components/landing/how-it-works"), {
   loading: () => (
     <div
-      className="w-full py-20 bg-white dark:bg-[#0D0D0D]"
+      className="w-full py-16 sm:py-20 lg:py-24 bg-white dark:bg-[#0D0D0D]"
       aria-busy="true"
       aria-live="polite"
       role="status"
@@ -40,7 +40,7 @@ const EnterpriseSolutionSection = dynamic(
   {
     loading: () => (
       <div
-        className="w-full py-20 bg-white dark:bg-[#0D0D0D]"
+        className="w-full py-16 sm:py-20 lg:py-24 bg-white dark:bg-[#0D0D0D]"
         aria-busy="true"
         aria-live="polite"
         role="status"
@@ -58,7 +58,7 @@ const EnterpriseSolutionSection = dynamic(
 const FAQSection = dynamic(() => import("@/components/landing/faq-section"), {
   loading: () => (
     <div
-      className="w-full py-20 bg-white dark:bg-[#040404]"
+      className="w-full py-16 sm:py-20 lg:py-24 bg-white dark:bg-[#040404]"
       aria-busy="true"
       aria-live="polite"
       role="status"
@@ -92,7 +92,7 @@ export default function LandingPage() {
     <div>
       <Navbar />
       <Hero />
-      <section className="bg-[#F5F3FF] dark:bg-[#0F0A14] py-12 md:py-16 px-4">
+      <section className="bg-[#F5F3FF] dark:bg-[#0F0A14] py-16 sm:py-20 lg:py-24 px-4">
         <div className="max-w-6xl mx-auto">
           <div className="flex flex-col items-center gap-2 mb-6">
             <span className="inline-flex items-center gap-1.5 rounded-full bg-violet-100 px-3 py-1 text-xs font-medium text-violet-700 dark:bg-violet-900/30 dark:text-violet-300">
