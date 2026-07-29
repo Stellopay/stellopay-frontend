@@ -43,7 +43,8 @@ const WalletContext = createContext<WalletContextValue | undefined>(undefined);
 
 // Synthetic Stellar-style address used by the demo connect flow. Real wallet
 // integrations will replace this with the address returned by the signer.
-const SYNTHETIC_ADDRESS = "GABCDEFGHIJKLMNOPQRSTUVWXYZ234567ABCDEFGHIJKLMNOPF123";
+const SYNTHETIC_ADDRESS =
+  "GABCDEFGHIJKLMNOPQRSTUVWXYZ234567ABCDEFGHIJKLMNOPF123";
 
 // Best-effort, SSR-safe localStorage read. Mirrors the pattern in
 // context/theme-context.tsx and context/sidebar-context.tsx: never assume

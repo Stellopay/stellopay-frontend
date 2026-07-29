@@ -44,7 +44,7 @@ export default function LandingPageNavBar() {
         <div className="hidden md:flex items-center gap-4">
           {/* Network Switcher */}
           <NetworkSwitcher variant="landing" />
-          
+
           <Link
             href="/auth/login"
             className="px-6 py-4 rounded-full border border-[#598EFF] text-[#EEF4FF] bg-transparent font-medium transition-colors duration-200 hover:bg-[#598EFF] hover:text-white"

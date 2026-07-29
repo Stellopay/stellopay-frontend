@@ -20,7 +20,10 @@ interface TransactionsTablePropsExtended extends TransactionsTableProps {
   isLoading?: boolean;
 }
 
-export function TransactionsTable({ transactions, isLoading = false }: TransactionsTablePropsExtended) {
+export function TransactionsTable({
+  transactions,
+  isLoading = false,
+}: TransactionsTablePropsExtended) {
   const isEmpty = !isLoading && transactions.length === 0;
 
   return (
@@ -32,22 +35,40 @@ export function TransactionsTable({ transactions, isLoading = false }: Transacti
           <caption className="sr-only">Transaction history</caption>
           <TableHeader>
             <TableRow className="bg-[#191919]">
-              <TableHead scope="col" className="text-white font-bold border-[#2D2D2D] border-y-2 border-t-0 py-4 px-6">
+              <TableHead
+                scope="col"
+                className="text-white font-bold border-[#2D2D2D] border-y-2 border-t-0 py-4 px-6"
+              >
                 Transaction Type
               </TableHead>
-              <TableHead scope="col" className="text-white font-bold border-[#2D2D2D] border-y-2 border-t-0 py-4 px-6">
+              <TableHead
+                scope="col"
+                className="text-white font-bold border-[#2D2D2D] border-y-2 border-t-0 py-4 px-6"
+              >
                 Address
               </TableHead>
-              <TableHead scope="col" className="text-white font-bold border-[#2D2D2D] border-y-2 border-t-0 py-4 px-6">
+              <TableHead
+                scope="col"
+                className="text-white font-bold border-[#2D2D2D] border-y-2 border-t-0 py-4 px-6"
+              >
                 Date
               </TableHead>
-              <TableHead scope="col" className="text-white font-bold border-[#2D2D2D] border-y-2 border-t-0 py-4 px-6">
+              <TableHead
+                scope="col"
+                className="text-white font-bold border-[#2D2D2D] border-y-2 border-t-0 py-4 px-6"
+              >
                 Token
               </TableHead>
-              <TableHead scope="col" className="text-white font-bold border-[#2D2D2D] border-y-2 border-t-0 py-4 px-6">
+              <TableHead
+                scope="col"
+                className="text-white font-bold border-[#2D2D2D] border-y-2 border-t-0 py-4 px-6"
+              >
                 Amount
               </TableHead>
-              <TableHead scope="col" className="text-white font-bold border-[#2D2D2D] border-y-2 border-t-0 py-4 px-6">
+              <TableHead
+                scope="col"
+                className="text-white font-bold border-[#2D2D2D] border-y-2 border-t-0 py-4 px-6"
+              >
                 Status
               </TableHead>
             </TableRow>
@@ -55,7 +76,10 @@ export function TransactionsTable({ transactions, isLoading = false }: Transacti
           <TableBody>
             {isLoading ? (
               Array.from({ length: TRANSACTIONS_PAGE_SIZE }).map((_, index) => (
-                <TableRow key={`skeleton-${index}`} className="border border-[#2D2D2D]">
+                <TableRow
+                  key={`skeleton-${index}`}
+                  className="border border-[#2D2D2D]"
+                >
                   <TableCell className="font-medium border border-[#2D2D2D] py-4 px-6">
                     <Skeleton className="h-4 w-20 mb-1" />
                     <Skeleton className="h-3 w-16" />
@@ -89,7 +113,10 @@ export function TransactionsTable({ transactions, isLoading = false }: Transacti
               </TableRow>
             ) : (
               transactions.map((transaction, index) => (
-                <TableRow key={transaction.id ?? index} className="border border-[#2D2D2D]">
+                <TableRow
+                  key={transaction.id ?? index}
+                  className="border border-[#2D2D2D]"
+                >
                   <TableCell className="font-medium border border-[#2D2D2D] py-4 px-6">
                     <span className="text-[#D7E0EF]">{transaction.type}</span>
                     <p>#{transaction.id}</p>
@@ -133,7 +160,10 @@ export function TransactionsTable({ transactions, isLoading = false }: Transacti
       <div className="md:hidden space-y-4">
         {isLoading ? (
           Array.from({ length: TRANSACTIONS_PAGE_SIZE }).map((_, index) => (
-            <div key={`skeleton-mobile-${index}`} className="p-4 border rounded-lg border-[#2D2D2D]">
+            <div
+              key={`skeleton-mobile-${index}`}
+              className="p-4 border rounded-lg border-[#2D2D2D]"
+            >
               <div className="flex justify-between items-start">
                 <div className="space-y-2">
                   <Skeleton className="h-4 w-32" />

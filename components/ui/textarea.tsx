@@ -30,12 +30,10 @@ function Textarea({
           "focus-visible:border-destructive focus-visible:ring-destructive/50",
         // Success states
         success && "border-success ring-success/20",
-        success &&
-          "focus-visible:border-success focus-visible:ring-success/50",
+        success && "focus-visible:border-success focus-visible:ring-success/50",
         // Warning states
         warning && "border-warning ring-warning/20",
-        warning &&
-          "focus-visible:border-warning focus-visible:ring-warning/50",
+        warning && "focus-visible:border-warning focus-visible:ring-warning/50",
         // Default states
         !error && !success && !warning && "border-input",
         className,

@@ -10,7 +10,12 @@ import { Skeleton } from "@/components/ui/skeleton";
 import PaymentHistory from "@/components/dashboard/payment-history";
 
 const CardSkeleton = () => (
-  <div className="w-full h-full flex items-end gap-2" aria-busy="true" aria-live="polite" role="status">
+  <div
+    className="w-full h-full flex items-end gap-2"
+    aria-busy="true"
+    aria-live="polite"
+    role="status"
+  >
     <span className="sr-only">Loading chart...</span>
     {Array.from({ length: 12 }).map((_, i) => (
       <Skeleton
@@ -104,7 +109,12 @@ const AnalyticsViews = ({
   if (isLoading) {
     if (showNotifications) {
       return (
-        <div className="max-w-full min-h-[332px] flex flex-col md:flex-row gap-6" aria-busy="true" aria-live="polite" role="status">
+        <div
+          className="max-w-full min-h-[332px] flex flex-col md:flex-row gap-6"
+          aria-busy="true"
+          aria-live="polite"
+          role="status"
+        >
           <span className="sr-only">Loading analytics...</span>
           <div className="w-full md:w-2/3 border border-zinc-200 dark:border-zinc-800 rounded-2xl p-6 bg-white dark:bg-[#111111] transition-colors flex flex-col justify-between">
             <div className="flex justify-between items-center mb-4 flex-wrap gap-2">
@@ -145,7 +155,12 @@ const AnalyticsViews = ({
     }
 
     return (
-      <div className="bg-[#0D0D0D80] text-white rounded-xl border border-[#2D2D2D] p-4 w-full h-full flex flex-col justify-between" aria-busy="true" aria-live="polite" role="status">
+      <div
+        className="bg-[#0D0D0D80] text-white rounded-xl border border-[#2D2D2D] p-4 w-full h-full flex flex-col justify-between"
+        aria-busy="true"
+        aria-live="polite"
+        role="status"
+      >
         <span className="sr-only">Loading analytics views chart...</span>
         <div className="flex justify-between items-center mb-4 flex-wrap gap-2">
           <div className="flex items-center gap-2">
@@ -172,20 +187,48 @@ const AnalyticsViews = ({
   }
 
   return (
-    <div className={showNotifications ? "max-w-full min-h-[332px] flex flex-col md:flex-row gap-6" : "w-full h-full"}>
-      <div className={showNotifications ? "w-full md:w-2/3 border border-zinc-200 dark:border-zinc-800 rounded-2xl p-6 bg-white dark:bg-[#111111] transition-colors" : "bg-[#0D0D0D80] text-white rounded-xl border border-[#2D2D2D] p-4 w-full h-full flex flex-col justify-between"}>
+    <div
+      className={
+        showNotifications
+          ? "max-w-full min-h-[332px] flex flex-col md:flex-row gap-6"
+          : "w-full h-full"
+      }
+    >
+      <div
+        className={
+          showNotifications
+            ? "w-full md:w-2/3 border border-zinc-200 dark:border-zinc-800 rounded-2xl p-6 bg-white dark:bg-[#111111] transition-colors"
+            : "bg-[#0D0D0D80] text-white rounded-xl border border-[#2D2D2D] p-4 w-full h-full flex flex-col justify-between"
+        }
+      >
         <div className="flex justify-between items-center mb-4 flex-wrap gap-2">
           <div className="flex items-center gap-4">
-            <div className={showNotifications ? "w-10 h-10 border border-zinc-200 dark:border-zinc-800 rounded-xl bg-zinc-50 dark:bg-zinc-900/50 flex justify-center items-center" : "bg-[#121212] border border-[#2E2E2E] p-2 rounded-lg"}>
+            <div
+              className={
+                showNotifications
+                  ? "w-10 h-10 border border-zinc-200 dark:border-zinc-800 rounded-xl bg-zinc-50 dark:bg-zinc-900/50 flex justify-center items-center"
+                  : "bg-[#121212] border border-[#2E2E2E] p-2 rounded-lg"
+              }
+            >
               <Image
                 src={chart}
                 alt="Analytics Chart Icon"
                 width={showNotifications ? 20 : 24}
                 height={showNotifications ? 20 : 24}
-                className={showNotifications ? "object-contain w-5 h-5 dark:invert-[0.9]" : ""}
+                className={
+                  showNotifications
+                    ? "object-contain w-5 h-5 dark:invert-[0.9]"
+                    : ""
+                }
               />
             </div>
-            <h2 className={showNotifications ? "text-xl font-bold text-zinc-900 dark:text-white" : "font-semibold text-lg"}>
+            <h2
+              className={
+                showNotifications
+                  ? "text-xl font-bold text-zinc-900 dark:text-white"
+                  : "font-semibold text-lg"
+              }
+            >
               Analytics views
             </h2>
           </div>
@@ -197,7 +240,11 @@ const AnalyticsViews = ({
                 className="h-10 px-4 flex items-center gap-2 text-sm border border-zinc-200 dark:border-zinc-800 rounded-xl bg-zinc-50 dark:bg-zinc-900/50 cursor-pointer hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors text-zinc-700 dark:text-zinc-300"
               >
                 <span className="font-medium">{selectedYear}</span>
-                {isDropdownOpen ? <ChevronUp className="h-4 w-4 text-zinc-400" /> : <ChevronDown className="h-4 w-4 text-zinc-400" />}
+                {isDropdownOpen ? (
+                  <ChevronUp className="h-4 w-4 text-zinc-400" />
+                ) : (
+                  <ChevronDown className="h-4 w-4 text-zinc-400" />
+                )}
               </div>
 
               {isDropdownOpen && (
@@ -215,14 +262,29 @@ const AnalyticsViews = ({
               )}
             </div>
           ) : (
-            <button className={showNotifications ? "h-10 px-4 text-sm rounded-xl border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900/50 text-zinc-700 dark:text-zinc-300 font-medium bg-transparent" : "px-3 py-1 text-sm rounded-lg border border-[#2D2D2D] bg-transparent"}>
+            <button
+              className={
+                showNotifications
+                  ? "h-10 px-4 text-sm rounded-xl border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900/50 text-zinc-700 dark:text-zinc-300 font-medium bg-transparent"
+                  : "px-3 py-1 text-sm rounded-lg border border-[#2D2D2D] bg-transparent"
+              }
+            >
               This Year
             </button>
           )}
         </div>
 
-        <div className={showNotifications ? "w-full h-56 mt-4 border border-zinc-100 dark:border-zinc-800/50 p-6 rounded-xl bg-zinc-50/30 dark:bg-zinc-900/20" : "w-full h-full aspect-[3/1] rounded-lg border border-[#2D2D2D] p-2 sm:p-4"}>
-          <AnalyticsChart data={chartData} showNotifications={showNotifications} />
+        <div
+          className={
+            showNotifications
+              ? "w-full h-56 mt-4 border border-zinc-100 dark:border-zinc-800/50 p-6 rounded-xl bg-zinc-50/30 dark:bg-zinc-900/20"
+              : "w-full h-full aspect-[3/1] rounded-lg border border-[#2D2D2D] p-2 sm:p-4"
+          }
+        >
+          <AnalyticsChart
+            data={chartData}
+            showNotifications={showNotifications}
+          />
         </div>
       </div>
 
@@ -245,7 +307,9 @@ const AnalyticsViews = ({
             </div>
 
             <div className="h-10 px-4 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900/50 flex items-center gap-2 cursor-pointer hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors">
-              <span className="text-sm font-medium text-zinc-700 dark:text-zinc-300">View All</span>
+              <span className="text-sm font-medium text-zinc-700 dark:text-zinc-300">
+                View All
+              </span>
               <ChevronRight className="text-zinc-400" />
             </div>
           </div>
@@ -260,4 +324,3 @@ const AnalyticsViews = ({
 };
 
 export default AnalyticsViews;
-
