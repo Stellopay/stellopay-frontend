@@ -24,7 +24,14 @@ The goal is to keep frequent tasks obvious, reduce visual overload, and separate
 
 The top chrome now uses a persistent settings section bar built from the existing `components/ui/tabs.tsx` primitive. The active section is mirrored into the URL with `?section=...` so users can deep-link directly into a settings area without creating additional nested routes.
 
-### 2. Progressive disclosure
+### 2. Breadcrumb Navigation
+
+To improve wayfinding in deep-linked settings and support pages (e.g. `/app/settings/preferences`), a persistent `Breadcrumb` component derives its trail dynamically from the current route segments.
+- Each segment before the current page is a clickable `Link`.
+- The current page is plainly visible and marked with `aria-current="page"`.
+- It uses standard `lucide-react` icons and follows the existing responsive and contrast tokens.
+
+### 3. Progressive disclosure
 
 The page now exposes only high-frequency tasks by default and hides lower-frequency details behind disclosure patterns:
 
