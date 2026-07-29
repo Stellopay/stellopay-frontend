@@ -3,6 +3,7 @@
 import { useState, useMemo, useCallback } from "react";
 import type {
   SortField,
+  SortConfig,
   TransactionFilters,
   Transaction,
   TransactionProps,
@@ -53,13 +54,12 @@ export default function TransactionsContent() {
     filterQuery: "",
     ...getDefaultDateRange(),
     selectedFilter: "All Transactions",
-    sortField: "date",
-    sortDirection: "desc",
+    sortConfigs: [{ field: "date", direction: "desc" }],
   }));
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = TRANSACTIONS_PAGE_SIZE;
 
-  const { data, isLoading, error } = useTransactions({
+  const { data, isLoading, error, refetch } = useTransactions({
     filters,
     page: currentPage,
     pageSize: itemsPerPage,
@@ -81,17 +81,49 @@ export default function TransactionsContent() {
     [],
   );
 
-  const handleSort = useCallback((field: SortField) => {
-    setFilters((prev) => ({
-      ...prev,
-      sortField: field,
-      sortDirection:
-        prev.sortField === field && prev.sortDirection === "asc"
-          ? "desc"
-          : "asc",
-    }));
-    setCurrentPage(1);
-  }, []);
+  const handleSort = useCallback(
+    (field: SortField, options?: { shiftKey?: boolean }) => {
+      setFilters((prev) => {
+        const currentConfigs = prev.sortConfigs;
+        const primary = currentConfigs[0];
+
+        // Shift-click: add/modify secondary sort
+        if (options?.shiftKey && primary && primary.field !== field) {
+          const secondary = currentConfigs[1];
+          // If this field is already the secondary sort, toggle direction
+          if (secondary?.field === field) {
+            const newConfigs: SortConfig[] = [
+              { field: primary.field, direction: primary.direction },
+              {
+                field,
+                direction:
+                  secondary.direction === "asc" ? "desc" : "asc",
+              },
+            ];
+            return { ...prev, sortConfigs: newConfigs };
+          }
+          // Otherwise set it as secondary with 'asc' default
+          const newConfigs: SortConfig[] = [
+            { field: primary.field, direction: primary.direction },
+            { field, direction: "asc" },
+          ];
+          return { ...prev, sortConfigs: newConfigs };
+        }
+
+        // Click without shift: set as primary sort,
+        // toggling direction if it's already the primary field
+        const isSameField = primary?.field === field;
+        const newDirection =
+          isSameField && primary?.direction === "asc" ? "desc" : "asc";
+        return {
+          ...prev,
+          sortConfigs: [{ field, direction: newDirection }],
+        };
+      });
+      setCurrentPage(1);
+    },
+    [],
+  );
 
   return (
     <div className="min-h-screen text-white mt-4">
@@ -107,8 +139,7 @@ export default function TransactionsContent() {
           <TransactionsFilters
             searchQuery={filters.searchQuery}
             selectedFilter={filters.selectedFilter}
-            sortField={filters.sortField}
-            sortDirection={filters.sortDirection}
+            sortConfigs={filters.sortConfigs}
             onSearchChange={(q) => updateFilter("searchQuery", q)}
             onFilterChange={(f) => updateFilter("selectedFilter", f)}
             onSort={handleSort}
@@ -122,8 +153,8 @@ export default function TransactionsContent() {
             {!isLoading && error && (
               <ErrorState
                 title="Failed to Load"
-                description="Failed to load transactions. Please try again."
-                onRetry={() => window.location.reload()}
+                description={error}
+                onRetry={refetch}
               />
             )}
 
