@@ -184,48 +184,67 @@ Shown as a drag preview while the user is dragging. Renders a simplified card wi
 
 ### Sensors
 
-Only a `PointerSensor` is configured (no `KeyboardSensor`). Keyboard accessibility is handled entirely by the Move Up / Move Down buttons (native `<button>` elements), which are simpler and more discoverable than @dnd-kit's keyboard drag activation.
+- **Contrast**: The ErrorState uses a `text-red-500` icon and `text-white` text on a `bg-red-900/10` background which exceeds minimum contrast requirements.
+- **Keyboard Nav**: The "Try Again" button is fully keyboard navigable. Focus order is maintained.
+- **ARIA**: The `ErrorState` component utilizes `role="alert"` and `aria-live="assertive"` so screen readers can proactively announce network failures. Loading/Retrying indicators use `aria-hidden="true"` on non-text elements and `aria-label` or `aria-disabled` where appropriate to ensure status is accurately conveyed.
+- **New props**: `eventId` is rendered in a `<code>` block with `aria-label` describing the reference; the report link uses `aria-label="Report this issue"` so screen readers announce purpose clearly.
+
+---
+
+## Motion Duration & Easing Tokens (#758)
+
+### Token Scale
+
+| Token      | Value | Use Case                                | Example Components               |
+| :--------- | :---- | :-------------------------------------- | :------------------------------- |
+| `fast`     | 200ms | Micro-interactions (hover, tap, focus)  | Sidebar logo fade, toggle button |
+| `base`     | 300ms | Standard UI transitions                 | FAQ accordion expand/collapse    |
+| `slow`     | 500ms | Entrance / scroll-reveal animations     | Hero section, how-it-works steps |
+| `xslow`    | 600ms | Layout animations, spring-like movement | Nav-link active indicator        |
+
+### Easing Curves
+
+| Curve       | Cubic Bézier                        | Use Case                    |
+| :---------- | :---------------------------------- | :-------------------------- |
+| `easeOut`   | `cubic-bezier(0.16, 1, 0.3, 1)`    | Entrance animations         |
+| `easeInOut` | `cubic-bezier(0.65, 0, 0.35, 1)`   | UI toggle / accordion       |
+
+### Transition Presets (`lib/motion.ts`)
+
+Exported framer-motion transition objects that combine duration + easing:
+
+```typescript
+transition.fast   // { duration: 0.2, ease: [0.16, 1, 0.3, 1] }
+transition.base   // { duration: 0.3, ease: [0.65, 0, 0.35, 1] }
+transition.slow   // { duration: 0.5, ease: [0.16, 1, 0.3, 1] }
+transition.spring // { type: "spring", bounce: 0.2, duration: 0.6 }
+```
+
+### Variant Presets
+
+| Variant               | Behavior                           |
+| :-------------------- | :--------------------------------- |
+| `variants.fadeOnly`   | Opacity 0 → 1 (no transform)       |
+| `variants.fadeSlideUp`| Opacity 0 + y:20 → Opacity 1 + y:0 |
+
+### Reduced Motion
+
+The `resolveVariants(prefersReduced, delay?)` helper returns `fadeOnly` (zero-duration) when the user has `prefers-reduced-motion: reduce`, and animated `fadeSlideUp` variants otherwise.
+
+### Migrated Components
+
+| Component                                 | Before (inline)         | After (token)              |
+| :---------------------------------------- | :---------------------- | :------------------------- |
+| `components/landing/how-it-works.tsx`     | `duration: 0.5, easeOut`| `duration.slow, easing.easeOut` |
+| `components/landing/feature-card-grid.tsx`| `duration: 0.5, easeOut`| `duration.slow, easing.easeOut` |
+| `components/landing/faq-section.tsx`      | `duration: 0.3, easeInOut` | `duration.base, easing.easeInOut` |
+| `components/common/nav-link.tsx`          | `spring, bounce: 0.2, duration: 0.6` | `transition.spring` |
+| `components/landing/hero.tsx`             | N/A (no framer-motion)  | `resolveVariants()` with `duration.slow` |
+| `components/common/side-bar.tsx`          | CSS `duration-200`      | `transition.fast` via framer-motion |
 
 ### Accessibility (WCAG 2.1 AA)
 
-| Criterion | Implementation |
-|---|---|
-| **Perceivable** | Drag handle has `aria-roledescription="sortable"` and `aria-label="Drag {widget} to reorder"`. Move buttons have `aria-label="Move {widget} up/down"`. The sortable container has `role="list"` with `aria-label="Dashboard widgets"`. Each widget has `role="listitem"` and `aria-label="{widget} widget"`. |
-| **Operable** | All controls are native `<button>` elements, fully keyboard-operable. Move Up/Down buttons are disabled at boundaries. Drag handle is focusable with visible `focus-visible:ring-2` ring. |
-| **Understandable** | Consistent layout: drag handle + label on left, move buttons on right. API is `arrayMove` — order always reflects the last user action. |
-| **Robust** | GripVertical, ChevronUp, ChevronDown icons carry `aria-hidden="true"`. |
-| **Contrast** | Uses existing Zinc design tokens (400/600 with hover states). Focus ring uses `zinc-900` (light) / `white` (dark) at 2px width. |
-
-### Refs / Tour compatibility
-
-The four refs used by `DashboardTour` (`accountSummaryRef`, `quickActionsRef`, `analyticsInsightsRef`, `clientAnalyticsRef`) are stored in a `refMap` keyed by widget ID. Each `SortableWidget` forwards the appropriate ref to the inner `<div>` wrapping the widget content. Refs follow the DOM when widgets are reordered, so the tour highlights remain correct.
-
-### Tests
-
-**File:** `components/dashboard/dashboard-page.test.tsx` (20 tests).
-
-| Category | Tests |
-|---|---|
-| **Render** | Navbar, all 5 widgets, tour overlay, correct layout |
-| **Default order** | Widgets render in `WIDGET_IDS` order |
-| **Move buttons** | 5 up buttons, 5 down buttons; first up disabled; last down disabled |
-| **Move down** | Clicks first move-down, checks item swapped |
-| **Move up** | Moves down then up, checks return to original |
-| **Persistence** | `safeStorage.setWidgetOrder` called after move with updated order |
-| **Restore** | Custom order from `getWidgetOrder` is rendered on mount |
-| **Fallback** | Null, truncated, and invalid localStorage values fall to default |
-| **Drag handles** | 5 handles with correct `aria-roledescription` |
-| **Props** | `isLoading` passed to ClientAnalyticsView; `recentRecipients` to QuickTransfer |
-| **Save default** | Default order is persisted when no saved order exists |
-
-### Pre-existing bug fix
-
-The `DashboardTour` import was missing from the original file (`dashboard-page.tsx`). Added `import { DashboardTour } from "@/components/dashboard/dashboard-tour"`. Also added missing `FileText`, `Wallet`, `Shield`, `Settings`, `Clock3`, `ChevronRight` icon imports from `lucide-react`, `Link` from `next/link`, `useTransactions` from `@/hooks/useTransactions`, and `Transaction` type from `@/types/transaction` — all used by the `RecentActivityFeed` component but previously undeclared.
-
-No test changes were needed for these fixes; the existing test suite was not exercising `RecentActivityFeed`.
-
-Run the suite:
-
-```bash
-npx vitest run components/dashboard/dashboard-page.test.tsx --no-coverage
-```
+- **Reduced Motion**: All motion-enabled components check `useReducedMotion()` and disable non-essential movement when the OS-level `prefers-reduced-motion: reduce` is set.
+- **No Content Loss**: Hidden decorative elements (gradient orbs, rotating cards) remain visually hidden without animation; all content stays accessible and functional.
+- **Focus Management**: Sidebar open/close preserves focus order and returns focus to `#main-content` on close (handled in `AppLayout`).
+- **Contrast**: All transition elements use the existing color token system with `dark:` variants for sufficient contrast.
