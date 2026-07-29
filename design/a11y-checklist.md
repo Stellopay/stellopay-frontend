@@ -324,8 +324,85 @@ form.handleSubmit(onSubmit, onValidationError)
 | `components/dashboard/transaction-history.test.tsx` | Tests for aria-live announcement, transition-only firing, fake timers, edge cases |
 | `components/common/side-bar.tsx`                  | aria-label, aria-expanded, aria-hidden icons, focus rings                                |
 | `design/a11y-checklist.md`                        | This document                                                                            |
+| `components/common/notification-panel.tsx`        | Keyboard navigation (roving tabindex, Enter, Space, Escape, focus ring)                 |
+| `components/common/notification-panel.test.tsx`   | 16 new keyboard-navigation tests (27 total)                                              |
 
 ### Transaction Table Tooltips
-- **Contrast**: Focus ring (ocus:ring-[#D7E0EF]) provides clear 3:1 contrast against dark background.
-- **Keyboard Nav**: 	abIndex={0} makes truncated addresses and amounts focusable, revealing the 	itle tooltip.
+- **Contrast**: Focus ring (focus:ring-[#D7E0EF]) provides clear 3:1 contrast against dark background.
+- **Keyboard Nav**: tabIndex={0} makes truncated addresses and amounts focusable, revealing the title tooltip.
 - **ARIA**: Screen readers read the full content within the span natively, while sighted users see tooltips on hover/focus.
+
+---
+
+## Notification Panel — Added Keyboard Navigation
+
+**File:** `components/common/notification-panel.tsx`
+**PR:** Adds listbox keyboard pattern (WAI-ARIA roving tabindex) to the notification list.
+
+### Keyboard Shortcuts
+
+| Key           | Action                                              |
+| ------------- | --------------------------------------------------- |
+| Arrow Down    | Move focus to the next notification (wraps to top)  |
+| Arrow Up      | Move focus to the previous notification (wraps to bottom) |
+| Home          | Jump to the first notification                      |
+| End           | Jump to the last notification                       |
+| Enter / Space | Activate (click) the focused notification           |
+| Escape        | Close the panel and return focus to the bell trigger |
+
+### ARIA Attributes Applied
+
+| Element              | Attribute                    | Purpose                                               |
+| -------------------- | ---------------------------- | ----------------------------------------------------- |
+| Notification list    | `role="listbox"`             | Communicates listbox navigation pattern to AT         |
+| Notification list    | `aria-label="Notifications list"` | Provides accessible name for the listbox         |
+| Each notification    | `role="option"`              | Identifies each item as a listbox option              |
+| Each notification    | `aria-selected`              | Indicates which option is currently focused           |
+| Each notification    | `tabIndex` (roving)          | Only the focused option is in the Tab order           |
+| Bell trigger button  | `aria-label="Notifications"` | (pre-existing) Accessible label for the trigger       |
+
+### Focus Restoration
+
+On Escape, the component:
+1. Queries the bell trigger inside the panel via `[aria-label="Notifications"]`
+2. Calls `.focus()` on the trigger to return keyboard focus
+3. Invokes the `onClose` callback so the parent can hide the panel
+
+### Design Decisions
+
+- **Roving tabindex over `aria-activedescendant`**: Each option receives focus directly, providing a more robust keyboard experience and ensuring visible focus rings (WCAG 2.4.7 Focus Visible).
+- **Wrapping navigation**: Arrow Down from the last item wraps to the first and vice versa, matching common listbox expectations.
+- **`focus-visible` ring**: Items show a focus ring only when focused via keyboard (not click), using `focus-visible:ring-2` (WCAG 2.4.7, 1.4.1).
+- **No `aria-live` on listbox**: Removed when switching from `role="region"` to `role="listbox"`, as listbox provides its own semantics; new notifications arriving will still be announced by the DOM mutation.
+
+### Responsive / State Coverage
+
+| State                     | Keyboard nav behavior                                       |
+| ------------------------- | ----------------------------------------------------------- |
+| Loading                   | No listbox rendered; skeletons are non-interactive          |
+| Empty                     | No listbox rendered; empty state is static                  |
+| Single notification       | Arrow keys wrap onto the same item; no visible movement     |
+| Multiple notifications    | Full navigation as described above                          |
+| Notifications re-keyed    | `focusedIndex` resets to 0 on list change                   |
+
+### Tests (27 total, 16 new keyboard-nav tests)
+
+| Test                                              | File                                             |
+| ------------------------------------------------- | ------------------------------------------------ |
+| All pre-existing tests (11)                       | `notification-panel.test.tsx`                    |
+| listbox role + aria-label                         | `notification-panel.test.tsx`                    |
+| Default tabIndex (first=0, others=-1)             | `notification-panel.test.tsx`                    |
+| ArrowDown updates tabIndex                        | `notification-panel.test.tsx`                    |
+| ArrowDown forward / ArrowUp backward              | `notification-panel.test.tsx`                    |
+| Wrap last→first on ArrowDown                      | `notification-panel.test.tsx`                    |
+| Wrap first→last on ArrowUp                        | `notification-panel.test.tsx`                    |
+| Home jumps to first                               | `notification-panel.test.tsx`                    |
+| End jumps to last                                 | `notification-panel.test.tsx`                    |
+| aria-selected tracks focus                        | `notification-panel.test.tsx`                    |
+| Enter activates notification                      | `notification-panel.test.tsx`                    |
+| Space activates notification                      | `notification-panel.test.tsx`                    |
+| Click activates notification                      | `notification-panel.test.tsx`                    |
+| Escape calls onClose                              | `notification-panel.test.tsx`                    |
+| Non-activation key is no-op                       | `notification-panel.test.tsx`                    |
+| focusedIndex resets on notification change        | `notification-panel.test.tsx`                    |
+| No listbox in empty/loading states                | `notification-panel.test.tsx`                    |
