@@ -229,12 +229,9 @@ describe("CustomTooltip", () => {
       <CustomTooltip active payload={[{ value: 1234 }]} label="TestMonth" />,
     );
     const tooltipEl = container.firstChild as HTMLElement;
-    expect(tooltipEl).toHaveClass("bg-white");
-    expect(tooltipEl).toHaveClass("dark:bg-zinc-900");
-    expect(tooltipEl).toHaveClass("text-zinc-900");
-    expect(tooltipEl).toHaveClass("dark:text-zinc-100");
-    expect(tooltipEl).toHaveClass("border-zinc-200");
-    expect(tooltipEl).toHaveClass("dark:border-zinc-800");
+    expect(tooltipEl).toHaveClass("bg-background");
+    expect(tooltipEl).toHaveClass("text-foreground");
+    expect(tooltipEl).toHaveClass("border-border");
     expect(tooltipEl).toHaveClass("text-center");
     expect(screen.getByText("TestMonth")).toBeInTheDocument();
     expect(screen.getByText("1,234 views")).toBeInTheDocument();
