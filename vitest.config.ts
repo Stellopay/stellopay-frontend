@@ -54,7 +54,7 @@ export default defineConfig({
         "components/common/network-switcher.tsx",
         "components/common/search-bar.tsx",
         "components/ui/pagination.tsx",
-        "components/dashboard/quick-actions.tsx",
+        "components/dashboard/account-summary-card.tsx",
       ],
       exclude: [
         "**/*.test.{ts,tsx}",
