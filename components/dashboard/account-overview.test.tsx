@@ -349,7 +349,7 @@ describe("AccountOverview – error state", () => {
     );
 
     await waitFor(() => {
-      expect(screen.getByTestId("summary-error")).toBeInTheDocument();
+      expect(screen.getByRole("alert")).toBeInTheDocument();
     });
   });
 
@@ -393,7 +393,7 @@ describe("AccountOverview – error state", () => {
     );
 
     await waitFor(() => {
-      expect(screen.getByTestId("summary-error")).toBeInTheDocument();
+      expect(screen.getByRole("alert")).toBeInTheDocument();
     });
 
     expect(
@@ -411,14 +411,14 @@ describe("AccountOverview – error state", () => {
     );
 
     await waitFor(() => {
-      expect(screen.getByTestId("summary-error")).toBeInTheDocument();
+      expect(screen.getByRole("alert")).toBeInTheDocument();
     });
 
     expect(screen.queryByTestId("summary-cards-grid")).not.toBeInTheDocument();
     expect(screen.queryByText("Total Balance")).not.toBeInTheDocument();
   });
 
-  it("shows a Retry button in the error state", async () => {
+  it("shows a Try Again button in the error state", async () => {
     forceLoadError();
 
     render(
@@ -429,12 +429,12 @@ describe("AccountOverview – error state", () => {
 
     await waitFor(() => {
       expect(
-        screen.getByRole("button", { name: /retry/i }),
+        screen.getByRole("button", { name: /try again/i }),
       ).toBeInTheDocument();
     });
   });
 
-  it("clicking Retry re-triggers the load and shows success on recovery", async () => {
+  it("clicking Try Again re-triggers the load and shows success on recovery", async () => {
     // First call throws, second call succeeds.
     const spy = vi
       .spyOn(summaryDataModule, "summaryCardsData", "get")
@@ -450,18 +450,18 @@ describe("AccountOverview – error state", () => {
     );
 
     await waitFor(() => {
-      expect(screen.getByTestId("summary-error")).toBeInTheDocument();
+      expect(screen.getByRole("alert")).toBeInTheDocument();
     });
 
     await act(async () => {
-      fireEvent.click(screen.getByRole("button", { name: /retry/i }));
+      fireEvent.click(screen.getByRole("button", { name: /try again/i }));
     });
 
     await waitFor(() => {
       expect(screen.getByTestId("summary-cards-grid")).toBeInTheDocument();
     });
 
-    expect(screen.queryByTestId("summary-error")).not.toBeInTheDocument();
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
   });
 });
 

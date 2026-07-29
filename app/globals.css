@@ -6,6 +6,28 @@
     --font-general-sans: "General Sans", sans-serif;
     --font-inter: "Inter", sans-serif;
 
+    /* ── Elevation / shadow scale (light) ────────────────────────────────
+     * Four-step hierarchy that every card-like surface must use.
+     *
+     *   1 — Static / default cards
+     *   2 — Hoverable / interactive cards
+     *   3 — Floating panels (popovers, dropdowns)
+     *   4 — Modals / dialogs
+     *
+     * Dark-mode values are swapped via the .dark variant below.
+     * Usage: shadow-elevation-1 … shadow-elevation-4
+     */
+    --elevation-1: 0 1px 2px 0 rgb(0 0 0 / 0.03), 0 1px 1px 0 rgb(0 0 0 / 0.02);
+    --elevation-2: 0 4px 6px -1px rgb(0 0 0 / 0.05), 0 2px 4px -2px rgb(0 0 0 / 0.03);
+    --elevation-3: 0 10px 15px -3px rgb(0 0 0 / 0.08), 0 4px 6px -4px rgb(0 0 0 / 0.04);
+    --elevation-4: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.05);
+
+    /* Disabled state token — single source of truth for all disabled controls
+     * Applied via the cursor-disabled and opactiy-disabled utilities below.
+     * Used across Button, Checkbox, TextInput, and Input.
+     */
+    --disabled-opacity: 0.5;
+
     /* Section vertical-rhythm spacing tokens
      * Applied as py-section-sm / py-section-md / py-section-lg via
      * the @utility helpers below, or directly via Tailwind responsive
@@ -45,7 +67,58 @@
     --font-caption-sm: 0.875rem;
     --leading-caption-sm: 1.43;
     --tracking-caption-sm: 0.01em;
+
+    /* Chart colors — light mode
+     * Used by RechartsMiniBarChart and other chart components.
+     * Each token maps to a semantic chart color that adapts in dark mode.
+     */
+    --chart-blue: #3B82F6;
+    --chart-green: #10B981;
+    --chart-amber: #F59E0B;
+    --chart-tooltip-bg: #ffffff;
+    --chart-tooltip-border: #e4e4e7;
   }
+
+  .dark {
+    /* Elevation / shadow scale (dark) — deeper shadows for contrast */
+    --elevation-1: 0 1px 3px 0 rgb(0 0 0 / 0.4), 0 1px 2px -1px rgb(0 0 0 / 0.3);
+    --elevation-2: 0 4px 6px -1px rgb(0 0 0 / 0.5), 0 2px 4px -2px rgb(0 0 0 / 0.4);
+    --elevation-3: 0 10px 15px -3px rgb(0 0 0 / 0.55), 0 4px 6px -4px rgb(0 0 0 / 0.45);
+    --elevation-4: 0 20px 25px -5px rgb(0 0 0 / 0.65), 0 8px 10px -6px rgb(0 0 0 / 0.5);
+  }
+}
+
+@theme inline {
+  --shadow-elevation-1: var(--elevation-1);
+  --shadow-elevation-2: var(--elevation-2);
+  --shadow-elevation-3: var(--elevation-3);
+  --shadow-elevation-4: var(--elevation-4);
+
+  /* Disabled-state tokens — mapped so Tailwind generates cursor-disabled
+   * and opacity-disabled utilities consumed by every disabled control.
+   */
+  --opacity-disabled: var(--disabled-opacity);
+  --cursor-disabled: not-allowed;
+}
+
+/**
+ * disabled-state
+ * ---------------
+ * Composable utility that applies the canonical disabled look to any element.
+ * Each property is driven by a CSS custom property so a single token edit
+ * updates every disabled control in the project.
+ *
+ * Usage:
+ *   <button className="disabled-state" disabled>Save</button>
+ *
+ * Note: Because Tailwind's disabled: variant does not compose with @utility,
+ * prefer the individual utilities in most cases:
+ *   className="disabled:cursor-disabled disabled:opacity-disabled"
+ */
+@utility disabled-state {
+  opacity: var(--disabled-opacity);
+  cursor: var(--disabled-cursor, not-allowed);
+  pointer-events: none;
 }
 
 @utility text-display-2xl {

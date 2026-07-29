@@ -2,12 +2,26 @@ import * as React from "react";
 
 import { cn } from "@/utils/commonUtils";
 
-function Card({ className, ...props }: React.ComponentProps<"div">) {
+type Elevation = 1 | 2 | 3 | 4;
+
+const elevationClasses: Record<Elevation, string> = {
+  1: "shadow-elevation-1",
+  2: "shadow-elevation-2",
+  3: "shadow-elevation-3",
+  4: "shadow-elevation-4",
+};
+
+function Card({
+  className,
+  elevation = 1,
+  ...props
+}: React.ComponentProps<"div"> & { elevation?: Elevation }) {
   return (
     <div
       data-slot="card"
       className={cn(
-        "bg-card text-card-foreground flex flex-col gap-6 rounded-xl border py-6 shadow-sm",
+        "bg-card text-card-foreground flex flex-col gap-6 rounded-xl border py-6",
+        elevationClasses[elevation],
         className,
       )}
       {...props}

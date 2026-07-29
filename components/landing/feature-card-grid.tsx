@@ -4,6 +4,7 @@ import { ArrowRight } from "lucide-react";
 import Link from "next/link";
 import { motion } from "framer-motion";
 import { useReducedMotion } from "@/hooks/useReducedMotion";
+import { duration, easing } from "@/lib/motion";
 
 interface FeatureCardGridProps extends FeatureGridItem {
   className?: string;
@@ -26,9 +27,9 @@ export const FeatureCardGrid: FC<FeatureCardGridProps> = ({
       opacity: 1, 
       y: 0,
       transition: {
-        duration: 0.5,
+        duration: duration.slow,
         delay: index * 0.1,
-        ease: "easeOut"
+        ease: easing.easeOut
       }
     }
   };

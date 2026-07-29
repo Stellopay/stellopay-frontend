@@ -19,6 +19,7 @@ import { useId, useState, type ReactNode } from "react";
 import { usePathname } from "next/navigation";
 import Link from "next/link";
 import { useTheme } from "@/context/theme-context";
+import { transition } from "@/lib/motion";
 import {
   isLinkActive,
   shouldExpandSidebar,
@@ -230,12 +231,11 @@ export const NavLink = () => {
                     ) : (
                       <motion.div
                         className="absolute left-0 top-0 w-full h-full bg-zinc-900 dark:bg-white rounded-xl z-10 shadow-sm"
-                        layoutId={getActiveLinkLayoutId(isMobile, isExpanded)}
-                        transition={{
-                          type: "spring",
-                          bounce: 0.2,
-                          duration: 0.6,
-                        }}
+                        layoutId={getActiveLinkLayoutId(
+                          isMobile,
+                          isExpanded,
+                        )}
+                        transition={transition.spring}
                       />
                     ))}
                 </Link>
@@ -244,13 +244,47 @@ export const NavLink = () => {
           }
 
           return (
-            <CollapsedNavLink
-              key={link.route}
-              item={link}
-              iconColor={iconColor}
-              isActive={isActive}
-              reducedMotion={reducedMotion}
-            />
+            <Tooltip
+              key={index}
+              placement="right"
+              content={link.link}
+              className="border border-zinc-100 dark:border-zinc-800 text-zinc-900 dark:text-zinc-100 bg-white dark:bg-zinc-900 px-3 py-1.5 shadow-xl rounded-md"
+            >
+              <li className="w-fit self-center relative w-full flex justify-center">
+                <Link
+                  href={link.route}
+                  aria-current={isActive ? "page" : undefined}
+                  className={`cursor-pointer my-1.5 p-3 relative rounded-xl flex items-center justify-center transition-all duration-200 ${
+                    isActive
+                      ? ""
+                      : "hover:bg-zinc-100 dark:hover:bg-zinc-800/50 text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white"
+                  }`}
+                >
+                  <span className="relative z-20 flex items-center justify-center">
+                    {link.icon(iconColor)}
+                  </span>
+
+                  {link.link.toLowerCase() === "transactions" && !isActive && (
+                    <div className="bg-[#EB6945] w-2 h-2 rounded-full -top-1 -right-1 absolute z-20 border border-white dark:border-[#101010]" />
+                  )}
+
+                  {isActive &&
+                    (reducedMotion ? (
+                      <div
+                        className="absolute left-0 top-0 w-8 h-8 self-center bg-zinc-900 dark:bg-white rounded-xl z-10 shadow-sm"
+                        style={{ left: "50%", transform: "translateX(-50%)" }}
+                      />
+                    ) : (
+                      <motion.div
+                        className="absolute left-0 top-0 w-8 h-8 self-center bg-zinc-900 dark:bg-white rounded-xl z-10 shadow-sm"
+                        style={{ left: "50%", transform: "translateX(-50%)" }}
+                        layoutId="activeLink-collapsed"
+                        transition={transition.spring}
+                      />
+                    ))}
+                </Link>
+              </li>
+            </Tooltip>
           );
         })}
       </ul>

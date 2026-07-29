@@ -110,53 +110,141 @@ npx vitest run components/dashboard/account-overview.test.tsx --coverage.enabled
 
 ---
 
-## Shared StatCard Primitive (#805)
+## Drag-and-Drop Widget Reordering
 
-**Branch:** `refactor/shared-stat-card-primitive`
+**Branch:** `feature/dashboard-widget-reordering`
+
+**Issue:** #886 — Add drag-and-drop widget reordering (persisted to localStorage).
 
 ### What was added
 
-Extracted a unified `StatCard` primitive (`components/ui/stat-card.tsx`) that consolidation-wise replaces duplicate card markups previously found in both landing page stats (`components/landing/stats-cards.tsx`) and dashboard account summary cards (`components/dashboard/account-summary-card.tsx`).
+Users can now reorder the five dashboard widgets by either:
 
-### Component API (`StatCardProps`)
+1. **Drag and drop** using the grip handle (⠿ icon) in the top bar of each widget.
+2. **Keyboard Move Up / Move Down** buttons in the same top bar.
 
-| Prop | Type | Default | Description |
-|---|---|---|---|
-| `size` | `"sm"` \| `"lg"` | `"sm"` | Controls scale variant: `"sm"` (compact/dashboard) vs `"lg"` (large/landing) |
-| `title` | `ReactNode` | `undefined` | Card primary label or title |
-| `subtitle` | `ReactNode` | `undefined` | Secondary sub-label for compact cards |
-| `value` | `ReactNode` | *(required)* | Main stat value (string, number, or animated element) |
-| `valueTestId` | `string` | `undefined` | Test identifier for value container |
-| `icon` | `ReactNode` | `undefined` | Header icon element |
-| `iconBgColor` | `string` | `""` | Background color utility for icon wrapper |
-| `change` | `string` | `undefined` | Trend change text (e.g. `+12.5% vs last month`) |
-| `isPositive` | `boolean` | `undefined` | Trend direction flag (emerald vs rose) |
-| `trendSlot` | `ReactNode` | `undefined` | Custom trend badge override |
-| `chartSlot` | `ReactNode` | `undefined` | Bottom slot (e.g., mini bar chart) |
-| `href` | `string` | `undefined` | Optional link destination for interactive cards |
-| `ariaLabel` | `string` | `undefined` | Accessible label when rendered as a link |
-| `testId` | `string` | `undefined` | Data-testid for card wrapper |
+The chosen order is persisted to `localStorage` via `safeStorage.ts` and restored on the next visit.
+
+### Widgets
+
+The dashboard renders five widgets in a vertical sortable list:
+
+| ID | Component | Tour Ref |
+|---|---|---|
+| `account-overview` | `AccountOverview` | `accountSummaryRef` |
+| `quick-transfer` | `QuickTransfer` | — |
+| `quick-actions` | `QuickActions` | `quickActionsRef` |
+| `analytics-insights` | `AnalyticsInsights` (dynamic) | `analyticsInsightsRef` |
+| `client-analytics` | `ClientAnalyticsView` | `clientAnalyticsRef` |
+
+### Persistence
+
+- **Storage key:** `stellopay_dashboard_widget_order` (in `STORAGE_KEYS`).
+- **Format:** `JSON.stringify([...WidgetId[]])`.
+- **Hydration flow:**
+  1. On mount, `safeStorage.getWidgetOrder()` is called.
+  2. If a valid array of 5 known widget IDs is returned, it replaces the default order.
+  3. If the saved value is `null`, malformed, wrong length, or contains unknown IDs, the default order is used.
+  4. After hydration sets `hasHydrated = true`, every subsequent order change is persisted via `useEffect`.
+
+### Components
+
+#### `WidgetId` type and constants
+
+```ts
+type WidgetId = "account-overview" | "quick-transfer" | "quick-actions"
+              | "analytics-insights" | "client-analytics";
+```
+
+Exported from `dashboard-page.tsx`:
+- `WIDGET_IDS` — default-order array (`WidgetId[]`).
+- `WIDGET_LABELS` — human-readable label map (`Record<WidgetId, string>`).
+
+#### `WidgetDragHandle`
+
+Renders a top bar with:
+- **Drag handle button** (left): GripVertical icon + widget label; spreads `listeners` from `useSortable`. `aria-roledescription="sortable"`.
+- **Move Up / Move Down buttons** (right): chevron icons; disabled at list boundaries. Wrapped in a `role="group"` with an accessible label.
+
+#### `SortableWidget`
+
+Wrapper around each widget using `useSortable` from `@dnd-kit/sortable`. Applies `transform`/`transition` CSS for smooth drag animations. Reduces opacity (`opacity-60`) while dragging. Forwards the tour ref to the inner content.
+
+#### `DashboardDragOverlay`
+
+Shown as a drag preview while the user is dragging. Renders a simplified card with the widget label.
+
+#### `Dashboard` (modified)
+
+- Replaces the hardcoded widget order with a `widgetOrder` state array.
+- Renders widgets inside a `DndContext` + `SortableContext` with `verticalListSortingStrategy`.
+- `PointerSensor` with `activationConstraint: { distance: 8 }` prevents accidental drags.
+- `handleMove(id, direction)` callback for Move Up/Down buttons uses the same `arrayMove` logic as drag-and-drop.
+- `DndContext.onDragEnd` updates `widgetOrder` and persists via `safeStorage`.
+
+### Sensors
+
+- **Contrast**: The ErrorState uses a `text-red-500` icon and `text-white` text on a `bg-red-900/10` background which exceeds minimum contrast requirements.
+- **Keyboard Nav**: The "Try Again" button is fully keyboard navigable. Focus order is maintained.
+- **ARIA**: The `ErrorState` component utilizes `role="alert"` and `aria-live="assertive"` so screen readers can proactively announce network failures. Loading/Retrying indicators use `aria-hidden="true"` on non-text elements and `aria-label` or `aria-disabled` where appropriate to ensure status is accurately conveyed.
+- **New props**: `eventId` is rendered in a `<code>` block with `aria-label` describing the reference; the report link uses `aria-label="Report this issue"` so screen readers announce purpose clearly.
+
+---
+
+## Motion Duration & Easing Tokens (#758)
+
+### Token Scale
+
+| Token      | Value | Use Case                                | Example Components               |
+| :--------- | :---- | :-------------------------------------- | :------------------------------- |
+| `fast`     | 200ms | Micro-interactions (hover, tap, focus)  | Sidebar logo fade, toggle button |
+| `base`     | 300ms | Standard UI transitions                 | FAQ accordion expand/collapse    |
+| `slow`     | 500ms | Entrance / scroll-reveal animations     | Hero section, how-it-works steps |
+| `xslow`    | 600ms | Layout animations, spring-like movement | Nav-link active indicator        |
+
+### Easing Curves
+
+| Curve       | Cubic Bézier                        | Use Case                    |
+| :---------- | :---------------------------------- | :-------------------------- |
+| `easeOut`   | `cubic-bezier(0.16, 1, 0.3, 1)`    | Entrance animations         |
+| `easeInOut` | `cubic-bezier(0.65, 0, 0.35, 1)`   | UI toggle / accordion       |
+
+### Transition Presets (`lib/motion.ts`)
+
+Exported framer-motion transition objects that combine duration + easing:
+
+```typescript
+transition.fast   // { duration: 0.2, ease: [0.16, 1, 0.3, 1] }
+transition.base   // { duration: 0.3, ease: [0.65, 0, 0.35, 1] }
+transition.slow   // { duration: 0.5, ease: [0.16, 1, 0.3, 1] }
+transition.spring // { type: "spring", bounce: 0.2, duration: 0.6 }
+```
+
+### Variant Presets
+
+| Variant               | Behavior                           |
+| :-------------------- | :--------------------------------- |
+| `variants.fadeOnly`   | Opacity 0 → 1 (no transform)       |
+| `variants.fadeSlideUp`| Opacity 0 + y:20 → Opacity 1 + y:0 |
+
+### Reduced Motion
+
+The `resolveVariants(prefersReduced, delay?)` helper returns `fadeOnly` (zero-duration) when the user has `prefers-reduced-motion: reduce`, and animated `fadeSlideUp` variants otherwise.
+
+### Migrated Components
+
+| Component                                 | Before (inline)         | After (token)              |
+| :---------------------------------------- | :---------------------- | :------------------------- |
+| `components/landing/how-it-works.tsx`     | `duration: 0.5, easeOut`| `duration.slow, easing.easeOut` |
+| `components/landing/feature-card-grid.tsx`| `duration: 0.5, easeOut`| `duration.slow, easing.easeOut` |
+| `components/landing/faq-section.tsx`      | `duration: 0.3, easeInOut` | `duration.base, easing.easeInOut` |
+| `components/common/nav-link.tsx`          | `spring, bounce: 0.2, duration: 0.6` | `transition.spring` |
+| `components/landing/hero.tsx`             | N/A (no framer-motion)  | `resolveVariants()` with `duration.slow` |
+| `components/common/side-bar.tsx`          | CSS `duration-200`      | `transition.fast` via framer-motion |
 
 ### Accessibility (WCAG 2.1 AA)
 
-| Aspect | Implementation & Contrast Ratios |
-|---|---|
-| **Color Contrast (Light)** | Value text `zinc-900` (#18181b, 16:1), title `zinc-500` (#71717a, 4.6:1), positive trend `emerald-700` (#047857, 5.5:1), negative trend `rose-700` (#be123c, 6:1). Landing scale value `#6B47ED` (4.5:1). |
-| **Color Contrast (Dark)** | Dark value `white` (#ffffff, 21:1), dark title `zinc-400` (#a1a1aa, 6.2:1), positive trend `emerald-400` (#34d399, 7+:1), negative trend `rose-400` (#fb7185, 7+:1). Landing scale value `#A78BFA` (7+:1). |
-| **Keyboard Navigation** | Link variant (`href` provided) renders a standard accessible `<Link>` with clear focus indicator: `focus-visible:ring-2 focus-visible:ring-zinc-900 dark:focus-visible:ring-white focus-visible:ring-offset-2`. |
-| **Screen Readers & ARIA** | Interactive link variants accept `ariaLabel`. Decorative trend arrows carry `aria-hidden="true"`. |
-
-### Responsive Behavior Across Breakpoints
-
-- **`sm` (640px)**: Grid adjusts from 1-column stack to multi-column layout on landing. Text sizes scale (`text-2xl` to `text-3xl`).
-- **`md` (768px)**: Landing scale padding scales up (`px-8 py-10`), label text grows (`text-base`).
-- **`lg` (1024px)**: 4-column layout for landing stat card grids.
-- **`xl` (1280px)**: Full width container constraints with smooth overflow protection (`truncate`, `min-w-0`, `max-w-full`).
-
-### Tests
-
-Suite run:
-
-```bash
-node node_modules/vitest/vitest.mjs run components/ui/stat-card.test.tsx components/dashboard/account-summary-card.test.tsx components/landing/stats-cards.test.tsx
-```
+- **Reduced Motion**: All motion-enabled components check `useReducedMotion()` and disable non-essential movement when the OS-level `prefers-reduced-motion: reduce` is set.
+- **No Content Loss**: Hidden decorative elements (gradient orbs, rotating cards) remain visually hidden without animation; all content stays accessible and functional.
+- **Focus Management**: Sidebar open/close preserves focus order and returns focus to `#main-content` on close (handled in `AppLayout`).
+- **Contrast**: All transition elements use the existing color token system with `dark:` variants for sufficient contrast.
