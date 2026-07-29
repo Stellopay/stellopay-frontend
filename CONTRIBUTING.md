@@ -45,7 +45,25 @@ npm run build       # production build
 
 Run lint, type-check, and tests locally before opening a PR.
 
-## Accessibility (a11y) gate
+## Cookie Consent Banner
+
+The cookie-consent banner is rendered by `components/common/footer.tsx` and appears as a fixed bottom bar when no consent preference is stored in `localStorage`.
+
+### Behaviour
+
+- **No stored consent**: The banner is visible on every page.
+- **Accept**: Stores `"accepted"` under `stellopay.cookie-consent` in `localStorage` and hides the banner. The choice persists across reloads.
+- **Reject**: Stores `"rejected"` under the same key and hides the banner. The choice persists across reloads.
+- **Dismiss (close button)**: Hides the banner without writing a consent value. The banner reappears on the next page load because no preference was recorded.
+- **Fresh browser context**: When no value is stored, the banner is shown again.
+
+### Persistence
+
+The banner uses `safeStorage` (`@/utils/safeStorage`) for all `localStorage` reads and writes, so it is SSR-safe and handles storage-unavailable environments gracefully.
+
+### Adding a11y coverage
+
+The cookie-consent banner is included in the axe-core accessibility gate via `tests/cookie-consent.spec.ts`. If a new route renders the banner, ensure it is also added to `tests/a11y.spec.ts`.
 
 All primary routes must pass an axe-core scan before merging. The gate is enforced by `tests/a11y.spec.ts` and runs in CI under the `a11y-gate` job on every pull request and push to `main`.
 
@@ -82,6 +100,31 @@ const KNOWN_EXCEPTIONS: TriagedViolation[] = [
 ```
 
 Every exception **must** include a reason and a tracking-issue link. Remove the entry once the underlying issue is resolved. The allowlist is intentionally small — it is not a mechanism for silencing the gate wholesale.
+
+## Design System
+
+The application's visual language is built on a set of CSS custom properties defined in [`app/globals.css`](app/globals.css) and exposed as Tailwind utility classes via the `@theme inline` block. Every colour, border-radius, and typography token resolves to either a light or dark value automatically when the `.dark` class is applied to the root element.
+
+### Token reference
+
+**[`design/design-token-mapping.md`](design/design-token-mapping.md)** is the single source of truth for:
+
+- Every CSS custom property (`--background`, `--primary`, `--destructive`, `--chart-1`, etc.) and its generated Tailwind class (`bg-background`, `bg-primary`, `text-destructive`, `bg-chart-1`, …)
+- Light **and** dark mode resolved values (oklch / hex) for each token
+- One-line usage guidance per token
+- Composition examples (buttons, cards, inputs, error text)
+- Anti-patterns — common raw-hex usages and their token replacements
+- Instructions for adding a new token
+
+Consult this document before reaching for a raw hex value or a plain Tailwind palette step (e.g. `text-gray-500`). If the right token does not exist, add it to `app/globals.css` and document it in `design/design-token-mapping.md` in the same PR.
+
+### Dark mode
+
+Dark mode is controlled by the `useTheme` hook in `context/theme-context.tsx` and the `.dark` class on `<html>`. Use the `dark:` Tailwind modifier only when a component needs to override a token beyond what the CSS variable already provides; most dark-mode changes are handled automatically by the token.
+
+### Adding icons
+
+Use `lucide-react` exclusively. See [Iconography](#iconography) in the README for details.
 
 ## Project Structure (App Router)
 
@@ -144,6 +187,113 @@ Key test scenarios covered:
 - Responsive behavior across breakpoints (mobile, tablet, desktop)
 - Dark mode rendering
 
+
+## Shared Components — Transactions
+
+### `DateRangeChip`
+
+`components/transactions/date-range-chip.tsx` is the single date-picker trigger
+chip used throughout the Transactions feature. It renders a button that shows
+either a formatted date (`dd-MM-yyyy`) or a placeholder, and opens a Calendar
+popover on activation.
+
+**Use this component** whenever you need a single-date picker in the
+Transactions feature area. Do **not** write an inline `<Popover>` + `<Button>` +
+`<Calendar>` combination — keep the chip consistent and accessible.
+
+#### Props
+
+| Prop | Type | Required | Description |
+|------|------|----------|-------------|
+| `date` | `Date \| undefined` | ✓ | Selected date, or `undefined` for no selection |
+| `onDateChange` | `(date: Date \| undefined) => void` | ✓ | Called when the user picks a date |
+| `placeholder` | `string` | | Button label when no date is selected. Defaults to `"Pick a date"` |
+| `aria-label` | `string` | | Accessible name for the trigger button. Falls back to `placeholder` |
+| `disabledDate` | `(date: Date) => boolean` | | Predicate to disable specific calendar days |
+| `open` | `boolean` | | Controlled popover open state. Pair with `onOpenChange` |
+| `onOpenChange` | `(open: boolean) => void` | | Called when the popover open state should change |
+
+#### Controlled vs. uncontrolled
+
+The component supports **both** patterns:
+
+```tsx
+// ── Uncontrolled (Popover manages its own open state) ──────────────────
+// Used by components/transactions/date.tsx
+<DateRangeChip
+  date={selectedDate}
+  onDateChange={setSelectedDate}
+  placeholder="Pick a date"
+/>
+
+// ── Controlled (parent manages open state and closes on selection) ─────
+// Used by components/transactions/transactions-header.tsx
+const [open, setOpen] = useState(false);
+
+<DateRangeChip
+  date={fromDate}
+  onDateChange={(date) => { if (date) { onFromDateChange(date); setOpen(false); } }}
+  placeholder="From"
+  aria-label="Filter from date"
+  open={open}
+  onOpenChange={setOpen}
+  disabledDate={(d) => toDate ? d > toDate : false}
+/>
+```
+
+#### Accessibility (WCAG 2.1 AA)
+
+- The trigger button carries an explicit `aria-label` (from the prop, or
+  derived from `placeholder`). Screen readers announce the purpose of the
+  picker without relying on the visual icon.
+- The `<CalendarIcon>` is `aria-hidden="true"` — it is purely decorative.
+- The trigger inherits the project-wide `focus-visible` ring (3 px via
+  `focus-visible:ring-[3px]`), satisfying the 3∶1 non-text contrast requirement
+  for focus indicators.
+- Keyboard navigation inside the calendar grid is handled by the underlying
+  Radix + react-day-picker primitives (Arrow keys, Page Up/Down, Home/End,
+  Enter/Space to select).
+- The `to` separator in the date range (`aria-hidden="true"`) is hidden from
+  the accessibility tree so it is not announced twice.
+
+#### Sizing and overflow
+
+The button uses a fixed `w-[140px]`, which:
+
+- accommodates the widest possible `formatDateForDisplay` output (`dd-MM-yyyy`
+  = 10 characters) plus the calendar icon and padding, and
+- prevents the overflow regression caused by the former `w-[2000px]` typo that
+  was present in `transactions-header.tsx`.
+
+Long placeholder strings and formatted dates are truncated with CSS
+(`truncate` / `overflow-hidden`) and never break the layout.
+
+#### Responsive behaviour
+
+The chip width (`140px`) is intentionally fixed across all breakpoints because
+date strings have a predictable maximum length. The parent layout adjusts
+(e.g. `flex-col` on mobile → `flex-row lg:flex-row` in the header) while the
+chip itself stays the same size.
+
+#### Tests
+
+Unit tests live in `components/transactions/date-range-chip.test.tsx` and
+cover:
+
+- Rendering — placeholder and formatted-date display
+- Accessibility — `aria-label`, `aria-hidden` icon
+- Controlled open state — `open` prop reflected on the popover root
+- `onDateChange` callback — called with the selected `Date`
+- `disabledDate` predicate — passed through to the Calendar stub
+- Edge cases — `undefined` date, long strings, re-renders, prop changes
+- Integration patterns — controlled (TransactionsHeader) and uncontrolled
+  (Date component) usage
+
+Run them with:
+
+```bash
+npm run test -- date-range-chip
+```
 
 ## Data-Layer Rules
 
@@ -329,6 +479,39 @@ For example, when testing an unsaved changes guard, ensure the test:
 ### Security Notes
 
 Examples must not include real secrets, tokens, or addresses. Always use placeholder domains (e.g., `example.com`) and redacted addresses in your tests and mockups.
-## Local Accessibility Testing Guide
-Before opening a pull request, please ensure your changes comply with our accessibility guidelines (targeting WCAG 2.1 AA compliance).
-Refer to the full manual and automated criteria in [design/a11y-checklist.md](design/a11y-checklist.md).
+
+## Navbar Active Route Management (#785)
+
+The application navbar (`components/common/navbar.tsx`) derives active route styling from `usePathname()` via `next/navigation`.
+
+### Standards & Guidelines
+- **Single Source of Truth**: Never persist active route state in local component state (`useState`).
+- **In-Page Nav Sync**: Dynamic URL updates from inline links automatically re-render active navbar indicators.
+- **Accessibility (WCAG 2.1 AA)**:
+  - Active navigation links receive `aria-current="page"`.
+  - Color contrast (`bg-primary/10 text-primary`) meets minimum requirements across light/dark modes.
+  - Mobile dropdown drawer includes complete `aria-expanded` and `aria-controls` bindings.
+
+## Navbar Active Route Management (#785)
+
+The application navbar (`components/common/navbar.tsx`) derives active route styling from `usePathname()` via `next/navigation`.
+
+### Standards & Guidelines
+- **Single Source of Truth**: Never persist active route state in local component state (`useState`).
+- **In-Page Nav Sync**: Dynamic URL updates from inline links automatically re-render active navbar indicators.
+- **Accessibility (WCAG 2.1 AA)**:
+  - Active navigation links receive `aria-current="page"`.
+  - Color contrast (`bg-primary/10 text-primary`) meets minimum requirements across light/dark modes.
+  - Mobile dropdown drawer includes complete `aria-expanded` and `aria-controls` bindings.
+
+## Navbar Active Route Management (#785)
+
+The application navbar (`components/common/navbar.tsx`) derives active route styling from `usePathname()` via `next/navigation`.
+
+### Standards & Guidelines
+- **Single Source of Truth**: Never persist active route state in local component state (`useState`).
+- **In-Page Nav Sync**: Dynamic URL updates from inline links automatically re-render active navbar indicators.
+- **Accessibility (WCAG 2.1 AA)**:
+  - Active navigation links receive `aria-current="page"`.
+  - Color contrast (`bg-primary/10 text-primary`) meets minimum requirements across light/dark modes.
+  - Mobile dropdown drawer includes complete `aria-expanded` and `aria-controls` bindings.
