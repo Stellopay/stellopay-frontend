@@ -31,7 +31,7 @@ export const CustomTooltip = ({
 }: CustomTooltipProps) => {
   if (active && payload && payload.length) {
     return (
-      <div className="bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100 p-2 rounded shadow text-sm border border-zinc-200 dark:border-zinc-800 text-center">
+      <div className="bg-background text-foreground p-2 rounded shadow text-sm border border-border text-center">
         <p className="font-semibold">{label}</p>
         <p>{payload[0].value.toLocaleString()} views</p>
       </div>
@@ -61,7 +61,7 @@ export default function AnalyticsChart({
           vertical={false}
           stroke={showNotifications ? "currentColor" : "#1f1b2e"}
           className={
-            showNotifications ? "text-zinc-200 dark:text-zinc-800" : ""
+            showNotifications ? "text-border dark:text-muted" : ""
           }
         />
         <XAxis
