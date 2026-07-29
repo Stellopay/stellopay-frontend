@@ -73,10 +73,7 @@ export function ErrorState({
           className="inline-flex items-center gap-2 px-4 py-2 bg-[#2D2D2D] hover:bg-[#3A3A3A] transition-colors text-white text-sm font-medium rounded-lg disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-[#2D2D2D]"
         >
           {retrying && (
-            <Loader2
-              className="h-4 w-4 animate-spin"
-              aria-hidden="true"
-            />
+            <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
           )}
           {retrying ? "Retrying…" : "Try Again"}
         </button>

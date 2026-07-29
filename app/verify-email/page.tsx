@@ -144,10 +144,7 @@ function VerifyEmailForm() {
 
     if (pastedCode.length === 0) return;
 
-    setCode([
-      ...pastedCode,
-      ...Array(OTP_LENGTH - pastedCode.length).fill(""),
-    ]);
+    setCode([...pastedCode, ...Array(OTP_LENGTH - pastedCode.length).fill("")]);
     inputRefs.current[Math.min(pastedCode.length, OTP_LENGTH) - 1]?.focus();
   };
 
@@ -299,36 +296,34 @@ function VerifyEmailForm() {
 
       {/* Modal Card */}
       <div className="border-[#2D2D2D] border rounded-[24px] px-7 sm:px-11 py-9 w-full max-w-[480px] space-y-4 text-center shadow-lg">
-        {tokenStatus !== "idle" ? (
-          renderTokenContent()
-        ) : (
-          <>
-            <h1 className="text-[#F8D2FE] text-2xl sm:text-[32px] font-medium mb-2">
-              Check your email
-            </h1>
-            <p className="text-sm text-[#ACB4B5] mb-6">
-              Didn&apos;t get code?{" "}
-              <button
-                onClick={handleResend}
-                disabled={resendStatus === "loading" || isActive}
-                className="text-white font-semibold underline cursor-pointer disabled:opacity-50"
-                aria-describedby="resend-status"
-              >
-                {resendStatus === "loading" ? (
-                  <>
-                    <Loader2 className="inline h-4 w-4 mr-1 animate-spin" />
-                    Sending...
-                  </>
-                ) : isActive ? (
-                  `Resend in ${secondsLeft}s`
-                ) : "Resend"}
-              </button>
-            </p>
-            <p id="resend-status" aria-live="polite" className="sr-only">
-              {isActive
-                ? `You can request a new code in ${secondsLeft} seconds.`
-                : "You can request a new verification code."}
-            </p>
+        <h1 className="text-[#F8D2FE] text-2xl sm:text-[32px] font-medium mb-2">
+          Check your email
+        </h1>
+        <p className="text-sm text-[#ACB4B5] mb-6">
+          Didn&apos;t get code?{" "}
+          <button
+            onClick={handleResend}
+            disabled={resendStatus === "loading" || isActive}
+            className="text-white font-semibold underline cursor-pointer disabled:opacity-50"
+            aria-describedby="resend-status"
+          >
+            {resendStatus === "loading" ? (
+              <>
+                <Loader2 className="inline h-4 w-4 mr-1 animate-spin" />
+                Sending...
+              </>
+            ) : isActive ? (
+              `Resend in ${secondsLeft}s`
+            ) : (
+              "Resend"
+            )}
+          </button>
+        </p>
+        <p id="resend-status" aria-live="polite" className="sr-only">
+          {isActive
+            ? `You can request a new code in ${secondsLeft} seconds.`
+            : "You can request a new verification code."}
+        </p>
 
             {/* OTP input */}
             <fieldset className="mt-5 mb-2">

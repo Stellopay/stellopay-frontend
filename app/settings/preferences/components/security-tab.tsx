@@ -659,7 +659,9 @@ function RequirementItem({ label, met }: { label: string; met: boolean }) {
   return (
     <div className="flex items-center gap-2 rounded-2xl border border-zinc-200 bg-zinc-50 px-4 py-3 text-sm text-zinc-600 dark:border-white/10 dark:bg-white/5 dark:text-zinc-400">
       <CheckCircle2
-        className={`size-4 ${met ? "text-emerald-500" : "text-zinc-300 dark:text-zinc-600"}`}
+        className={`size-4 ${
+          met ? "text-emerald-500" : "text-zinc-300 dark:text-zinc-600"
+        }`}
         aria-hidden="true"
       />
       <span>{label}</span>

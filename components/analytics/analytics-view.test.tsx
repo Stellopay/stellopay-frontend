@@ -75,7 +75,9 @@ describe("AnalyticsViews Component", () => {
 
   it("renders the loading skeleton when isLoading is true and showNotifications is false", () => {
     render(<AnalyticsViews isLoading={true} showNotifications={false} />);
-    expect(screen.getByText("Loading analytics views chart...")).toBeInTheDocument();
+    expect(
+      screen.getByText("Loading analytics views chart..."),
+    ).toBeInTheDocument();
   });
 
   it("renders the loading skeleton when isLoading is true and showNotifications is true", () => {
@@ -125,7 +127,7 @@ describe("AnalyticsViews Component", () => {
 
   it("handles year selector dropdown interactions", () => {
     render(<AnalyticsViews showDropdown={true} />);
-    
+
     // Toggle dropdown open
     const dropdownButton = screen.getByText("This Year");
     fireEvent.click(dropdownButton);
@@ -158,7 +160,9 @@ describe("ClientAnalyticsView Component", () => {
 
   it("renders default loading state when isLoading is true", () => {
     render(<ClientAnalyticsView isLoading={true} />);
-    expect(screen.getByText("Loading analytics views chart...")).toBeInTheDocument();
+    expect(
+      screen.getByText("Loading analytics views chart..."),
+    ).toBeInTheDocument();
   });
 
   it("renders notifications loading state when isLoading is true and showNotifications is true", () => {
@@ -171,7 +175,9 @@ describe("ClientAnalyticsView Component", () => {
 
     // After mounting, the loading state should disappear and the chart should appear
     await waitFor(() => {
-      expect(screen.queryByText("Loading analytics views chart...")).not.toBeInTheDocument();
+      expect(
+        screen.queryByText("Loading analytics views chart..."),
+      ).not.toBeInTheDocument();
     });
     expect(screen.getByText("Analytics views")).toBeInTheDocument();
   });
@@ -180,7 +186,7 @@ describe("ClientAnalyticsView Component", () => {
 describe("CustomTooltip", () => {
   it("renders with theme-aware classes and content when active with valid payload", () => {
     const { container } = render(
-      <CustomTooltip active payload={[{ value: 1234 }]} label="TestMonth" />
+      <CustomTooltip active payload={[{ value: 1234 }]} label="TestMonth" />,
     );
     const tooltipEl = container.firstChild as HTMLElement;
     expect(tooltipEl).toHaveClass("bg-white");
@@ -196,7 +202,7 @@ describe("CustomTooltip", () => {
 
   it("renders nothing when active with empty payload", () => {
     const { container } = render(
-      <CustomTooltip active payload={[]} label="x" />
+      <CustomTooltip active payload={[]} label="x" />,
     );
     expect(container).toBeEmptyDOMElement();
   });

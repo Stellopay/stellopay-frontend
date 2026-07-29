@@ -24,7 +24,11 @@ const Button: React.FC<ButtonProps> = ({
         } 
         font-medium text-[14px] rounded-[0.375rem] 
         flex items-center justify-center 
-        ${disabled || loading ? "opacity-50 cursor-not-allowed" : "cursor-pointer"}
+        ${
+          disabled || loading
+            ? "opacity-50 cursor-not-allowed"
+            : "cursor-pointer"
+        }
       `}
       style={{ width: width || "100%", height: height || "48px" }}
     >

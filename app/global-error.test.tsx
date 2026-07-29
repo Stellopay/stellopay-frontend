@@ -3,8 +3,8 @@ import { describe, expect, it, vi } from "vitest";
 
 import GlobalError from "./global-error";
 
-// Helpers 
-// Builds the props that Next.js passes to global-error.tsx. 
+// Helpers
+// Builds the props that Next.js passes to global-error.tsx.
 function makeProps(overrides?: { reset?: () => void }) {
   return {
     error: Object.assign(new Error("boom"), { digest: "abc123" }),
@@ -12,7 +12,7 @@ function makeProps(overrides?: { reset?: () => void }) {
   };
 }
 
-// Tests 
+// Tests
 describe("GlobalError", () => {
   it("renders an html element as the document root", () => {
     const { container } = render(<GlobalError {...makeProps()} />);

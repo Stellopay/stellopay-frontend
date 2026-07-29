@@ -69,7 +69,9 @@ export const SearchBar = ({ onSearch, debounceMs = 300 }: SearchBarProps = {}) =
         }`}
       />
       <div
-        className={`absolute ${isExpanded ? "left-3" : "left-1/2 -translate-x-1/2"} top-1/2 -translate-y-1/2 text-zinc-500 dark:text-zinc-400`}
+        className={`absolute ${
+          isExpanded ? "left-3" : "left-1/2 -translate-x-1/2"
+        } top-1/2 -translate-y-1/2 text-zinc-500 dark:text-zinc-400`}
       >
         <SearchIcon />
       </div>

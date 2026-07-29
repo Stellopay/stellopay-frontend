@@ -10,7 +10,10 @@ interface TableSearchbarProps {
   debounceMs?: number;
 }
 
-const TableSearchbar = ({ onSearch, debounceMs = 300 }: TableSearchbarProps) => {
+const TableSearchbar = ({
+  onSearch,
+  debounceMs = 300,
+}: TableSearchbarProps) => {
   const [value, setValue] = useState("");
 
   // Keep the latest onSearch without resetting the debounce timer on parent re-renders.

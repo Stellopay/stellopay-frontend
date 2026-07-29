@@ -112,7 +112,9 @@ export default function NetworkSwitcher({
    */
   const returnFocusToTrigger = (e: Event) => {
     e.preventDefault(); // suppress Radix's default focus-return
-    const btn = triggerWrapperRef.current?.querySelector<HTMLElement>('[data-slot="dropdown-menu-trigger"]');
+    const btn = triggerWrapperRef.current?.querySelector<HTMLElement>(
+      '[data-slot="dropdown-menu-trigger"]',
+    );
     btn?.focus();
   };
 
@@ -209,75 +211,87 @@ export default function NetworkSwitcher({
       {/* ── Dropdown ─────────────────────────────────────────────────── */}
       {/* ref wrapper lets us locate the trigger button for focus-return (issue #343) */}
       <div ref={triggerWrapperRef} style={{ display: "contents" }}>
-      <DropdownMenu>
-        <DropdownMenuTrigger
-          aria-label={`Current network: ${currentNetwork.name}. Click to switch network.`}
-          className={cn(
-            "flex items-center gap-2 px-3 py-2 rounded-md border transition-colors outline-none focus:ring-1 focus:ring-offset-1",
-            isDashboard
-              ? "bg-transparent border-[#242428] text-white hover:bg-[#1A1A1A] focus:ring-[#598EFF]"
-              : "bg-transparent border-[#598EFF]/30 text-white hover:bg-[#598EFF]/10 focus:ring-[#598EFF]",
-            className,
-          )}
-        >
-          {/* Active-network indicator dot */}
-          <span
-            className="w-2 h-2 rounded-full bg-green-500 shrink-0"
-            aria-hidden="true"
-          />
-          {currentNetwork.icon || <StellarIcon />}
-          <span className="text-sm font-medium" style={{ fontFamily: "General Sans, sans-serif" }}>
-            {currentNetwork.name}
-          </span>
-          <ChevronDown className="w-4 h-4 text-[#6e6d6e]" aria-hidden="true" />
-        </DropdownMenuTrigger>
+        <DropdownMenu>
+          <DropdownMenuTrigger
+            aria-label={`Current network: ${currentNetwork.name}. Click to switch network.`}
+            className={cn(
+              "flex items-center gap-2 px-3 py-2 rounded-md border transition-colors outline-none focus:ring-1 focus:ring-offset-1",
+              isDashboard
+                ? "bg-transparent border-[#242428] text-white hover:bg-[#1A1A1A] focus:ring-[#598EFF]"
+                : "bg-transparent border-[#598EFF]/30 text-white hover:bg-[#598EFF]/10 focus:ring-[#598EFF]",
+              className,
+            )}
+          >
+            {/* Active-network indicator dot */}
+            <span
+              className="w-2 h-2 rounded-full bg-green-500 shrink-0"
+              aria-hidden="true"
+            />
+            {currentNetwork.icon || <StellarIcon />}
+            <span
+              className="text-sm font-medium"
+              style={{ fontFamily: "General Sans, sans-serif" }}
+            >
+              {currentNetwork.name}
+            </span>
+            <ChevronDown
+              className="w-4 h-4 text-[#6e6d6e]"
+              aria-hidden="true"
+            />
+          </DropdownMenuTrigger>
 
-        <DropdownMenuContent
-          className={cn(
-            "min-w-[160px] border-[#242428] text-white",
-            isDashboard ? "bg-[#1A1A1A]" : "bg-[#0a0a0a]",
-          )}
-          align="end"
-          sideOffset={8}
-          aria-label="Available networks"
-        >
-          {resolvedNetworks.map((network) => {
-            const isActive = currentNetwork.id === network.id;
-            return (
-              <DropdownMenuItem
-                key={network.id}
-                onClick={() => handleNetworkSelect(network)}
-                aria-current={isActive ? "true" : undefined}
-                className={cn(
-                  "cursor-pointer text-white",
-                  isDashboard
-                    ? "focus:bg-[#242428] focus:text-white"
-                    : "focus:bg-[#1A1A1A] focus:text-white",
-                  isActive && (isDashboard ? "bg-[#242428]" : "bg-[#1A1A1A]"),
-                )}
-              >
-                <div className="flex items-center gap-2 w-full">
-                  {network.icon || <StellarIcon />}
-                  <span className="text-sm" style={{ fontFamily: "General Sans, sans-serif" }}>
-                    {network.name}
-                  </span>
-                  {/* Active badge */}
-                  {isActive && (
-                    <span className="ml-auto flex items-center gap-1">
-                      <span
-                        className="w-1.5 h-1.5 rounded-full bg-green-500"
-                        aria-hidden="true"
-                      />
-                      <span className="text-xs text-green-400 font-medium">Active</span>
-                    </span>
+          <DropdownMenuContent
+            className={cn(
+              "min-w-[160px] border-[#242428] text-white",
+              isDashboard ? "bg-[#1A1A1A]" : "bg-[#0a0a0a]",
+            )}
+            align="end"
+            sideOffset={8}
+            aria-label="Available networks"
+          >
+            {resolvedNetworks.map((network) => {
+              const isActive = currentNetwork.id === network.id;
+              return (
+                <DropdownMenuItem
+                  key={network.id}
+                  onClick={() => handleNetworkSelect(network)}
+                  aria-current={isActive ? "true" : undefined}
+                  className={cn(
+                    "cursor-pointer text-white",
+                    isDashboard
+                      ? "focus:bg-[#242428] focus:text-white"
+                      : "focus:bg-[#1A1A1A] focus:text-white",
+                    isActive && (isDashboard ? "bg-[#242428]" : "bg-[#1A1A1A]"),
                   )}
-                </div>
-              </DropdownMenuItem>
-            );
-          })}
-        </DropdownMenuContent>
-      </DropdownMenu>
-      </div>{/* /triggerWrapperRef */}
+                >
+                  <div className="flex items-center gap-2 w-full">
+                    {network.icon || <StellarIcon />}
+                    <span
+                      className="text-sm"
+                      style={{ fontFamily: "General Sans, sans-serif" }}
+                    >
+                      {network.name}
+                    </span>
+                    {/* Active badge */}
+                    {isActive && (
+                      <span className="ml-auto flex items-center gap-1">
+                        <span
+                          className="w-1.5 h-1.5 rounded-full bg-green-500"
+                          aria-hidden="true"
+                        />
+                        <span className="text-xs text-green-400 font-medium">
+                          Active
+                        </span>
+                      </span>
+                    )}
+                  </div>
+                </DropdownMenuItem>
+              );
+            })}
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </div>
+      {/* /triggerWrapperRef */}
 
       {/* ── Confirmation dialog ───────────────────────────────────────── */}
       {/*
@@ -292,7 +306,12 @@ export default function NetworkSwitcher({
        * onCloseAutoFocus returns focus to the DropdownMenuTrigger button so
        * keyboard users land back on the control they originally activated.
        */}
-      <Dialog open={!!pendingNetwork} onOpenChange={(open) => { if (!open) cancelSwitch(); }}>
+      <Dialog
+        open={!!pendingNetwork}
+        onOpenChange={(open) => {
+          if (!open) cancelSwitch();
+        }}
+      >
         <DialogContent
           className="bg-[#1A1A1A] border-[#242428] text-white max-w-sm"
           showCloseButton={false}
@@ -312,9 +331,14 @@ export default function NetworkSwitcher({
               className="text-[#9CA3AF]"
             >
               You are switching from{" "}
-              <strong className="font-semibold text-white">{currentNetwork.name}</strong>{" "}
+              <strong className="font-semibold text-white">
+                {currentNetwork.name}
+              </strong>{" "}
               to{" "}
-              <strong className="font-semibold text-white">{pendingNetwork?.name}</strong>.
+              <strong className="font-semibold text-white">
+                {pendingNetwork?.name}
+              </strong>
+              .
               <br />
               <br />
               Your displayed balances and Stellar operations will reflect the
