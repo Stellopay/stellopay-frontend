@@ -142,6 +142,82 @@ Following Next.js 15 conventions, global metadata (titles, descriptions, OpenGra
 - **`metadata`**: Contains SEO tags, OpenGraph data, and Twitter cards.
 - **`viewport`**: Contains responsive design parameters (e.g., `width`, `initialScale`) and theme colors for dark/light modes.
 
+## Dynamic Open Graph Image
+
+`app/opengraph-image.tsx` implements the [Next.js file-convention OG image route](https://nextjs.org/docs/app/api-reference/file-conventions/opengraph-image). It is served automatically at `/opengraph-image` and generates a **1200 × 630 px PNG** at request time using `next/og` (`ImageResponse` / Satori).
+
+### What's rendered
+
+| Element | Detail |
+|---|---|
+| Background | White (`#FFFFFF`) — matches the light-mode hero surface |
+| Badge | Dark pill with the StelloPay brand name and "Blockchain Payroll" label |
+| Headline | Three-line hero h1 — "The Future of / **Payroll on** / Blockchain" |
+| Gradient | "Payroll on" uses the brand gradient: `#2563EB → #7C3AED → #059669` |
+| Tagline | Hero paragraph copy — "Built for modern businesses…" |
+| Font | Clash Display Variable loaded from `public/font/clash-display-variable.ttf` |
+| Decorative blobs | Three radial-gradient orbs mirroring the hero decorative orbs |
+| Accent bar | Bottom-right brand gradient stripe |
+
+### Accessibility
+
+The OG image is a static bitmap consumed by crawlers and social previews. WCAG 2.1 AA contrast requirements are met for all rendered text:
+
+| Text element | Foreground | Background | Contrast ratio |
+|---|---|---|---|
+| Headline (dark) | `#09090B` | `#FFFFFF` | ≈ 20.7 : 1 ✓ |
+| Tagline (muted) | `#52525B` | `#FFFFFF` | ≈ 7.0 : 1 ✓ |
+| Badge label | `#FFFFFF` | `#09090B` | ≈ 20.7 : 1 ✓ |
+
+The gradient headline ("Payroll on") is decorative text whose semantic equivalent is conveyed by the `alt` attribute set in `openGraph.images[].alt` inside `app/layout.tsx`:
+
+> "StelloPay — The Future of Payroll on Blockchain. Brand gradient headline on white background."
+
+### File locations
+
+```
+app/
+├─ opengraph-image.tsx       # Route handler — generates the PNG
+└─ opengraph-image.test.ts   # Vitest unit tests
+```
+
+### Exported constants
+
+The module exports several constants so tests and other files can reference canonical values without duplicating strings:
+
+```ts
+import OGImage, { size, contentType, BRAND_GRADIENT, COLORS, COPY } from "@/app/opengraph-image";
+
+size           // { width: 1200, height: 630 }
+contentType    // "image/png"
+BRAND_GRADIENT // { from: "#2563EB", via: "#7C3AED", to: "#059669" }
+COLORS         // { background, foreground, muted, accent }
+COPY           // { headlinePrefix, headlineGradient, headlineSuffix, tagline, brand, badgeSub }
+```
+
+### Font loading
+
+The handler reads `public/font/clash-display-variable.ttf` at request time and passes the `ArrayBuffer` to `ImageResponse` via the `fonts` option. If the file cannot be read (e.g., in a stripped production image), the handler falls back gracefully to the default sans-serif typeface — the image is still generated without throwing.
+
+### Validating the live image
+
+After deploying, inspect the OG image with:
+
+- **Facebook debugger**: https://developers.facebook.com/tools/debug/
+- **Twitter Card validator**: https://cards-dev.twitter.com/validator
+- **OG preview**: https://www.opengraph.xyz/
+
+To inspect the raw PNG locally with a running dev server:
+
+```bash
+npm run dev
+# open http://localhost:3000/opengraph-image
+```
+
+### Keeping copy in sync
+
+The headline and tagline in `app/opengraph-image.tsx` are defined in the `COPY` constant and should be kept in sync with `components/landing/hero.tsx`. The unit tests assert the exact strings so a mismatch will fail CI.
+
 ## Project Structure
 
 ```
