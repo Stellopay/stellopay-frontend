@@ -28,6 +28,7 @@ vi.mock("framer-motion", () => ({
 }));
 
 vi.mock("@/public/svg/svg", () => ({
+  AccountSummaryIcon: () => <svg aria-hidden="true" />,
   DashBoardIcon: () => <svg aria-hidden="true" />,
   TransactionIcon: () => <svg aria-hidden="true" />,
   HelpCircleIcon: () => <svg aria-hidden="true" />,
@@ -52,7 +53,23 @@ describe("NavLink aria-current", () => {
     );
   });
 
+  it("marks Account Summary link active when on /account-summary", () => {
+    mockPathname.value = "/account-summary";
+    render(<NavLink />);
+
+    const currentLinks = screen
+      .getAllByRole("link")
+      .filter((link) => link.getAttribute("aria-current") === "page");
+
+    expect(currentLinks).toHaveLength(1);
+    expect(currentLinks[0]).toHaveAccessibleName(/Account Summary/);
+    expect(
+      screen.getByRole("link", { name: "Dashboard" }),
+    ).not.toHaveAttribute("aria-current");
+  });
+
   it("updates aria-current when the client-side pathname changes", () => {
+    mockPathname.value = "/dashboard";
     const { rerender } = render(<NavLink />);
     expect(screen.getByRole("link", { name: "Dashboard" })).toHaveAttribute(
       "aria-current",
