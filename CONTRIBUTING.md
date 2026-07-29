@@ -484,6 +484,137 @@ For example, when testing an unsaved changes guard, ensure the test:
 - Asserts that the guard intercepts the action
 - Confirms both paths (Discard / Stay) to verify the state and UI accurately update.
 
+## Dark-Mode Screenshot Audit
+
+`tests/dark-mode-screenshots.spec.ts` walks every top-level route in dark mode
+and captures a full-page screenshot artefact for manual diffing. It also runs
+an axe-core accessibility scan in the dark-mode render so contrast regressions
+specific to dark tokens surface here rather than relying on a separate
+light-mode pass.
+
+### How dark mode is forced
+
+The spec uses the same injection mechanism proven in `tests/theme.spec.ts`:
+
+```ts
+// Registers an init script that runs before any page scripts.
+await page.emulateMedia({ colorScheme: "dark" });
+await page.addInitScript(() => {
+  window.localStorage.setItem("theme", "dark");
+});
+await page.goto(route);
+```
+
+`emulateMedia` makes the pre-hydration inline script in `app/layout.tsx` apply
+the `dark` class to `<html>` before React hydrates. `addInitScript` ensures
+`ThemeProvider`'s `useEffect` reads `"dark"` from `getStoredTheme()` on mount
+and does not override the class. No changes to `context/theme-context.tsx` are
+needed — the existing `localStorage` contract is the stable injection point.
+
+### Routes covered
+
+| Route                   | Label                 |
+| ----------------------- | --------------------- |
+| `/`                     | `landing`             |
+| `/dashboard`            | `dashboard`           |
+| `/transactions`         | `transactions`        |
+| `/settings/preferences` | `settings-preferences`|
+| `/help/support`         | `help-support`        |
+| `/account-summary`      | `account-summary`     |
+| `/analytics-view`       | `analytics-view`      |
+| `/auth/login`           | `auth-login`          |
+| `/auth/sign-up`         | `auth-sign-up`        |
+
+### Test suites
+
+| Suite | Tests |
+|---|---|
+| **Desktop (1280 × 800)** | 9 routes × 1 viewport. Each test asserts the `dark` class, runs an axe-core WCAG 2.1 AA scan, and captures `dark-<label>-desktop.png`. |
+| **Responsive breakpoints** | 9 routes × 4 viewports (`sm` 640px, `md` 768px, `lg` 1024px, `xl` 1280px). Captures `dark-<label>-<breakpoint>.png`. |
+| **Dark / light parity** | Landing and dashboard. Asserts that `body` `background-color` differs between dark and light renders, which proves the theme class was actually applied. |
+
+### Screenshot artefacts
+
+Screenshots are written to Playwright's default `test-results/` directory and
+named `dark-<label>-<viewport>.png`. The first run writes baseline images.
+Subsequent runs diff against them and fail if the diff exceeds
+`maxDiffPixelRatio: 0.02` (2%).
+
+To adopt new baselines after an intentional visual change, run:
+
+```bash
+npx playwright test tests/dark-mode-screenshots.spec.ts --update-snapshots
+```
+
+To inspect the PNG artefacts interactively after a run:
+
+```bash
+npx playwright show-report
+```
+
+### Running the audit
+
+```bash
+# Chromium only (matches npm run test:e2e)
+npm run test:e2e -- tests/dark-mode-screenshots.spec.ts
+
+# All three browsers (chromium, firefox, webkit)
+npx playwright test tests/dark-mode-screenshots.spec.ts
+
+# Single browser
+npx playwright test tests/dark-mode-screenshots.spec.ts --project=firefox
+
+# Headed mode for visual debugging
+npx playwright test tests/dark-mode-screenshots.spec.ts --headed --project=chromium
+```
+
+### Accessibility in dark mode
+
+Each desktop route test calls `expectNoSeriousA11yViolations(page)` from
+`tests/axe-helper.ts` immediately after dark mode is confirmed. This catches:
+
+- **Color contrast** failures in dark-mode token pairs.
+- **ARIA** regressions introduced by conditional dark-mode markup.
+- **Role / label** issues that only appear when certain components render
+  differently under the `dark` class.
+
+Use the standard `allowlist` option for known issues that cannot be fixed
+immediately:
+
+```ts
+await expectNoSeriousA11yViolations(page, {
+  allowlist: [
+    { id: "color-contrast", reason: "Dark gradient badge — tracked in #999" },
+  ],
+});
+```
+
+### Responsive coverage
+
+The responsive suite validates at the four Tailwind breakpoints used across the
+codebase:
+
+| Breakpoint | Width | Height |
+|---|---|---|
+| `sm` | 640 px | 900 px |
+| `md` | 768 px | 1 024 px |
+| `lg` | 1 024 px | 768 px |
+| `xl` | 1 280 px | 800 px |
+
+### CI integration
+
+The spec lives in `tests/dark-mode-screenshots.spec.ts` and is automatically
+picked up by `playwright.config.ts`'s `testMatch: ["tests/**/*.spec.ts", ...]`
+glob. It runs as part of:
+
+- `npm run test:e2e` (chromium only, local default)
+- The full Playwright matrix in the `playwright` CI job
+  (`npx playwright test` — all browsers)
+
+On failure the `playwright` CI job uploads the HTML report as the
+`playwright-report` artefact (retained 7 days) so screenshot diffs and axe
+violation details can be inspected without re-running locally.
+
 ## Branching, Commits, and PRs
 
 1. **Branch Naming**: Use descriptive branch names like `feat/feature-name`, `fix/bug-name`, or `docs/doc-update`.
