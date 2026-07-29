@@ -5,9 +5,14 @@ import { describe, expect, it, beforeEach, vi, afterEach } from "vitest";
 import PaymentHistory from "./payment-history";
 
 const mockUsePaymentHistory = vi.fn();
+const mockPush = vi.fn();
 
 vi.mock("@/hooks/usePaymentHistory", () => ({
   usePaymentHistory: () => mockUsePaymentHistory(),
+}));
+
+vi.mock("next/navigation", () => ({
+  useRouter: () => ({ push: mockPush }),
 }));
 
 describe("PaymentHistory", () => {
@@ -26,6 +31,23 @@ describe("PaymentHistory", () => {
     URL.createObjectURL = originalCreateObjectURL;
     URL.revokeObjectURL = originalRevokeObjectURL;
     vi.restoreAllMocks();
+  });
+
+  it("renders a CTA button in empty state that navigates to /transactions", () => {
+    mockUsePaymentHistory.mockReturnValue({
+      data: [],
+      isLoading: false,
+      error: null,
+      refetch: vi.fn(),
+    });
+
+    render(<PaymentHistory />);
+
+    const ctaButton = screen.getByRole("button", { name: /view transactions/i });
+    expect(ctaButton).toBeInTheDocument();
+
+    fireEvent.click(ctaButton);
+    expect(mockPush).toHaveBeenCalledWith("/transactions");
   });
 
   it("calls the hook refetch callback from the dashboard error state", () => {

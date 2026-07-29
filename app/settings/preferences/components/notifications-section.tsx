@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useId } from "react";
 import ToggleCard from "@/components/common/toggle-card";
 import { Button } from "@/components/ui/button";
 import { FormMessage } from "@/components/ui/form";
@@ -12,6 +12,15 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 
+/** Available digest frequency options for each notification channel. */
+export type DigestFrequency = "immediate" | "daily" | "weekly";
+
+export const DIGEST_FREQUENCY_LABELS: Record<DigestFrequency, string> = {
+  immediate: "Immediate",
+  daily: "Daily digest",
+  weekly: "Weekly digest",
+};
+
 export interface NotificationSettingsState {
   transactionAlerts: boolean;
   securityAlerts: boolean;
@@ -20,6 +29,12 @@ export interface NotificationSettingsState {
   emailChannel: boolean;
   pushChannel: boolean;
   smsChannel: boolean;
+  /** Digest frequency for email channel. Defaults to "immediate". */
+  emailDigestFrequency: DigestFrequency;
+  /** Digest frequency for push channel. Defaults to "immediate". */
+  pushDigestFrequency: DigestFrequency;
+  /** Digest frequency for SMS channel. Defaults to "immediate". */
+  smsDigestFrequency: DigestFrequency;
 }
 
 /**
@@ -35,17 +50,119 @@ export const DEFAULT_NOTIFICATION_SETTINGS: NotificationSettingsState = {
   emailChannel: true,
   pushChannel: true,
   smsChannel: false,
+  emailDigestFrequency: "immediate",
+  pushDigestFrequency: "immediate",
+  smsDigestFrequency: "immediate",
 };
 
 /**
  * Count how many notification preferences are currently enabled. Used by the
  * settings summary "Alerts enabled" card so the number tracks real state.
+ *
+ * Only counts boolean fields — digest frequency strings are excluded.
  */
 export function countActiveNotifications(
   settings: NotificationSettingsState,
 ): number {
-  return Object.values(settings).filter(Boolean).length;
+  return Object.entries(settings).filter(
+    ([, value]) => typeof value === "boolean" && value === true,
+  ).length;
 }
+
+// ─── Digest Frequency Selector ───────────────────────────────────────────────
+
+interface DigestFrequencySelectorProps {
+  value: DigestFrequency;
+  channel: "email" | "push" | "sms";
+  channelEnabled: boolean;
+  onChange: (freq: DigestFrequency) => void;
+}
+
+/**
+ * Radio-group-style selector for choosing digest frequency per channel.
+ *
+ * Accessibility:
+ * - Uses native radio inputs inside a fieldset for keyboard navigation.
+ * - Visually hidden when the parent channel is disabled.
+ */
+function DigestFrequencySelector({
+  value,
+  channel,
+  channelEnabled,
+  onChange,
+}: DigestFrequencySelectorProps) {
+  const legendId = useId();
+
+  if (!channelEnabled) {
+    return null;
+  }
+
+  const options: DigestFrequency[] = ["immediate", "daily", "weekly"];
+
+  return (
+    <fieldset
+      aria-labelledby={legendId}
+      className="rounded-xl border border-zinc-200/80 bg-white p-3 dark:border-white/10 dark:bg-white/5"
+    >
+      <legend id={legendId} className="sr-only">
+        {channel} digest frequency
+      </legend>
+      <div className="flex flex-wrap items-center gap-3">
+        <span className="text-xs font-medium text-zinc-500 dark:text-zinc-400">
+          Frequency:
+        </span>
+        {options.map((freq) => {
+          const inputId = `digest-${channel}-${freq}`;
+          return (
+            <label
+              key={freq}
+              htmlFor={inputId}
+              className={`inline-flex cursor-pointer items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-medium transition-colors focus-within:ring-2 focus-within:ring-zinc-900 focus-within:ring-offset-1 dark:focus-within:ring-white ${
+                value === freq
+                  ? "border-zinc-900 bg-zinc-900 text-white dark:border-white dark:bg-white dark:text-zinc-900"
+                  : "border-zinc-300 bg-transparent text-zinc-700 hover:border-zinc-400 dark:border-zinc-700 dark:text-zinc-300 dark:hover:border-zinc-500"
+              }`}
+            >
+              <input
+                type="radio"
+                id={inputId}
+                name={`digest-frequency-${channel}`}
+                value={freq}
+                checked={value === freq}
+                onChange={() => onChange(freq)}
+                data-testid={`digest-${channel}-${freq}`}
+                className="sr-only"
+              />
+              {DIGEST_FREQUENCY_LABELS[freq]}
+            </label>
+          );
+        })}
+      </div>
+    </fieldset>
+  );
+}
+
+// ─── Helpers ─────────────────────────────────────────────────────────────────
+
+/**
+ * Returns true when the given channel has a non-immediate digest frequency
+ * selected, meaning per-event toggles should be visually disabled.
+ */
+function isDigestActive(
+  s: NotificationSettingsState,
+  channel: "email" | "push" | "sms",
+): boolean {
+  switch (channel) {
+    case "email":
+      return s.emailDigestFrequency !== "immediate";
+    case "push":
+      return s.pushDigestFrequency !== "immediate";
+    case "sms":
+      return s.smsDigestFrequency !== "immediate";
+  }
+}
+
+// ─── Notifications Section ───────────────────────────────────────────────────
 
 interface NotificationsSectionProps {
   /**
@@ -55,11 +172,18 @@ interface NotificationsSectionProps {
    */
   settings?: NotificationSettingsState;
   onSettingsChange?: (next: NotificationSettingsState) => void;
+  /**
+   * Called with the saved settings once a save succeeds, so a parent
+   * tracking a dirty/unsaved-changes flag can clear it. Not called when the
+   * save fails.
+   */
+  onSaved?: (saved: NotificationSettingsState) => void;
 }
 
 export default function NotificationsSection({
   settings: controlledSettings,
   onSettingsChange,
+  onSaved,
 }: NotificationsSectionProps = {}) {
   const [internalSettings, setInternalSettings] =
     useState<NotificationSettingsState>(DEFAULT_NOTIFICATION_SETTINGS);
@@ -72,7 +196,10 @@ export default function NotificationsSection({
     try {
       const stored = localStorage.getItem("notification_preferences");
       if (stored) {
-        setInternalSettings(JSON.parse(stored));
+        const parsed = JSON.parse(stored);
+        // Merge with defaults so new fields (digest frequencies) have
+        // sensible values even when loaded from older stored payloads.
+        setInternalSettings({ ...DEFAULT_NOTIFICATION_SETTINGS, ...parsed });
       }
     } catch (_e) {
       // Ignore parse errors or disabled storage
@@ -115,9 +242,8 @@ export default function NotificationsSection({
       }
 
       setStatusType("success");
-      setStatusMessage(
-        "Notification preferences updated. Critical alerts remain prioritized.",
-      );
+      setStatusMessage("Notification preferences updated. Critical alerts remain prioritized.");
+      onSaved?.(settings);
     } catch (_error) {
       setStatusType("error");
       setStatusMessage("Failed to save preferences. Please try again.");
@@ -128,15 +254,30 @@ export default function NotificationsSection({
 
   const updateSetting = (
     field: keyof NotificationSettingsState,
-    value: boolean,
+    value: boolean | DigestFrequency,
   ) => {
-    const next: NotificationSettingsState = { ...settings, [field]: value };
+    if (settings[field] === value) {
+      return;
+    }
+
+    const next = { ...settings, [field]: value };
+
     if (onSettingsChange) {
       onSettingsChange(next);
     } else {
       setInternalSettings(next);
     }
   };
+
+  /**
+   * Whether per-event notification toggles should be disabled.
+   * When any channel has a digest frequency set, we disable the
+   * individual event toggles because the user prefers summaries.
+   */
+  const eventTogglesDisabled =
+    isDigestActive(settings, "email") ||
+    isDigestActive(settings, "push") ||
+    isDigestActive(settings, "sms");
 
   return (
     <div className="grid gap-6 xl:grid-cols-[minmax(0,1.1fr)_minmax(320px,0.9fr)]">
@@ -155,6 +296,7 @@ export default function NotificationsSection({
             title="Transaction alerts"
             description="Receive deposits, withdrawals, and transfer status changes as they happen."
             enabled={settings.transactionAlerts}
+            disabled={eventTogglesDisabled}
             onToggle={(value) => updateSetting("transactionAlerts", value)}
           />
           <ToggleCard
@@ -162,18 +304,21 @@ export default function NotificationsSection({
             description="Get alerted for sign-ins, password resets, and suspicious activity."
             badge="Critical"
             enabled={settings.securityAlerts}
+            disabled={eventTogglesDisabled}
             onToggle={(value) => updateSetting("securityAlerts", value)}
           />
           <ToggleCard
             title="Product updates"
             description="Receive updates when new features or policy changes affect your account."
             enabled={settings.productUpdates}
+            disabled={eventTogglesDisabled}
             onToggle={(value) => updateSetting("productUpdates", value)}
           />
           <ToggleCard
             title="Marketing and announcements"
             description="Optional campaigns, launch notes, and educational content."
             enabled={settings.marketing}
+            disabled={eventTogglesDisabled}
             onToggle={(value) => updateSetting("marketing", value)}
           />
 
@@ -188,17 +333,41 @@ export default function NotificationsSection({
                 enabled={settings.emailChannel}
                 onToggle={(value) => updateSetting("emailChannel", value)}
               />
+              <DigestFrequencySelector
+                value={settings.emailDigestFrequency}
+                channel="email"
+                channelEnabled={settings.emailChannel}
+                onChange={(freq) =>
+                  updateSetting("emailDigestFrequency", freq)
+                }
+              />
               <ToggleCard
                 title="Push notifications"
                 description="Fastest way to catch changes while you are signed in."
                 enabled={settings.pushChannel}
                 onToggle={(value) => updateSetting("pushChannel", value)}
               />
+              <DigestFrequencySelector
+                value={settings.pushDigestFrequency}
+                channel="push"
+                channelEnabled={settings.pushChannel}
+                onChange={(freq) =>
+                  updateSetting("pushDigestFrequency", freq)
+                }
+              />
               <ToggleCard
                 title="SMS fallback"
                 description="Reserved for urgent or delivery-critical events."
                 enabled={settings.smsChannel}
                 onToggle={(value) => updateSetting("smsChannel", value)}
+              />
+              <DigestFrequencySelector
+                value={settings.smsDigestFrequency}
+                channel="sms"
+                channelEnabled={settings.smsChannel}
+                onChange={(freq) =>
+                  updateSetting("smsDigestFrequency", freq)
+                }
               />
             </div>
           </details>

@@ -1,17 +1,46 @@
-import React from "react";
-import {
-  act,
-  cleanup,
-  fireEvent,
-  render,
-  screen,
-  waitFor,
-} from "@testing-library/react";
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import React from 'react';
+import { render, screen, fireEvent, waitFor, cleanup } from '@testing-library/react';
+import { afterEach, describe, expect, it, vi } from 'vitest';
+import AccountSection, {
+  DEFAULT_PROFILE,
+  isProfileComplete,
+  countCompletedProfileFields,
+  totalProfileFields,
+  type ProfileData,
+} from './account-section';
 
-import AccountSection from "./account-section";
+// ── Mocks ──────────────────────────────────────────────────────────────────
 
-vi.mock("next/image", () => ({
+// Mock the separate API module so we can control success/failure in each test.
+const mockSaveProfile = vi.hoisted(() => vi.fn());
+
+vi.mock('@/lib/api/profile', () => ({
+  saveProfile: mockSaveProfile,
+}));
+
+// Mock sonner toast to avoid side-effects during unit tests.
+vi.mock('sonner', () => ({
+  toast: {
+    success: vi.fn(),
+    error: vi.fn(),
+  },
+}));
+
+// Stub localStorage since it may not be available in all jsdom configurations.
+const localStorageMock = vi.hoisted(() => {
+  let store: Record<string, string> = {};
+  return {
+    getItem: vi.fn((key: string) => store[key] ?? null),
+    setItem: vi.fn((key: string, value: string) => { store[key] = value; }),
+    removeItem: vi.fn((key: string) => { delete store[key]; }),
+    clear: vi.fn(() => { store = {}; }),
+  };
+});
+
+vi.stubGlobal('localStorage', localStorageMock);
+
+// next/image is not available under jsdom.
+vi.mock('next/image', () => ({
   default: ({
     alt,
     priority: _priority,
@@ -22,264 +51,490 @@ vi.mock("next/image", () => ({
   ),
 }));
 
-vi.mock("@/components/ui/form", () => ({
-  FormMessage: ({
-    children,
-    className,
-  }: {
-    children: React.ReactNode;
-    className?: string;
-  }) => <p className={className}>{children}</p>,
-}));
+// ── Helpers ────────────────────────────────────────────────────────────────
 
-const getEmailInput = () => screen.getByLabelText("Email address");
-const getSaveButton = () =>
-  screen.getByRole("button", { name: /save account changes/i });
+function renderAccount(
+  overrides?: Partial<{
+    profile: ProfileData;
+    onProfileChange: ReturnType<typeof vi.fn>;
+  }>,
+) {
+  const profile = overrides?.profile ?? DEFAULT_PROFILE;
+  const onProfileChange = overrides?.onProfileChange ?? vi.fn();
+  return render(
+    <AccountSection profile={profile} onProfileChange={onProfileChange} />,
+  );
+}
 
-describe("AccountSection email validation", () => {
-  afterEach(() => {
-    vi.restoreAllMocks();
+// ── Component-level exports ────────────────────────────────────────────────
+
+describe('exported helper functions', () => {
+  it('exports DEFAULT_PROFILE with all fields populated', () => {
+    expect(DEFAULT_PROFILE).toMatchObject({
+      firstName: expect.any(String),
+      lastName: expect.any(String),
+      displayName: expect.any(String),
+      email: expect.any(String),
+      timezone: expect.any(String),
+      currency: expect.any(String),
+      legalEntity: expect.any(String),
+      billingCountry: expect.any(String),
+    });
   });
 
-  it("keeps the default demo email valid and Save enabled", () => {
-    render(<AccountSection />);
-
-    expect(getEmailInput()).toHaveValue("user@example.com");
-    expect(getSaveButton()).not.toBeDisabled();
+  it('isProfileComplete returns true when every field is non-empty', () => {
+    expect(isProfileComplete(DEFAULT_PROFILE)).toBe(true);
   });
 
-  it("shows an inline error and aria-invalid when the email is malformed on blur", () => {
-    render(<AccountSection />);
-    const emailInput = getEmailInput();
-
-    fireEvent.change(emailInput, { target: { value: "user@" } });
-    fireEvent.blur(emailInput);
-
-    expect(emailInput).toHaveAttribute("aria-invalid", "true");
+  it('isProfileComplete returns false when any field is empty', () => {
     expect(
-      screen.getByText(/enter a valid email address/i),
-    ).toBeInTheDocument();
+      isProfileComplete({ ...DEFAULT_PROFILE, firstName: '' }),
+    ).toBe(false);
   });
 
-  it("does not show an error before the field has been touched", () => {
-    render(<AccountSection />);
-    const emailInput = getEmailInput();
-
-    fireEvent.change(emailInput, { target: { value: "user@" } });
-
-    expect(emailInput).toHaveAttribute("aria-invalid", "false");
-  });
-
-  it.each([
-    { label: "empty email", email: "" },
-    { label: "missing TLD", email: "user@domain" },
-    { label: "malformed local/domain pairing", email: "user@domain." },
-  ])("disables Save for $label", ({ email }) => {
-    render(<AccountSection />);
-    const emailInput = getEmailInput();
-
-    fireEvent.change(emailInput, { target: { value: email } });
-    fireEvent.blur(emailInput);
-
-    expect(getSaveButton()).toBeDisabled();
-  });
-
-  it("blocks save for a malformed email by disabling Save and ignoring clicks on it", async () => {
-    render(<AccountSection />);
-    const emailInput = getEmailInput();
-
-    fireEvent.change(emailInput, { target: { value: "user@domain" } });
-    fireEvent.blur(emailInput);
-
-    const saveButton = getSaveButton();
-    expect(saveButton).toBeDisabled();
-
-    fireEvent.click(saveButton);
-
+  it('countCompletedProfileFields returns the number of non-empty fields', () => {
+    expect(countCompletedProfileFields(DEFAULT_PROFILE)).toBe(8);
     expect(
-      screen.queryByText(/staged and ready for backend save/i),
-    ).not.toBeInTheDocument();
-    expect(screen.queryByText(/saving\.\.\./i)).not.toBeInTheDocument();
+      countCompletedProfileFields({ ...DEFAULT_PROFILE, firstName: '', lastName: '' }),
+    ).toBe(6);
   });
 
-  it("trims leading and trailing whitespace before validating, treating the result as valid", () => {
-    render(<AccountSection />);
-    const emailInput = getEmailInput();
-
-    fireEvent.change(emailInput, { target: { value: "  user@example.com  " } });
-    fireEvent.blur(emailInput);
-
-    expect(emailInput).toHaveValue("user@example.com");
-    expect(emailInput).toHaveAttribute("aria-invalid", "false");
-    expect(getSaveButton()).not.toBeDisabled();
-  });
-
-  it("saves successfully once a previously invalid email is corrected", async () => {
-    vi.spyOn(Math, "random").mockReturnValue(0.1);
-    render(<AccountSection />);
-    const emailInput = getEmailInput();
-
-    fireEvent.change(emailInput, { target: { value: "not-an-email" } });
-    fireEvent.blur(emailInput);
-    expect(getSaveButton()).toBeDisabled();
-
-    fireEvent.change(emailInput, { target: { value: "valid@example.com" } });
-    expect(getSaveButton()).not.toBeDisabled();
-    fireEvent.click(getSaveButton());
-
-    await waitFor(
-      () =>
-        expect(
-          screen.getByText(/staged and ready for backend save/i),
-        ).toBeInTheDocument(),
-      { timeout: 3000 },
-    );
-  });
-
-  it("shows a failure status message when the simulated save rejects", async () => {
-    vi.spyOn(Math, "random").mockReturnValue(0.9);
-    render(<AccountSection />);
-
-    fireEvent.click(getSaveButton());
-
-    await waitFor(
-      () =>
-        expect(screen.getByText(/failed to save changes/i)).toBeInTheDocument(),
-      { timeout: 3000 },
-    );
-  });
-
-  it("normalizes a whitespace-padded email at save time even without a prior blur", async () => {
-    vi.spyOn(Math, "random").mockReturnValue(0.1);
-    render(<AccountSection />);
-    const emailInput = getEmailInput();
-
-    fireEvent.change(emailInput, {
-      target: { value: "  user@example.com  " },
-    });
-    fireEvent.click(getSaveButton());
-
-    await waitFor(() => expect(emailInput).toHaveValue("user@example.com"));
-  });
-
-  it("updates the other profile fields via their onChange handlers", () => {
-    render(<AccountSection />);
-
-    fireEvent.change(screen.getByLabelText("First name"), {
-      target: { value: "Ada" },
-    });
-    fireEvent.change(screen.getByLabelText("Last name"), {
-      target: { value: "Lovelace" },
-    });
-    fireEvent.change(screen.getByLabelText("Display name"), {
-      target: { value: "Ada L." },
-    });
-    fireEvent.change(screen.getByLabelText("Timezone"), {
-      target: { value: "UTC" },
-    });
-    fireEvent.change(screen.getByLabelText("Settlement currency"), {
-      target: { value: "EUR" },
-    });
-
-    expect(screen.getByLabelText("First name")).toHaveValue("Ada");
-    expect(screen.getByLabelText("Last name")).toHaveValue("Lovelace");
-    expect(screen.getByLabelText("Display name")).toHaveValue("Ada L.");
-    expect(screen.getByLabelText("Timezone")).toHaveValue("UTC");
-    expect(screen.getByLabelText("Settlement currency")).toHaveValue("EUR");
+  it('totalProfileFields matches the DEFAULT_PROFILE key count', () => {
+    expect(totalProfileFields()).toBe(8);
   });
 });
 
-describe("AccountSection status timeout lifecycle", () => {
-  beforeEach(() => {
-    vi.useFakeTimers();
-    vi.spyOn(Math, "random").mockReturnValue(0.1);
+// ── Profile rendering & editing ────────────────────────────────────────────
+
+describe('AccountSection – profile editing', () => {
+  afterEach(() => {
+    cleanup();
   });
+
+  it('renders all profile fields with their current values', () => {
+    renderAccount();
+
+    expect(screen.getByLabelText('First Name')).toHaveValue(
+      DEFAULT_PROFILE.firstName,
+    );
+    expect(screen.getByLabelText('Last Name')).toHaveValue(
+      DEFAULT_PROFILE.lastName,
+    );
+    expect(screen.getByLabelText('Display Name')).toHaveValue(
+      DEFAULT_PROFILE.displayName,
+    );
+    expect(screen.getByLabelText('Email')).toHaveValue(DEFAULT_PROFILE.email);
+    expect(screen.getByLabelText('Timezone')).toHaveValue(
+      DEFAULT_PROFILE.timezone,
+    );
+    expect(screen.getByLabelText('Currency')).toHaveValue(
+      DEFAULT_PROFILE.currency,
+    );
+    expect(screen.getByLabelText('Legal Entity')).toHaveValue(
+      DEFAULT_PROFILE.legalEntity,
+    );
+    expect(screen.getByLabelText('Billing Country')).toHaveValue(
+      DEFAULT_PROFILE.billingCountry,
+    );
+  });
+
+  it('calls onProfileChange when a field is edited', () => {
+    const onProfileChange = vi.fn();
+    renderAccount({ onProfileChange });
+
+    const firstNameInput = screen.getByLabelText('First Name');
+    fireEvent.change(firstNameInput, { target: { value: 'Jane' } });
+
+    expect(onProfileChange).toHaveBeenCalledWith(
+      expect.objectContaining({ firstName: 'Jane' }),
+    );
+  });
+
+  it('renders a save button', () => {
+    renderAccount();
+
+    expect(
+      screen.getByRole('button', { name: /save changes/i }),
+    ).toBeInTheDocument();
+  });
+});
+
+// ── Cookie preferences ─────────────────────────────────────────────────────
+
+describe('AccountSection – cookie preferences', () => {
+  afterEach(() => {
+    cleanup();
+  });
+
+  it('renders cookie preferences categories correctly', () => {
+    renderAccount();
+    expect(screen.getByText('Cookie Preferences')).toBeInTheDocument();
+    expect(screen.getByText('Essential Cookies')).toBeInTheDocument();
+    expect(screen.getByText('Analytics Cookies')).toBeInTheDocument();
+    expect(screen.getByText('Marketing Cookies')).toBeInTheDocument();
+  });
+
+  it('allows toggling analytics and marketing options', () => {
+    renderAccount();
+    const analyticsCheckbox = screen.getByLabelText(
+      'Analytics cookies toggle',
+    ) as HTMLInputElement;
+    const marketingCheckbox = screen.getByLabelText(
+      'Marketing cookies toggle',
+    ) as HTMLInputElement;
+
+    expect(analyticsCheckbox.checked).toBe(false);
+    fireEvent.click(analyticsCheckbox);
+    expect(analyticsCheckbox.checked).toBe(true);
+
+    expect(marketingCheckbox.checked).toBe(false);
+    fireEvent.click(marketingCheckbox);
+    expect(marketingCheckbox.checked).toBe(true);
+  });
+
+  it('persists cookie preferences to localStorage on save', () => {
+    renderAccount();
+
+    fireEvent.click(screen.getByLabelText('Analytics cookies toggle'));
+    fireEvent.click(
+      screen.getByRole('button', { name: /save cookie preferences/i }),
+    );
+
+    expect(localStorage.getItem('stellopay_cookie_preferences')).toBe(
+      JSON.stringify({ essential: true, analytics: true, marketing: false }),
+    );
+  });
+});
+
+// ── Avatar upload validation ───────────────────────────────────────────────
+
+describe('AccountSection – avatar upload validation', () => {
+  const getFileInput = () => screen.getByTestId('avatar-upload-input');
 
   afterEach(() => {
     cleanup();
+  });
+
+  it('shows an error when the file is not an accepted image type', () => {
+    renderAccount();
+    const fileInput = getFileInput();
+    const file = new File(['dummy content'], 'test.pdf', {
+      type: 'application/pdf',
+    });
+
+    fireEvent.change(fileInput, { target: { files: [file] } });
+
+    expect(
+      screen.getByText(/Please select a valid image file/i),
+    ).toBeInTheDocument();
+  });
+
+  it('shows an error when the file exceeds 5MB', () => {
+    renderAccount();
+    const fileInput = getFileInput();
+    const file = new File(['content'], 'large.png', { type: 'image/png' });
+    Object.defineProperty(file, 'size', { value: 6 * 1024 * 1024 });
+
+    fireEvent.change(fileInput, { target: { files: [file] } });
+
+    expect(
+      screen.getByText(/File size must be less than 5MB/i),
+    ).toBeInTheDocument();
+  });
+
+  it('shows a success status for a valid image', () => {
+    renderAccount();
+    const fileInput = getFileInput();
+    const file = new File(['content'], 'avatar.png', { type: 'image/png' });
+    Object.defineProperty(file, 'size', { value: 1024 * 1024 });
+
+    fireEvent.change(fileInput, { target: { files: [file] } });
+
+    expect(
+      screen.getByText(/Photo staged for upload/i),
+    ).toBeInTheDocument();
+  });
+});
+
+// ── Optimistic save: success path ──────────────────────────────────────────
+
+describe('AccountSection – optimistic save (success)', () => {
+  afterEach(() => {
+    cleanup();
     vi.restoreAllMocks();
-    vi.useRealTimers();
+    mockSaveProfile.mockReset();
   });
 
-  it("clears the profile-save status message after the queued timeout", async () => {
-    render(<AccountSection />);
-
-    fireEvent.click(
-      screen.getByRole("button", { name: /save account changes/i }),
+  it('shows a saving indicator immediately on save click', async () => {
+    mockSaveProfile.mockImplementationOnce(
+      () => new Promise(() => {}), // never resolves
     );
 
-    await act(async () => {
-      vi.advanceTimersByTime(1500);
-    });
+    renderAccount();
 
-    expect(
-      screen.getByText(
-        "Account profile changes are staged and ready for backend save.",
-      ),
-    ).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: /^save changes$/i }));
 
-    act(() => {
-      vi.advanceTimersByTime(4999);
+    // The button text should change to "Saving…"
+    const saveButton = screen.getByRole('button', {
+      name: /saving/i,
     });
-    expect(
-      screen.getByText(
-        "Account profile changes are staged and ready for backend save.",
-      ),
-    ).toBeInTheDocument();
-
-    act(() => {
-      vi.advanceTimersByTime(1);
-    });
-    expect(
-      screen.queryByText(
-        "Account profile changes are staged and ready for backend save.",
-      ),
-    ).not.toBeInTheDocument();
+    expect(saveButton).toBeInTheDocument();
+    expect(saveButton).toBeDisabled();
   });
 
-  it("clears the queued status timeout when the section unmounts", async () => {
-    const clearTimeoutSpy = vi.spyOn(window, "clearTimeout");
-    const { unmount } = render(<AccountSection />);
+  it('keeps the edited value in place after a successful save', async () => {
+    mockSaveProfile.mockResolvedValueOnce(undefined);
 
-    fireEvent.click(
-      screen.getByRole("button", { name: /save account changes/i }),
+    const onProfileChange = vi.fn();
+    const { rerender } = render(
+      <AccountSection profile={DEFAULT_PROFILE} onProfileChange={onProfileChange} />,
     );
 
-    await act(async () => {
-      vi.advanceTimersByTime(1500);
+    // Simulate parent re-render when onProfileChange is called
+    onProfileChange.mockImplementation((updatedProfile: ProfileData) => {
+      rerender(
+        <AccountSection
+          profile={updatedProfile}
+          onProfileChange={onProfileChange}
+        />,
+      );
     });
 
-    expect(
-      screen.getByText(
-        "Account profile changes are staged and ready for backend save.",
-      ),
-    ).toBeInTheDocument();
+    // Edit the display name
+    const displayNameInput = screen.getByLabelText('Display Name');
+    fireEvent.change(displayNameInput, { target: { value: 'Alice' } });
 
-    unmount();
+    // Click save
+    fireEvent.click(screen.getByRole('button', { name: /^save changes$/i }));
 
-    expect(clearTimeoutSpy).toHaveBeenCalled();
+    // Wait for the save to complete — the "Saved" badge should appear
+    await waitFor(() => {
+      expect(screen.getByText('Saved')).toBeInTheDocument();
+    });
 
-    act(() => {
-      vi.advanceTimersByTime(5000);
+    // The input should still hold the new value (no flicker)
+    expect(screen.getByLabelText('Display Name')).toHaveValue('Alice');
+  });
+
+  it('displays a success badge after a successful save', async () => {
+    mockSaveProfile.mockResolvedValueOnce(undefined);
+
+    renderAccount();
+
+    fireEvent.click(screen.getByRole('button', { name: /^save changes$/i }));
+
+    await waitFor(() => {
+      expect(screen.getByText('Saved')).toBeInTheDocument();
     });
   });
 
-  it("does not schedule a status reset after unmounting during save", async () => {
-    const setTimeoutSpy = vi.spyOn(window, "setTimeout");
-    const { unmount } = render(<AccountSection />);
+  it('does NOT roll back the parent state on a successful save', async () => {
+    mockSaveProfile.mockResolvedValueOnce(undefined);
 
-    fireEvent.click(
-      screen.getByRole("button", { name: /save account changes/i }),
-    );
-    unmount();
+    const onProfileChange = vi.fn();
+    renderAccount({ onProfileChange });
 
-    await act(async () => {
-      vi.advanceTimersByTime(1500);
+    // Edit a field
+    fireEvent.change(screen.getByLabelText('First Name'), {
+      target: { value: 'Bob' },
     });
 
-    const resetTimers = setTimeoutSpy.mock.calls.filter(
-      ([, delay]) => delay === 5000,
+    // Clear call history so we only track save-related calls
+    onProfileChange.mockClear();
+
+    fireEvent.click(screen.getByRole('button', { name: /^save changes$/i }));
+
+    // Wait for save to complete
+    await waitFor(() => {
+      expect(mockSaveProfile).toHaveBeenCalledTimes(1);
+    });
+
+    // onProfileChange should not have been called again during save (no rollback)
+    // The component only calls onProfileChange on field edits + possible rollback.
+    // After a successful save there is no rollback, so total calls should be 0.
+    expect(onProfileChange).not.toHaveBeenCalled();
+  });
+
+  it('disables the save button while saving', () => {
+    mockSaveProfile.mockImplementationOnce(
+      () => new Promise(() => {}),
     );
-    expect(resetTimers).toHaveLength(0);
+
+    renderAccount();
+    const saveBtn = screen.getByRole('button', { name: /^save changes$/i });
+
+    fireEvent.click(saveBtn);
+
+    expect(saveBtn).toBeDisabled();
+  });
+});
+
+// ── Optimistic save: rollback-on-failure path ──────────────────────────────
+
+describe('AccountSection – rollback on save failure', () => {
+  afterEach(() => {
+    cleanup();
+    vi.restoreAllMocks();
+    mockSaveProfile.mockReset();
+  });
+
+  it('displays an error badge and error message on save failure', async () => {
+    mockSaveProfile.mockRejectedValueOnce(new Error('Network error'));
+
+    renderAccount();
+
+    fireEvent.click(screen.getByRole('button', { name: /^save changes$/i }));
+
+    await waitFor(() => {
+      expect(screen.getByText('Error')).toBeInTheDocument();
+    });
+
+    expect(
+      screen.getByText(/failed to save profile/i),
+    ).toBeInTheDocument();
+  });
+
+  it('rolls back the parent state to the last known good state on failure', async () => {
+    mockSaveProfile.mockRejectedValueOnce(new Error('Network error'));
+
+    const parentProfile = { ...DEFAULT_PROFILE };
+
+    // Controlled parent: stores the latest profile and re-renders on change.
+    const onProfileChange = vi.fn((updatedProfile: ProfileData) => {
+      Object.assign(parentProfile, updatedProfile);
+    });
+
+    const { rerender } = render(
+      <AccountSection
+        profile={parentProfile}
+        onProfileChange={onProfileChange}
+      />,
+    );
+
+    // Override onProfileChange to also rerender
+    const changeHandler = vi.fn((updatedProfile: ProfileData) => {
+      Object.assign(parentProfile, updatedProfile);
+      rerender(
+        <AccountSection
+          profile={parentProfile}
+          onProfileChange={changeHandler}
+        />,
+      );
+    });
+
+    // Re-render with the new handler
+    rerender(
+      <AccountSection profile={parentProfile} onProfileChange={changeHandler} />,
+    );
+
+    // Edit display name (propagates to parent immediately)
+    const displayNameInput = screen.getByLabelText('Display Name');
+    fireEvent.change(displayNameInput, { target: { value: 'New Display' } });
+
+    // Verify edit propagated
+    expect(changeHandler).toHaveBeenCalledWith(
+      expect.objectContaining({ displayName: 'New Display' }),
+    );
+    expect(parentProfile.displayName).toBe('New Display');
+
+    // Clear call history to isolate save-related calls
+    changeHandler.mockClear();
+
+    // Click save
+    fireEvent.click(screen.getByRole('button', { name: /^save changes$/i }));
+
+    // Wait for the save to fail
+    await waitFor(() => {
+      expect(screen.getByText('Error')).toBeInTheDocument();
+    });
+
+    // The parent should have been rolled back to the last known good state
+    expect(parentProfile.displayName).toBe(DEFAULT_PROFILE.displayName);
+  });
+
+  it('shows an error toast on save failure', async () => {
+    const { toast } = await import('sonner');
+    mockSaveProfile.mockRejectedValueOnce(new Error('Network error'));
+
+    renderAccount();
+
+    fireEvent.click(screen.getByRole('button', { name: /^save changes$/i }));
+
+    await waitFor(() => {
+      expect(toast.error).toHaveBeenCalledWith(
+        expect.stringContaining('reverted'),
+      );
+    });
+  });
+
+  it('shows a success toast on successful save', async () => {
+    const { toast } = await import('sonner');
+    mockSaveProfile.mockResolvedValueOnce(undefined);
+
+    renderAccount();
+
+    fireEvent.click(screen.getByRole('button', { name: /^save changes$/i }));
+
+    await waitFor(() => {
+      expect(toast.success).toHaveBeenCalledWith(
+        expect.stringContaining('saved'),
+      );
+    });
+  });
+
+  it('reverts the displayed input value to the original after rollback', async () => {
+    mockSaveProfile.mockRejectedValueOnce(new Error('Network error'));
+
+    const parentProfile = { ...DEFAULT_PROFILE };
+    const onProfileChange = vi.fn((updatedProfile: ProfileData) => {
+      Object.assign(parentProfile, updatedProfile);
+    });
+
+    const { rerender } = render(
+      <AccountSection
+        profile={parentProfile}
+        onProfileChange={onProfileChange}
+      />,
+    );
+
+    // Create a handler that re-renders the component with updated profile
+    const changeHandler = vi.fn((updatedProfile: ProfileData) => {
+      Object.assign(parentProfile, updatedProfile);
+      rerender(
+        <AccountSection
+          profile={parentProfile}
+          onProfileChange={changeHandler}
+        />,
+      );
+    });
+
+    // Re-render with the proper handler
+    rerender(
+      <AccountSection
+        profile={parentProfile}
+        onProfileChange={changeHandler}
+      />,
+    );
+
+    // Edit the first name
+    const firstNameInput = screen.getByLabelText('First Name');
+    fireEvent.change(firstNameInput, { target: { value: 'RolledBack' } });
+
+    expect(parentProfile.firstName).toBe('RolledBack');
+
+    // Flush change handler calls
+    changeHandler.mockClear();
+
+    // Click save (this will fail and trigger rollback)
+    fireEvent.click(screen.getByRole('button', { name: /^save changes$/i }));
+
+    await waitFor(() => {
+      expect(screen.getByText('Error')).toBeInTheDocument();
+    });
+
+    // The input should now hold the original value from DEFAULT_PROFILE
+    expect(screen.getByLabelText('First Name')).toHaveValue(
+      DEFAULT_PROFILE.firstName,
+    );
   });
 });

@@ -2,9 +2,13 @@ import type {
   Transaction,
   SortField,
   SortDirection,
+  SortConfig,
 } from "@/types/transaction";
 import { formatCurrency } from "./formatUtils";
 import { formatDate } from "./date-utils";
+import { applyTransactionFilters } from "@/components/transactions/transactions-config";
+import { CheckCircle2, Clock, XCircle, AlertCircle } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 
 type SortComparable = Date | number | string;
 
@@ -27,12 +31,26 @@ export const formatTransactionDate = (dateStr: string): string => {
 };
 
 /**
- * Filters transactions based on search query, filter type, and date range
+ * Filters transactions based on search query, filter type, and date range.
+ *
+ * This function is a thin adapter that delegates to the centralized
+ * {@link applyTransactionFilters} predicate composition in
+ * `components/transactions/transactions-config.ts`. Keeping a single source of
+ * truth for filter logic ensures the unit-tested AND semantics are reused
+ * everywhere — the API layer, the UI, and any future callers.
+ *
+ * The positional signature is preserved for backward compatibility with
+ * existing call sites (`lib/api/transactions.ts`).
+ *
  * @param transactions - Array of transactions to filter
  * @param searchQuery - Search query string
  * @param selectedFilter - Filter type (e.g., "All Transactions", "Payment Sent")
- * @param fromDate - Start date for filtering
- * @param toDate - End date for filtering
+ * @param fromDate - Start date for filtering (inclusive)
+ * @param toDate - End date for filtering (inclusive)
+ * @param filterQuery - Quick-filter query across type, status, and address
+ * @param minAmount - Optional minimum absolute amount
+ * @param maxAmount - Optional maximum absolute amount
+ * @param counterparty - Optional counterparty address substring
  * @returns Filtered array of transactions
  */
 export const filterTransactions = (
@@ -44,55 +62,18 @@ export const filterTransactions = (
   filterQuery = "",
   minAmount?: number,
   maxAmount?: number,
+  counterparty?: string,
 ): Transaction[] => {
-  let filtered = transactions;
-
-  // Filter by search query
-  if (searchQuery) {
-    filtered = filtered.filter(
-      (transaction) =>
-        transaction.type.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        transaction.txId.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        transaction.address.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        transaction.token.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        transaction.status.toLowerCase().includes(searchQuery.toLowerCase()),
-    );
-  }
-
-  // Filter by transaction type
-  if (selectedFilter !== "All Transactions") {
-    filtered = filtered.filter(
-      (transaction) => transaction.type === selectedFilter,
-    );
-  }
-
-  const normalizedFilterQuery = filterQuery.trim().toLowerCase();
-  if (normalizedFilterQuery) {
-    filtered = filtered.filter(
-      (transaction) =>
-        transaction.type.toLowerCase().includes(normalizedFilterQuery) ||
-        transaction.status.toLowerCase().includes(normalizedFilterQuery) ||
-        transaction.address.toLowerCase().includes(normalizedFilterQuery),
-    );
-  }
-
-  // Filter by date range
-  filtered = filtered.filter((transaction) => {
-    const transactionDate = new Date(transaction.date);
-    const from = new Date(fromDate);
-    const to = new Date(toDate);
-    return transactionDate >= from && transactionDate <= to;
+  return applyTransactionFilters(transactions, {
+    searchQuery,
+    selectedFilter,
+    fromDate,
+    toDate,
+    filterQuery,
+    minAmount,
+    maxAmount,
+    counterparty,
   });
-
-  if (minAmount !== undefined) {
-    filtered = filtered.filter((transaction) => Math.abs(transaction.amount) >= minAmount);
-  }
-
-  if (maxAmount !== undefined) {
-    filtered = filtered.filter((transaction) => Math.abs(transaction.amount) <= maxAmount);
-  }
-
-  return filtered;
 };
 
 const invalidDate = new Date(0);
@@ -133,10 +114,48 @@ const compareSortValues = (
 };
 
 /**
- * Sorts transactions by a type-checked transaction field.
+ * Sorts transactions by an ordered list of sort criteria (multi-column sort).
+ *
+ * When two transactions have equal values for the first criterion, the second
+ * criterion is used as a tiebreaker, and so on through the list.
  *
  * Invalid dates and non-finite amounts are normalized to stable fallback values
  * so malformed transaction data cannot throw while rendering the sorted view.
+ *
+ * @param transactions - Array of transactions to sort
+ * @param sortConfigs - Ordered list of (field, direction) pairs.
+ *   The first entry is the primary sort; subsequent entries are tiebreakers.
+ * @returns Sorted array of transactions
+ */
+export const sortTransactionsMulti = (
+  transactions: Transaction[],
+  sortConfigs: SortConfig[],
+): Transaction[] => {
+  if (sortConfigs.length === 0) {
+    return [...transactions];
+  }
+
+  return [...transactions].sort((a, b) => {
+    for (const { field, direction } of sortConfigs) {
+      const comparison = compareSortValues(
+        getSortValue(a, field),
+        getSortValue(b, field),
+      );
+
+      if (comparison !== 0) {
+        return direction === "asc" ? comparison : -comparison;
+      }
+    }
+
+    return 0;
+  });
+};
+
+/**
+ * Sorts transactions by a single sort criterion.
+ *
+ * Delegates to {@link sortTransactionsMulti} with a single-element config array
+ * so behaviour is identical to the previous single-key implementation.
  *
  * @param transactions - Array of transactions to sort
  * @param sortField - Transaction field to sort by (date, amount, type, status)
@@ -148,14 +167,7 @@ export const sortTransactions = (
   sortField: SortField,
   sortDirection: SortDirection,
 ): Transaction[] => {
-  return [...transactions].sort((a, b) => {
-    const comparison = compareSortValues(
-      getSortValue(a, sortField),
-      getSortValue(b, sortField),
-    );
-
-    return sortDirection === "asc" ? comparison : -comparison;
-  });
+  return sortTransactionsMulti(transactions, [{ field: sortField, direction: sortDirection }]);
 };
 
 /**
@@ -212,4 +224,36 @@ export const UNKNOWN_STATUS_COLOR =
 export const getStatusColor = (status: string): string => {
   const normalizedStatus = status.toLowerCase() as KnownTransactionStatus;
   return STATUS_COLOR_PALETTE[normalizedStatus] ?? UNKNOWN_STATUS_COLOR;
+};
+
+/**
+ * Mapping each known transaction status to a distinct lucide-react icon.
+ * These icons are paired with color badges so the status is communicated
+ * through shape + label, not color alone (WCAG 1.4.1 Use of Color).
+ */
+export const STATUS_ICON_MAP: Readonly<
+  Record<KnownTransactionStatus, LucideIcon>
+> = {
+  completed: CheckCircle2,
+  pending: Clock,
+  failed: XCircle,
+};
+
+/**
+ * Icon used for unrecognised status values.
+ */
+export const UNKNOWN_STATUS_ICON: LucideIcon = AlertCircle;
+
+/**
+ * Returns a lucide-react icon component for the given transaction status.
+ *
+ * The returned component should be rendered with `aria-hidden="true"` since
+ * the accompanying text already conveys the status.
+ *
+ * @param status - Transaction status string (case-insensitive)
+ * @returns A lucide-react icon component
+ */
+export const getStatusIcon = (status: string): LucideIcon => {
+  const normalizedStatus = status.toLowerCase() as KnownTransactionStatus;
+  return STATUS_ICON_MAP[normalizedStatus] ?? UNKNOWN_STATUS_ICON;
 };
