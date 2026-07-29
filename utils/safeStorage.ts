@@ -1,7 +1,7 @@
 /**
- * Safe localStorage wrapper that handles SSR and quota errors.
+ * Safe localStorage wrapper that handles SSR, unavailable storage, and quota-related write failures.
  * Never stores secrets in localStorage.
- * Swallows storage exceptions without leaking errors.
+ * Reads remain safe even if a write fails because the browser refuses the update.
  */
 export const safeStorage = {
   /**
@@ -20,15 +20,19 @@ export const safeStorage = {
   
   /**
    * Safely sets an item in localStorage.
+   * Returns true when the write succeeds and false when the browser refuses it.
+   * This includes storage-unavailable scenarios and quota-exceeded writes, which are distinct
+   * from the read path and should not surface as uncaught exceptions.
    * @param key - The key of the item to set.
    * @param value - The value to store.
    */
-  setItem: (key: string, value: string): void => {
-    if (typeof window === "undefined") return;
+  setItem: (key: string, value: string): boolean => {
+    if (typeof window === "undefined") return false;
     try {
       window.localStorage.setItem(key, value);
+      return true;
     } catch (e) {
-      // Swallow errors (e.g. quota exceeded)
+      return false;
     }
   },
   
@@ -36,12 +40,13 @@ export const safeStorage = {
    * Safely removes an item from localStorage.
    * @param key - The key of the item to remove.
    */
-  removeItem: (key: string): void => {
-    if (typeof window === "undefined") return;
+  removeItem: (key: string): boolean => {
+    if (typeof window === "undefined") return false;
     try {
       window.localStorage.removeItem(key);
+      return true;
     } catch (e) {
-      // Swallow errors
+      return false;
     }
   }
 };
