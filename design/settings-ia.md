@@ -18,7 +18,7 @@ The goal is to keep frequent tasks obvious, reduce visual overload, and separate
 
 - **Account:** profile identity, email, locale, and billing-related defaults
 - **Notifications:** alert priorities, channel routing, and quiet hours
-- **Security:** password work, verification controls, and active sessions
+- **Security:** password work, verification controls, API key management, and active sessions
 - **Wallets:** connected wallets, outbound safeguards, and destructive wallet removal
 - **Statements:** downloadable periodic statements and tax-relevant transaction summaries
 
@@ -61,6 +61,7 @@ The intended click depth from `/settings/preferences` is:
 - Change profile fields: 1 section tap + 1 save action
 - Adjust notification priorities: 1 section tap + 1 toggle
 - Change password: 1 section tap + form interaction
+- Create, rotate, or revoke an API key: 1 section tap + key action + typed confirmation for rotate/revoke
 - Review wallet controls: 1 section tap + 1 toggle
 - Download a statement or tax summary: 1 section tap + 1 download action
 - Destructive actions: 1 section tap + 1 danger-zone action + typed confirmation
@@ -106,6 +107,40 @@ Generated screenshots:
 The statements change is a settings-tab addition only. Capture updated
 screenshots when the visual regression pass is run for the broader settings
 surface.
+
+## Security API Keys
+
+The Security tab now includes an API keys subsection for developer-minded users
+who need programmatic account access.
+
+Behavior:
+
+- The list shows each key name, creation date, last-used timestamp, and a short
+  non-secret prefix for orientation.
+- Creating a key requires a 3+ character name, shows a short loading state, and
+  reveals the raw `sk_live_...` value exactly once.
+- Rotating a key uses the shared destructive action dialog with the `ROTATE`
+  confirmation token before replacing the existing secret.
+- Revoking a key uses the shared destructive action dialog with the `REVOKE`
+  confirmation token before removing access.
+- Raw secrets are only rendered in the one-time reveal panel after create or
+  rotate. Dismissing the panel removes the raw value from the DOM.
+
+Accessibility and responsive notes:
+
+- The create form has an explicit accessible name, label, instruction text, and
+  `aria-describedby` error wiring.
+- The one-time secret reveal uses `role="status"` and `aria-live="polite"` so
+  assistive technology receives creation/rotation feedback without a forced
+  focus jump.
+- Copy, hide, rotate, and revoke controls are keyboard-focusable buttons with
+  visible focus treatment inherited from shared UI primitives.
+- Rotate and revoke inherit the Radix dialog focus trap, typed confirmation
+  input autofocus, exact-token validation, and focus restoration from
+  `destructive-action-dialog.tsx`.
+- Long key names and raw secrets use wrapping constraints so they remain usable
+  at `sm` 640px, `md` 768px, `lg` 1024px, and `xl` 1280px in light and dark
+  mode.
 
 ## Notes
 
