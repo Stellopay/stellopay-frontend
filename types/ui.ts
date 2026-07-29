@@ -28,6 +28,7 @@ export interface FaqCardProps {
   title: string;
   subtitle: string;
   link?: string;
+  highlightQuery?: string;
 }
 
 export interface SupportTabsProps {

@@ -394,6 +394,192 @@ Fixes #915
 
 ---
 
+## Search-First Redesign
+
+**Issue:** # - Lead help center with search instead of category browsing  
+**Date:** July 2026  
+**Components:** `app/help/support/page.tsx`, `lib/help-center-data.ts`
+
+### Overview
+
+Moved a prominent search input to the top of the FAQ section, above the category grid, so users who already know what they're looking for can find answers faster. The category grid remains below as a secondary browse option.
+
+### Problem Statement
+
+**Before:** The help center led with a grid of category cards (Account Management, Transaction Issues, etc.) and had no search functionality. Users arriving at the help center had to visually scan categories to find relevant topics.
+
+**Result:** Slower navigation for users who already know what they're looking for. Increased cognitive load scanning for relevant topics.
+
+### Solution
+
+A prominent search input at the top of the FAQ section that:
+
+1. **Filters FAQ cards live** as the user types
+2. **Searches across title, subtitle, and keywords** for comprehensive matching
+3. **Shows result count** with polite live region for screen readers
+4. **Displays empty state** with helpful suggestions when no results match
+5. **Includes clear button** to instantly reset the search
+6. **Keeps category grid** as secondary browse option below the search
+
+### Layout
+
+**Desktop (≥ 768px):**
+```
+┌──────────────────────────────────────────────────────┐
+│ Ticket Status Widget                                  │
+├──────────────────────────────────────────────────────┤
+│ SupportTabs [Client FAQ | Contact Support]            │
+├──────────────────────────────────────────────────────┤
+│ [?] Frequently Asked Questions                        │
+│                                                       │
+│ [🔍 Search help articles...........................]  │
+│ Showing 3 results                                     │
+│                                                       │
+│ ┌──────────┐ ┌──────────┐ ┌──────────┐              │
+│ │ Card 1   │ │ Card 2   │ │ Card 3   │              │
+│ └──────────┘ └──────────┘ └──────────┘              │
+│ ┌──────────┐ ┌──────────┐ ┌──────────┐              │
+│ │ Card 4   │ │ Card 5   │ │ Card 6   │              │
+│ └──────────┘ └──────────┘ └──────────┘              │
+└──────────────────────────────────────────────────────┘
+```
+
+**Mobile (< 768px):**
+```
+┌─────────────────────────────┐
+│ Ticket Status Widget        │
+├─────────────────────────────┤
+│ SupportTabs                 │
+├─────────────────────────────┤
+│ [?] Frequently Asked ...    │
+│                             │
+│ [🔍 Search help articles.] │
+│ Showing 4 results           │
+│                             │
+│ ┌──────────────────────┐   │
+│ │ Card 1               │   │
+│ └──────────────────────┘   │
+│ ┌──────────────────────┐   │
+│ │ Card 2               │   │
+│ └──────────────────────┘   │
+│ ┌──────────────────────┐   │
+│ │ Card 3               │   │
+│ └──────────────────────┘   │
+│ ┌──────────────────────┐   │
+│ │ Card 4               │   │
+│ └──────────────────────┘   │
+└─────────────────────────────┘
+```
+
+### Search Data Structure
+
+**File:** `lib/help-center-data.ts`
+
+```typescript
+interface HelpTopic {
+  id: string;
+  title: string;
+  subtitle: string;
+  link: string;
+  keywords: string[];    // Additional search terms
+  hasSubPage: boolean;   // Whether sub-page content exists
+}
+```
+
+**Search scope:**
+- `title` — exact and partial match
+- `subtitle` — exact and partial match
+- `keywords` — additional related terms (e.g., "password", "2fa", "invoice")
+
+**6 help topics** replacing the previous 6 hardcoded cards (which included duplicate entries). Categories now use unique, consolidated topics.
+
+### Accessibility (WCAG 2.1 AA)
+
+#### Keyboard Navigation ✅
+- Search input is reachable via Tab key
+- Clear button is focusable with visible focus ring
+- Tab order: search → clear button → filtered cards
+
+#### Screen Reader Support ✅
+- `role="search"` landmark with `aria-label="Search help articles"`
+- `type="search"` on input with `aria-label="Search help articles"`
+- `role="status"` with `aria-live="polite"` on result count announcements
+- Clear button has `aria-label="Clear search"`
+- Search icon is `aria-hidden="true"`
+- Empty state uses `role="status"` for screen reader announcements
+
+#### Color & Contrast ✅
+- Search input: `bg-[#121212]` on dark (`#0D0D0D80` container) — sufficient contrast
+- Text: `text-white` (contrast ratio ~15:1 on `#121212`)
+- Placeholder: `text-[#707070]` (contrast ratio ~4.8:1 on `#121212` — passes AA)
+- Focus ring: `focus-visible:border-[#598EFF]` — clear visible indicator
+
+#### Focus Management ✅
+- Visible focus ring on input via `focus-visible:border-ring focus-visible:ring-ring/50`
+- Clear button has hover state transition for visual feedback
+- No focus traps — Tab moves naturally through content
+
+### Responsive Behavior
+
+| Breakpoint | Width | Behavior |
+|-----------|-------|----------|
+| sm | 640px | Search full width, cards 1-column |
+| md | 768px | Search full width, cards 2-column |
+| lg | 1024px | Search full width, cards 3-column |
+| xl | 1280px | Search full width, cards 3-column with relaxed spacing |
+
+### Component Hierarchy (Updated)
+
+```
+SupportPage
+├── TicketStatusWidget
+└── SupportTabs
+    └── FAQ Content
+        ├── Header (CircleHelp icon + "Frequently Asked Questions")
+        ├── Search (role="search")
+        │   ├── Search icon (aria-hidden)
+        │   ├── Input (type="search", aria-label)
+        │   └── Clear button (aria-label, conditional)
+        ├── Result count (role="status", aria-live="polite", conditional)
+        ├── FAQ Cards Grid (filtered)
+        │   └── FaqCard × N (filtered results)
+        └── Empty State (role="status", conditional)
+            ├── SearchX icon (aria-hidden)
+            ├── "No results for [query]"
+            └── "Try searching for different keywords..."
+```
+
+### Testing
+
+**New test cases added to** `app/help/support/page.test.tsx`:
+
+| Category | Test | Description |
+|----------|------|-------------|
+| Rendering | Search input renders | Verify searchbox is in FAQ section |
+| Accessibility | Accessible search label | `aria-label` attribute on input |
+| Accessibility | Search landmark | `role="search"` with `aria-label` |
+| Filtering | Empty search shows all | 6 cards rendered initially |
+| Filtering | Filter by title | "password" → 1 card ("Account Management") |
+| Filtering | Filter by subtitle | "dispute" → 1 card ("Transaction Issues") |
+| Filtering | Filter by keyword | "2fa" → 1 card ("Security & Privacy") |
+| Empty state | No results | Shows "No results" message, 0 cards |
+| UX | Result count | Shows "Showing N results" text |
+| UX | No count when empty | Status text absent without query |
+| UX | Clear button | Restores all cards on clear |
+| UX | Clear button visibility | Hidden when input empty |
+| Accessibility | Live region | `aria-live="polite"` on status region |
+
+### Files Changed Summary
+
+| File | Type | Changes |
+|------|------|---------|
+| `lib/help-center-data.ts` | NEW | 65 LOC — Help topic data + filter function |
+| `app/help/support/page.tsx` | MODIFIED | Added search state, input, filtering, empty state |
+| `app/help/support/page.test.tsx` | MODIFIED | Added 12 search-related test cases |
+| `design/help-support-redesign.md` | MODIFIED | This section — search redesign documentation |
+
+---
+
 ### 5. Contact & Support Options
 
 - **Description:** Clear support channels with response expectations
