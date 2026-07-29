@@ -1,17 +1,28 @@
 "use client";
 
-import { useRef, useState } from "react";
-import { useRouter } from "next/navigation";
+import { Suspense, useEffect, useRef, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { X, Loader2 } from "lucide-react";
 import { useCountdown } from "@/hooks/useCountdown";
+import {
+  VerifyEmailError,
+  verifyEmailToken,
+  resendVerificationEmail,
+} from "@/lib/api/auth";
 
 type StatusType = "idle" | "loading" | "success" | "error";
+type TokenStatus =
+  "idle" | "loading" | "success" | "expired" | "invalid" | "error";
 const OTP_LENGTH = 6;
 const RESEND_COOLDOWN_SECONDS = 30;
 
-export default function VerifyEmail() {
-  const [code, setCode] = useState<string[]>(Array(OTP_LENGTH).fill(""));
+function VerifyEmailForm() {
+  const searchParams = useSearchParams();
+  const token = searchParams.get("token");
+  const emailFromUrl = searchParams.get("email") || "";
   const router = useRouter();
+
+  const [code, setCode] = useState<string[]>(Array(OTP_LENGTH).fill(""));
   const [status, setStatus] = useState<StatusType>("idle");
   const [message, setMessage] = useState("");
   const [codeError, setCodeError] = useState("");
@@ -22,6 +33,63 @@ export default function VerifyEmail() {
 
   const codeHelpId = "verification-code-help";
   const codeErrorId = "verification-code-error";
+
+  const [tokenStatus, setTokenStatus] = useState<TokenStatus>(
+    token ? "loading" : "idle",
+  );
+  const [tokenErrorMessage, setTokenErrorMessage] = useState("");
+  const [resendMessage, setResendMessage] = useState("");
+
+  useEffect(() => {
+    if (!token) return;
+
+    let cancelled = false;
+
+    verifyEmailToken(token)
+      .then(() => {
+        if (!cancelled) setTokenStatus("success");
+      })
+      .catch((error) => {
+        if (cancelled) return;
+        if (error instanceof VerifyEmailError) {
+          if (error.code === "TOKEN_EXPIRED") {
+            setTokenStatus("expired");
+          } else if (error.code === "TOKEN_INVALID") {
+            setTokenStatus("invalid");
+          } else {
+            setTokenStatus("error");
+          }
+          setTokenErrorMessage(error.message);
+        } else {
+          setTokenStatus("error");
+          setTokenErrorMessage(
+            "An error occurred during verification. Please try again later.",
+          );
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [token]);
+
+  const handleTokenResend = async () => {
+    if (resendStatus === "loading" || isActive) return;
+
+    setResendStatus("loading");
+    setResendMessage("");
+    try {
+      await resendVerificationEmail(emailFromUrl);
+      setResendStatus("success");
+      startCooldown(RESEND_COOLDOWN_SECONDS);
+      setResendMessage("Verification email sent! Check your inbox.");
+    } catch {
+      setResendStatus("error");
+      setResendMessage("Failed to resend. Please try again.");
+    } finally {
+      setTimeout(() => setResendStatus("idle"), 3000);
+    }
+  };
 
   const updateCodeAt = (index: number, value: string) => {
     const nextValue = value.replace(/[^0-9a-zA-Z]/g, "").slice(-1);
@@ -73,10 +141,7 @@ export default function VerifyEmail() {
 
     if (pastedCode.length === 0) return;
 
-    setCode([
-      ...pastedCode,
-      ...Array(OTP_LENGTH - pastedCode.length).fill(""),
-    ]);
+    setCode([...pastedCode, ...Array(OTP_LENGTH - pastedCode.length).fill("")]);
     inputRefs.current[Math.min(pastedCode.length, OTP_LENGTH) - 1]?.focus();
   };
 
@@ -86,8 +151,7 @@ export default function VerifyEmail() {
     setResendStatus("loading");
     setMessage("");
     try {
-      // Simulate API call
-      await new Promise((resolve) => setTimeout(resolve, 1500));
+      await resendVerificationEmail(emailFromUrl);
       setResendStatus("success");
       startCooldown(RESEND_COOLDOWN_SECONDS);
       setMessage("Verification code resent to your email.");
@@ -132,6 +196,88 @@ export default function VerifyEmail() {
     }
   };
 
+  const renderTokenContent = () => {
+    if (tokenStatus === "loading") {
+      return (
+        <>
+          <Loader2 className="h-8 w-8 animate-spin text-[#F8D2FE] mx-auto" />
+          <p className="text-sm text-[#ACB4B5]">Verifying your email...</p>
+        </>
+      );
+    }
+
+    if (tokenStatus === "success") {
+      return (
+        <>
+          <h1 className="text-[#F8D2FE] text-2xl sm:text-[32px] font-medium">
+            Email verified!
+          </h1>
+          <p className="text-sm text-emerald-300">
+            Your email has been verified successfully.
+          </p>
+        </>
+      );
+    }
+
+    if (tokenStatus === "expired" || tokenStatus === "invalid") {
+      return (
+        <>
+          <h1 className="text-[#F8D2FE] text-2xl sm:text-[32px] font-medium">
+            Link {tokenStatus === "expired" ? "expired" : "invalid"}
+          </h1>
+          <p role="alert" className="text-sm text-red-300 mb-4">
+            {tokenErrorMessage}
+          </p>
+          <button
+            onClick={handleTokenResend}
+            disabled={resendStatus === "loading" || isActive}
+            className="w-full py-3 px-4 rounded-[8px] bg-[#FFFFFF] text-black font-medium transition cursor-pointer disabled:opacity-80 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+          >
+            {resendStatus === "loading" ? (
+              <>
+                <Loader2 className="h-4 w-4 animate-spin" />
+                Sending...
+              </>
+            ) : isActive ? (
+              `Resend in ${secondsLeft}s`
+            ) : (
+              "Request new verification email"
+            )}
+          </button>
+          {resendMessage &&
+            (resendStatus === "success" || resendStatus === "error") && (
+              <div
+                role="status"
+                aria-live="polite"
+                className={`text-sm px-4 py-2 rounded-lg mt-2 ${
+                  resendStatus === "success"
+                    ? "bg-emerald-500/10 text-emerald-300"
+                    : "bg-red-500/10 text-red-300"
+                }`}
+              >
+                {resendMessage}
+              </div>
+            )}
+        </>
+      );
+    }
+
+    if (tokenStatus === "error") {
+      return (
+        <>
+          <h1 className="text-[#F8D2FE] text-2xl sm:text-[32px] font-medium">
+            Something went wrong
+          </h1>
+          <p role="alert" className="text-sm text-red-300">
+            {tokenErrorMessage}
+          </p>
+        </>
+      );
+    }
+
+    return null;
+  };
+
   return (
     <div className="min-h-screen flex items-center justify-center px-4 relative">
       {/* Close icon */}
@@ -145,7 +291,11 @@ export default function VerifyEmail() {
 
       {/* Modal Card */}
       <div className="border-[#2D2D2D] border rounded-[24px] px-7 sm:px-11 py-9 w-full max-w-[480px] space-y-4 text-center shadow-lg">
-        <h1 className="text-[#F8D2FE] text-2xl sm:text-[32px] font-medium mb-2">
+        {token ? (
+          renderTokenContent()
+        ) : (
+          <>
+            <h1 className="text-[#F8D2FE] text-2xl sm:text-[32px] font-medium mb-2">
           Check your email
         </h1>
         <p className="text-sm text-[#ACB4B5] mb-6">
@@ -163,7 +313,9 @@ export default function VerifyEmail() {
               </>
             ) : isActive ? (
               `Resend in ${secondsLeft}s`
-            ) : "Resend"}
+            ) : (
+              "Resend"
+            )}
           </button>
         </p>
         <p id="resend-status" aria-live="polite" className="sr-only">
@@ -172,93 +324,110 @@ export default function VerifyEmail() {
             : "You can request a new verification code."}
         </p>
 
-        {/* OTP input */}
-        <fieldset className="mt-5 mb-2">
-          <legend className="sr-only">Verification code</legend>
-          <div className="grid grid-cols-6 gap-2">
-            {code.map((value, index) => (
-              <input
-                key={index}
-                ref={(node) => {
-                  inputRefs.current[index] = node;
-                }}
-                type="text"
-                inputMode="text"
-                autoComplete={index === 0 ? "one-time-code" : "off"}
-                maxLength={1}
-                value={value}
-                onChange={(event) => handleInputChange(index, event)}
-                onKeyDown={(event) => handleKeyDown(index, event)}
-                onPaste={handlePaste}
-                aria-label={`Verification code character ${index + 1}`}
-                aria-describedby={
-                  codeError ? `${codeHelpId} ${codeErrorId}` : codeHelpId
-                }
-                aria-invalid={codeError ? "true" : "false"}
-                className="h-12 rounded-[8px] border border-[#2D2D2D] bg-transparent text-center text-lg font-semibold text-white outline-none focus:border-[#F8D2FE] focus:ring-1 focus:ring-[#F8D2FE]"
-              />
-            ))}
-          </div>
-        </fieldset>
-        <p id={codeHelpId} className="text-left text-xs text-[#ACB4B5] mb-2">
-          Enter the 6-digit code sent to your email.
-        </p>
-        {codeError && (
-          <p
-            id={codeErrorId}
-            role="alert"
-            aria-live="polite"
-            className="text-left text-xs text-red-300 mb-4"
-          >
-            {codeError}
-          </p>
-        )}
+            {/* OTP input */}
+            <fieldset className="mt-5 mb-2">
+              <legend className="sr-only">Verification code</legend>
+              <div className="grid grid-cols-6 gap-2">
+                {code.map((value, index) => (
+                  <input
+                    key={index}
+                    ref={(node) => {
+                      inputRefs.current[index] = node;
+                    }}
+                    type="text"
+                    inputMode="numeric"
+                    autoComplete={index === 0 ? "one-time-code" : "off"}
+                    maxLength={1}
+                    value={value}
+                    onChange={(event) => handleInputChange(index, event)}
+                    onKeyDown={(event) => handleKeyDown(index, event)}
+                    onPaste={handlePaste}
+                    aria-label={`Verification code character ${index + 1}`}
+                    aria-describedby={
+                      codeError ? `${codeHelpId} ${codeErrorId}` : codeHelpId
+                    }
+                    aria-invalid={codeError ? "true" : "false"}
+                    className="h-12 rounded-[8px] border border-[#2D2D2D] bg-transparent text-center text-lg font-semibold text-white outline-none focus:border-[#F8D2FE] focus:ring-1 focus:ring-[#F8D2FE]"
+                  />
+                ))}
+              </div>
+            </fieldset>
+            <p
+              id={codeHelpId}
+              className="text-left text-xs text-[#ACB4B5] mb-2"
+            >
+              Enter the 6-digit code sent to your email.
+            </p>
+            {codeError && (
+              <p
+                id={codeErrorId}
+                role="alert"
+                aria-live="polite"
+                className="text-left text-xs text-red-300 mb-4"
+              >
+                {codeError}
+              </p>
+            )}
 
-        {/* Status Messages */}
-        {message && (
-          <div
-            role="status"
-            aria-live="polite"
-            className={`text-sm px-4 py-2 rounded-lg mb-2 ${
-              status === "success" || resendStatus === "success"
-                ? "bg-emerald-500/10 text-emerald-300"
-                : status === "error" || resendStatus === "error"
-                  ? "bg-red-500/10 text-red-300"
-                  : ""
-            }`}
-          >
-            {message}
-          </div>
-        )}
+            {/* Status Messages */}
+            {message && (
+              <div
+                role="status"
+                aria-live="polite"
+                className={`text-sm px-4 py-2 rounded-lg mb-2 ${
+                  status === "success" || resendStatus === "success"
+                    ? "bg-emerald-500/10 text-emerald-300"
+                    : status === "error" || resendStatus === "error"
+                      ? "bg-red-500/10 text-red-300"
+                      : ""
+                }`}
+              >
+                {message}
+              </div>
+            )}
 
-        {/* Continue Button */}
-        <button
-          onClick={handleContinue}
-          disabled={codeValue.length !== OTP_LENGTH || status === "loading"}
-          className={`w-full py-3 px-4 rounded-[8px] bg-[#FFFFFF] text-black font-medium transition mt-2 flex items-center justify-center gap-2 ${
-            codeValue.length === OTP_LENGTH && status !== "loading"
-              ? "cursor-pointer"
-              : "opacity-80 cursor-not-allowed"
-          }`}
-        >
-          {status === "loading" ? (
-            <>
-              <Loader2 className="h-4 w-4 animate-spin" />
-              Verifying...
-            </>
-          ) : (
-            "Continue"
-          )}
-        </button>
+            {/* Continue Button */}
+            <button
+              onClick={handleContinue}
+              disabled={codeValue.length !== OTP_LENGTH || status === "loading"}
+              className={`w-full py-3 px-4 rounded-[8px] bg-[#FFFFFF] text-black font-medium transition mt-2 flex items-center justify-center gap-2 ${
+                codeValue.length === OTP_LENGTH && status !== "loading"
+                  ? "cursor-pointer"
+                  : "opacity-80 cursor-not-allowed"
+              }`}
+            >
+              {status === "loading" ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  Verifying...
+                </>
+              ) : (
+                "Continue"
+              )}
+            </button>
 
-        {/* Go Back */}
-        <button
-          onClick={() => router.back()}
-          className="text-[13px] text-[#FFFFFF] underline font-semibold cursor-pointer"
-        >
-          Go Back
-        </button>
+            {/* Go Back */}
+            <button
+              onClick={() => router.back()}
+              className="text-[13px] text-[#FFFFFF] underline font-semibold cursor-pointer"
+            >
+              Go Back
+            </button>
       </div>
     </div>
+  );
+}
+
+export default function VerifyEmail() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen flex items-center justify-center px-4">
+          <Loader2 className="h-8 w-8 animate-spin text-[#F8D2FE]" />
+        </div>
+      }
+    >
+      <VerifyEmailForm />
+    </Suspense>
   );
 }

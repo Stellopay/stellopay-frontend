@@ -142,9 +142,7 @@ describe("DropdownMenu — Escape key behaviour", () => {
     await openMenu(user);
     await user.keyboard("{Escape}");
 
-    await waitFor(() =>
-      expect(screen.getByTestId("trigger")).toHaveFocus(),
-    );
+    await waitFor(() => expect(screen.getByTestId("trigger")).toHaveFocus());
   });
 
   it("does not close when Escape is pressed while the menu is already closed", async () => {
@@ -317,9 +315,7 @@ describe("DropdownMenu — compound components render correctly", () => {
     );
 
     await user.click(screen.getByTestId("trigger"));
-    await waitFor(() =>
-      expect(screen.getByText("⌘C")).toBeInTheDocument(),
-    );
+    await waitFor(() => expect(screen.getByText("⌘C")).toBeInTheDocument());
   });
 
   it("renders DropdownMenuCheckboxItem and toggles checked state", async () => {
@@ -482,9 +478,7 @@ describe("DropdownMenu — controlled open state", () => {
       </DropdownMenu>,
     );
 
-    await waitFor(() =>
-      expect(screen.getByTestId("item")).toBeInTheDocument(),
-    );
+    await waitFor(() => expect(screen.getByTestId("item")).toBeInTheDocument());
   });
 
   it("calls onOpenChange when the menu requests a state change", async () => {

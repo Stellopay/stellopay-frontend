@@ -1,6 +1,8 @@
 import { expect, test } from "@playwright/test";
 
-test("landing page renders illustrative demo stats badge and config stats", async ({ page }) => {
+test("landing page renders illustrative demo stats badge and config stats", async ({
+  page,
+}) => {
   await page.goto("/");
   await expect(page.getByText("Illustrative Demo Data").first()).toBeVisible();
   await expect(page.getByText("Transaction Volume").first()).toBeVisible();
@@ -8,7 +10,9 @@ test("landing page renders illustrative demo stats badge and config stats", asyn
   await expect(page.getByText("Uptime").first()).toBeVisible();
 });
 
-test("account preferences renders demo data badge and placeholder info", async ({ page }) => {
+test("account preferences renders demo data badge and placeholder info", async ({
+  page,
+}) => {
   await page.goto("/settings/preferences?section=account");
   await expect(page.getByText("Demo Data").first()).toBeVisible();
   await expect(page.locator("#first-name")).toHaveValue("Demo");
@@ -21,7 +25,9 @@ test("account preferences renders demo data badge and placeholder info", async (
   await expect(page.locator("#billing-country")).toHaveValue("United States");
 });
 
-test("security preferences renders placeholder recovery contacts", async ({ page }) => {
+test("security preferences renders placeholder recovery contacts", async ({
+  page,
+}) => {
   await page.goto("/settings/preferences?section=security");
   await expect(page.getByText("Demo Data").first()).toBeVisible();
   await page.getByText("Show recovery methods").click();
@@ -29,9 +35,15 @@ test("security preferences renders placeholder recovery contacts", async ({ page
   await expect(page.getByText("Backup contact: +1 555 0100")).toBeVisible();
 });
 
-test("wallets section renders redacted placeholder addresses", async ({ page }) => {
+test("wallets section renders redacted placeholder addresses", async ({
+  page,
+}) => {
   await page.goto("/settings/preferences?section=wallets");
   await expect(page.getByText("Demo Data").first()).toBeVisible();
-  await expect(page.getByText("Address: GB-REDACTED-DEMO-STELLAR-ADDRESS-XXXX")).toBeVisible();
-  await expect(page.getByText("Address: 0x-REDACTED-DEMO-STARKNET-ADDRESS-XXXX")).toBeVisible();
+  await expect(
+    page.getByText("Address: GB-REDACTED-DEMO-STELLAR-ADDRESS-XXXX"),
+  ).toBeVisible();
+  await expect(
+    page.getByText("Address: 0x-REDACTED-DEMO-STARKNET-ADDRESS-XXXX"),
+  ).toBeVisible();
 });

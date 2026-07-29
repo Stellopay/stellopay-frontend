@@ -10,9 +10,58 @@ interface UsePaymentHistoryResult {
   refetch: () => void;
 }
 
+const MAX_RETRIES = 3;
+const BASE_DELAY_MS = 1_000;
+
 /**
- * Hook to fetch payment history items for the dashboard sidebar.
- * Returns a stable `refetch` callback so error states can retry without remounting.
+ * Fetches the payment-history list for the dashboard.
+ *
+ * The hook returns a standard `{ data, isLoading, error, refetch }` shape
+ * shared with {@link useAccountSummary}.
+ *
+ * The `refetch` callback is stable across renders, cancels any in-flight
+ * retry timer, resets the retry counter, clears any previous error, and
+ * triggers a fresh fetch immediately.  This provides a clean retry
+ * mechanism without requiring the consumer to manage error state.
+ *
+ * @returns An object with the following fields:
+ *
+ * - `data`     — `PaymentHistoryItem[]`  The payment history list (empty `[]`
+ *                before the first successful fetch).
+ * - `isLoading`— `boolean`  `true` while the initial or refetch request is in
+ *                flight; `false` once the request settles.
+ * - `error`    — `string | null`  A human-readable error message when the most
+ *                recent fetch fails, or `null` on success.
+ * - `refetch`  — `() => void`  Stable function that cancels any pending retry,
+ *                clears the error, and re-fetches from the API.
+ *
+ * @example
+ * ```tsx
+ * import { usePaymentHistory } from "@/hooks/usePaymentHistory";
+ * import { ErrorState } from "@/components/ui/error-state";
+ * import { EmptyState } from "@/components/ui/empty-state";
+ *
+ * function PaymentList() {
+ *   const { data, isLoading, error, refetch } = usePaymentHistory();
+ *
+ *   if (isLoading) return <Skeleton />;
+ *   if (error) return (
+ *     <ErrorState
+ *       title="Failed to Load"
+ *       description={error}
+ *       onRetry={refetch}
+ *     />
+ *   );
+ *   if (data.length === 0) return (
+ *     <EmptyState title="No Payments" description="No payment history yet." />
+ *   );
+ *
+ *   return <ul>{data.map((item) => <li key={item.id}>{item.paymentDescription}</li>)}</ul>;
+ * }
+ * ```
+ *
+ * @see {@link useAccountSummary} — the account-summary hook that shares the
+ *      same `{ data, isLoading, error, refetch }` contract.
  */
 export function usePaymentHistory(): UsePaymentHistoryResult {
   const [data, setData] = useState<PaymentHistoryItem[]>([]);
@@ -20,8 +69,15 @@ export function usePaymentHistory(): UsePaymentHistoryResult {
   const [error, setError] = useState<string | null>(null);
   const [requestTick, setRequestTick] = useState(0);
   const latestRequestId = useRef(0);
+  const retryCountRef = useRef(0);
+  const retryTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const refetch = useCallback(() => {
+    if (retryTimerRef.current !== null) {
+      clearTimeout(retryTimerRef.current);
+      retryTimerRef.current = null;
+    }
+    retryCountRef.current = 0;
     setError(null);
     setIsLoading(true);
     setRequestTick((tick) => tick + 1);
@@ -45,7 +101,9 @@ export function usePaymentHistory(): UsePaymentHistoryResult {
       .catch((err: unknown) => {
         if (!cancelled && requestId === latestRequestId.current) {
           setError(
-            err instanceof Error ? err.message : "Failed to load payment history"
+            err instanceof Error
+              ? err.message
+              : "Failed to load payment history",
           );
           setIsLoading(false);
         }
@@ -53,6 +111,10 @@ export function usePaymentHistory(): UsePaymentHistoryResult {
 
     return () => {
       cancelled = true;
+      if (retryTimerRef.current !== null) {
+        clearTimeout(retryTimerRef.current);
+        retryTimerRef.current = null;
+      }
     };
   }, [requestTick]);
 

@@ -107,10 +107,7 @@ export default function DestructiveActionDialog({
 
   const handleOpenChange = (nextOpen: boolean) => {
     setOpen(nextOpen);
-
-    if (!nextOpen) {
-      setConfirmationText("");
-    }
+    setConfirmationText("");
   };
 
   const handleConfirm = () => {

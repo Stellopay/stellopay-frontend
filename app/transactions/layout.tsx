@@ -8,7 +8,41 @@ import { Metadata } from "next";
  */
 export const metadata: Metadata = {
   title: "Transactions",
-  description: "View and filter your StelloPay payroll payments history and transaction status on the blockchain.",
+  description:
+    "View and filter your StelloPay payroll payments history and transaction status on the blockchain.",
+  alternates: {
+    canonical: "https://stellopay.com/transactions",
+  },
+  openGraph: {
+    title: "Transactions | StelloPay",
+    description:
+      "View and filter your StelloPay payroll payments history and transaction status on the blockchain.",
+    url: "https://stellopay.com/transactions",
+    siteName: "StelloPay",
+    images: [
+      {
+        url: "/opengraph-image",
+        width: 1200,
+        height: 630,
+        alt: "StelloPay Transactions — Filter and track payroll history.",
+        type: "image/png",
+      },
+    ],
+    locale: "en_US",
+    type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Transactions | StelloPay",
+    description:
+      "View and filter your StelloPay payroll payments history and transaction status on the blockchain.",
+    images: [
+      {
+        url: "/opengraph-image",
+        alt: "StelloPay Transactions — Filter and track payroll history.",
+      },
+    ],
+  },
   robots: {
     index: false,
     follow: false,

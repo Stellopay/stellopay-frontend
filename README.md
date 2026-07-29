@@ -46,17 +46,17 @@ Open [http://localhost:3000](http://localhost:3000) to see the app. The page aut
 
 ## Available Scripts
 
-| Script | Command | Purpose |
-|--------|---------|---------|
-| Dev server | `npm run dev` | Starts Next.js with Turbopack |
-| Build | `npm run build` | Production build |
-| Start | `npm run start` | Serves the production build |
-| Lint | `npm run lint` | ESLint via `next lint` |
-| Type-check | `npm run type-check` | `tsc --noEmit` |
-| Unit tests | `npm run test` | Vitest with coverage |
-| Unit tests (watch) | `npm run test:watch` | Vitest in watch mode |
-| E2E tests | `npm run test:e2e` | Playwright (`npx playwright test`) |
-| Format | `npm run prettier` | Prettier write |
+| Script             | Command              | Purpose                            |
+| ------------------ | -------------------- | ---------------------------------- |
+| Dev server         | `npm run dev`        | Starts Next.js with Turbopack      |
+| Build              | `npm run build`      | Production build                   |
+| Start              | `npm run start`      | Serves the production build        |
+| Lint               | `npm run lint`       | ESLint via `next lint`             |
+| Type-check         | `npm run type-check` | `tsc --noEmit`                     |
+| Unit tests         | `npm run test`       | Vitest with coverage               |
+| Unit tests (watch) | `npm run test:watch` | Vitest in watch mode               |
+| E2E tests          | `npm run test:e2e`   | Playwright (`npx playwright test`) |
+| Format             | `npm run prettier`   | Prettier write                     |
 
 ## Wallet and network state
 
@@ -112,6 +112,188 @@ The App Router uses two cooperating client boundaries.
 
 Coverage for `app/error.tsx` is gated by the same 95% thresholds as the rest of the suite via `vitest.config.ts`. See `app/error.test.tsx` for the unit coverage.
 
+## Offline Banner
+
+The app surfaces network-connectivity changes through a persistent banner rendered inside the root layout (`app/layout.tsx`). The component lives at [`components/common/offline-banner.tsx`](components/common/offline-banner.tsx).
+
+### Behaviour
+
+- **Initial detection**: Reads `navigator.onLine` on mount.
+- **Live updates**: Subscribes to `online` / `offline` window events and updates the UI immediately.
+- **Offline banner**: When the browser goes offline, a fixed warning banner with a dismiss button appears at the top of the viewport. The dismiss button hides the banner, but it reappears on the next `offline` event.
+- **Reconnection**: When connectivity is restored, the banner transitions to a brief success state ("Your internet connection was restored") that auto-dismisses after 3 seconds. The reconnected banner is only shown after a genuine offline → online transition — not on the initial page load.
+
+### Accessibility
+
+- `role="alert"` and `aria-live="assertive"` ensure screen readers announce every connectivity change.
+- The dismiss button carries a descriptive `aria-label`.
+- Decorative icons are marked `aria-hidden="true"`.
+- Colour contrast meets WCAG 2.1 AA in both light and dark themes.
+
+### Tests
+
+- [`components/common/offline-banner.test.tsx`](components/common/offline-banner.test.tsx) — Vitest unit suite covering online/offline transitions, dismiss behaviour, reconnection state, auto-dismiss timeout, event-listener cleanup, and the negative case where an `online` event fires on an already-online browser.
+- [`app/layout.test.tsx`](app/layout.test.tsx) — Integration test verifying the banner is rendered inside the root layout shell.
+
+## Sitemap & Robots
+
+The App Router generates both files automatically using the [Next.js file-convention handlers](https://nextjs.org/docs/app/api-reference/file-conventions/metadata):
+
+| File | Served at | Purpose |
+|------|-----------|---------|
+| `app/sitemap.ts` | `/sitemap.xml` | Enumerates public marketing and help routes for crawler discovery |
+| `app/robots.ts` | `/robots.txt` | Disallows authenticated app routes from being indexed |
+
+### Public routes (sitemap)
+
+| URL | changeFrequency | priority |
+|-----|----------------|----------|
+| `https://stellopay.com` | weekly | 1.0 |
+| `https://stellopay.com/help/support` | monthly | 0.8 |
+| `https://stellopay.com/help/support/accountManagement` | monthly | 0.6 |
+
+Auth flows (`/auth/login`, `/auth/sign-up`, `/verify-email`) are **excluded** from the sitemap. They already carry `robots: { index: false }` in their route metadata and have no organic search value.
+
+### Disallowed routes (robots.txt)
+
+The following path prefixes are disallowed for all crawlers (`*`) and Googlebot:
+
+```
+/dashboard
+/transactions
+/account-summary
+/analytics-view
+/settings
+/auth
+/verify-email
+```
+
+These rules are a belt-and-suspenders defence: the routes also set `robots: { index: false, follow: false }` in their Next.js metadata, so search engines receive two independent signals not to index them.
+
+### Exported constants
+
+Both files export named constants so tests can assert canonical values without duplicating strings:
+
+```ts
+import sitemap, { BASE_URL, PUBLIC_ROUTES } from "@/app/sitemap";
+import robots, { DISALLOWED_PATHS } from "@/app/robots";
+
+BASE_URL         // "https://stellopay.com"
+PUBLIC_ROUTES    // MetadataRoute.Sitemap — array of public route entries
+DISALLOWED_PATHS // string[] — private route prefixes
+```
+
+### Verifying locally
+
+After starting the dev server (`npm run dev`) or after a production build (`npm run build && npm run start`), inspect the generated files directly:
+
+```bash
+# Sitemap
+curl http://localhost:3000/sitemap.xml
+
+# Robots
+curl http://localhost:3000/robots.txt
+```
+
+### Tests
+
+Sitemap and robots behaviour is covered in `app/metadata.test.ts`:
+
+```bash
+npm test app/metadata.test.ts
+```
+
+The suite asserts:
+- `BASE_URL` matches the canonical domain
+- Every sitemap entry URL is absolute and starts with `BASE_URL`
+- Every entry has a valid `lastModified` date, `changeFrequency`, and `priority`
+- Authenticated and auth-flow routes are absent from the sitemap
+- Every disallowed path is present in the robots rules for both `*` and `Googlebot`
+- The sitemap pointer in `robots.txt` is `https://stellopay.com/sitemap.xml`
+
+## Metadata & Viewport
+
+Following Next.js 15 conventions, global metadata (titles, descriptions, OpenGraph) and viewport configurations are exported as separate objects in `app/layout.tsx`.
+
+- **`metadata`**: Contains SEO tags, OpenGraph data, and Twitter cards.
+- **`viewport`**: Contains responsive design parameters (e.g., `width`, `initialScale`) and theme colors for dark/light modes.
+
+## Dynamic Open Graph Image
+
+`app/opengraph-image.tsx` implements the [Next.js file-convention OG image route](https://nextjs.org/docs/app/api-reference/file-conventions/opengraph-image). It is served automatically at `/opengraph-image` and generates a **1200 × 630 px PNG** at request time using `next/og` (`ImageResponse` / Satori).
+
+### What's rendered
+
+| Element | Detail |
+|---|---|
+| Background | White (`#FFFFFF`) — matches the light-mode hero surface |
+| Badge | Dark pill with the StelloPay brand name and "Blockchain Payroll" label |
+| Headline | Three-line hero h1 — "The Future of / **Payroll on** / Blockchain" |
+| Gradient | "Payroll on" uses the brand gradient: `#2563EB → #7C3AED → #059669` |
+| Tagline | Hero paragraph copy — "Built for modern businesses…" |
+| Font | Clash Display Variable loaded from `public/font/clash-display-variable.ttf` |
+| Decorative blobs | Three radial-gradient orbs mirroring the hero decorative orbs |
+| Accent bar | Bottom-right brand gradient stripe |
+
+### Accessibility
+
+The OG image is a static bitmap consumed by crawlers and social previews. WCAG 2.1 AA contrast requirements are met for all rendered text:
+
+| Text element | Foreground | Background | Contrast ratio |
+|---|---|---|---|
+| Headline (dark) | `#09090B` | `#FFFFFF` | ≈ 20.7 : 1 ✓ |
+| Tagline (muted) | `#52525B` | `#FFFFFF` | ≈ 7.0 : 1 ✓ |
+| Badge label | `#FFFFFF` | `#09090B` | ≈ 20.7 : 1 ✓ |
+
+The gradient headline ("Payroll on") is decorative text whose semantic equivalent is conveyed by the `alt` attribute set in `openGraph.images[].alt` inside `app/layout.tsx`:
+
+> "StelloPay — The Future of Payroll on Blockchain. Brand gradient headline on white background."
+
+### File locations
+
+```
+app/
+├─ opengraph-image.tsx       # Route handler — generates the PNG
+└─ opengraph-image.test.ts   # Vitest unit tests
+```
+
+### Exported constants
+
+The module exports several constants so tests and other files can reference canonical values without duplicating strings:
+
+```ts
+import OGImage, { size, contentType, BRAND_GRADIENT, COLORS, COPY } from "@/app/opengraph-image";
+
+size           // { width: 1200, height: 630 }
+contentType    // "image/png"
+BRAND_GRADIENT // { from: "#2563EB", via: "#7C3AED", to: "#059669" }
+COLORS         // { background, foreground, muted, accent }
+COPY           // { headlinePrefix, headlineGradient, headlineSuffix, tagline, brand, badgeSub }
+```
+
+### Font loading
+
+The handler reads `public/font/clash-display-variable.ttf` at request time and passes the `ArrayBuffer` to `ImageResponse` via the `fonts` option. If the file cannot be read (e.g., in a stripped production image), the handler falls back gracefully to the default sans-serif typeface — the image is still generated without throwing.
+
+### Validating the live image
+
+After deploying, inspect the OG image with:
+
+- **Facebook debugger**: https://developers.facebook.com/tools/debug/
+- **Twitter Card validator**: https://cards-dev.twitter.com/validator
+- **OG preview**: https://www.opengraph.xyz/
+
+To inspect the raw PNG locally with a running dev server:
+
+```bash
+npm run dev
+# open http://localhost:3000/opengraph-image
+```
+
+### Keeping copy in sync
+
+The headline and tagline in `app/opengraph-image.tsx` are defined in the `COPY` constant and should be kept in sync with `components/landing/hero.tsx`. The unit tests assert the exact strings so a mismatch will fail CI.
+
 ## Project Structure
 
 ```
@@ -122,7 +304,7 @@ stellopay-frontend
 │  ├─ auth/              # login, sign-up
 │  ├─ dashboard/
 │  ├─ help/support/
-│  ├─ settings/          # preferences, profile
+│  ├─ settings/          # preferences (tabbed shell — see design/settings-ia.md)
 │  ├─ transactions/
 │  ├─ layout.tsx
 │  └─ page.tsx           # landing page
@@ -147,6 +329,26 @@ stellopay-frontend
 └─ pages/                # Legacy Pages Router landing page assets
 ```
 
+### Settings section structure
+
+`app/settings/preferences` is a tabbed shell with five sections — **Account**
+(profile, identity, and locale defaults), **Notifications** (transaction alerts
+and delivery-channel toggles), **Security** (password, 2-FA, and session
+management), **Wallets** (connected Stellar wallets and transfer safeguards),
+and **Statements** (downloadable tax summaries and periodic statements) — each
+driven by a `?section=<value>` deep-link parameter.
+
+See [design/settings-ia.md](design/settings-ia.md) for the full information
+architecture: per-tab breakdown, routing behaviour, unsaved-changes guard,
+accessibility requirements, and step-by-step instructions for adding a new
+settings section.
+
+> **Adding a new settings section?** Follow the checklist in
+> `design/settings-ia.md` → *Adding a new settings section*, then update the
+> tab table at the top of that file and add a corresponding subsection. Keep
+> the spec, the code (`buildSections()` in `settings-page-shell.tsx`), and the
+> tests in sync — the spec is the single source of truth for the settings IA.
+
 ## Design Resources
 
 - **Main Figma Design Workspace**: See [design/figma-design.txt](design/figma-design.txt) for all page-specific layouts (Dashboard, Settings, Help/Support, etc.)
@@ -157,6 +359,7 @@ stellopay-frontend
 The application uses a context-based theme system with Tailwind CSS and local storage persistence.
 
 ### Architecture & Usage
+
 The context provider is configured in `context/theme-context.tsx` and wraps the root layout in `app/layout.tsx`.
 
 You can access and toggle the theme programmatically in components using the custom hook:
@@ -166,10 +369,10 @@ import { useTheme } from "@/context/theme-context";
 
 export default function MyComponent() {
   const { theme, toggleTheme, setTheme } = useTheme();
-  
+
   // Access current theme ("light" or "dark")
   console.log(theme);
-  
+
   // Toggle between light and dark themes
   return <button onClick={toggleTheme}>Toggle Theme</button>;
 }
@@ -208,7 +411,10 @@ Automated accessibility scanning runs as part of the Playwright suite using [`@a
   ```ts
   await expectNoSeriousA11yViolations(page, {
     allowlist: [
-      { id: "color-contrast", reason: "Tracked in #999 — pending design token update" },
+      {
+        id: "color-contrast",
+        reason: "Tracked in #999 — pending design token update",
+      },
     ],
   });
   ```
@@ -230,11 +436,13 @@ npx playwright show-report                          # inspect the last HTML repo
 To keep the application's bundle light and ensure visual consistency, the project consolidates all UI icons onto **Lucide React** (`lucide-react`) as the single primary icon set.
 
 ### Guidelines
+
 - **Primary Set**: Use `lucide-react` for all UI icons.
 - **Custom / Brand Icons**: For brand logos or unique custom shapes (e.g., `StellOpayLogo`, `StellarIcon`), use raw SVG components located in [`public/svg/svg.tsx`](public/svg/svg.tsx) or local custom components.
 - **Restricted Libraries**: Do NOT import from `react-icons`, `@hugeicons/react`, or `@hugeicons/core-free-icons`.
 
 ### Guardrails
+
 - **ESLint Rule**: The `no-restricted-imports` rule in [`.eslintrc.json`](.eslintrc.json) blocks imports from restricted packages.
 - **CI Guard Test**: [`utils/import-guard.test.ts`](utils/import-guard.test.ts) scans all source files in `app/` and `components/` to verify no prohibited icon libraries are referenced.
 
@@ -242,15 +450,15 @@ To keep the application's bundle light and ensure visual consistency, the projec
 
 Every pull request and push to `main` runs two jobs via `.github/workflows/ci.yml`:
 
-| Job | Step | Command | Purpose |
-|-----|------|---------|---------|
-| `lint-typecheck-build` | Install dependencies | `npm ci` | Reproducible install from lockfile |
-| | Unit Tests | `npm run test` | Vitest utility/schema tests for auth, transaction, pagination, and date utils, plus auth schemas |
-| | Lint | `npm run lint` | ESLint via `next lint` |
-| | Type-check | `npm run type-check` | `tsc --noEmit` — catches type errors |
-| | Build | `npm run build` | Full Next.js production build |
-| `playwright` | Install Playwright browsers | `npx playwright install --with-deps chromium` | Provision the Chromium runtime used by the suite |
-| | E2E + accessibility | `npx playwright test` | Full Playwright suite, including the axe-core a11y scans described in [Accessibility testing](#accessibility-testing) — a serious/critical violation fails this job |
+| Job                    | Step                        | Command                                       | Purpose                                                                                                                                                             |
+| ---------------------- | --------------------------- | --------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `lint-typecheck-build` | Install dependencies        | `npm ci`                                      | Reproducible install from lockfile                                                                                                                                  |
+|                        | Unit Tests                  | `npm run test`                                | Vitest utility/schema tests for auth, transaction, pagination, and date utils, plus auth schemas                                                                    |
+|                        | Lint                        | `npm run lint`                                | ESLint via `next lint`                                                                                                                                              |
+|                        | Type-check                  | `npm run type-check`                          | `tsc --noEmit` — catches type errors                                                                                                                                |
+|                        | Build                       | `npm run build`                               | Full Next.js production build                                                                                                                                       |
+| `playwright`           | Install Playwright browsers | `npx playwright install --with-deps chromium` | Provision the Chromium runtime used by the suite                                                                                                                    |
+|                        | E2E + accessibility         | `npx playwright test`                         | Full Playwright suite, including the axe-core a11y scans described in [Accessibility testing](#accessibility-testing) — a serious/critical violation fails this job |
 
 On failure, the `playwright` job uploads the HTML report as a build artifact (`playwright-report`, retained 7 days) so violations and traces can be inspected without re-running locally.
 
@@ -279,6 +487,7 @@ Tests run with **0 retries** locally. In CI (`CI=true`) each test is retried up 
 Target performance optimizations were applied across the landing page and dashboard to improve First Paint, LCP (Largest Contentful Paint), and TBT (Total Blocking Time).
 
 ### Key Changes
+
 1. **Below-the-Fold Dynamic Imports**: Code-split `HowItWorks`, `EnterpriseSolutionSection`, and `FAQSection` on the landing page ([`components/landing/landing-page.tsx`](components/landing/landing-page.tsx)) using `next/dynamic` to keep the initial HTML payload lightweight.
 2. **Chart & Insights Code-Splitting**: Dynamically loaded the recharts-heavy component ([`AnalyticsViews`](components/analytics/client-analytics-view.tsx)) and KPI metrics ([`AnalyticsInsights`](components/dashboard/dashboard-page.tsx)) with structural skeleton fallbacks equipped with accessibility attributes (`aria-busy="true"` and `aria-live="polite"`).
 3. **Optimized Layout Animations**: Replaced `framer-motion` JS-driven layout width transitions on the sidebar container ([`components/common/side-bar.tsx`](components/common/side-bar.tsx)) with pure CSS grid animations to prevent layout thrashing and lower Total Blocking Time (TBT).
@@ -286,26 +495,28 @@ Target performance optimizations were applied across the landing page and dashbo
 
 ### Bundle Size Impact (`next build` Route JS)
 
-| Route | Metric | Before | After | Change |
-|-------|--------|--------|-------|--------|
-| `/landing` (Pages Router) | Route Size | 64.1 kB | 26.1 kB | **-38.0 kB (-59.3%)** |
-| `/landing` (Pages Router) | First Load JS | 165 kB | 127 kB | **-38.0 kB (-23.0%)** |
+| Route                     | Metric        | Before  | After   | Change                |
+| ------------------------- | ------------- | ------- | ------- | --------------------- |
+| `/landing` (Pages Router) | Route Size    | 64.1 kB | 26.1 kB | **-38.0 kB (-59.3%)** |
+| `/landing` (Pages Router) | First Load JS | 165 kB  | 127 kB  | **-38.0 kB (-23.0%)** |
 
 ### Bundle Budget
 
 We maintain a CI-enforced bundle budget for key routes to ensure fast first-load performance.
 
-| Route | Budget | Current First Load JS |
-|-------|--------|-----------------------|
-| `/` (Landing) | 225 kB | 213 kB |
-| `/dashboard` | 180 kB | 165 kB |
+| Route         | Budget | Current First Load JS |
+| ------------- | ------ | --------------------- |
+| `/` (Landing) | 225 kB | 213 kB                |
+| `/dashboard`  | 180 kB | 165 kB                |
 
 To run the bundle analyzer locally:
+
 ```bash
 npm run analyze
 ```
 
 #### Candidate Wins for Optimization
+
 - **Icon deduplication**: We currently have multiple icon libraries (`lucide-react`, `hugeicons`, `react-icons`). Consolidating all icons to `lucide-react` will significantly reduce the shared bundle size.
 - **Dynamic imports for Recharts**: Use `next/dynamic` for chart components in `AnalyticsViews` and `AnalyticsInsights` to move heavy visualization logic out of the critical path.
 
@@ -316,3 +527,19 @@ To prevent hardcoded realistic PII (Personal Identifiable Information) and fabri
 - **Security Compliance**: All mockup emails, phone numbers, and wallet addresses are set to standard, obvious placeholder domains/values (e.g. `example.com`, `+1 555 0100`, and redacted addresses like `GB-REDACTED-DEMO-STELLAR-ADDRESS-XXXX`). This reduces compliance exposure and prevents test/seed data from being mistaken for active production credentials.
 - **Illustrative Marketing Stats**: Landing page statistics are managed via the same config file and clearly decorated with visual badges indicating they are illustrative placeholders.
 - **Backend Integration**: These structures are designed to be easily replaced by backend API hooks once user authentication, profile retrieval, and wallet connectivity endpoints are finalized.
+
+## Metadata and Open Graph Architecture
+
+Route-level metadata is defined across application routes in the Next.js App Router to ensure optimal SEO, canonical URLs, and distinct social preview cards (Open Graph / Twitter).
+
+### Metadata Configurations
+
+- **Root Layout (`app/layout.tsx`)**: Defines root default title templates, fallback description, global site name, and default dynamic `/opengraph-image` preview card.
+- **Dashboard (`app/dashboard/layout.tsx`)**: Configures route title, description, canonical URL (`https://stellopay.com/dashboard`), custom Open Graph image (`/dashboard-preview.jpg`), and private route `robots: { index: false, follow: false }` directives.
+- **Transactions (`app/transactions/layout.tsx`)**: Configures route title, description, canonical URL (`https://stellopay.com/transactions`), Open Graph image (`/opengraph-image`), and `robots: { index: false, follow: false }` directives.
+- **Settings & Preferences (`app/settings/preferences/layout.tsx`)**: Configures route title, description, canonical URL (`https://stellopay.com/settings/preferences`), Open Graph image (`/opengraph-image`), and `robots: { index: false, follow: false }` directives.
+
+### Testing and Validation
+
+All metadata exports are covered by unit tests in `app/metadata.test.ts` to verify uniqueness of titles/descriptions, correct canonical URLs, Open Graph parameters, and fallback logic.
+

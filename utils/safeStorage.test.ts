@@ -67,6 +67,18 @@ describe("safeStorage", () => {
       expect(() => safeStorage.setItem("key", "value")).not.toThrow();
     });
 
+    it("handles quota exceeded writes gracefully and preserves reads", () => {
+      vi.mocked(window.localStorage.getItem).mockReturnValue("existing-value");
+      vi.mocked(window.localStorage.setItem).mockImplementation(() => {
+        const error = new Error("Quota Exceeded");
+        error.name = "QuotaExceededError";
+        throw error;
+      });
+
+      expect(safeStorage.setItem("key", "value")).toBe(false);
+      expect(safeStorage.getItem("key")).toBe("existing-value");
+    });
+
     it("removeItem calls localStorage.removeItem", () => {
       safeStorage.removeItem("key");
       expect(window.localStorage.removeItem).toHaveBeenCalledWith("key");
@@ -78,5 +90,24 @@ describe("safeStorage", () => {
       });
       expect(() => safeStorage.removeItem("key")).not.toThrow();
     });
+
+    it("isDashboardTourCompleted returns true when storage item is 'true'", () => {
+      vi.mocked(window.localStorage.getItem).mockReturnValue("true");
+      expect(safeStorage.isDashboardTourCompleted()).toBe(true);
+    });
+
+    it("isDashboardTourCompleted returns false when storage item is null or not 'true'", () => {
+      vi.mocked(window.localStorage.getItem).mockReturnValue(null);
+      expect(safeStorage.isDashboardTourCompleted()).toBe(false);
+    });
+
+    it("setDashboardTourCompleted sets the tour storage key to 'true'", () => {
+      safeStorage.setDashboardTourCompleted();
+      expect(window.localStorage.setItem).toHaveBeenCalledWith(
+        "stellopay_dashboard_tour_completed",
+        "true",
+      );
+    });
   });
 });
+

@@ -52,9 +52,7 @@ const defaultProps = {
 
 describe("Calendar — baseline (no constraints)", () => {
   it("renders without throwing", () => {
-    expect(() =>
-      render(<Calendar {...defaultProps} />),
-    ).not.toThrow();
+    expect(() => render(<Calendar {...defaultProps} />)).not.toThrow();
   });
 
   it("renders day buttons for days in the month", () => {
@@ -76,9 +74,7 @@ describe("Calendar — baseline (no constraints)", () => {
 
   it("calls onSelect when a day is clicked in unconstrained mode", async () => {
     const onSelect = vi.fn();
-    render(
-      <Calendar {...defaultProps} onSelect={onSelect} />,
-    );
+    render(<Calendar {...defaultProps} onSelect={onSelect} />);
     await userEvent.click(getDayButton(15));
     expect(onSelect).toHaveBeenCalledOnce();
   });
@@ -258,10 +254,7 @@ describe("Calendar — minDate/maxDate composing with caller disabled prop", () 
 
   it("disables days matched by a caller disabled array of dates", () => {
     render(
-      <Calendar
-        {...defaultProps}
-        disabled={[d(2025, 7, 5), d(2025, 7, 12)]}
-      />,
+      <Calendar {...defaultProps} disabled={[d(2025, 7, 5), d(2025, 7, 12)]} />,
     );
     expect(getDayButton(5)).toBeDisabled();
     expect(getDayButton(12)).toBeDisabled();
@@ -313,24 +306,18 @@ describe("Calendar — minDate/maxDate time-component normalisation", () => {
 describe("Calendar — invalid Date edge cases", () => {
   it("renders without error when minDate is an invalid Date", () => {
     expect(() =>
-      render(
-        <Calendar {...defaultProps} minDate={new Date("not-a-date")} />,
-      ),
+      render(<Calendar {...defaultProps} minDate={new Date("not-a-date")} />),
     ).not.toThrow();
   });
 
   it("renders without error when maxDate is an invalid Date", () => {
     expect(() =>
-      render(
-        <Calendar {...defaultProps} maxDate={new Date("not-a-date")} />,
-      ),
+      render(<Calendar {...defaultProps} maxDate={new Date("not-a-date")} />),
     ).not.toThrow();
   });
 
   it("does not disable any days when minDate is invalid", () => {
-    render(
-      <Calendar {...defaultProps} minDate={new Date("not-a-date")} />,
-    );
+    render(<Calendar {...defaultProps} minDate={new Date("not-a-date")} />);
     expect(getDayButton(1)).not.toBeDisabled();
     expect(getDayButton(15)).not.toBeDisabled();
   });

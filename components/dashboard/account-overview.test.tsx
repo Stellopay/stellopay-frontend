@@ -1,9 +1,22 @@
 import React, { useState } from "react";
-import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import {
+  act,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+} from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import AccountOverview from "./account-overview";
 import { WalletProvider, useWallet } from "@/context/wallet-context";
+
+vi.mock("next/dynamic", () => ({
+  default: () => {
+    const MockChart = () => <div data-testid="recharts-mini-bar-chart-mock" />;
+    return MockChart;
+  },
+}));
 import * as summaryDataModule from "./summary-data";
 
 const PUBLIC_ADDRESS = "GABCDEFGHIJKLMNOPQRSTUVWXYZ234567ABCDEFGHIJKLMNOPF123";
@@ -62,19 +75,27 @@ describe("AccountOverview", () => {
     window.localStorage.clear();
   });
 
-  it("renders correctly when wallet is disconnected", () => {
+  it("renders correctly when wallet is disconnected", async () => {
     renderWithWallet(null);
 
     expect(
       screen.getByRole("button", { name: /connect wallet/i }),
     ).toBeInTheDocument();
-    expect(screen.queryByTestId("account-overview-address")).not.toBeInTheDocument();
     expect(
-      screen.getByText("Connect your Stellar wallet to view balances and send payments."),
+      screen.queryByTestId("account-overview-address"),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.getByText(
+        "Connect your Stellar wallet to view balances and send payments.",
+      ),
     ).toBeInTheDocument();
-    expect(screen.getByText("Total Balance")).toBeInTheDocument();
-    expect(screen.getByText("Paid This Month")).toBeInTheDocument();
-    expect(screen.getByText("To Be Paid")).toBeInTheDocument();
+
+    // Cards load asynchronously — wait for the skeleton to be replaced.
+    await waitFor(() => {
+      expect(screen.getByText("Total Balance")).toBeInTheDocument();
+      expect(screen.getByText("Paid This Month")).toBeInTheDocument();
+      expect(screen.getByText("To Be Paid")).toBeInTheDocument();
+    });
   });
 
   it("renders correctly when wallet is connected", () => {
@@ -83,9 +104,13 @@ describe("AccountOverview", () => {
     expect(screen.getByTestId("account-overview-address")).toHaveTextContent(
       "GABC...F123",
     );
-    expect(screen.queryByTestId("account-overview-connect")).not.toBeInTheDocument();
     expect(
-      screen.getByText("Manage your assets and payments across all chains easily."),
+      screen.queryByTestId("account-overview-connect"),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.getByText(
+        "Manage your assets and payments across all chains easily.",
+      ),
     ).toBeInTheDocument();
     expect(screen.getByText("Account Overview")).toBeInTheDocument();
   });
@@ -98,7 +123,9 @@ describe("AccountOverview", () => {
     expect(screen.getByTestId("account-overview-address")).toHaveTextContent(
       /^G[A-Z0-9]{3}\.\.\.[A-Z0-9]{4}$/,
     );
-    expect(screen.queryByTestId("account-overview-connect")).not.toBeInTheDocument();
+    expect(
+      screen.queryByTestId("account-overview-connect"),
+    ).not.toBeInTheDocument();
   });
 
   it("updates the displayed formatted address when the wallet address changes", () => {
@@ -149,8 +176,10 @@ describe("AccountOverview – loading state", () => {
 
   it("shows the loading skeleton before data resolves", async () => {
     // Hold the Promise indefinitely so the component stays in loading state.
-    vi.spyOn(summaryDataModule, 'summaryCardsData', 'get').mockReturnValue(
-      new Promise(() => {}) as unknown as typeof summaryDataModule.summaryCardsData,
+    vi.spyOn(summaryDataModule, "summaryCardsData", "get").mockReturnValue(
+      new Promise(
+        () => {},
+      ) as unknown as typeof summaryDataModule.summaryCardsData,
     );
 
     render(
@@ -165,8 +194,10 @@ describe("AccountOverview – loading state", () => {
   });
 
   it("skeleton has aria-busy='true' while loading", async () => {
-    vi.spyOn(summaryDataModule, 'summaryCardsData', 'get').mockReturnValue(
-      new Promise(() => {}) as unknown as typeof summaryDataModule.summaryCardsData,
+    vi.spyOn(summaryDataModule, "summaryCardsData", "get").mockReturnValue(
+      new Promise(
+        () => {},
+      ) as unknown as typeof summaryDataModule.summaryCardsData,
     );
 
     render(
@@ -181,8 +212,10 @@ describe("AccountOverview – loading state", () => {
   });
 
   it("does not show card data while loading", async () => {
-    vi.spyOn(summaryDataModule, 'summaryCardsData', 'get').mockReturnValue(
-      new Promise(() => {}) as unknown as typeof summaryDataModule.summaryCardsData,
+    vi.spyOn(summaryDataModule, "summaryCardsData", "get").mockReturnValue(
+      new Promise(
+        () => {},
+      ) as unknown as typeof summaryDataModule.summaryCardsData,
     );
 
     render(
@@ -196,8 +229,10 @@ describe("AccountOverview – loading state", () => {
   });
 
   it("does not show an error state while loading", async () => {
-    vi.spyOn(summaryDataModule, 'summaryCardsData', 'get').mockReturnValue(
-      new Promise(() => {}) as unknown as typeof summaryDataModule.summaryCardsData,
+    vi.spyOn(summaryDataModule, "summaryCardsData", "get").mockReturnValue(
+      new Promise(
+        () => {},
+      ) as unknown as typeof summaryDataModule.summaryCardsData,
     );
 
     render(
@@ -297,8 +332,10 @@ describe("AccountOverview – error state", () => {
    * and routes them to the .catch() branch.
    */
   function forceLoadError(message = "Failed to load account summary.") {
-    vi.spyOn(summaryDataModule, 'summaryCardsData', 'get').mockImplementation(
-      () => { throw new Error(message); },
+    vi.spyOn(summaryDataModule, "summaryCardsData", "get").mockImplementation(
+      () => {
+        throw new Error(message);
+      },
     );
   }
 
@@ -391,14 +428,19 @@ describe("AccountOverview – error state", () => {
     );
 
     await waitFor(() => {
-      expect(screen.getByRole("button", { name: /retry/i })).toBeInTheDocument();
+      expect(
+        screen.getByRole("button", { name: /retry/i }),
+      ).toBeInTheDocument();
     });
   });
 
   it("clicking Retry re-triggers the load and shows success on recovery", async () => {
     // First call throws, second call succeeds.
-    const spy = vi.spyOn(summaryDataModule, 'summaryCardsData', 'get')
-      .mockImplementationOnce(() => { throw new Error("transient error"); })
+    const spy = vi
+      .spyOn(summaryDataModule, "summaryCardsData", "get")
+      .mockImplementationOnce(() => {
+        throw new Error("transient error");
+      })
       .mockReturnValue(summaryDataModule.summaryCardsData);
 
     render(
@@ -410,9 +452,6 @@ describe("AccountOverview – error state", () => {
     await waitFor(() => {
       expect(screen.getByTestId("summary-error")).toBeInTheDocument();
     });
-
-    // Restore so the second call succeeds.
-    spy.mockRestore();
 
     await act(async () => {
       fireEvent.click(screen.getByRole("button", { name: /retry/i }));

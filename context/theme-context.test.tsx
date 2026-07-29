@@ -1,7 +1,11 @@
 import { act, renderHook } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import React from "react";
-import { ThemeProvider, useTheme, getStoredTheme } from "@/context/theme-context";
+import {
+  ThemeProvider,
+  useTheme,
+  getStoredTheme,
+} from "@/context/theme-context";
 import { safeStorage } from "@/utils/safeStorage";
 
 // ---------------------------------------------------------------------------
@@ -174,7 +178,7 @@ describe("ThemeProvider – system mode (OS prefers dark)", () => {
     const { result } = renderHook(() => useTheme(), { wrapper });
 
     act(() => mql._fire(false)); // → light
-    act(() => mql._fire(true));  // → dark again
+    act(() => mql._fire(true)); // → dark again
 
     expect(result.current.resolvedTheme).toBe("dark");
     expect(document.documentElement.classList.contains("dark")).toBe(true);

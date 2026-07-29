@@ -1,11 +1,5 @@
-import React from 'react';
-import {
-  ResponsiveContainer,
-  BarChart,
-  Bar,
-  XAxis,
-  Tooltip,
-} from 'recharts';
+import React from "react";
+import { ResponsiveContainer, BarChart, Bar, XAxis, Tooltip } from "recharts";
 
 /**
  * Props for the RechartsMiniBarChart component.
@@ -38,8 +32,8 @@ export interface RechartsMiniBarChartProps {
 export const RechartsMiniBarChart: React.FC<RechartsMiniBarChartProps> = ({
   data,
   color,
-  height = '3rem',
-  ariaLabel = 'Mini bar chart',
+  height = "3rem",
+  ariaLabel = "Mini bar chart",
 }) => {
   // Transform data to include a simple index label for XAxis (hidden).
   const transformedData = data.map((d, i) => ({ ...d, name: i.toString() }));
@@ -52,12 +46,20 @@ export const RechartsMiniBarChart: React.FC<RechartsMiniBarChartProps> = ({
       role="img"
     >
       <ResponsiveContainer width="100%" height="100%">
-        <BarChart data={transformedData} margin={{ top: 0, right: 0, left: 0, bottom: 0 }}>
+        <BarChart
+          data={transformedData}
+          margin={{ top: 0, right: 0, left: 0, bottom: 0 }}
+        >
           <XAxis dataKey="name" hide />
           <Tooltip
             cursor={false}
-            contentStyle={{ background: 'var(--chart-tooltip-bg)', border: 'none' }}
-            formatter={(value: number) => `${value}%`}
+            contentStyle={{
+              background: "var(--chart-tooltip-bg)",
+              border: "none",
+            }}
+            formatter={(value) =>
+              typeof value === "number" ? `${value}%` : `${value ?? ""}`
+            }
           />
           <Bar dataKey="value" fill={color} radius={[4, 4, 0, 0]} />
         </BarChart>
