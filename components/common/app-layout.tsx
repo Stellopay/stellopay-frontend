@@ -5,10 +5,18 @@ import { SideBar } from "./side-bar";
 import Navbar from "@/components/common/navbar";
 import FeedbackWidget from "@/components/common/feedback-widget";
 import useSidebar from "@/context/sidebar-context";
+import { useGlobalShortcuts } from "@/hooks/useGlobalShortcuts";
 import { AppLayoutProps } from "@/types/ui";
+import { ShortcutHelpModal } from "./shortcut-help-modal";
+import { useShortcutModal } from "@/hooks/useShortcutModal";
 
 export default function AppLayout({ children }: AppLayoutProps) {
   const { isSidebarOpen, isMobile } = useSidebar();
+  const { isOpen: isShortcutModalOpen, close: closeShortcutModal } =
+    useShortcutModal();
+
+  // Enable global keyboard shortcuts (g + d/t/s) for navigation
+  useGlobalShortcuts();
 
   return (
     <div className="relative h-screen overflow-hidden">
@@ -60,7 +68,19 @@ export default function AppLayout({ children }: AppLayoutProps) {
         </div>
       )}
 
+      {/* Global floating feedback widget */}
       <FeedbackWidget />
+
+      {/*
+       * Global keyboard shortcut help modal.
+       * Triggered by pressing '?' (Shift + /) anywhere in the app.
+       * The useShortcutModal hook attached above manages open state and
+       * registers the keydown listener on the window.
+       */}
+      <ShortcutHelpModal
+        open={isShortcutModalOpen}
+        onClose={closeShortcutModal}
+      />
     </div>
   );
 }

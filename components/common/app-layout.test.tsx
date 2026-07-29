@@ -1,8 +1,11 @@
 /**
- * Unit tests for AppLayout with global floating feedback widget.
+ * Unit tests for AppLayout.
+ *
+ * Covers skip-to-content (WCAG 2.4.1), shortcut help modal, and
+ * the global floating feedback widget.
  */
 
-import { render, screen, cleanup, waitFor } from "@testing-library/react";
+import { render, screen, cleanup, waitFor, fireEvent } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { vi, describe, it, expect, afterEach } from "vitest";
 
@@ -29,7 +32,53 @@ vi.mock("next/navigation", () => ({
   usePathname: () => "/dashboard",
 }));
 
+vi.mock("./shortcut-help-modal", () => ({
+  ShortcutHelpModal: ({ open, onClose }: { open: boolean; onClose: () => void }) => {
+    const React = require("react");
+    React.useEffect(() => {
+      if (!open) return;
+      const handler = (e: KeyboardEvent) => {
+        if (e.key === "Escape") onClose();
+      };
+      window.addEventListener("keydown", handler);
+      return () => window.removeEventListener("keydown", handler);
+    }, [open, onClose]);
+    return open ? (
+      <div role="dialog" aria-label="Keyboard shortcuts">
+        <h2>Keyboard Shortcuts</h2>
+        <button onClick={onClose} aria-label="Close">Close</button>
+      </div>
+    ) : null;
+  },
+}));
+
+vi.mock("@/hooks/useGlobalShortcuts", () => ({
+  useGlobalShortcuts: () => {},
+}));
+
+vi.mock("@/hooks/useShortcutModal", async () => {
+  const React = await import("react");
+  return {
+    useShortcutModal: () => {
+      const [isOpen, setIsOpen] = React.useState(false);
+      React.useEffect(() => {
+        const handler = (e: KeyboardEvent) => {
+          const tag = (document.activeElement?.tagName || "").toUpperCase();
+          if (e.key === "?" && tag !== "INPUT" && tag !== "TEXTAREA") {
+            setIsOpen((p: boolean) => !p);
+          }
+        };
+        window.addEventListener("keydown", handler);
+        return () => window.removeEventListener("keydown", handler);
+      }, []);
+      return { isOpen, open: () => setIsOpen(true), close: () => setIsOpen(false) };
+    },
+  };
+});
+
 vi.stubEnv("NEXT_PUBLIC_API_BASE_URL", "");
+
+
 
 import AppLayout from "./app-layout";
 
@@ -248,5 +297,88 @@ describe("AppLayout — floating feedback widget", () => {
     await user.click(feature);
     expect(feature).toHaveAttribute("aria-checked", "true");
     expect(bug).toHaveAttribute("aria-checked", "false");
+  });
+});
+
+// ── Shortcut Help Modal — integration ─────────────────────────────────────────
+
+describe("AppLayout — shortcut help modal integration", () => {
+  it("shortcut help modal is not visible on initial render", () => {
+    renderLayout();
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+  });
+
+  it("pressing '?' opens the shortcut help modal", () => {
+    renderLayout();
+    fireEvent.keyDown(window, { key: "?" });
+    expect(screen.getByRole("dialog")).toBeInTheDocument();
+    expect(
+      screen.getByRole("heading", { name: /keyboard shortcuts/i }),
+    ).toBeInTheDocument();
+  });
+
+  it("pressing '?' twice toggles the modal closed", async () => {
+    renderLayout();
+
+    // Open
+    fireEvent.keyDown(window, { key: "?" });
+    expect(screen.getByRole("dialog")).toBeInTheDocument();
+
+    // Close — Radix Dialog animates out; after the second keydown the state
+    // is closed, so Radix stops rendering the dialog content.
+    fireEvent.keyDown(window, { key: "?" });
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+  });
+
+  it("pressing '?' while an <input> is focused does NOT open the modal", () => {
+    renderLayout();
+
+    // Create a focused input to simulate typing context
+    const input = document.createElement("input");
+    document.body.appendChild(input);
+    input.focus();
+
+    fireEvent.keyDown(window, { key: "?" });
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+
+    // Cleanup
+    document.body.removeChild(input);
+  });
+
+  it("pressing '?' while a <textarea> is focused does NOT open the modal", () => {
+    renderLayout();
+
+    const textarea = document.createElement("textarea");
+    document.body.appendChild(textarea);
+    textarea.focus();
+
+    fireEvent.keyDown(window, { key: "?" });
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+
+    document.body.removeChild(textarea);
+  });
+
+  it("pressing Escape closes the open modal", async () => {
+    const user = userEvent.setup();
+    renderLayout();
+
+    // Open the modal
+    fireEvent.keyDown(window, { key: "?" });
+    expect(screen.getByRole("dialog")).toBeInTheDocument();
+
+    // Escape should close it (Radix Dialog default behaviour)
+    await user.keyboard("{Escape}");
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+  });
+
+  it("clicking the modal close button closes the modal", async () => {
+    const user = userEvent.setup();
+    renderLayout();
+
+    fireEvent.keyDown(window, { key: "?" });
+    const closeBtn = screen.getByRole("button", { name: /close/i });
+    await user.click(closeBtn);
+
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
   });
 });

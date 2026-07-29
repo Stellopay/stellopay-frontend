@@ -1,5 +1,5 @@
 "use client";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
@@ -17,11 +17,26 @@ const navLinks = [
 ];
 const MOBILE_NAV_STORAGE_KEY = "landingMobileNavOpen";
 
+/** CSS selector that matches all natively focusable elements. */
+const FOCUSABLE_SELECTOR = [
+  "a[href]",
+  "button:not([disabled])",
+  "input:not([disabled])",
+  "select:not([disabled])",
+  "textarea:not([disabled])",
+  '[tabindex]:not([tabindex="-1"])',
+].join(", ");
+
 export default function Navbar() {
   const pathname = usePathname() || "/";
   const { theme, resolvedTheme, toggleTheme } = useTheme();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [hasHydratedMobileNav, setHasHydratedMobileNav] = useState(false);
+
+  /** Ref on the hamburger/close button — focus returns here when drawer closes. */
+  const menuButtonRef = useRef<HTMLButtonElement>(null);
+  /** Ref on the mobile drawer — used to query focusable children. */
+  const drawerRef = useRef<HTMLElement>(null);
 
   useEffect(() => {
     const storedState = safeStorage.getItem(MOBILE_NAV_STORAGE_KEY);
@@ -34,9 +49,63 @@ export default function Navbar() {
   useEffect(() => {
     // Avoid replacing a saved preference with the SSR-safe default before it restores.
     if (!hasHydratedMobileNav) return;
-
     safeStorage.setItem(MOBILE_NAV_STORAGE_KEY, mobileOpen.toString());
   }, [hasHydratedMobileNav, mobileOpen]);
+
+  // ── Focus trap ─────────────────────────────────────────────────────────────
+  useEffect(() => {
+    if (!mobileOpen) return;
+
+    // Move initial focus into the drawer on open.
+    const drawer = drawerRef.current;
+    if (drawer) {
+      const firstFocusable = drawer.querySelector<HTMLElement>(FOCUSABLE_SELECTOR);
+      firstFocusable?.focus();
+    }
+
+    /** Trap Tab/Shift+Tab within the drawer; close on Escape. */
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        setMobileOpen(false);
+        return;
+      }
+
+      if (e.key !== "Tab" || !drawer) return;
+
+      const focusableEls = Array.from(
+        drawer.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR),
+      ).filter((el) => !el.closest("[hidden]") && el.tabIndex !== -1);
+
+      if (focusableEls.length === 0) return;
+
+      const first = focusableEls[0];
+      const last = focusableEls[focusableEls.length - 1];
+
+      if (e.shiftKey) {
+        if (document.activeElement === first) {
+          e.preventDefault();
+          last.focus();
+        }
+      } else {
+        if (document.activeElement === last) {
+          e.preventDefault();
+          first.focus();
+        }
+      }
+    };
+
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, [mobileOpen]);
+
+  // Return focus to the trigger button when the drawer closes.
+  const prevMobileOpen = useRef(mobileOpen);
+  useEffect(() => {
+    if (prevMobileOpen.current && !mobileOpen) {
+      menuButtonRef.current?.focus();
+    }
+    prevMobileOpen.current = mobileOpen;
+  }, [mobileOpen]);
 
   const handleConnect = () => {
     // TODO: integrate wallet modal/connector here.
@@ -144,6 +213,7 @@ export default function Navbar() {
               </button>
 
               <button
+                ref={menuButtonRef}
                 className="xl:hidden p-2 rounded-md hover:bg-gray-100 dark:hover:bg-white/5"
                 aria-label={mobileOpen ? "Close menu" : "Open menu"}
                 aria-expanded={mobileOpen}
@@ -193,8 +263,11 @@ export default function Navbar() {
       {mobileOpen && (
         <nav
           id="mobile-nav"
+          ref={drawerRef}
           className="xl:hidden absolute left-0 right-0 top-full z-40 mt-2"
           aria-label="Mobile navigation menu"
+          aria-modal="true"
+          role="dialog"
         >
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="bg-white dark:bg-[#0b0b0b] border-b border-[#E4E4E7] dark:border-[#27272A] rounded-b-2xl py-4 space-y-2 px-4">
