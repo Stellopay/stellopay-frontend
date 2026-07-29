@@ -10,13 +10,7 @@ interface EnhancedTextareaInputProps extends TextareaInputProps {
   disabled?: boolean;
   className?: string;
   resize?: boolean;
-  /**
-   * Maximum number of characters allowed. When set, a live character counter
-   * is rendered below the textarea. Typing beyond the limit is prevented.
-   * The counter is announced via `aria-live` when the user is within 20
-   * characters of the limit and when the limit is reached.
-   */
-  maxLength?: number;
+  onBlur?: (event: React.FocusEvent<HTMLTextAreaElement>) => void;
 }
 
 const TextareaInput: React.FC<EnhancedTextareaInputProps> = ({
@@ -32,6 +26,7 @@ const TextareaInput: React.FC<EnhancedTextareaInputProps> = ({
   disabled = false,
   className,
   resize = false,
+  onBlur,
   maxLength,
 }) => {
   const fieldId = React.useId();
@@ -63,6 +58,7 @@ const TextareaInput: React.FC<EnhancedTextareaInputProps> = ({
     <div className={cn("w-full space-y-2", className)}>
       {label && (
         <Label
+          htmlFor={fieldId}
           required={required}
           error={error}
           descriptionId={descriptionId}
@@ -91,6 +87,7 @@ const TextareaInput: React.FC<EnhancedTextareaInputProps> = ({
           placeholder={placeholder}
           value={value}
           onChange={handleChange}
+          onBlur={onBlur}
           rows={rows}
           disabled={disabled}
           maxLength={maxLength}

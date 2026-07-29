@@ -132,6 +132,18 @@ const HowItWorks = () => {
           ))}
         </div>
       </div>
+      {/* Video Section */}
+      <div className="max-w-6xl mx-auto mb-20">
+        <VideoFacade
+          videoId="REPLACE_WITH_ACTUAL_VIDEO_ID"
+          platform="youtube"
+          videoTitle="See how Stellopay works in 2 minutes"
+          captionsUrl="/docs/demo-transcript"
+          captionsLabel="View demo transcript"
+          className="mt-8 lg:mt-12 max-w-3xl mx-auto"
+        />
+      </div>
+
       {/* Metrics Section */}
       <div className="max-w-6xl mx-auto grid grid-cols-2 md:grid-cols-4 gap-4">
         {metrics.map((metric, index) => (
