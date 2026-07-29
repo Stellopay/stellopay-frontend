@@ -2,6 +2,7 @@ import { render, screen, act } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { AuthSocialButtons } from "./auth-social-buttons";
+import { OAuthCallbackError } from "@/lib/api/auth";
 
 // next/image is a server-side Next.js component – replace it with a plain img
 // so tests run correctly in jsdom.
@@ -9,6 +10,17 @@ import { AuthSocialButtons } from "./auth-social-buttons";
 vi.mock("next/image", () => ({
   // eslint-disable-next-line @next/next/no-img-element
   default: ({ alt }: { alt: string }) => <img alt={alt} />,
+}));
+
+// Mock the auth API module
+vi.mock("@/lib/api/auth", () => ({
+  OAuthCallbackError: class OAuthCallbackError extends Error {
+    constructor(message: string, public readonly code: string) {
+      super(message);
+      this.name = "OAuthCallbackError";
+    }
+  },
+  simulateOAuth: vi.fn(),
 }));
 
 // ─── Tests ───────────────────────────────────────────────────────────────────
@@ -267,6 +279,157 @@ describe("AuthSocialButtons", () => {
 
     expect(googleBtn).not.toBeDisabled();
     expect(appleBtn).not.toBeDisabled();
+  });
+
+  // ── Divider accessibility ──────────────────────────────────────────────────
+
+  it("renders a sr-only separator with role='separator' and an accessible label", () => {
+    render(<AuthSocialButtons />);
+    const separator = screen.getByRole("separator");
+    expect(separator).toBeInTheDocument();
+    expect(separator).toHaveAttribute("aria-label", "or continue with email");
+  });
+
+  it("hides the visual 'Or' text from screen readers via aria-hidden", () => {
+    render(<AuthSocialButtons />);
+    const visualText = screen.getByText("Or");
+    expect(visualText).toBeInTheDocument();
+    expect(visualText).toHaveAttribute("aria-hidden", "true");
+  });
+
+  it("renders the divider with decorative separator lines", () => {
+    const { container } = render(<AuthSocialButtons />);
+    // The Radix Separator primitives, when decorative (the default), render
+    // with role="none", aria-hidden="true", and data-orientation="horizontal".
+    // Scope to the divider wrapper to avoid false positives from other elements.
+    const dividerWrapper = container.querySelector(
+      '.my-6',
+    ) as HTMLElement | null;
+    expect(dividerWrapper).not.toBeNull();
+    const separatorLines =
+      dividerWrapper!.querySelectorAll('[role="none"]');
+    expect(separatorLines.length).toBe(2);
+  });
+
+  it("matches the divider markup snapshot", () => {
+    const { container } = render(<AuthSocialButtons />);
+    const dividerWrapper = container.querySelector(
+      '.my-6',
+    ) as HTMLElement | null;
+    expect(dividerWrapper).not.toBeNull();
+    expect(dividerWrapper!.outerHTML).toMatchSnapshot();
+  // ── OAuth callback error states ────────────────────────────────────────────
+
+  describe("OAuth callback error states", () => {
+    const mockSimulateOAuth = vi.mocked(
+      await import("@/lib/api/auth")
+    ).simulateOAuth;
+
+    it("shows access_denied error with retry and use email instead actions", async () => {
+      mockSimulateOAuth.mockRejectedValueOnce(
+        new OAuthCallbackError(
+          "You've denied permission to use this account. Please try again or use your password to sign in.",
+          "access_denied"
+        )
+      );
+
+      render(<AuthSocialButtons />);
+      const googleBtn = screen.getByRole("button", {
+        name: /continue with google/i,
+      });
+
+      await userEvent.click(googleBtn);
+
+      expect(screen.getByText(/denied permission/i)).toBeInTheDocument();
+      expect(screen.getByText(/user has denied permission/i)).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: /retry/i })).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: /use email instead/i })).toBeInTheDocument();
+    });
+
+    it("shows provider_unavailable error with retry and use email instead actions", async () => {
+      mockSimulateOAuth.mockRejectedValueOnce(
+        new OAuthCallbackError(
+          "The authentication provider is temporarily unavailable. Please try again later or use your password to sign in.",
+          "provider_unavailable"
+        )
+      );
+
+      render(<AuthSocialButtons />);
+      const googleBtn = screen.getByRole("button", {
+        name: /continue with google/i,
+      });
+
+      await userEvent.click(googleBtn);
+
+      expect(screen.getByText(/temporarily unavailable/i)).toBeInTheDocument();
+      expect(screen.getByText(/authentication provider is temporarily unavailable/i)).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: /retry/i })).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: /use email instead/i })).toBeInTheDocument();
+    });
+
+    it("shows account_exists_different_method error with retry and use email instead actions", async () => {
+      mockSimulateOAuth.mockRejectedValueOnce(
+        new OAuthCallbackError(
+          "This email is already registered with a password. Please sign in with your email and password instead.",
+          "account_exists_different_method"
+        )
+      );
+
+      render(<AuthSocialButtons />);
+      const googleBtn = screen.getByRole("button", {
+        name: /continue with google/i,
+      });
+
+      await userEvent.click(googleBtn);
+
+      expect(screen.getByText(/already registered/i)).toBeInTheDocument();
+      expect(screen.getByText(/email is already registered/i)).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: /retry/i })).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: /use email instead/i })).toBeInTheDocument();
+    });
+
+    it("retry button calls handleLogin again with the same provider", async () => {
+      mockSimulateOAuth.mockRejectedValueOnce(
+        new OAuthCallbackError(
+          "You've denied permission to use this account.",
+          "access_denied"
+        )
+      );
+
+      render(<AuthSocialButtons />);
+      const googleBtn = screen.getByRole("button", {
+        name: /continue with google/i,
+      });
+
+      await userEvent.click(googleBtn);
+
+      const retryBtn = screen.getByRole("button", { name: /retry/i });
+      await userEvent.click(retryBtn);
+
+      expect(mockSimulateOAuth).toHaveBeenCalledTimes(2);
+    });
+
+    it("use email instead button clears error state and navigates to login", async () => {
+      mockSimulateOAuth.mockRejectedValueOnce(
+        new OAuthCallbackError(
+          "You've denied permission to use this account.",
+          "access_denied"
+        )
+      );
+
+      render(<AuthSocialButtons />);
+      const googleBtn = screen.getByRole("button", {
+        name: /continue with google/i,
+      });
+
+      await userEvent.click(googleBtn);
+
+      const useEmailBtn = screen.getByRole("button", { name: /use email instead/i });
+      await userEvent.click(useEmailBtn);
+
+      // After clicking, the error state should be cleared
+      expect(screen.queryByText(/denied permission/i)).not.toBeInTheDocument();
+    });
   });
 
   // ── Accessibility ──────────────────────────────────────────────────────────

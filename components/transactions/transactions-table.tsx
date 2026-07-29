@@ -16,21 +16,96 @@ import { getStatusColor } from "@/utils/transactionUtils";
 import { truncateStellarAddress } from "@/utils/stellarAddress";
 import { EmptyState } from "@/components/ui/empty-state";
 import { TRANSACTIONS_PAGE_SIZE } from "./transactions-config";
+import { useRef, type KeyboardEvent } from "react";
+import { DownloadReceiptButton } from "./download-receipt-button";
 
 interface TransactionsTablePropsExtended extends TransactionsTableProps {
   isLoading?: boolean;
 }
 
+/**
+ * TransactionsTable
+ *
+ * Renders the main transactions data grid with:
+ * - Native `<table>` semantics so screen readers announce table/row/cell roles
+ *   automatically without extra `role` attributes.
+ * - A visually-hidden `<caption>` that screen readers announce as the table label.
+ * - Truncated address and amount cells with a `title` tooltip so long values
+ *   are accessible on hover/focus without breaking the table layout.
+ * - Arrow-key row navigation (ArrowDown / ArrowUp / Home / End) so keyboard
+ *   users can move between rows without leaving the table.
+ * - Each data row has `tabIndex=0` and `data-navigable` so focus can land on
+ *   rows and tests can locate navigable rows reliably.
+ */
 export function TransactionsTable({
   transactions,
   isLoading = false,
 }: TransactionsTablePropsExtended) {
   const isEmpty = !isLoading && transactions.length === 0;
 
+  /** Ref to the table wrapper div so we can query its navigable rows. */
+  const tableWrapperRef = useRef<HTMLDivElement>(null);
+
+  /** Returns all data rows that have keyboard navigation enabled. */
+  function getNavigableRows(): HTMLTableRowElement[] {
+    if (!tableWrapperRef.current) return [];
+    return Array.from(
+      tableWrapperRef.current.querySelectorAll<HTMLTableRowElement>(
+        "tr[data-navigable]",
+      ),
+    );
+  }
+
+  /**
+   * Keyboard handler attached to each navigable row.
+   * - ArrowDown  → focus next row (clamped at last)
+   * - ArrowUp    → focus previous row (clamped at first)
+   * - Home       → focus first row
+   * - End        → focus last row
+   * All other keys are left for default browser handling.
+   */
+  function handleRowKeyDown(
+    e: KeyboardEvent<HTMLTableRowElement>,
+    index: number,
+  ) {
+    const rows = getNavigableRows();
+    if (rows.length === 0) return;
+
+    switch (e.key) {
+      case "ArrowDown": {
+        e.preventDefault();
+        const next = rows[Math.min(index + 1, rows.length - 1)];
+        next?.focus();
+        break;
+      }
+      case "ArrowUp": {
+        e.preventDefault();
+        const prev = rows[Math.max(index - 1, 0)];
+        prev?.focus();
+        break;
+      }
+      case "Home": {
+        e.preventDefault();
+        rows[0]?.focus();
+        break;
+      }
+      case "End": {
+        e.preventDefault();
+        rows[rows.length - 1]?.focus();
+        break;
+      }
+      default:
+        break;
+    }
+  }
+
   return (
     <>
       {/* Desktop Table */}
-      <div className="hidden md:block w-full rounded-[12px] overflow-auto border border-[#2D2D2D]">
+      <div
+        ref={tableWrapperRef}
+        className="hidden md:block w-full rounded-[12px] overflow-auto border border-[#2D2D2D]"
+      >
         <Table>
           {/* caption is visually hidden but announced by screen readers */}
           <caption className="sr-only">Transaction history</caption>
@@ -91,7 +166,7 @@ export function TransactionsTable({
                   <TableCell className="border border-[#2D2D2D] py-4 px-6">
                     <Skeleton className="h-4 w-24" />
                   </TableCell>
-                  <TableCell className="flex place-items-center space-x-2 py-8 px-6">
+                  <TableCell className="flex place-items-center gap-2 py-8 px-6">
                     <Skeleton className="w-5 h-5 rounded-full" />
                     <Skeleton className="h-4 w-12" />
                   </TableCell>
@@ -116,7 +191,11 @@ export function TransactionsTable({
               transactions.map((transaction, index) => (
                 <TableRow
                   key={transaction.id ?? index}
-                  className="border border-[#2D2D2D]"
+                  // Keyboard navigation attributes
+                  data-navigable
+                  tabIndex={0}
+                  onKeyDown={(e) => handleRowKeyDown(e, index)}
+                  className="border border-[#2D2D2D] focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-blue-500"
                 >
                   <TableCell className="font-medium border border-[#2D2D2D] py-4 px-6">
                     <span className="text-[#D7E0EF]">{transaction.type}</span>
@@ -124,7 +203,7 @@ export function TransactionsTable({
                   </TableCell>
                   <TableCell className="border border-[#2D2D2D] py-4 px-6 w-[180px] max-w-[180px]">
                     <span
-                      className="block truncate cursor-help focus:outline-none focus:ring-2 focus:ring-[#D7E0EF] rounded px-1 -ml-1"
+                      className="block truncate cursor-help focus:outline-none focus:ring-2 focus:ring-[#D7E0EF] rounded px-1 -ms-1"
                       title={transaction.address}
                       tabIndex={0}
                     >
@@ -136,7 +215,7 @@ export function TransactionsTable({
                       {transaction.date} {transaction.time}
                     </time>
                   </TableCell>
-                  <TableCell className="flex place-items-center space-x-2 py-8 px-6">
+                  <TableCell className="flex place-items-center gap-2 py-8 px-6">
                     <Image
                       src={transaction.tokenIcon}
                       alt={`${transaction.token} token icon`}
@@ -147,7 +226,7 @@ export function TransactionsTable({
                   </TableCell>
                   <TableCell className="border border-[#2D2D2D] py-4 px-6 max-w-[150px]">
                     <span
-                      className="block truncate cursor-help focus:outline-none focus:ring-2 focus:ring-[#D7E0EF] rounded px-1 -ml-1"
+                      className="block truncate cursor-help focus:outline-none focus:ring-2 focus:ring-[#D7E0EF] rounded px-1 -ms-1"
                       title={transaction.amount}
                       tabIndex={0}
                     >
@@ -165,6 +244,16 @@ export function TransactionsTable({
                 </TableRow>
               ))
             )}
+
+            <DownloadReceiptButton
+            transaction={{
+              id: transaction.id,
+              hash: transaction.hash,
+              amount: transaction.amount,
+              counterparty: transaction.counterparty,
+              timestamp: transaction.timestamp,
+            }}
+          />
           </TableBody>
         </Table>
       </div>
@@ -211,7 +300,7 @@ export function TransactionsTable({
                   <p className="font-medium">
                     {transaction.type} #{transaction.id}
                   </p>
-                  <p 
+                  <p
                     className="text-sm text-muted-foreground block truncate max-w-[180px] cursor-help focus:outline-none focus:ring-2 focus:ring-[#D7E0EF] rounded px-1 -ml-1"
                     title={transaction.address}
                     tabIndex={0}
@@ -245,7 +334,7 @@ export function TransactionsTable({
                 <div className="min-w-0">
                   <p className="text-sm text-muted-foreground">Amount</p>
                   <p
-                    className={`block truncate max-w-[120px] cursor-help focus:outline-none focus:ring-2 focus:ring-[#D7E0EF] rounded px-1 -ml-1 ${
+                    className={`block truncate max-w-[120px] cursor-help focus:outline-none focus:ring-2 focus:ring-[#D7E0EF] rounded px-1 -ms-1 ${
                       transaction.amount.startsWith("+")
                         ? "text-green-500"
                         : "text-red-500"
