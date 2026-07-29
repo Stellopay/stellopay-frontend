@@ -1,5 +1,6 @@
 "use client";
 
+import { useState, useCallback } from "react";
 import {
   Table,
   TableBody,
@@ -41,6 +42,8 @@ export function TransactionsTable({
   transactions,
   isLoading = false,
 }: TransactionsTablePropsExtended) {
+  const [selectedTransaction, setSelectedTransaction] = useState<TransactionsTablePropsExtended["transactions"][number] | null>(null);
+
   const isEmpty = !isLoading && transactions.length === 0;
 
   /** Ref to the table wrapper div so we can query its navigable rows. */
@@ -107,7 +110,6 @@ export function TransactionsTable({
         className="hidden md:block w-full rounded-[12px] overflow-auto border border-[#2D2D2D]"
       >
         <Table>
-          {/* caption is visually hidden but announced by screen readers */}
           <caption className="sr-only">Transaction history</caption>
           <TableHeader>
             <TableRow className="bg-[#191919]">
@@ -294,7 +296,15 @@ export function TransactionsTable({
           </div>
         ) : (
           transactions.map((transaction, index) => (
-            <div key={index} className="p-4 border rounded-lg">
+            <div
+              key={index}
+              className="p-4 border rounded-lg cursor-pointer hover:bg-[#191919] transition-colors"
+              onClick={() => openReceipt(transaction)}
+              onKeyDown={(e) => handleRowKeyDown(e, transaction)}
+              tabIndex={0}
+              role="button"
+              aria-label={`View receipt for ${transaction.type} - ${transaction.amount}`}
+            >
               <div className="flex justify-between items-start">
                 <div>
                   <p className="font-medium">
@@ -350,6 +360,15 @@ export function TransactionsTable({
           ))
         )}
       </div>
+
+      <Dialog open={!!selectedTransaction} onOpenChange={(open) => { if (!open) closeReceipt(); }}>
+        {selectedTransaction && (
+          <TransactionReceipt
+            transaction={selectedTransaction}
+            onClose={closeReceipt}
+          />
+        )}
+      </Dialog>
     </>
   );
 }

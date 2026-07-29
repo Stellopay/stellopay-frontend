@@ -21,34 +21,45 @@ already include a `sort` param are never overridden.
 - **Keyboard Nav**: The "Try Again" button is fully keyboard navigable. Focus order is maintained.
 - **ARIA**: The `ErrorState` component utilizes `role="alert"` and `aria-live="assertive"` so screen readers can proactively announce network failures. Loading/Retrying indicators use `aria-hidden="true"` on non-text elements and `aria-label` or `aria-disabled` where appropriate to ensure status is accurately conveyed.
 
-## Zinc vs. Token Audit — `components/analytics/analytics-view.tsx` (#763)
+## First-Login Guided Product Tour
 
-`analytics-view.tsx` previously reached for Tailwind's built-in `zinc-*` palette directly instead of the semantic tokens defined in `app/globals.css` (the shadcn neutral base color). This meant its grays didn't move together with the rest of the dashboard if the neutral base color is ever retuned. All 18 `zinc-*` usages in the file have been mapped to tokens.
+A 5-step spotlight overlay (`DashboardTour`) highlights one dashboard widget per step on first authenticated dashboard visit, reducing the learning curve for new users.
 
-### Catalogue and mapping
+### Steps
 
-| Zinc usage | Purpose | Token replacement |
-|---|---|---|
-| `border-zinc-200 dark:border-zinc-800` | Card / panel outer border | `border-border` |
-| `border-zinc-100 dark:border-zinc-800/50` | Subtler inner border (chart wells) | `border-border/50` |
-| `bg-zinc-50 dark:bg-zinc-900/50` | Chip / icon-well / button background | `bg-muted` |
-| `bg-zinc-50/30 dark:bg-zinc-900/20` | Very subtle chart-well background | `bg-muted/30 dark:bg-muted/20` |
-| `text-zinc-900 dark:text-white` | Headings (`Analytics views`, `Notifications`) | `text-foreground` |
-| `text-zinc-700 dark:text-zinc-300` / `text-zinc-600 dark:text-zinc-400` | Body/label text (dropdown trigger, dropdown items, "View All") | `text-foreground` (see contrast note below) |
-| `text-zinc-400` | Decorative chevron icons | `text-muted-foreground` |
-| `hover:bg-zinc-100 dark:hover:bg-zinc-800` / `hover:bg-zinc-50 dark:hover:bg-zinc-900/50` | Hover feedback on chips/menu items | `hover:bg-muted-foreground/10` (see flagged gap below) |
+| Step | Widget | Icon | Highlight |
+|------|--------|------|-----------|
+| 1 | Welcome (overview) | Sparkles | No target; centered tooltip |
+| 2 | Account Summary | Wallet | AccountOverview ref |
+| 3 | Quick Actions | Zap | QuickActions ref |
+| 4 | Analytics & Insights | BarChart3 | AnalyticsInsights ref |
+| 5 | Detailed Analytics | TrendingUp | ClientAnalyticsView ref |
 
-### Flagged: no distinct hover/accent token exists yet
+### Implementation
 
-`app/globals.css` currently defines `--muted`, `--accent`, and `--secondary` with **identical** OKLCH values in both light and dark mode. That means a literal semantic mapping of the old `hover:bg-zinc-100` state to `hover:bg-accent` (the conventionally "correct" token for hover treatment) would be a visual no-op, since `bg-accent` renders identically to the `bg-muted` base it would be hovering from — a real loss of hover affordance versus the previous zinc-based behavior.
+- **File**: `components/dashboard/dashboard-tour.tsx`
+- **Trigger**: Auto-opens 800ms after first authenticated dashboard visit (tracked via `safeStorage` key `stellopay_dashboard_tour_completed`)
+- **Persistence**: Marked complete in `localStorage` after "Get Started" is clicked or user dismisses any step
+- **Dismissible**: Skip button (X) on every step; Escape key closes the entire tour
+- **Keyboard nav**: Tab cycles through tooltip controls; Enter activates; Escape dismisses
 
-As a stopgap that doesn't invent a new CSS variable, this PR uses the existing `--muted-foreground` token at low opacity (`hover:bg-muted-foreground/10`) as a neutral overlay: it reliably darkens the surface in light mode and lightens it in dark mode, restoring the escalation without depending on `--accent`.
+### Accessibility (WCAG 2.1 AA)
 
-**Recommendation for the design-system owner**: give `--accent` (and/or `--secondary`) a value distinct from `--muted` so components can use the canonical `bg-accent` hover token directly instead of this opacity-based workaround.
+- **ARIA**: `role="dialog"`, `aria-modal="true"`, `aria-labelledby` linking to step title (`tour-title-${step.id}`), `aria-describedby` linking to step description (`tour-description-${step.id}`).
+- **Focus management**: Focus is automatically placed inside the tour tooltip upon opening and step change; Tab/Shift+Tab cycle focus strictly within the dialog controls.
+- **Keyboard navigation**: Tab/Shift+Tab for focus trap navigation, Enter/Space for button activation, Escape key to dismiss and mark complete.
+- **Contrast**: Complies with 4.5:1 ratio requirement (high-contrast dark text on light tooltip in light mode, bright white/zinc text on dark background `#111111` in dark mode). Blue focus rings (`ring-blue-500`) provide visible focus indicators.
+- **Reduced motion**: Respects `prefers-reduced-motion` settings, bypassing smooth scrolling and highlight transitions when enabled.
+- **Screen readers**: Icons set to `aria-hidden="true"`, step indicators announce current step via `aria-current="step"` and descriptive `aria-label`.
 
-### Flagged: `text-zinc-700`/`text-zinc-600` mapped to `foreground`, not `muted-foreground`
+### Responsive Behavior Across Breakpoints
 
-The obvious "one step down from full text" token is `--muted-foreground`, but at `oklch(55.553%)` (light) it produces roughly a 4:1 contrast ratio against the card background — below the 4.5:1 AA threshold for normal (non-large) 14px text such as the dropdown trigger label and "View All". To avoid regressing contrast, this text was mapped to `text-foreground` instead, which keeps the original ~10:1+ contrast the `zinc-700`/`zinc-900` values had. `text-muted-foreground` remains reserved for decorative, non-text-bearing elements (chevrons) where the WCAG 1.4.11 non-text 3:1 threshold applies instead.
+| Viewport Breakpoint | Target Width | Tour Overlay & Spotlight Behavior |
+|---------------------|--------------|-----------------------------------|
+| **sm** (640px) | 640px | Highlighting bounding box dynamically tracks target elements; overlay tooltip spans `w-[calc(100%-2rem)]` centered horizontally with touch-friendly targets (min 44px height). |
+| **md** (768px) | 768px | Tooltip positions dynamically below highlighted widget with safe margin padding (`top: Math.min(...)`, `left: calc(50%)`). |
+| **lg** (1024px) | 1024px | Multi-column widget layout supported; target element spotlight dynamically recalculates on resize/scroll events. |
+| **xl** (1280px+) | 1280px+ | Full desktop layout (`max-w-[1600px]`); smooth scroll-into-view centers active target before spotlight calculation. |
 
 ### Props
 - `value` (string): The primary large metric value to display.

@@ -1,7 +1,7 @@
 import { render, screen, fireEvent } from "@testing-library/react";
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import NotificationPanel from "./notification-panel";
+import NotificationPanel, { CATEGORY_STORAGE_KEY } from "./notification-panel";
 import { NotificationItem } from "@/types/notification-item";
 
 const buildNotifications = (count: number): NotificationItem[] =>
@@ -16,7 +16,18 @@ const buildNotifications = (count: number): NotificationItem[] =>
     };
   });
 
+const buildCategorizedNotifications = (): NotificationItem[] => [
+  { id: "notif-p1", title: "Payment Received", message: "Received 500 XLM", read: false, category: "payments" },
+  { id: "notif-p2", title: "Payment Sent", message: "Sent 100 USDC", read: true, category: "payments" },
+  { id: "notif-s1", title: "Password Reset", message: "Security alert", read: false, category: "security" },
+  { id: "notif-sys1", title: "System Maintenance", message: "Scheduled downtime", read: true, category: "system" },
+];
+
 describe("NotificationPanel", () => {
+  beforeEach(() => {
+    sessionStorage.clear();
+  });
+
   it("renders a loading skeleton when isLoading is true", () => {
     render(<NotificationPanel notifications={[]} isLoading />);
 
@@ -54,10 +65,6 @@ describe("NotificationPanel", () => {
       expect(screen.getByText(notification.title)).toBeInTheDocument();
     });
 
-    // Remove the first item (simulating a dismissal). If the list were keyed
-    // by array index, React would mutate the existing DOM node for index 0
-    // in place instead of removing it; keying by `id` ensures the node for
-    // the removed notification (notif-0) is actually removed from the DOM.
     const remaining = notifications.slice(1);
     rerender(<NotificationPanel notifications={remaining} />);
 
@@ -91,6 +98,7 @@ describe("NotificationPanel", () => {
         title: "<img src=x onerror=alert(1)>",
         message: "<script>alert('xss')</script>",
         read: false,
+        category: "security",
       },
     ];
     render(<NotificationPanel notifications={malicious} />);
@@ -107,8 +115,8 @@ describe("NotificationPanel", () => {
 
   it("shows the unread indicator only for unread notifications", () => {
     const notifications: NotificationItem[] = [
-      { id: "read", title: "Read item", message: "msg", read: true },
-      { id: "unread", title: "Unread item", message: "msg", read: false },
+      { id: "read", title: "Read item", message: "msg", read: true, category: "system" },
+      { id: "unread", title: "Unread item", message: "msg", read: false, category: "system" },
     ];
     const { container } = render(
       <NotificationPanel notifications={notifications} />,
@@ -132,7 +140,7 @@ describe("NotificationPanel", () => {
   describe("keyboard navigation", () => {
     it("applies listbox role and aria-label to the notification list", () => {
       render(<NotificationPanel notifications={buildNotifications(3)} />);
-#602
+
       expect(
         screen.getByRole("listbox", { name: "Notifications list" }),
       ).toBeInTheDocument();
