@@ -112,7 +112,7 @@ const TransactionHistory: React.FC = () => {
   if (isLoading) {
     return (
       <div
-        className="w-full bg-white dark:bg-[#111111] border border-zinc-200 dark:border-zinc-800 rounded-2xl p-6 transition-colors shadow-sm"
+        className="w-full bg-white dark:bg-[#111111] border border-zinc-200 dark:border-zinc-800 rounded-2xl p-6 transition-colors shadow-elevation-1"
         role="status"
         aria-label="Loading transactions"
       >
@@ -174,7 +174,7 @@ const TransactionHistory: React.FC = () => {
           {announcement}
         </div>
       )}
-      <div className="w-full bg-white dark:bg-[#111111] border border-zinc-200 dark:border-zinc-800 rounded-2xl p-6 transition-colors shadow-sm">
+      <div className="w-full bg-white dark:bg-[#111111] border border-zinc-200 dark:border-zinc-800 rounded-2xl p-6 transition-colors shadow-elevation-1">
         <div className="flex justify-between items-center mb-6">
           <div className="flex items-center gap-4">
             <div className="w-10 h-10 border border-zinc-200 dark:border-zinc-800 rounded-xl bg-zinc-50 dark:bg-zinc-900/50 flex items-center justify-center">

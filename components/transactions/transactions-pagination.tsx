@@ -13,11 +13,13 @@
  * - Full keyboard navigation (arrow keys, Home, End)
  * - ARIA: role="navigation", aria-label, aria-current="page", aria-disabled
  * - "Showing X to Y of Z items" summary
+ * - Jump-to-page input for direct page navigation
  */
 
-import { useCallback, useId } from "react";
+import { useCallback, useId, useState } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { TransactionsPaginationProps } from "@/types/ui";
 import {
   getStartIndex,
@@ -44,6 +46,43 @@ function buildPageRange(current: number, total: number): (number | "…")[] {
   return pages;
 }
 
+/**
+ * Clamps a raw page number to the valid range `[1, totalPages]`.
+ *
+ * @param raw        - The page number entered by the user (may be any integer).
+ * @param totalPages - The maximum valid page number (inclusive).
+ * @returns          The clamped page number, guaranteed to be ≥ 1 and ≤ totalPages.
+ *
+ * @example
+ * clampPage(0, 5)  // → 1
+ * clampPage(7, 5)  // → 5
+ * clampPage(3, 5)  // → 3
+ */
+export function clampPage(raw: number, totalPages: number): number {
+  return Math.min(Math.max(raw, 1), Math.max(totalPages, 1));
+}
+
+/**
+ * Parses a string value coming from the jump-to-page input.
+ *
+ * @param value - The raw string from the `<input>` element.
+ * @returns The parsed integer, or `null` when the string is empty,
+ *          non-numeric, or not a finite integer.
+ *
+ * @example
+ * parsePageInput("3")    // → 3
+ * parsePageInput("")     // → null
+ * parsePageInput("abc")  // → null
+ * parsePageInput("2.5")  // → null   (non-integer)
+ */
+export function parsePageInput(value: string): number | null {
+  const trimmed = value.trim();
+  if (trimmed === "") return null;
+  const parsed = Number(trimmed);
+  if (!Number.isInteger(parsed) || !Number.isFinite(parsed)) return null;
+  return parsed;
+}
+
 export default function TransactionsPagination({
   totalItems,
   currentPage = 1,
@@ -51,6 +90,7 @@ export default function TransactionsPagination({
   onPageChange,
 }: TransactionsPaginationProps) {
   const navId = useId();
+  const jumpInputId = useId();
   const totalPages = getTotalPages(totalItems, itemsPerPage);
 
   // Guard: clamp currentPage to valid range
@@ -62,6 +102,11 @@ export default function TransactionsPagination({
 
   const isFirstPage = safePage === 1;
   const isLastPage = safePage === totalPages || totalPages === 0;
+
+  /** Raw string value of the jump-to-page input. */
+  const [jumpValue, setJumpValue] = useState("");
+  /** Whether the current jump-to-page input value is invalid (non-numeric). */
+  const [jumpError, setJumpError] = useState(false);
 
   const go = useCallback(
     (page: number) => {
@@ -90,6 +135,39 @@ export default function TransactionsPagination({
       }
     },
     [go, safePage, totalPages],
+  );
+
+  /**
+   * Attempts to navigate to the page number currently in the jump input.
+   *
+   * - If the input is empty or non-numeric, marks the field as invalid and
+   *   resets it to the current page so the user gets immediate feedback.
+   * - Otherwise clamps the value to `[1, totalPages]` and calls `onPageChange`.
+   */
+  const handleJump = useCallback(() => {
+    const parsed = parsePageInput(jumpValue);
+
+    if (parsed === null) {
+      // Non-numeric or empty — show error state and reset to current page
+      setJumpError(true);
+      setJumpValue(String(safePage));
+      return;
+    }
+
+    setJumpError(false);
+    setJumpValue("");
+    go(clampPage(parsed, totalPages));
+  }, [jumpValue, safePage, totalPages, go]);
+
+  /** Allow submitting the jump input with the Enter key. */
+  const handleJumpKeyDown = useCallback(
+    (e: React.KeyboardEvent<HTMLInputElement>) => {
+      if (e.key === "Enter") {
+        e.preventDefault();
+        handleJump();
+      }
+    },
+    [handleJump],
   );
 
   const pageRange = buildPageRange(safePage, totalPages);
@@ -175,6 +253,56 @@ export default function TransactionsPagination({
           className="w-8 h-8 p-0 text-gray-400 hover:bg-white disabled:opacity-50 disabled:cursor-not-allowed"
         >
           <ChevronRight className="h-4 w-4" aria-hidden="true" />
+        </Button>
+      </div>
+
+      {/* Jump-to-page controls */}
+      <div
+        className="flex items-center gap-2 order-3"
+        role="group"
+        aria-label="Jump to page"
+      >
+        <label
+          htmlFor={jumpInputId}
+          className="text-gray-400 text-sm whitespace-nowrap"
+        >
+          Go to page
+        </label>
+        <Input
+          id={jumpInputId}
+          type="number"
+          min={1}
+          max={totalPages}
+          value={jumpValue}
+          onChange={(e) => {
+            setJumpValue(e.target.value);
+            setJumpError(false);
+          }}
+          onKeyDown={handleJumpKeyDown}
+          error={jumpError}
+          aria-label="Jump to page number"
+          data-testid="jump-to-page-input"
+          aria-describedby={jumpError ? `${jumpInputId}-error` : undefined}
+          className="w-16 h-8 text-sm text-center"
+          placeholder={String(safePage)}
+        />
+        {jumpError && (
+          <span
+            id={`${jumpInputId}-error`}
+            role="alert"
+            className="sr-only"
+          >
+            Please enter a valid page number.
+          </span>
+        )}
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={handleJump}
+          aria-label="Go to entered page"
+          className="h-8 px-3 text-sm text-gray-400 hover:bg-white hover:text-black"
+        >
+          Go
         </Button>
       </div>
     </nav>

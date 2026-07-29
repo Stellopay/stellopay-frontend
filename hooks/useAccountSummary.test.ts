@@ -1,11 +1,16 @@
 import { act, renderHook, waitFor } from "@testing-library/react";
 import { describe, expect, it, beforeEach, vi, type Mock } from "vitest";
 
-import { useAccountSummary } from "./useAccountSummary";
+import { useAccountSummary, clearAccountSummaryCache } from "./useAccountSummary";
 import { getAccountSummary, type AccountSummary } from "@/lib/api";
+import { useWallet } from "@/context/wallet-context";
 
 vi.mock("@/lib/api", () => ({
   getAccountSummary: vi.fn(),
+}));
+
+vi.mock("@/context/wallet-context", () => ({
+  useWallet: vi.fn(),
 }));
 
 function deferred<T>() {
@@ -32,6 +37,11 @@ const summary = (walletAddress: string): AccountSummary => ({
 describe("useAccountSummary", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    clearAccountSummaryCache();
+    (useWallet as Mock).mockReturnValue({
+      address: "test-wallet-address",
+      network: { id: "test-network" },
+    });
   });
 
   it("exposes refetch and clears a stale error before retrying", async () => {
@@ -95,5 +105,97 @@ describe("useAccountSummary", () => {
     });
 
     expect(result.current.data?.walletAddress).toBe("latest-wallet");
+  });
+
+  it("returns cached data synchronously on mount and triggers background refresh", async () => {
+    // Fill the cache for the first request
+    (getAccountSummary as Mock).mockResolvedValueOnce(summary("initial-wallet"));
+    
+    const { result, unmount } = renderHook(() => useAccountSummary());
+
+    await waitFor(() => {
+      expect(result.current.data?.walletAddress).toBe("initial-wallet");
+    });
+
+    // Unmount the first hook instance
+    unmount();
+
+    // Prepare a new mock response for the background refresh
+    const backgroundRefresh = deferred<AccountSummary>();
+    (getAccountSummary as Mock).mockReturnValueOnce(backgroundRefresh.promise);
+
+    // Remount the hook
+    const { result: remountedResult } = renderHook(() => useAccountSummary());
+
+    // Should synchronously return cached data without loading state
+    expect(remountedResult.current.data?.walletAddress).toBe("initial-wallet");
+    expect(remountedResult.current.isLoading).toBe(false);
+
+    // Background refresh should be triggered
+    expect(getAccountSummary).toHaveBeenCalledTimes(2);
+
+    // Resolve the background refresh with new data
+    await act(async () => {
+      backgroundRefresh.resolve(summary("refreshed-wallet"));
+      await Promise.resolve();
+    });
+
+    // UI should seamlessly update to the refreshed data
+    expect(remountedResult.current.data?.walletAddress).toBe("refreshed-wallet");
+    expect(remountedResult.current.isLoading).toBe(false);
+  });
+
+  it("returns cold cache-miss path properly with loading state", async () => {
+    // Start with a cleared cache
+    const initialRequest = deferred<AccountSummary>();
+    (getAccountSummary as Mock).mockReturnValueOnce(initialRequest.promise);
+
+    const { result } = renderHook(() => useAccountSummary());
+
+    // Should be in loading state initially
+    expect(result.current.data).toBeNull();
+    expect(result.current.isLoading).toBe(true);
+
+    // Resolve the request
+    await act(async () => {
+      initialRequest.resolve(summary("cold-wallet"));
+      await Promise.resolve();
+    });
+
+    // Loading should complete
+    expect(result.current.data?.walletAddress).toBe("cold-wallet");
+    expect(result.current.isLoading).toBe(false);
+  });
+
+  it("scopes cache correctly when account switches", async () => {
+    (getAccountSummary as Mock).mockResolvedValueOnce(summary("account-1"));
+    const { result, rerender } = renderHook(() => useAccountSummary());
+
+    await waitFor(() => {
+      expect(result.current.data?.walletAddress).toBe("account-1");
+    });
+
+    // Switch account
+    (useWallet as Mock).mockReturnValue({
+      address: "new-wallet-address",
+      network: { id: "test-network" },
+    });
+
+    const account2Request = deferred<AccountSummary>();
+    (getAccountSummary as Mock).mockReturnValueOnce(account2Request.promise);
+
+    // Re-render the hook with the new context values
+    rerender();
+
+    // Should show loading state for the new account, and no data leak
+    expect(result.current.data).toBeNull();
+    expect(result.current.isLoading).toBe(true);
+
+    await act(async () => {
+      account2Request.resolve(summary("account-2"));
+      await Promise.resolve();
+    });
+
+    expect(result.current.data?.walletAddress).toBe("account-2");
   });
 });
