@@ -70,6 +70,7 @@ export const metadata: Metadata = {
     locale: "en_US",
     type: "website",
   },
+  manifest: "/manifest.json",
   twitter: {
     card: "summary_large_image",
     title: "StelloPay — The Future of Payroll on Blockchain",

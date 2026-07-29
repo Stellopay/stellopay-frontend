@@ -25,6 +25,7 @@ describe("Route Metadata Exports", () => {
     expect(rootMetadata.description).toBeDefined();
     expect(rootMetadata.openGraph).toBeDefined();
     expect(rootMetadata.twitter).toBeDefined();
+    expect(rootMetadata.manifest).toBe("/manifest.json");
   });
 
   it("exports a dedicated viewport object on the root layout", () => {
