@@ -9,6 +9,7 @@ export interface Transaction {
   amount: number;
   status: string;
   statusColor: "success" | "warning" | "destructive";
+  memo?: string;
 }
 
 export type SortField = Extract<
@@ -38,11 +39,18 @@ export interface TransactionFilters {
   /** Ordered list of sort criteria. The first entry is the primary sort,
    *  the second (if present) is the secondary (tiebreaker) sort, etc. */
   sortConfigs: SortConfig[];
+  /** Minimum transaction amount filter (absolute value). */
+  minAmount?: number;
+  /** Maximum transaction amount filter (absolute value). */
+  maxAmount?: number;
+  /** Counterparty address filter (partial match). */
+  counterparty?: string;
 }
 
 export interface TransactionProps {
   id: string;
   type: string;
+  txId: string;
   address: string;
   date: string;
   time: string;
@@ -50,6 +58,7 @@ export interface TransactionProps {
   amount: string;
   status: "Completed" | "Pending" | "Failed";
   tokenIcon: string;
+  memo?: string;
 }
 
 // Transaction component props
@@ -75,4 +84,10 @@ export interface TransactionsFiltersProps {
   onSearchChange: (query: string) => void;
   onFilterChange: (filter: string) => void;
   onSort: (field: SortField, options?: { shiftKey?: boolean }) => void;
+  /** Opens the advanced filter panel. */
+  onAdvancedFilterToggle?: () => void;
+  /** Optional debounce delay for search input */
+  debounceMs?: number;
+  /** Whether any advanced filters (amount range, counterparty) are active. */
+  hasAdvancedFilters?: boolean;
 }

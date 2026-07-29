@@ -3,6 +3,7 @@ import type React from "react";
 import { describe, expect, it, vi } from "vitest";
 
 const mockPathname = vi.hoisted(() => ({ value: "/dashboard" }));
+const mockUseReducedMotion = vi.hoisted(() => vi.fn().mockReturnValue(false));
 
 vi.mock("next/navigation", () => ({
   usePathname: () => mockPathname.value,
@@ -21,13 +22,20 @@ vi.mock("@material-tailwind/react", () => ({
   Tooltip: ({ children }: { children: React.ReactNode }) => children,
 }));
 
-vi.mock("framer-motion", () => ({
-  motion: {
-    div: (props: React.HTMLAttributes<HTMLDivElement>) => <div {...props} />,
-  },
+vi.mock("@/hooks/useReducedMotion", () => ({
+  useReducedMotion: () => mockUseReducedMotion(),
 }));
 
+vi.mock("framer-motion", () => {
+  const MockMotionDiv = ({ layoutId, ...rest }: Record<string, unknown>) =>
+    <div {...rest} />;
+  return {
+    motion: { div: MockMotionDiv },
+  };
+});
+
 vi.mock("@/public/svg/svg", () => ({
+  AccountSummaryIcon: () => <svg aria-hidden="true" />,
   DashBoardIcon: () => <svg aria-hidden="true" />,
   TransactionIcon: () => <svg aria-hidden="true" />,
   HelpCircleIcon: () => <svg aria-hidden="true" />,
@@ -52,7 +60,34 @@ describe("NavLink aria-current", () => {
     );
   });
 
+  it("marks Account Summary link active when on /account-summary", () => {
+    mockPathname.value = "/account-summary";
+    render(<NavLink />);
+
+    const currentLinks = screen
+      .getAllByRole("link")
+      .filter((link) => link.getAttribute("aria-current") === "page");
+
+    expect(currentLinks).toHaveLength(1);
+    expect(currentLinks[0]).toHaveAccessibleName(/Account Summary/);
+    expect(
+      screen.getByRole("link", { name: "Dashboard" }),
+    ).not.toHaveAttribute("aria-current");
+  });
+
+  it("renders without motion animations when reduced motion is preferred", () => {
+    mockPathname.value = "/dashboard";
+    mockUseReducedMotion.mockReturnValue(true);
+    render(<NavLink />);
+
+    const dashboardLink = screen.getByRole("link", { name: "Dashboard" });
+    expect(dashboardLink).toHaveAttribute("aria-current", "page");
+
+    mockUseReducedMotion.mockReturnValue(false);
+  });
+
   it("updates aria-current when the client-side pathname changes", () => {
+    mockPathname.value = "/dashboard";
     const { rerender } = render(<NavLink />);
     expect(screen.getByRole("link", { name: "Dashboard" })).toHaveAttribute(
       "aria-current",
