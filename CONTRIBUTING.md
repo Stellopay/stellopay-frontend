@@ -310,6 +310,16 @@ long text, and responsive checks at `sm` 640px, `md` 768px, `lg` 1024px, and
   ```
   Runs TypeScript compiler (`tsc --noEmit`) to verify types without building.
 
+### Integration Tests & Guards
+
+When building components that combine UI behaviors (like tab-switching coupled with unsaved-changes guards), write **integration tests** that exercise the combined user flow. 
+
+For example, when testing an unsaved changes guard, ensure the test:
+- Dirties the form state
+- Attempts the guarded action (e.g. switching tabs)
+- Asserts that the guard intercepts the action
+- Confirms both paths (Discard / Stay) to verify the state and UI accurately update.
+
 ## Branching, Commits, and PRs
 
 1. **Branch Naming**: Use descriptive branch names like `feat/feature-name`, `fix/bug-name`, or `docs/doc-update`.
@@ -319,3 +329,6 @@ long text, and responsive checks at `sm` 640px, `md` 768px, `lg` 1024px, and
 ### Security Notes
 
 Examples must not include real secrets, tokens, or addresses. Always use placeholder domains (e.g., `example.com`) and redacted addresses in your tests and mockups.
+## Local Accessibility Testing Guide
+Before opening a pull request, please ensure your changes comply with our accessibility guidelines (targeting WCAG 2.1 AA compliance).
+Refer to the full manual and automated criteria in [design/a11y-checklist.md](design/a11y-checklist.md).

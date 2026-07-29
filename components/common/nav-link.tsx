@@ -1,5 +1,6 @@
 "use client";
 import {
+  AccountSummaryIcon,
   DashBoardIcon,
   HelpCircleIcon,
   SettinIcon,
@@ -29,6 +30,11 @@ export const NavLink = () => {
       link: "Dashboard",
       icon: (color: string) => <DashBoardIcon color={color} />,
       route: "/dashboard",
+    },
+    {
+      link: "Account Summary",
+      icon: (color: string) => <AccountSummaryIcon color={color} />,
+      route: "/account-summary",
     },
     {
       link: "Transactions",

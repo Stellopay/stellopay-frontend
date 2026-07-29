@@ -1,4 +1,4 @@
-# Iconography Guidelines
+# Iconography Design Spec & Audit
 
 > **Policy owner**: see [`CONTRIBUTING.md → Icon Library Policy`](../CONTRIBUTING.md#icon-library-policy)
 > for the decision tree, enforcement details, and exception rules.
@@ -17,7 +17,7 @@
 
 ---
 
-## Import Rules (Tree-shaking)
+## Lucide-react Conventions (source of truth)
 
 Always use named imports so bundlers can eliminate unused icons:
 
@@ -48,7 +48,7 @@ Set size via the Tailwind `size-*` utility or explicit `width`/`height` props:
 
 ---
 
-## Stroke Width
+## Import Rules (tree-shaking)
 
 - Default: **2**
 - Do not vary stroke width across icons in the same surface — it breaks visual
