@@ -12,6 +12,7 @@ export const allTransactions: Transaction[] = [
     amount: -607.87,
     status: "Completed",
     statusColor: "success",
+    memo: "Invoice #1024",
   },
   {
     id: "2",
@@ -24,6 +25,7 @@ export const allTransactions: Transaction[] = [
     amount: 307.07,
     status: "Completed",
     statusColor: "success",
+    memo: "Payment for services",
   },
   {
     id: "3",
@@ -60,6 +62,7 @@ export const allTransactions: Transaction[] = [
     amount: -607.87,
     status: "Failed",
     statusColor: "destructive",
+    memo: "Refund order #891",
   },
   {
     id: "6",

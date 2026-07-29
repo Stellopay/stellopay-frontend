@@ -9,6 +9,8 @@ vi.mock("next/font/local", () => ({
 }));
 
 import { metadata as rootMetadata, viewport as rootViewport } from "@/app/layout";
+import sitemap, { BASE_URL, PUBLIC_ROUTES } from "@/app/sitemap";
+import robots, { DISALLOWED_PATHS } from "@/app/robots";
 import { metadata as dashboardMetadata } from "@/app/dashboard/layout";
 import { metadata as transactionsMetadata } from "@/app/transactions/layout";
 import { metadata as settingsMetadata } from "@/app/settings/preferences/layout";
@@ -154,5 +156,281 @@ describe("Route Metadata Exports", () => {
     expect(dashboardMetadata.publisher).toBeUndefined();
     expect(dashboardMetadata.keywords).toBeUndefined();
     expect(rootMetadata.siteName).toBeUndefined(); // Defined inside rootMetadata.openGraph
+  });
+});
+
+// ── Sitemap (app/sitemap.ts) ──────────────────────────────────────────────────
+
+describe("Sitemap — app/sitemap.ts", () => {
+  it("exports BASE_URL pointing to the canonical production domain", () => {
+    expect(BASE_URL).toBe("https://stellopay.com");
+    expect(BASE_URL).toMatch(/^https:\/\//);
+    expect(BASE_URL).not.toMatch(/\/$/); // no trailing slash
+  });
+
+  it("default export (sitemap()) returns the PUBLIC_ROUTES array", () => {
+    const result = sitemap();
+    expect(result).toEqual(PUBLIC_ROUTES);
+  });
+
+  it("sitemap includes the landing-page root entry", () => {
+    const result = sitemap();
+    const root = result.find((entry) => entry.url === BASE_URL);
+    expect(root).toBeDefined();
+  });
+
+  it("sitemap includes the /help/support entry", () => {
+    const result = sitemap();
+    const helpSupport = result.find(
+      (entry) => entry.url === `${BASE_URL}/help/support`,
+    );
+    expect(helpSupport).toBeDefined();
+  });
+
+  it("sitemap includes the /help/support/accountManagement entry", () => {
+    const result = sitemap();
+    const acctMgmt = result.find(
+      (entry) => entry.url === `${BASE_URL}/help/support/accountManagement`,
+    );
+    expect(acctMgmt).toBeDefined();
+  });
+
+  it("every sitemap entry URL starts with BASE_URL", () => {
+    const result = sitemap();
+    result.forEach((entry) => {
+      expect(entry.url).toMatch(new RegExp(`^${BASE_URL}`));
+    });
+  });
+
+  it("every sitemap entry has a lastModified date", () => {
+    const result = sitemap();
+    result.forEach((entry) => {
+      expect(entry.lastModified).toBeDefined();
+      expect(entry.lastModified).toBeInstanceOf(Date);
+    });
+  });
+
+  it("every sitemap entry has a valid changeFrequency", () => {
+    const valid = [
+      "always",
+      "hourly",
+      "daily",
+      "weekly",
+      "monthly",
+      "yearly",
+      "never",
+    ];
+    const result = sitemap();
+    result.forEach((entry) => {
+      if (entry.changeFrequency !== undefined) {
+        expect(valid).toContain(entry.changeFrequency);
+      }
+    });
+  });
+
+  it("every sitemap entry has a priority between 0.0 and 1.0", () => {
+    const result = sitemap();
+    result.forEach((entry) => {
+      if (entry.priority !== undefined) {
+        expect(entry.priority).toBeGreaterThanOrEqual(0.0);
+        expect(entry.priority).toBeLessThanOrEqual(1.0);
+      }
+    });
+  });
+
+  it("root entry has the highest priority (1.0)", () => {
+    const result = sitemap();
+    const root = result.find((entry) => entry.url === BASE_URL);
+    expect(root?.priority).toBe(1.0);
+  });
+
+  it("sitemap does NOT include any authenticated app routes", () => {
+    const result = sitemap();
+    const authenticatedPrefixes = [
+      "/dashboard",
+      "/transactions",
+      "/account-summary",
+      "/analytics-view",
+      "/settings",
+    ];
+    result.forEach((entry) => {
+      authenticatedPrefixes.forEach((prefix) => {
+        expect(entry.url).not.toContain(prefix);
+      });
+    });
+  });
+
+  it("sitemap does NOT include auth flow routes", () => {
+    const result = sitemap();
+    const authPrefixes = ["/auth", "/verify-email"];
+    result.forEach((entry) => {
+      authPrefixes.forEach((prefix) => {
+        expect(entry.url).not.toContain(prefix);
+      });
+    });
+  });
+
+  it("sitemap returns at least one entry (non-empty)", () => {
+    const result = sitemap();
+    expect(result.length).toBeGreaterThan(0);
+  });
+});
+
+// ── Robots (app/robots.ts) ────────────────────────────────────────────────────
+
+describe("Robots — app/robots.ts", () => {
+  it("default export (robots()) returns an object", () => {
+    const result = robots();
+    expect(result).toBeDefined();
+    expect(typeof result).toBe("object");
+  });
+
+  it("result contains a rules array with at least one rule", () => {
+    const result = robots();
+    expect(Array.isArray(result.rules)).toBe(true);
+    expect((result.rules as unknown[]).length).toBeGreaterThan(0);
+  });
+
+  it("includes a rule for all crawlers ('*')", () => {
+    const result = robots();
+    const rules = Array.isArray(result.rules) ? result.rules : [result.rules];
+    const wildcard = rules.find((r) => r.userAgent === "*");
+    expect(wildcard).toBeDefined();
+  });
+
+  it("includes an explicit rule for Googlebot", () => {
+    const result = robots();
+    const rules = Array.isArray(result.rules) ? result.rules : [result.rules];
+    const googlebot = rules.find((r) => r.userAgent === "Googlebot");
+    expect(googlebot).toBeDefined();
+  });
+
+  it("wildcard rule allows '/'", () => {
+    const result = robots();
+    const rules = Array.isArray(result.rules) ? result.rules : [result.rules];
+    const wildcard = rules.find((r) => r.userAgent === "*");
+    expect(wildcard?.allow).toBe("/");
+  });
+
+  it("wildcard rule disallows /dashboard", () => {
+    const result = robots();
+    const rules = Array.isArray(result.rules) ? result.rules : [result.rules];
+    const wildcard = rules.find((r) => r.userAgent === "*");
+    const disallowed = Array.isArray(wildcard?.disallow)
+      ? wildcard!.disallow
+      : [wildcard?.disallow];
+    expect(disallowed).toContain("/dashboard");
+  });
+
+  it("wildcard rule disallows /transactions", () => {
+    const result = robots();
+    const rules = Array.isArray(result.rules) ? result.rules : [result.rules];
+    const wildcard = rules.find((r) => r.userAgent === "*");
+    const disallowed = Array.isArray(wildcard?.disallow)
+      ? wildcard!.disallow
+      : [wildcard?.disallow];
+    expect(disallowed).toContain("/transactions");
+  });
+
+  it("wildcard rule disallows /account-summary", () => {
+    const result = robots();
+    const rules = Array.isArray(result.rules) ? result.rules : [result.rules];
+    const wildcard = rules.find((r) => r.userAgent === "*");
+    const disallowed = Array.isArray(wildcard?.disallow)
+      ? wildcard!.disallow
+      : [wildcard?.disallow];
+    expect(disallowed).toContain("/account-summary");
+  });
+
+  it("wildcard rule disallows /analytics-view", () => {
+    const result = robots();
+    const rules = Array.isArray(result.rules) ? result.rules : [result.rules];
+    const wildcard = rules.find((r) => r.userAgent === "*");
+    const disallowed = Array.isArray(wildcard?.disallow)
+      ? wildcard!.disallow
+      : [wildcard?.disallow];
+    expect(disallowed).toContain("/analytics-view");
+  });
+
+  it("wildcard rule disallows /settings", () => {
+    const result = robots();
+    const rules = Array.isArray(result.rules) ? result.rules : [result.rules];
+    const wildcard = rules.find((r) => r.userAgent === "*");
+    const disallowed = Array.isArray(wildcard?.disallow)
+      ? wildcard!.disallow
+      : [wildcard?.disallow];
+    expect(disallowed).toContain("/settings");
+  });
+
+  it("wildcard rule disallows /auth", () => {
+    const result = robots();
+    const rules = Array.isArray(result.rules) ? result.rules : [result.rules];
+    const wildcard = rules.find((r) => r.userAgent === "*");
+    const disallowed = Array.isArray(wildcard?.disallow)
+      ? wildcard!.disallow
+      : [wildcard?.disallow];
+    expect(disallowed).toContain("/auth");
+  });
+
+  it("wildcard rule disallows /verify-email", () => {
+    const result = robots();
+    const rules = Array.isArray(result.rules) ? result.rules : [result.rules];
+    const wildcard = rules.find((r) => r.userAgent === "*");
+    const disallowed = Array.isArray(wildcard?.disallow)
+      ? wildcard!.disallow
+      : [wildcard?.disallow];
+    expect(disallowed).toContain("/verify-email");
+  });
+
+  it("Googlebot rule mirrors the wildcard disallow list", () => {
+    const result = robots();
+    const rules = Array.isArray(result.rules) ? result.rules : [result.rules];
+    const wildcard = rules.find((r) => r.userAgent === "*");
+    const googlebot = rules.find((r) => r.userAgent === "Googlebot");
+
+    const wildcardDisallow = Array.isArray(wildcard?.disallow)
+      ? wildcard!.disallow
+      : [wildcard?.disallow];
+    const googlebotDisallow = Array.isArray(googlebot?.disallow)
+      ? googlebot!.disallow
+      : [googlebot?.disallow];
+
+    expect(googlebotDisallow).toEqual(wildcardDisallow);
+  });
+
+  it("result includes a sitemap URL", () => {
+    const result = robots();
+    expect(result.sitemap).toBeDefined();
+    expect(typeof result.sitemap === "string" || Array.isArray(result.sitemap)).toBe(true);
+  });
+
+  it("sitemap URL points to /sitemap.xml on the canonical domain", () => {
+    const result = robots();
+    const sitemapUrl =
+      typeof result.sitemap === "string" ? result.sitemap : result.sitemap?.[0];
+    expect(sitemapUrl).toBe("https://stellopay.com/sitemap.xml");
+  });
+
+  it("DISALLOWED_PATHS constant lists all expected private routes", () => {
+    expect(DISALLOWED_PATHS).toContain("/dashboard");
+    expect(DISALLOWED_PATHS).toContain("/transactions");
+    expect(DISALLOWED_PATHS).toContain("/account-summary");
+    expect(DISALLOWED_PATHS).toContain("/analytics-view");
+    expect(DISALLOWED_PATHS).toContain("/settings");
+    expect(DISALLOWED_PATHS).toContain("/auth");
+    expect(DISALLOWED_PATHS).toContain("/verify-email");
+  });
+
+  it("every DISALLOWED_PATH starts with '/'", () => {
+    DISALLOWED_PATHS.forEach((path) => {
+      expect(path).toMatch(/^\//);
+    });
+  });
+
+  it("DISALLOWED_PATHS does not contain public marketing routes", () => {
+    const publicRoutes = ["/", "/help/support", "/help/support/accountManagement"];
+    publicRoutes.forEach((route) => {
+      expect(DISALLOWED_PATHS).not.toContain(route);
+    });
   });
 });

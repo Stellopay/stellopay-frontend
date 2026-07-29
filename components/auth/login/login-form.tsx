@@ -7,9 +7,8 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Form } from "@/components/ui/form";
 import {
-  FormFieldInput,
+  AuthFormField,
   FormFieldCheckbox,
-  FormFieldPassword,
 } from "@/components/ui/form-field";
 import { Separator } from "@/components/ui/separator";
 import {
@@ -213,7 +212,7 @@ export function LoginForm() {
               : "text-zinc-400 hover:text-white hover:bg-[#1A1A1A]"
           }`}
         >
-          <Mail className="w-4 h-4" aria-hidden="true" />
+<Mail className="w-4 h-4" aria-hidden="true" />
           Send Link
         </button>
       </div>
@@ -231,6 +230,39 @@ export function LoginForm() {
               className="flex flex-col gap-4"
               noValidate
             >
+              <AuthFormField
+                control={form.control}
+                name="email"
+                type="email"
+                label="Email Address"
+                placeholder="Enter your email"
+                loading={isLoading}
+                required
+                autoComplete="email"
+                inputMode="email"
+              />
+
+              <FormFieldPassword
+                control={form.control}
+                name="password"
+                label="Password"
+                placeholder="Enter your password"
+                disabled={isLoading}
+                required
+                autoComplete="current-password"
+              />
+
+              {/* Error Message */}
+              {errorMessage && (
+                <div
+                  role="alert"
+                  aria-live="polite"
+                  className="bg-red-500/10 text-red-300 px-4 py-3 rounded-lg text-sm"
+                >
+                  {errorMessage}
+                </div>
+              )}
+            >
               <FormFieldInput
                 control={form.control}
                 name="email"
@@ -242,9 +274,10 @@ export function LoginForm() {
                 autoComplete="email"
               />
 
-              <FormFieldPassword
+              <AuthFormField
                 control={form.control}
                 name="password"
+                type="password"
                 label="Password"
                 placeholder="Enter your password"
                 disabled={isLoading}
@@ -368,7 +401,7 @@ export function LoginForm() {
                 sign-in link. No password needed.
               </p>
 
-              <FormFieldInput
+              <AuthFormField
                 control={form.control}
                 name="email"
                 type="email"
@@ -377,6 +410,7 @@ export function LoginForm() {
                 loading={isLoading}
                 required
                 autoComplete="email"
+                inputMode="email"
               />
 
               {/* Error Message */}
