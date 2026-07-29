@@ -189,6 +189,64 @@ describe("AccountSection email validation", () => {
   });
 });
 
+describe("AccountSection locale preview", () => {
+  it("renders a date preview and currency preview with the default profile", () => {
+    render(<AccountSection />);
+
+    const datePreview = screen.getByTestId("locale-date-preview");
+    const currencyPreview = screen.getByTestId("locale-currency-preview");
+
+    expect(datePreview).toBeInTheDocument();
+    expect(datePreview.textContent).toBeTruthy();
+    expect(currencyPreview).toBeInTheDocument();
+    expect(currencyPreview.textContent).toBeTruthy();
+  });
+
+  it("has an accessible region with a polite live region", () => {
+    render(<AccountSection />);
+
+    const region = screen.getByRole("region", {
+      name: "Locale format preview",
+    });
+
+    expect(region).toHaveAttribute("aria-live", "polite");
+  });
+
+  it("updates the date preview when the timezone changes", () => {
+    render(<AccountSection />);
+
+    const datePreview = screen.getByTestId("locale-date-preview");
+    const initial = datePreview.textContent;
+
+    fireEvent.change(screen.getByLabelText("Timezone"), {
+      target: { value: "UTC" },
+    });
+
+    // With a different timezone the displayed text should change
+    expect(datePreview.textContent).not.toBe(initial);
+  });
+
+  it("updates the currency preview when the currency changes", () => {
+    render(<AccountSection />);
+
+    const currencyPreview = screen.getByTestId("locale-currency-preview");
+    const initial = currencyPreview.textContent;
+
+    fireEvent.change(screen.getByLabelText("Settlement currency"), {
+      target: { value: "EUR" },
+    });
+
+    // EUR format should differ from the default USD format
+    expect(currencyPreview.textContent).not.toBe(initial);
+  });
+
+  it("shows the preview heading label", () => {
+    render(<AccountSection />);
+
+    expect(screen.getByText("Preview")).toBeInTheDocument();
+  });
+});
+
 describe("AccountSection status timeout lifecycle", () => {
   beforeEach(() => {
     vi.useFakeTimers();
