@@ -1,8 +1,8 @@
 "use client";
 import type { ComponentProps } from "react";
-import { format } from "date-fns";
 import { CalendarIcon } from "lucide-react";
 import { cn } from "@/utils/commonUtils";
+import { formatDateForDisplay } from "@/utils/date-utils";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
 import {
@@ -34,7 +34,7 @@ export function Date({
         >
           <CalendarIcon className="mr-2 h-4 w-4 text-[#CBD2EB]" />
           {date ? (
-            format(date, "dd-MM-yyyy")
+            formatDateForDisplay(date)
           ) : (
             <span className="text-sm">{placeholder}</span>
           )}

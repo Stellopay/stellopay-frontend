@@ -1,0 +1,55 @@
+{
+  "name": "StelloPay",
+  "short_name": "StelloPay",
+  "description": "StelloPay — fast, secure blockchain payroll and payments powered by Stellar.",
+  "start_url": "/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#ffffff",
+  "theme_color": "#ffffff",
+  "categories": ["finance", "payments", "business"],
+  "lang": "en-US",
+  "dir": "ltr",
+  "icons": [
+    { "src": "/icons/icon-192x192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/icons/icon-512x512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "/icons/icon-192x192-maskable.png", "sizes": "192x192", "type": "image/png", "purpose": "maskable" },
+    { "src": "/icons/icon-512x512-maskable.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ],
+  "screenshots": [
+    {
+      "src": "/icons/screenshot-narrow.png",
+      "sizes": "390x844",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "StelloPay dashboard showing account balance, recent transactions, and quick actions on a mobile device"
+    },
+    {
+      "src": "/icons/screenshot-wide.png",
+      "sizes": "1280x720",
+      "type": "image/png",
+      "form_factor": "wide",
+      "label": "StelloPay dashboard displayed on a desktop or tablet view with full sidebar navigation"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Dashboard",
+      "short_name": "Dashboard",
+      "description": "View your account overview, balances, and recent transactions",
+      "url": "/dashboard",
+      "icons": [
+        { "src": "/dashboard.svg", "sizes": "96x96", "type": "image/svg+xml", "purpose": "any monochrome" }
+      ]
+    },
+    {
+      "name": "Transactions",
+      "short_name": "Transactions",
+      "description": "Browse and search all your payment transactions",
+      "url": "/transactions",
+      "icons": [
+        { "src": "/transaction-history.svg", "sizes": "96x96", "type": "image/svg+xml", "purpose": "any monochrome" }
+      ]
+    }
+  ]
+}
