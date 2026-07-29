@@ -228,127 +228,27 @@ The Transactions list component distinguishes between an empty result (e.g. no t
 - **Empty State**: Rendered via the `TransactionsTable` empty message (`No transactions found. Try adjusting your filters.`).
 - **Error State**: Rendered using the `<ErrorState />` UI component which displays the actual error message or a generic "Failed to load transactions." It also provides a "Try Again" button.
 
+### Route-Scoped Error Boundaries (`app/transactions/error.tsx`, `app/settings/preferences/error.tsx`)
+
+Both routes now have dedicated App Router error segments that catch render errors locally, preventing them from bubbling to the generic `app/error.tsx`. Each boundary uses the shared `components/ui/error-state.tsx` component and provides:
+
+- **Event ID placeholder** (`digest` mapped through `eventId` prop) — visible reference for support debugging.
+- **Retry action** (`reset()` wired to the retry button) — allows users to recover without leaving the route.
+- **Report-issue link** (`/help/support` by default) — accessible link for escalation.
+
+These boundaries mirror the existing `app/dashboard/error.tsx` pattern (console logging of digest, dev-only message rendering, accessible `main` wrapper with `role="alert"` and `aria-live="assertive"`).
+
+### Responsive Behavior
+
+- **sm (640px)**: Container uses full width with `px-6`; content stays centered.
+- **md (768px)**: `max-w-md` keeps the error card readable without excessive line length.
+- **lg (1024px)** and **xl (1280px)**: The `min-h-[60vh]` wrapper ensures vertical centering across larger viewports.
+
+The design tokens (`bg-background`, `text-foreground`, `text-red-500`, rounded-xl, `max-w-md`) remain consistent across breakpoints.
+
 ### Accessibility Notes (WCAG 2.1 AA)
 
 - **Contrast**: The ErrorState uses a `text-red-500` icon and `text-white` text on a `bg-red-900/10` background which exceeds minimum contrast requirements.
 - **Keyboard Nav**: The "Try Again" button is fully keyboard navigable. Focus order is maintained.
 - **ARIA**: The `ErrorState` component utilizes `role="alert"` and `aria-live="assertive"` so screen readers can proactively announce network failures. Loading/Retrying indicators use `aria-hidden="true"` on non-text elements and `aria-label` or `aria-disabled` where appropriate to ensure status is accurately conveyed.
-
-## Transactions table — density toggle (#900)
-
-### Overview
-`components/transactions/transactions-table.tsx` now exposes a three-way density toggle (compact, comfortable, spacious) above the desktop table. The chosen density adjusts row padding and font size across the table head, body cells, and skeleton rows, and is persisted to `localStorage` via `utils/safeStorage.ts` so the preference survives reloads.
-
-### Density config
-
-| Level | Cell padding | Font size | Use case |
-|-------|-------------|-----------|----------|
-| **Compact** | `py-2 px-3` | `text-xs` | Dense data review |
-| **Comfortable** | `py-4 px-6` | `text-sm` | Default viewing |
-| **Spacious** | `py-6 px-8` | `text-base` | Readability / presentation |
-
-### Behavior
-- Defaults to `comfortable` on first visit.
-- Stored under `localStorage` key `transactions-table-density`.
-- Restored on mount; invalid stored values fall back to the default.
-- Toggle is hidden on mobile (`hidden md:flex`) where card layout is used.
-
-### Accessibility (WCAG 2.1 AA)
-- **Role**: The toggle group uses `role="radiogroup"` with `aria-label="Table density"`.
-- **State**: Each option uses `role="radio"` with `aria-checked` reflecting the current selection.
-- **Keyboard**: All buttons are natively focusable and activate via Enter/Space.
-- **Focus**: `focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500` provides a high-contrast focus ring.
-- **Contrast**: White text (`text-white`) on `bg-white/10` for the active option; `text-zinc-400` / `hover:text-white` on `bg-[#191919]` for inactive options — all exceed 4.5:1 AA thresholds.
-
-### Responsive
-| Breakpoint | Behavior |
-|------------|----------|
-| `< 768px` (md) | Toggle hidden; card layout used |
-| `≥ 768px` (md) | Toggle shown above desktop table |
-
-## Zinc vs. Token Audit — `components/analytics/analytics-view.tsx` (#763)
-
-The Advanced Filter Panel is a togglable drawer that combines all transaction filter dimensions (status, amount range, counterparty address) into a single, auditable interface. It slides in from the right on desktop and takes full width on mobile (< 640px). Active filters are represented as removable chips below the filter bar.
-
-### Components
-
-| File | Purpose |
-|------|---------|
-| `components/transactions/advanced-filter-panel.tsx` | Togglable drawer with status radio, min/max amount inputs, counterparty text input, Apply/Clear All buttons |
-| `components/transactions/filter-chips.tsx` | Removable chips showing active filter state with individual remove and bulk clear |
-| `components/transactions/transactions-filters.tsx` | Updated with Advanced filter toggle button (indicator dot when active) |
-| `components/transactions/transactions-content.tsx` | Orchestrates panel open/close, draft state, apply/commit, chip removal, and passes values to API |
-
-### State Model
-
-- Draft state lives in `transactions-content.tsx` — panel inputs modify draft values; committed filters flow through `TransactionFilters` (which gained `minAmount`, `maxAmount`, and `counterparty` fields).
-- The API layer (`lib/api/transactions.ts` → `utils/transactionUtils.ts`) applies `counterparty` filtering as a case-insensitive partial match on the transaction address field.
-
-### Accessibility Notes (WCAG 2.1 AA)
-
-#### Advanced Filter Panel (`advanced-filter-panel.tsx`)
-
-- **Role & Label**: Panel uses `role="dialog"` with `aria-modal="true"` and `aria-label="Advanced transaction filters"`.
-- **Focus Trap**: When the panel opens, focus is moved to the first focusable element after a 150ms animation delay. Tab/Shift+Tab cycles within the panel. Focus is restored to the triggering element on close.
-- **Escape to Close**: Pressing Escape closes the panel and returns focus.
-- **Backdrop Click**: Clicking the backdrop overlay closes the panel.
-- **Body Scroll Lock**: `document.body.style.overflow = "hidden"` is set while the panel is open; restored on close/unmount.
-- **Validation Errors**: Amount range validation uses `role="alert"` with `aria-live="polite"` for non-intrusive screen reader announcement.
-- **Contrast**: 
-  - Status radio labels: white text on dark background (#160f17) — passes AA.
-  - Selected status: `border-[#04842E]` (green) on `bg-[#04842E]/10` background.
-  - Inputs: white text on `bg-[#1A1A1A]` with `border-[#2D2D2D]`.
-  - Apply button: white text on `bg-[#04842E]` (green) background.
-  - Clear All button: gray-400 text on transparent, darkens on hover.
-- **Keyboard Navigation**: All buttons, inputs, and radio controls are fully keyboard-accessible with visible `focus-visible:ring-2` focus indicators.
-- **Disabled State**: When `disabled={true}`, all inputs and buttons receive `disabled` attribute, preventing interaction during loading states.
-
-#### Filter Chips (`filter-chips.tsx`)
-
-- **Region Role**: Chips container uses `role="region"` with `aria-label="Active filters"` (customizable).
-- **Remove Buttons**: Each chip's remove button has a descriptive `aria-label` (e.g., "Remove Status filter: Payment Sent").
-- **Clear All**: When multiple chips are present, a "Clear all" button with `aria-label="Clear all active filters"` is shown.
-- **Focus Indicators**: Remove buttons and Clear all link use `focus-visible:ring-2` outlines.
-
-#### Responsive Behavior
-
-- **Panel Width**: Full width on mobile, `sm:w-[420px]` on small screens, `lg:w-[480px]` on large screens.
-- **Amount Range**: Two-column grid (`grid-cols-2`) adapts well at all breakpoints.
-- **Advanced Toggle Button**: Label text is hidden on mobile (`hidden sm:inline`) to conserve space; the sliders icon remains visible.
-- **Chips**: Use `flex-wrap` for natural wrapping on narrow viewports.
-
-- Verified visually and via existing tests across the `showNotifications`/`showDropdown` permutations, which drive the `sm`/`md` breakpoint layout switch (`flex-col md:flex-row`) — no layout classes were touched, only color utilities.
-- All existing tests in `components/analytics/analytics-view.test.tsx` pass against the new markup (one unrelated pre-existing failure, `renders empty state component when empty data is provided`, reproduces identically on `main` and is unrelated to this change).
-- No text or non-text contrast regressions: token swaps were chosen to preserve or exceed the contrast ratios of the `zinc-*` values they replaced (see notes above).
-
-## Quick Transfer Widget — `components/dashboard/quick-transfer.tsx` (#892)
-
-### Overview
-Added a compact quick-transfer card to the dashboard so repeat senders can initiate a Stellar payment without leaving `components/dashboard/dashboard-page.tsx`. The widget surfaces recent transaction counterparties as autocomplete suggestions, validates the recipient address and amount inline, and requires an explicit confirmation dialog before the transfer is dispatched.
-
-### Component surface
-
-| Concern | Implementation |
-|---|---|
-| **Recipient autocomplete** | Custom `combobox` pattern: `role="combobox"` input with `aria-expanded`, `aria-controls`, and `aria-activedescendant`. Suggestions are filtered by address or label, limited to 5 items, and navigable with ArrowUp/ArrowDown/Enter/Escape. |
-| **Address validation** | Reuses `utils/stellarAddress.ts` (`isValidStellarAddress`). Ed25519 public keys (`G...`) and muxed accounts (`M...`) are accepted; secret seeds (`S...`) are rejected. Shows an inline `FormMessage` on blur. |
-| **Amount validation** | Zod schema enforces positive, numeric input with up to 7 decimal places (Stellar precision). The input uses `inputMode="decimal"` for mobile keyboards. |
-| **Confirmation step** | Radix `Dialog` with `role="dialog"`, `aria-labelledby`, and `aria-describedby`. Displays recipient and amount for final review; Cancel aborts, Confirm & Send triggers the provided `onSend` callback. |
-| **Accessibility** | WCAG 2.1 AA: all form fields have `<label>` + `htmlFor`, `aria-invalid` is driven by the Input `error` prop, error messages use `role="alert"`, the dialog focus is trapped by Radix, and no interactive element relies on hover alone. |
-| **Responsive breakpoints** | Card spacing uses `p-5 sm:p-6`; headings resize with `text-lg sm:text-xl`; dialog remains usable at `sm:max-w-lg`. No horizontal overflow at `sm` (640), `md` (768), `lg` (1024), or `xl` (1280). |
-| **Design tokens** | Matches existing dashboard cards (`rounded-2xl`, `border-zinc-200 dark:border-zinc-800`, `bg-white dark:bg-[#111111]`, `shadow-sm`). Text colors use `text-zinc-900/600/500/400` with dark counterparts. |
-
-### Keyboard navigation
-- **ArrowDown / ArrowUp** cycles autocomplete suggestions.
-- **Enter** selects the active suggestion or submits the form.
-- **Escape** closes the suggestion list or the confirmation dialog.
-- **Tab** moves focus through fields without trapping.
-
-### Edge cases covered in tests
-- Empty recent-recipients list renders without crashing.
-- Invalid Stellar addresses show validation text after blur.
-- Negative values and >7 decimals are rejected.
-- Empty/disconnected states leave the Submit button disabled.
-- `onSend` rejections surface an accessible `role="alert"` message.
-- Suggestion keyboard traversal scrolls the active item into view.
-
+- **New props**: `eventId` is rendered in a `<code>` block with `aria-label` describing the reference; the report link uses `aria-label="Report this issue"` so screen readers announce purpose clearly.

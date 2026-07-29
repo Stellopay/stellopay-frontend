@@ -168,4 +168,13 @@ describe("GlobalError boundary", () => {
     expect(screen.queryByTestId("error-dev-details")).not.toBeInTheDocument();
     expect(screen.queryByText(/should-never-render/)).not.toBeInTheDocument();
   });
+
+  it("remains independent of route-scoped error-state props", () => {
+    render(<GlobalError error={buildError()} reset={vi.fn()} />);
+
+    // The root boundary must not render the event-id placeholder or
+    // report-issue link used by the new route-scoped boundaries.
+    expect(screen.queryByText("Reference ID:")).not.toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: /report this issue/i })).not.toBeInTheDocument();
+  });
 });
