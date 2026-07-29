@@ -53,6 +53,7 @@ export default defineConfig({
         "components/common/app-layout.tsx",
         "components/common/network-switcher.tsx",
         "components/ui/pagination.tsx",
+        "components/dashboard/quick-actions.tsx",
       ],
       exclude: [
         "**/*.test.{ts,tsx}",
