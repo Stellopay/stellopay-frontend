@@ -116,7 +116,7 @@ const AnalyticsViews = ({
           role="status"
         >
           <span className="sr-only">Loading analytics...</span>
-          <div className="w-full md:w-2/3 border border-border rounded-2xl p-6 bg-white dark:bg-[#111111] transition-colors flex flex-col justify-between">
+          <div className="w-full md:w-2/3 border border-border rounded-2xl p-6 bg-card transition-colors flex flex-col justify-between">
             <div className="flex justify-between items-center mb-4 flex-wrap gap-2">
               <div className="flex items-center gap-2">
                 <Skeleton className="w-10 h-10 rounded-lg" shade="dark" />
@@ -137,7 +137,7 @@ const AnalyticsViews = ({
               </div>
             </div>
           </div>
-          <div className="w-full md:w-1/3 border border-border rounded-2xl p-6 bg-white dark:bg-[#111111] flex flex-col gap-6 transition-colors">
+          <div className="w-full md:w-1/3 border border-border rounded-2xl p-6 bg-card flex flex-col gap-6 transition-colors">
             <div className="flex justify-between items-center">
               <div className="flex items-center gap-4">
                 <Skeleton className="w-10 h-10 rounded-xl" shade="dark" />
@@ -197,7 +197,7 @@ const AnalyticsViews = ({
       <div
         className={
           showNotifications
-            ? "w-full md:w-2/3 border border-border rounded-2xl p-6 bg-white dark:bg-[#111111] transition-colors"
+            ? "w-full md:w-2/3 border border-border rounded-2xl p-6 bg-card transition-colors"
             : "bg-[#0D0D0D80] text-white rounded-xl border border-[#2D2D2D] p-4 w-full h-full flex flex-col justify-between"
         }
       >
@@ -248,7 +248,7 @@ const AnalyticsViews = ({
               </div>
 
               {isDropdownOpen && (
-                <div className="absolute top-12 right-0 w-32 bg-white dark:bg-[#111111] border border-border rounded-xl shadow-xl z-10 overflow-hidden">
+                <div className="absolute top-12 right-0 w-32 bg-card border border-border rounded-xl shadow-xl z-10 overflow-hidden">
                   {yearOptions.map((year, index) => (
                     <div
                       key={index}
@@ -289,7 +289,7 @@ const AnalyticsViews = ({
       </div>
 
       {showNotifications && (
-        <div className="w-full md:w-1/3 border border-border rounded-2xl p-6 bg-white dark:bg-[#111111] flex flex-col gap-6 transition-colors">
+        <div className="w-full md:w-1/3 border border-border rounded-2xl p-6 bg-card flex flex-col gap-6 transition-colors">
           <div className="w-full flex justify-between items-center">
             <div className="flex items-center gap-4">
               <div className="w-10 h-10 border border-border rounded-xl bg-muted flex items-center justify-center">
