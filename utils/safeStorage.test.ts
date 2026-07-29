@@ -67,6 +67,18 @@ describe("safeStorage", () => {
       expect(() => safeStorage.setItem("key", "value")).not.toThrow();
     });
 
+    it("handles quota exceeded writes gracefully and preserves reads", () => {
+      vi.mocked(window.localStorage.getItem).mockReturnValue("existing-value");
+      vi.mocked(window.localStorage.setItem).mockImplementation(() => {
+        const error = new Error("Quota Exceeded");
+        error.name = "QuotaExceededError";
+        throw error;
+      });
+
+      expect(safeStorage.setItem("key", "value")).toBe(false);
+      expect(safeStorage.getItem("key")).toBe("existing-value");
+    });
+
     it("removeItem calls localStorage.removeItem", () => {
       safeStorage.removeItem("key");
       expect(window.localStorage.removeItem).toHaveBeenCalledWith("key");
