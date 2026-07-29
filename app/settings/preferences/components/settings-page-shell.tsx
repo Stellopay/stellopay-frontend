@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Bell, Shield, UserRound, Wallet } from "lucide-react";
+import { Bell, FileText, Shield, UserRound, Wallet } from "lucide-react";
 import { usePathname, useRouter } from "next/navigation";
 import SettingsHeader, {
   SettingsHeaderSection,
@@ -26,6 +26,10 @@ import NotificationsSection, {
   countActiveNotifications,
 } from "./notifications-section";
 import SecurityTab, { DEFAULT_TWO_FACTOR_ENABLED } from "./security-tab";
+import TaxDocumentsSection, {
+  AVAILABLE_TAX_DOCUMENTS,
+  type TaxDocument,
+} from "./tax-documents-section";
 import WalletsSection from "./wallets-section";
 
 /**
@@ -35,42 +39,53 @@ import WalletsSection from "./wallets-section";
  */
 const linkedWalletCount = DEMO_WALLETS.length;
 
-const sections: SettingsHeaderSection[] = [
-  {
-    value: "account",
-    label: "Account",
-    description: "Profile, identity, and region defaults.",
-    badge: "Core",
-  },
-  {
-    value: "notifications",
-    label: "Notifications",
-    description: "Transaction alerts and delivery channels.",
-    badge: "Alerts",
-  },
-  {
-    value: "security",
-    label: "Security",
-    description: "Password, verification, and sessions.",
-    badge: "Protected",
-  },
-  {
-    value: "wallets",
-    label: "Wallets",
-    description: "Connected wallets and transfer safeguards.",
-    badge: `${linkedWalletCount} linked`,
-  },
-];
+function buildSections(statementCount: number): SettingsHeaderSection[] {
+  return [
+    {
+      value: "account",
+      label: "Account",
+      description: "Profile, identity, and region defaults.",
+      badge: "Core",
+    },
+    {
+      value: "notifications",
+      label: "Notifications",
+      description: "Transaction alerts and delivery channels.",
+      badge: "Alerts",
+    },
+    {
+      value: "security",
+      label: "Security",
+      description: "Password, verification, and sessions.",
+      badge: "Protected",
+    },
+    {
+      value: "wallets",
+      label: "Wallets",
+      description: "Connected wallets and transfer safeguards.",
+      badge: `${linkedWalletCount} linked`,
+    },
+    {
+      value: "documents",
+      label: "Statements",
+      description: "Periodic statements and tax summaries.",
+      badge: `${statementCount} ready`,
+    },
+  ];
+}
 
 interface SettingsPageShellProps {
   initialSection?: string;
+  statements?: TaxDocument[];
 }
 
 export default function SettingsPageShell({
   initialSection,
+  statements = AVAILABLE_TAX_DOCUMENTS,
 }: SettingsPageShellProps) {
   const router = useRouter();
   const pathname = usePathname();
+  const sections = buildSections(statements.length);
   const resolvedInitialSection = sections.some(
     (section) => section.value === initialSection,
   )
@@ -98,6 +113,7 @@ export default function SettingsPageShell({
   const activeAlerts = countActiveNotifications(notificationSettings);
   const securityPosture = twoFactorEnabled ? "2-step on" : "2-step off";
   const walletCoverage = `${linkedWalletCount} linked`;
+  const statementCoverage = `${statements.length} ready`;
 
   const handleSectionChange = (nextSection: string) => {
     setActiveSection(nextSection);
@@ -123,7 +139,7 @@ export default function SettingsPageShell({
       />
 
       <div className="mx-auto flex w-full max-w-screen-xl flex-1 flex-col gap-8 px-4 py-8 md:px-6">
-        <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+        <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
           <SummaryCard
             icon={UserRound}
             label="Profile readiness"
@@ -148,6 +164,12 @@ export default function SettingsPageShell({
             value={walletCoverage}
             description="Connected wallets sit next to transfer safeguards."
           />
+          <SummaryCard
+            icon={FileText}
+            label="Statements"
+            value={statementCoverage}
+            description="Tax summaries and statements stay available for export."
+          />
         </section>
 
         <TabsContent value="account" className="mt-0">
@@ -170,6 +192,10 @@ export default function SettingsPageShell({
 
         <TabsContent value="wallets" className="mt-0">
           <WalletsSection />
+        </TabsContent>
+
+        <TabsContent value="documents" className="mt-0">
+          <TaxDocumentsSection statements={statements} />
         </TabsContent>
       </div>
     </Tabs>

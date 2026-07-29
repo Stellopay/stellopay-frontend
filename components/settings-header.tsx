@@ -75,6 +75,7 @@ export default function SettingsHeader({
             <TabsTrigger
               key={section.value}
               value={section.value}
+              tabIndex={section.value === activeSection ? 0 : -1}
               className={cn(
                 "min-w-[160px] flex-none items-start rounded-2xl border border-transparent px-4 py-3 text-left data-[state=active]:border-zinc-200 data-[state=active]:bg-white data-[state=active]:text-zinc-950 dark:data-[state=active]:border-white/10 dark:data-[state=active]:bg-[#09090B] dark:data-[state=active]:text-white",
                 "focus-visible:ring-zinc-900 dark:focus-visible:ring-white",
