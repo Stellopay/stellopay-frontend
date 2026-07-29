@@ -10,6 +10,11 @@ import {
   useWallet,
 } from "@/context/wallet-context";
 import { WALLET_NETWORK_STORAGE_KEY } from "@/types/wallet";
+import {
+  INVALID_SECRET_SEED,
+  VALID_WALLET_ADDRESS,
+  VALID_WALLET_CONNECTION_PAYLOAD,
+} from "@/types/wallet.fixtures";
 
 // Stellar is the only supported network now that the placeholder EVM chains
 // have been removed, so network-switching/persistence is exercised against it.
@@ -104,14 +109,26 @@ describe("WalletProvider", () => {
       wrapper: ({ children }) => wrap(children),
     });
 
-    const publicAddress =
-      "GAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAW";
-
     act(() => {
-      result.current.connect(publicAddress);
+      result.current.connect(VALID_WALLET_ADDRESS);
     });
 
-    expect(result.current.address).toBe(publicAddress);
+    expect(result.current.address).toBe(VALID_WALLET_ADDRESS);
+  });
+
+  // Keep connect-flow fixture shape covered in types/wallet.test.ts; this
+  // assertion only verifies WalletProvider consumes the shared validated shape.
+  it("connect accepts a guarded wallet connection payload", () => {
+    const { result } = renderHook(() => useWallet(), {
+      wrapper: ({ children }) => wrap(children),
+    });
+
+    act(() => {
+      result.current.connect(VALID_WALLET_CONNECTION_PAYLOAD);
+    });
+
+    expect(result.current.address).toBe(VALID_WALLET_ADDRESS);
+    expect(result.current.network.id).toBe("stellar");
   });
 
   it("connect rejects values that look like a Stellar secret key", () => {
@@ -119,11 +136,9 @@ describe("WalletProvider", () => {
       wrapper: ({ children }) => wrap(children),
     });
 
-    const fakeSecret = "S" + "A".repeat(55);
-
     expect(() => {
       act(() => {
-        result.current.connect(fakeSecret);
+        result.current.connect(INVALID_SECRET_SEED);
       });
     }).toThrow(/secret key/i);
     expect(result.current.address).toBeNull();
@@ -184,10 +199,9 @@ describe("WalletProvider", () => {
       wrapper: ({ children }) => wrap(children),
     });
 
-    const fakeSecret = "S" + "A".repeat(55);
     expect(() => {
       act(() => {
-        result.current.connect(fakeSecret);
+        result.current.connect(INVALID_SECRET_SEED);
       });
     }).toThrow();
     expect(window.localStorage.getItem("stellopay.wallet.address")).toBeNull();
@@ -315,7 +329,7 @@ describe("WalletProvider storage edge cases", () => {
 
 describe("WalletProvider initial props", () => {
   it("respects initialAddress for SSR seeding", () => {
-    const seeded = "GAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAW";
+    const seeded = VALID_WALLET_ADDRESS;
     function Probe() {
       const { address, isConnected } = useWallet();
       return (

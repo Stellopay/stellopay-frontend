@@ -57,7 +57,9 @@ export const RechartsMiniBarChart: React.FC<RechartsMiniBarChartProps> = ({
               background: "var(--chart-tooltip-bg)",
               border: "none",
             }}
-            formatter={(value: number) => `${value}%`}
+            formatter={(value) =>
+              typeof value === "number" ? `${value}%` : `${value ?? ""}`
+            }
           />
           <Bar dataKey="value" fill={color} radius={[4, 4, 0, 0]} />
         </BarChart>
