@@ -1,3 +1,4 @@
+import Image from "next/image";
 import { Shield, CreditCard, HeadphonesIcon } from "lucide-react";
 
 const benefits = [
@@ -6,6 +7,7 @@ const benefits = [
     description:
       "Reduce payroll costs with blockchain-powered transactions that eliminate excessive banking fees and hidden charges. Stellopay ensures more of your money goes where it matters.",
     icon: <Shield className="w-6 h-6" color="black" />,
+    imageSrc: "/landing/benefit-security.svg",
     featured: true,
   },
   {
@@ -13,6 +15,7 @@ const benefits = [
     description:
       "Our intuitive platform simplifies payroll management with seamless automation, real-time tracking, and effortless navigation—no technical expertise required.",
     icon: <CreditCard className="w-6 h-6" color="black" />,
+    imageSrc: "/landing/benefit-ease.svg",
     featured: false,
   },
   {
@@ -20,6 +23,7 @@ const benefits = [
     description:
       "Get dedicated assistance whenever you need it. Our expert support team is always available to help with transactions, troubleshooting, and guidance.",
     icon: <HeadphonesIcon className="w-6 h-6" color="black" />,
+    imageSrc: "/landing/benefit-support.svg",
     featured: false,
   },
 ];
@@ -50,6 +54,14 @@ export default function BenefitsSection() {
         {/* Featured card - Low Fees */}
         <div className="flex justify-center mb-8 max-w-[400px] mx-auto">
           <div className="w-full max-w-md bg-[#8EB6FF] rounded-[8px] p-6 text-center">
+            <Image
+              src={benefits[0].imageSrc}
+              alt=""
+              width={120}
+              height={120}
+              className="mx-auto mb-4 w-30 h-30"
+              aria-hidden="true"
+            />
             <div className="w-15 h-15 mx-auto mb-6 flex items-center justify-center rounded-full bg-white">
               {benefits[0].icon}
             </div>
@@ -69,6 +81,14 @@ export default function BenefitsSection() {
               key={index}
               className="bg-transparent border border-[#598EFF] max-w-[400px] mx-auto rounded-[8px] p-6 text-center"
             >
+              <Image
+                src={benefit.imageSrc}
+                alt=""
+                width={120}
+                height={120}
+                className="mx-auto mb-4 w-30 h-30"
+                aria-hidden="true"
+              />
               <div className="w-15 h-15 mx-auto mb-6 flex items-center justify-center rounded-full bg-white">
                 {benefit.icon}
               </div>
