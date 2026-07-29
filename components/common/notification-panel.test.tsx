@@ -110,7 +110,7 @@ describe("NotificationPanel", () => {
       <NotificationPanel notifications={notifications} />,
     );
 
-    const unreadDots = container.querySelectorAll(".bg-\\[\\#EB6945\\]");
+    const unreadDots = container.querySelectorAll(".w-1.h-1.bg-\\[\\#EB6945\\]");
     expect(unreadDots).toHaveLength(1);
   });
 
@@ -119,7 +119,7 @@ describe("NotificationPanel", () => {
   describe("keyboard navigation", () => {
     it("applies listbox role and aria-label to the notification list", () => {
       render(<NotificationPanel notifications={buildNotifications(3)} />);
-
+#602
       expect(
         screen.getByRole("listbox", { name: "Notifications list" }),
       ).toBeInTheDocument();
