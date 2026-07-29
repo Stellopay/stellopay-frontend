@@ -136,3 +136,17 @@ Tests in `components/auth/sign-up/sign-up-form.test.tsx` cover:
 - When a CAPTCHA service (e.g., Turnstile, reCAPTCHA v3) is integrated, the honeypot and time guard should remain as complementary first-line defences.
 - The `MINIMUM_FORM_TIME_MS` constant can be adjusted based on analytics (e.g., measure the 5th percentile of real-user form-fill times).
 - The honeypot field name can be randomised or rotated periodically if a specific name becomes known to bots.
+
+---
+
+## Email Typo Suggestion
+
+### Overview
+A common UX issue during sign-up is that users accidentally make typos in the domain part of their email address (e.g. `gmial.com` instead of `gmail.com`). Since format validation passes, the user remains unaware and doesn't receive the verification email.
+To resolve this, we offer a non-blocking one-click "did you mean..." correction in the verification modal itself.
+
+### Implementation
+- Added a `COMMON_TYPOS` mapping in `components/auth/sign-up/sign-up-email-modal.tsx` to detect frequent typos against known providers (Gmail, Yahoo, Outlook, Hotmail).
+- If a typo is detected, a suggestion is shown with a "Yes, fix it" button.
+- The UI includes `role="status"` and `aria-live="polite"` so screen readers proactively announce the suggestion.
+- The correction applies locally in the modal without forcing a full page reload or form re-entry.
