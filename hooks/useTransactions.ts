@@ -97,6 +97,8 @@ export function useTransactions(
     filters?.selectedFilter,
     filters?.fromDate,
     filters?.toDate,
+    filters?.minAmount,
+    filters?.maxAmount,
     filters?.sortConfigs,
     page,
     pageSize,
