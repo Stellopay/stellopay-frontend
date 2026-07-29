@@ -439,6 +439,120 @@ A new test suite in `components/common/app-layout.test.tsx` verifies:
 
 ---
 
+## Transactions Content — Live Region for Filter Result Count
+
+**Branch:** `a11y/transactions-content-filter-count-live`  
+**Scope:** `components/transactions/transactions-content.tsx`  
+**Standard:** WCAG 2.1 Level AA — 4.1.3 Status Messages  
+**Date:** 2026-07-29
+
+---
+
+### Overview
+
+When a user changes transaction filters (search, type filter, sort, date range),
+the result set updates. Screen reader users previously had no indication of how
+many results matched their filters until they navigated to the table or
+pagination controls. This change adds a visually hidden `aria-live="polite"`
+region that announces the updated transaction count after filter changes,
+keeping assistive technology users informed without interrupting their current
+task.
+
+---
+
+### WCAG Criteria addressed
+
+#### WCAG 4.1.3 — Status Messages
+
+The live region uses `role="status"` with `aria-live="polite"` so screen readers
+announce the updated result count without moving focus. Announcements are
+debounced (500 ms) to prevent excessive notifications during rapid filter
+changes such as fast typing in the search bar.
+
+**axe rule satisfied:** `aria-live-region-content`
+
+---
+
+### Implementation details
+
+```tsx
+{/* Visually-hidden live region that announces filter result counts */}
+<div
+  role="status"
+  aria-live="polite"
+  aria-atomic="true"
+  className="sr-only"
+>
+  {liveMessage}
+</div>
+```
+
+- **`role="status"`**: Communicates to assistive technology that this is a
+  status message region (not an alert that demands immediate attention).
+- **`aria-live="polite"`**: Screen readers wait for the current utterance to
+  finish before announcing the update.
+- **`aria-atomic="true"`**: The entire content of the region is announced as a
+  single unit, not just the changed portion.
+- **`className="sr-only"`**: The region is visually hidden but accessible to
+  screen readers via the project's existing `.sr-only` utility.
+
+#### Announcement logic
+
+- **Suppressed on initial render**: No announcement fires when the component
+  mounts, preventing "42 transactions found" from being read on page load
+  before the user interacts with filters.
+- **Debounced at 500 ms**: Rapid filter changes (e.g., typing in search) reset
+  the timer so only the final result count is announced.
+- **Count-aware messages**:
+  - `0` → "No transactions found."
+  - `1` → "1 transaction found."
+  - `n` (n > 1) → "n transactions found."
+- **No announcement during loading or error states**: The effect guards on
+  `isLoading`, `error`, and the presence of `data`.
+- **Same-count suppression**: If the total does not change between renders
+  (e.g., a re-render from a sort toggle that returns the same data), no
+  announcement fires.
+
+---
+
+### Accessibility Considerations
+
+- **WCAG 2.2.1 (Timing Adjustable)**: The 500 ms debounce does not prevent
+  access to content — it only reduces noise for screen reader users. The
+  underlying data is always visible in the table and pagination controls.
+- **WCAG 1.3.1 (Info and Relationships)**: The live region is a separate
+  element from the table and pagination, maintaining a clear separation of
+  concerns.
+- **WCAG 4.1.2 (Name, Role, Value)**: `role="status"` provides the correct
+  implicit ARIA role; `aria-atomic="true"` ensures complete announcements.
+- **Dark mode / RTL / responsive**: The `.sr-only` class works across all
+  themes, directions, and breakpoints without modification.
+
+---
+
+### Screen reader — spot-check results
+
+| Action | Announced |
+|--------|-----------|
+| Initial page load | (nothing — suppressed) |
+| Filter to "Payment Sent" with 5 results | "5 transactions found." |
+| Search yields 1 result | "1 transaction found." |
+| Search yields no results | "No transactions found." |
+| Clear filters, back to 42 results | "42 transactions found." |
+| Rapid typing in search bar | Only final count announced (debounced) |
+
+---
+
+### Files changed
+
+| File | Changes |
+|------|---------|
+| `components/transactions/transactions-content.tsx` | Added `aria-live="polite"` region with debounced count announcements |
+| `components/transactions/transactions-content.test.tsx` | Added tests for live region, announcements, debounce, initial-load suppression, loading/error states, singular/plural messages |
+| `design/a11y-checklist.md` | Added this section |
+
+---
+
 ## Files changed
 
 | File                                              | Changes                                                                                  |
