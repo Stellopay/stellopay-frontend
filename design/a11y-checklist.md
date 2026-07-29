@@ -154,13 +154,21 @@
 
 ### 16. "No Transactions Found" message not announced (WCAG 4.1.3)
 
-**File:** `app/transactions/page.tsx`  
-**Fix:** Added `role="status"` and `aria-live="polite"` to the empty-state message so it is announced when filters produce no results.  
+**File:** `app/transactions/page.tsx`
+**Fix:** Added `role="status"` and `aria-live="polite"` to the empty-state message so it is announced when filters produce no results.
 **axe rule:** `aria-live-region-content`
 
 ---
 
-### 17. Sidebar toggle buttons missing accessible names and focus styles (WCAG 4.1.2, 2.4.7)
+### 17. Transaction history load completion not announced (WCAG 4.1.3 — Status Messages)
+
+**File:** `components/dashboard/transaction-history.tsx`
+**Fix:** Added a visually hidden `aria-live="polite"` region with `role="status"` and `aria-atomic="true"` that announces the transaction count when the loading-to-loaded transition occurs. The announcement only fires once — on the transition from `isLoading=true` to `isLoading=false` — using a `useRef` to track the previous loading state, preventing repeated announcements on re-renders.
+**axe rule:** `aria-live-region-content`
+
+---
+
+### 18. Sidebar toggle buttons missing accessible names and focus styles (WCAG 4.1.2, 2.4.7)
 
 **File:** `components/common/side-bar.tsx`  
 **Fix:**
@@ -245,6 +253,7 @@
 | Table column headers with scope        |            ✅ Headers associated with cells            |
 | Status badge                           |                 ✅ "Status: Completed"                 |
 | Empty state live region                |     ✅ "No Transactions Found" announced on filter     |
+| Transaction history live region        |  ✅ "N transactions loaded" on loading-to-loaded transition |
 | Sidebar `aria-label`                   |        ✅ "Application sidebar, complementary"         |
 | Sidebar toggle `aria-expanded`         |        ✅ "Collapse sidebar, expanded, button"         |
 
@@ -265,5 +274,7 @@
 | `components/auth/sign-up/sign-up-form.tsx`        | Password toggles → `<button>`, aria-describedby, aria-live on requirements               |
 | `components/auth/sign-up/sign-up-email-modal.tsx` | `DialogDescription`, aria-live resend status, button types, focus rings                  |
 | `components/transactions/transactions-table.tsx`  | `<caption>`, `scope="col"`, aria-label on badges, aria-hidden on icons, `<time>` element |
+| `components/dashboard/transaction-history.tsx`    | `aria-live="polite"` live region on loading-to-loaded transition, loading/error/empty states |
+| `components/dashboard/transaction-history.test.tsx` | Tests for aria-live announcement, transition-only firing, fake timers, edge cases |
 | `components/common/side-bar.tsx`                  | aria-label, aria-expanded, aria-hidden icons, focus rings                                |
 | `design/a11y-checklist.md`                        | This document                                                                            |

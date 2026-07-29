@@ -55,6 +55,7 @@ export default defineConfig({
         "components/common/search-bar.tsx",
         "components/ui/pagination.tsx",
         "components/dashboard/account-summary-card.tsx",
+        "components/dashboard/transaction-history.tsx",
       ],
       exclude: [
         "**/*.test.{ts,tsx}",
