@@ -35,6 +35,7 @@ const getTokenIcon = (token: string): string => {
 const toTransactionProps = (t: Transaction): TransactionProps => ({
   id: t.id,
   type: t.type,
+  txId: t.txId,
   address: t.address,
   date: t.date,
   time: t.time,
@@ -45,6 +46,7 @@ const toTransactionProps = (t: Transaction): TransactionProps => ({
       : `-$${Math.abs(t.amount).toFixed(2)}`,
   status: t.status as "Completed" | "Pending" | "Failed",
   tokenIcon: getTokenIcon(t.token),
+  memo: t.memo,
 });
 
 export default function TransactionsContent() {

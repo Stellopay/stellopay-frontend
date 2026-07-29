@@ -1,6 +1,7 @@
 import React from "react";
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { render, screen, within } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 
 import {
   TRANSACTIONS_PAGE_SIZE,
@@ -101,6 +102,7 @@ describe("TransactionsTable skeleton count parity", () => {
       (_, i) => ({
         id: `tx-${i}`,
         type: "Payment",
+        txId: `#TXN${i}`,
         address: `GAddress${i}`,
         date: "2024-01-01",
         time: "12:00",
@@ -115,5 +117,136 @@ describe("TransactionsTable skeleton count parity", () => {
     const tbody = document.querySelector("tbody");
     const dataRows = tbody?.querySelectorAll("tr") ?? [];
     expect(dataRows.length).toBe(TRANSACTIONS_PAGE_SIZE);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Transaction receipt dialog
+// ---------------------------------------------------------------------------
+
+describe("TransactionReceipt dialog", () => {
+  const mockTransaction = {
+    id: "1",
+    type: "Payment Sent",
+    txId: "#TXN12345",
+    address: "0xA1B2...C3D4E5",
+    date: "2024-01-15",
+    time: "09:32AM",
+    token: "USDC",
+    amount: "-$607.87",
+    status: "Completed" as const,
+    tokenIcon: "/usdc-logo.png",
+    memo: "Invoice #1024",
+  };
+
+  function getDesktopRow() {
+    const rows = screen.getAllByRole("button", { name: /View receipt/i });
+    return rows[0];
+  }
+
+  function withinDialog() {
+    return within(screen.getByRole("dialog"));
+  }
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    window.print = vi.fn();
+  });
+
+  it("opens receipt dialog when a table row is clicked", async () => {
+    const user = userEvent.setup();
+    render(<TransactionsTable transactions={[mockTransaction]} />);
+
+    await user.click(getDesktopRow());
+
+    expect(withinDialog().getByText("Transaction Receipt")).toBeInTheDocument();
+    expect(withinDialog().getByText("#TXN12345")).toBeInTheDocument();
+    expect(withinDialog().getByText("-$607.87")).toBeInTheDocument();
+  });
+
+  it("displays all transaction details in the receipt", async () => {
+    const user = userEvent.setup();
+    render(<TransactionsTable transactions={[mockTransaction]} />);
+
+    await user.click(getDesktopRow());
+
+    expect(withinDialog().getByText("Payment Sent")).toBeInTheDocument();
+    expect(withinDialog().getByText("0xA1B2...C3D4E5")).toBeInTheDocument();
+    expect(withinDialog().getByText("Invoice #1024")).toBeInTheDocument();
+  });
+
+  it("renders a print button inside the receipt dialog", async () => {
+    const user = userEvent.setup();
+    render(<TransactionsTable transactions={[mockTransaction]} />);
+
+    await user.click(getDesktopRow());
+
+    const printButton = withinDialog().getByRole("button", { name: /Print Receipt/i });
+    expect(printButton).toBeInTheDocument();
+  });
+
+  it("calls window.print when print button is clicked", async () => {
+    const user = userEvent.setup();
+    render(<TransactionsTable transactions={[mockTransaction]} />);
+
+    await user.click(getDesktopRow());
+
+    const printButton = withinDialog().getByRole("button", { name: /Print Receipt/i });
+    await user.click(printButton);
+
+    expect(window.print).toHaveBeenCalledTimes(1);
+  });
+
+  it("opens receipt dialog on Enter key press", async () => {
+    const user = userEvent.setup();
+    render(<TransactionsTable transactions={[mockTransaction]} />);
+
+    const row = getDesktopRow();
+    row.focus();
+    await user.keyboard("{Enter}");
+
+    expect(withinDialog().getByText("Transaction Receipt")).toBeInTheDocument();
+  });
+
+  it("opens receipt dialog on Space key press", async () => {
+    const user = userEvent.setup();
+    render(<TransactionsTable transactions={[mockTransaction]} />);
+
+    const row = getDesktopRow();
+    row.focus();
+    await user.keyboard(" ");
+
+    expect(withinDialog().getByText("Transaction Receipt")).toBeInTheDocument();
+  });
+
+  it("closes receipt dialog when close button is clicked", async () => {
+    const user = userEvent.setup();
+    render(<TransactionsTable transactions={[mockTransaction]} />);
+
+    await user.click(getDesktopRow());
+    expect(withinDialog().getByText("Transaction Receipt")).toBeInTheDocument();
+
+    const closeButton = withinDialog().getByRole("button", { name: /Close/i });
+    await user.click(closeButton);
+
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+  });
+
+  it("renders table rows with correct aria attributes", () => {
+    render(<TransactionsTable transactions={[mockTransaction]} />);
+
+    const row = getDesktopRow();
+    expect(row).toHaveAttribute("tabindex", "0");
+  });
+
+  it("renders desktop table structure", () => {
+    render(<TransactionsTable transactions={[mockTransaction]} />);
+
+    expect(screen.getByRole("columnheader", { name: "Transaction Type" })).toBeInTheDocument();
+    expect(screen.getByRole("columnheader", { name: "Address" })).toBeInTheDocument();
+    expect(screen.getByRole("columnheader", { name: /^Date$/ })).toBeInTheDocument();
+    expect(screen.getByRole("columnheader", { name: "Token" })).toBeInTheDocument();
+    expect(screen.getByRole("columnheader", { name: "Amount" })).toBeInTheDocument();
+    expect(screen.getByRole("columnheader", { name: "Status" })).toBeInTheDocument();
   });
 });

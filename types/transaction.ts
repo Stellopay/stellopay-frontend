@@ -9,6 +9,7 @@ export interface Transaction {
   amount: number;
   status: string;
   statusColor: "success" | "warning" | "destructive";
+  memo?: string;
 }
 
 export type SortField = Extract<
@@ -32,6 +33,7 @@ export interface TransactionFilters {
 export interface TransactionProps {
   id: string;
   type: string;
+  txId: string;
   address: string;
   date: string;
   time: string;
@@ -39,6 +41,7 @@ export interface TransactionProps {
   amount: string;
   status: "Completed" | "Pending" | "Failed";
   tokenIcon: string;
+  memo?: string;
 }
 
 // Transaction component props
