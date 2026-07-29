@@ -248,51 +248,28 @@ The Transactions list component distinguishes between an empty result (e.g. no t
 
 ## Advanced Filter Panel (Added: feature/transactions-advanced-filter-panel)
 
-The Advanced Filter Panel is a togglable drawer that combines all transaction filter dimensions (status, amount range, counterparty address) into a single, auditable interface. It slides in from the right on desktop and takes full width on mobile (< 640px). Active filters are represented as removable chips below the filter bar.
+## Transaction PDF receipt with QR verification
 
-### Components
+### Overview
+Each row in `components/transactions/transactions-table.tsx` has a
+"Download receipt" action that generates a real, downloadable PDF
+(via `jspdf`) — distinct from the existing print stylesheet and
+on-page receipt view.
 
-| File | Purpose |
-|------|---------|
-| `components/transactions/advanced-filter-panel.tsx` | Togglable drawer with status radio, min/max amount inputs, counterparty text input, Apply/Clear All buttons |
-| `components/transactions/filter-chips.tsx` | Removable chips showing active filter state with individual remove and bulk clear |
-| `components/transactions/transactions-filters.tsx` | Updated with Advanced filter toggle button (indicator dot when active) |
-| `components/transactions/transactions-content.tsx` | Orchestrates panel open/close, draft state, apply/commit, chip removal, and passes values to API |
+### Contents
+- StelloPay logo (from `public/logos`)
+- Transaction hash, amount, counterparty, and timestamp
+- A QR code (via `qrcode`) encoding a link to the transaction's
+  detail/verification URL
 
-### State Model
+### Accessibility (WCAG 2.1 AA)
+- Button has a descriptive `aria-label` including the transaction hash
+- Generation errors surface via `role="alert"`
+- Visible focus ring (`focus-visible:ring-2`)
+- Button is disabled (not hidden) while generating, keeping it in the
+  tab order with an updated accessible label ("Generating…")
 
-- Draft state lives in `transactions-content.tsx` — panel inputs modify draft values; committed filters flow through `TransactionFilters` (which gained `minAmount`, `maxAmount`, and `counterparty` fields).
-- The API layer (`lib/api/transactions.ts` → `utils/transactionUtils.ts`) applies `counterparty` filtering as a case-insensitive partial match on the transaction address field.
-
-### Accessibility Notes (WCAG 2.1 AA)
-
-#### Advanced Filter Panel (`advanced-filter-panel.tsx`)
-
-- **Role & Label**: Panel uses `role="dialog"` with `aria-modal="true"` and `aria-label="Advanced transaction filters"`.
-- **Focus Trap**: When the panel opens, focus is moved to the first focusable element after a 150ms animation delay. Tab/Shift+Tab cycles within the panel. Focus is restored to the triggering element on close.
-- **Escape to Close**: Pressing Escape closes the panel and returns focus.
-- **Backdrop Click**: Clicking the backdrop overlay closes the panel.
-- **Body Scroll Lock**: `document.body.style.overflow = "hidden"` is set while the panel is open; restored on close/unmount.
-- **Validation Errors**: Amount range validation uses `role="alert"` with `aria-live="polite"` for non-intrusive screen reader announcement.
-- **Contrast**: 
-  - Status radio labels: white text on dark background (#160f17) — passes AA.
-  - Selected status: `border-[#04842E]` (green) on `bg-[#04842E]/10` background.
-  - Inputs: white text on `bg-[#1A1A1A]` with `border-[#2D2D2D]`.
-  - Apply button: white text on `bg-[#04842E]` (green) background.
-  - Clear All button: gray-400 text on transparent, darkens on hover.
-- **Keyboard Navigation**: All buttons, inputs, and radio controls are fully keyboard-accessible with visible `focus-visible:ring-2` focus indicators.
-- **Disabled State**: When `disabled={true}`, all inputs and buttons receive `disabled` attribute, preventing interaction during loading states.
-
-#### Filter Chips (`filter-chips.tsx`)
-
-- **Region Role**: Chips container uses `role="region"` with `aria-label="Active filters"` (customizable).
-- **Remove Buttons**: Each chip's remove button has a descriptive `aria-label` (e.g., "Remove Status filter: Payment Sent").
-- **Clear All**: When multiple chips are present, a "Clear all" button with `aria-label="Clear all active filters"` is shown.
-- **Focus Indicators**: Remove buttons and Clear all link use `focus-visible:ring-2` outlines.
-
-#### Responsive Behavior
-
-- **Panel Width**: Full width on mobile, `sm:w-[420px]` on small screens, `lg:w-[480px]` on large screens.
-- **Amount Range**: Two-column grid (`grid-cols-2`) adapts well at all breakpoints.
-- **Advanced Toggle Button**: Label text is hidden on mobile (`hidden sm:inline`) to conserve space; the sliders icon remains visible.
-- **Chips**: Use `flex-wrap` for natural wrapping on narrow viewports.
+### Responsive
+Verified at sm (640px), md (768px), lg (1024px), xl (1280px) — button
+sits inline with existing row actions and wraps under the row on
+narrow widths.
