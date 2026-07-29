@@ -208,7 +208,6 @@ function getErrorMessage(code: OAuthCallbackError["code"]): string {
       return "Authentication failed. Please try again or use your password to sign in.";
   }
 }
-
 /**
  * Sends a passwordless magic-link sign-in email to the given address.
  *
