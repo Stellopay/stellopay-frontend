@@ -59,3 +59,35 @@ The file also hardcodes non-token hex values that are **not** `zinc-*` utilities
 - Verified visually and via existing tests across the `showNotifications`/`showDropdown` permutations, which drive the `sm`/`md` breakpoint layout switch (`flex-col md:flex-row`) — no layout classes were touched, only color utilities.
 - All existing tests in `components/analytics/analytics-view.test.tsx` pass against the new markup (one unrelated pre-existing failure, `renders empty state component when empty data is provided`, reproduces identically on `main` and is unrelated to this change).
 - No text or non-text contrast regressions: token swaps were chosen to preserve or exceed the contrast ratios of the `zinc-*` values they replaced (see notes above).
+
+## Quick Transfer Widget — `components/dashboard/quick-transfer.tsx` (#892)
+
+### Overview
+Added a compact quick-transfer card to the dashboard so repeat senders can initiate a Stellar payment without leaving `components/dashboard/dashboard-page.tsx`. The widget surfaces recent transaction counterparties as autocomplete suggestions, validates the recipient address and amount inline, and requires an explicit confirmation dialog before the transfer is dispatched.
+
+### Component surface
+
+| Concern | Implementation |
+|---|---|
+| **Recipient autocomplete** | Custom `combobox` pattern: `role="combobox"` input with `aria-expanded`, `aria-controls`, and `aria-activedescendant`. Suggestions are filtered by address or label, limited to 5 items, and navigable with ArrowUp/ArrowDown/Enter/Escape. |
+| **Address validation** | Reuses `utils/stellarAddress.ts` (`isValidStellarAddress`). Ed25519 public keys (`G...`) and muxed accounts (`M...`) are accepted; secret seeds (`S...`) are rejected. Shows an inline `FormMessage` on blur. |
+| **Amount validation** | Zod schema enforces positive, numeric input with up to 7 decimal places (Stellar precision). The input uses `inputMode="decimal"` for mobile keyboards. |
+| **Confirmation step** | Radix `Dialog` with `role="dialog"`, `aria-labelledby`, and `aria-describedby`. Displays recipient and amount for final review; Cancel aborts, Confirm & Send triggers the provided `onSend` callback. |
+| **Accessibility** | WCAG 2.1 AA: all form fields have `<label>` + `htmlFor`, `aria-invalid` is driven by the Input `error` prop, error messages use `role="alert"`, the dialog focus is trapped by Radix, and no interactive element relies on hover alone. |
+| **Responsive breakpoints** | Card spacing uses `p-5 sm:p-6`; headings resize with `text-lg sm:text-xl`; dialog remains usable at `sm:max-w-lg`. No horizontal overflow at `sm` (640), `md` (768), `lg` (1024), or `xl` (1280). |
+| **Design tokens** | Matches existing dashboard cards (`rounded-2xl`, `border-zinc-200 dark:border-zinc-800`, `bg-white dark:bg-[#111111]`, `shadow-sm`). Text colors use `text-zinc-900/600/500/400` with dark counterparts. |
+
+### Keyboard navigation
+- **ArrowDown / ArrowUp** cycles autocomplete suggestions.
+- **Enter** selects the active suggestion or submits the form.
+- **Escape** closes the suggestion list or the confirmation dialog.
+- **Tab** moves focus through fields without trapping.
+
+### Edge cases covered in tests
+- Empty recent-recipients list renders without crashing.
+- Invalid Stellar addresses show validation text after blur.
+- Negative values and >7 decimals are rejected.
+- Empty/disconnected states leave the Submit button disabled.
+- `onSend` rejections surface an accessible `role="alert"` message.
+- Suggestion keyboard traversal scrolls the active item into view.
+
