@@ -1,9 +1,12 @@
+"use client";
+
 import {
   ChevronDown,
   FileCheck,
   Filter,
   Search,
   ChevronsUpDown,
+  SlidersHorizontal,
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -14,23 +17,35 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import type { TransactionsFiltersProps } from "@/types/transaction";
+import type { SortField, TransactionsFiltersProps } from "@/types/transaction";
+import { cn } from "@/utils/commonUtils";
 
 export default function TransactionsFilters({
   searchQuery,
   selectedFilter,
-  sortField,
-  sortDirection,
+  sortConfigs,
   onSearchChange,
   onFilterChange,
   onSort,
+  onAdvancedFilterToggle,
+  hasAdvancedFilters = false,
 }: TransactionsFiltersProps) {
+  const renderSortIndicator = (field: SortField) => {
+    const indicators: string[] = [];
+    for (const [idx, config] of sortConfigs.entries()) {
+      if (config.field === field) {
+        const arrow = config.direction === "asc" ? "\u2191" : "\u2193";
+        const label = idx === 0 ? arrow : `${arrow} #${idx + 1}`;
+        indicators.push(label);
+      }
+    }
+    return indicators.length > 0 ? indicators.join(" ") : "";
+  };
+
   return (
-    <div className="flex flex-col lg:flex-row lg:items-center justify-between px-6 py-4  rounded-lg  bg-[#160f17]">
+    <div className="flex flex-col lg:flex-row lg:items-center justify-between px-6 py-4 rounded-lg bg-[#160f17]">
       {/* Transaction Type Filter */}
-      {/* Transaction Type Filter - Updated Section */}
       <div className="flex items-center gap-2">
-        {/* Calendar icon now outside button but visually aligned */}
         <div className="bg-[#110e11] p-2 rounded-lg border border-[#3E3E3E] inline-flex items-center justify-center">
           <FileCheck
             size={35}
@@ -73,7 +88,7 @@ export default function TransactionsFilters({
             >
               Payment Received
             </DropdownMenuItem>
-          </DropdownMenuContent>{" "}
+          </DropdownMenuContent>
         </DropdownMenu>
       </div>
 
@@ -84,7 +99,7 @@ export default function TransactionsFilters({
           <span className="absolute left-3 top-1/2 transform -translate-y-1/2">
             <Search
               size={16}
-              color="#9CA3AF" // gray-400
+              color="#9CA3AF"
               strokeWidth={1.5}
             />
           </span>
@@ -95,6 +110,34 @@ export default function TransactionsFilters({
             className="pl-10 bg-[#1A1A1A] border-[#2D2D2D] text-white placeholder-gray-400 focus:border-gray-600"
           />
         </div>
+
+        {/* Advanced Filter Toggle Button */}
+        {onAdvancedFilterToggle && (
+          <Button
+            variant="ghost"
+            size="default"
+            onClick={onAdvancedFilterToggle}
+            aria-label="Open advanced filters"
+            className={cn(
+              "text-gray-400 hover:text-white hover:bg-[#1a0c1d] relative",
+              hasAdvancedFilters && "text-[#34D399]",
+            )}
+          >
+            <SlidersHorizontal
+              size={20}
+              color="currentColor"
+              strokeWidth={1.5}
+              className="mr-2"
+            />
+            <span className="text-base hidden sm:inline">Advanced</span>
+            {hasAdvancedFilters && (
+              <span className="absolute -top-0.5 -right-0.5 flex h-2.5 w-2.5">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#34D399] opacity-75" />
+                <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-[#34D399]" />
+              </span>
+            )}
+          </Button>
+        )}
 
         {/* Filter Dropdown */}
         <DropdownMenu>
@@ -111,7 +154,6 @@ export default function TransactionsFilters({
                 className="mr-2"
               />
               <span className="text-base">Filter</span>
-              {/* Responsive text */}
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent className="bg-[#160f17] border-[#2D2D2D]">
@@ -156,31 +198,55 @@ export default function TransactionsFilters({
           <DropdownMenuContent className="bg-[#160f17] border-[#2D2D2D]">
             <DropdownMenuItem
               className="text-white hover:bg-gray-800"
-              onClick={() => onSort("date")}
+              onClick={(e) => onSort("date", { shiftKey: e.shiftKey })}
             >
-              Sort by Date{" "}
-              {sortField === "date" && (sortDirection === "asc" ? "↑" : "↓")}
+              <span className="flex items-center gap-2">
+                Sort by Date
+                {renderSortIndicator("date") && (
+                  <span className="text-xs text-gray-400">
+                    {renderSortIndicator("date")}
+                  </span>
+                )}
+              </span>
             </DropdownMenuItem>
             <DropdownMenuItem
               className="text-white hover:bg-gray-800"
-              onClick={() => onSort("amount")}
+              onClick={(e) => onSort("amount", { shiftKey: e.shiftKey })}
             >
-              Sort by Amount{" "}
-              {sortField === "amount" && (sortDirection === "asc" ? "↑" : "↓")}
+              <span className="flex items-center gap-2">
+                Sort by Amount
+                {renderSortIndicator("amount") && (
+                  <span className="text-xs text-gray-400">
+                    {renderSortIndicator("amount")}
+                  </span>
+                )}
+              </span>
             </DropdownMenuItem>
             <DropdownMenuItem
               className="text-white hover:bg-gray-800"
-              onClick={() => onSort("type")}
+              onClick={(e) => onSort("type", { shiftKey: e.shiftKey })}
             >
-              Sort by Type{" "}
-              {sortField === "type" && (sortDirection === "asc" ? "↑" : "↓")}
+              <span className="flex items-center gap-2">
+                Sort by Type
+                {renderSortIndicator("type") && (
+                  <span className="text-xs text-gray-400">
+                    {renderSortIndicator("type")}
+                  </span>
+                )}
+              </span>
             </DropdownMenuItem>
             <DropdownMenuItem
               className="text-white hover:bg-gray-800"
-              onClick={() => onSort("status")}
+              onClick={(e) => onSort("status", { shiftKey: e.shiftKey })}
             >
-              Sort by Status{" "}
-              {sortField === "status" && (sortDirection === "asc" ? "↑" : "↓")}
+              <span className="flex items-center gap-2">
+                Sort by Status
+                {renderSortIndicator("status") && (
+                  <span className="text-xs text-gray-400">
+                    {renderSortIndicator("status")}
+                  </span>
+                )}
+              </span>
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
