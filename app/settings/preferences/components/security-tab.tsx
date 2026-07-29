@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import { useSearchHighlight } from "@/hooks/useSearchHighlight";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import {
@@ -189,6 +190,8 @@ interface SecurityTabProps {
    */
   twoFactorEnabled?: boolean;
   onTwoFactorEnabledChange?: (next: boolean) => void;
+  /** When set, scrolls to and highlights the matching control. */
+  highlightedSearchLabel?: string | null;
 }
 
 /**
@@ -266,7 +269,9 @@ export function getVerificationCodeError(value: string): string | null {
 export default function SecurityTab({
   twoFactorEnabled: controlledTwoFactor,
   onTwoFactorEnabledChange,
+  highlightedSearchLabel,
 }: SecurityTabProps = {}) {
+  useSearchHighlight(highlightedSearchLabel ?? null);
   const [internalTwoFactor, setInternalTwoFactor] = useState(
     controlledTwoFactor ?? DEFAULT_TWO_FACTOR_ENABLED,
   );
@@ -686,7 +691,10 @@ export default function SecurityTab({
 
   return (
     <div className="grid gap-6 xl:grid-cols-[minmax(0,1.2fr)_minmax(320px,0.8fr)]">
-      <Card className="border-zinc-200 bg-white/90 shadow-sm dark:border-white/10 dark:bg-white/5">
+      <Card
+        data-search-label="Password and recovery"
+        className="border-zinc-200 bg-white/90 shadow-sm dark:border-white/10 dark:bg-white/5"
+      >
         <CardHeader className="border-b border-zinc-200/80 dark:border-white/10">
           <div className="flex items-center gap-3">
             <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-zinc-900 text-white dark:bg-white dark:text-zinc-900">
@@ -1065,12 +1073,14 @@ export default function SecurityTab({
               description="Challenge sign-ins from browsers or devices you have not approved yet."
               enabled={loginApprovalEnabled}
               onToggle={setLoginApprovalEnabled}
+              searchLabel="New device approval"
             />
             <ToggleCard
               title="Large transfer approval"
               description="Hold transfers over your threshold for a second confirmation."
               enabled={transferApprovalEnabled}
               onToggle={setTransferApprovalEnabled}
+              searchLabel="Large transfer approval"
             />
 
             {twoFactorEnabled && !backupCodes && (
@@ -1346,7 +1356,10 @@ export default function SecurityTab({
           </CardContent>
         </Card>
 
-        <Card className="border-zinc-200 bg-white/90 shadow-sm dark:border-white/10 dark:bg-white/5">
+        <Card
+          data-search-label="Active sessions"
+          className="border-zinc-200 bg-white/90 shadow-sm dark:border-white/10 dark:bg-white/5"
+        >
           <CardHeader className="border-b border-zinc-200/80 dark:border-white/10">
             <div className="flex items-center justify-between gap-3">
               <div className="space-y-1">
@@ -1392,26 +1405,28 @@ export default function SecurityTab({
               );
             })}
 
-            <DestructiveActionDialog
-              triggerLabel="Sign out all sessions"
-              title="Sign out every other session"
-              description="This will invalidate every session except the current browser."
-              impactItems={[
-                "Every signed-in mobile or web session will need to log in again.",
-                "Pending high-risk actions will be interrupted until re-authentication.",
-                "This action should only be used if you suspect account access issues.",
-              ]}
-              confirmationToken="LOGOUT"
-              confirmationLabel='Type "LOGOUT" to continue'
-              confirmLabel="Force sign-out"
-              onConfirm={() =>
-                setStatus({
-                  message:
-                    "Session reset requested. All other devices would be signed out.",
-                  type: "success",
-                })
-              }
-            />
+            <div data-search-label="Sign out all sessions">
+              <DestructiveActionDialog
+                triggerLabel="Sign out all sessions"
+                title="Sign out every other session"
+                description="This will invalidate every session except the current browser."
+                impactItems={[
+                  "Every signed-in mobile or web session will need to log in again.",
+                  "Pending high-risk actions will be interrupted until re-authentication.",
+                  "This action should only be used if you suspect account access issues.",
+                ]}
+                confirmationToken="LOGOUT"
+                confirmationLabel='Type "LOGOUT" to continue'
+                confirmLabel="Force sign-out"
+                onConfirm={() =>
+                  setStatus({
+                    message:
+                      "Session reset requested. All other devices would be signed out.",
+                    type: "success",
+                  })
+                }
+              />
+            </div>
           </CardContent>
         </Card>
       </div>

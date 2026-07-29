@@ -46,6 +46,8 @@ export interface ToggleCardProps {
   enabled: boolean;
   disabled?: boolean;
   onToggle: (enabled: boolean) => void;
+  /** When set, adds a data-search-label attribute for cross-tab search highlighting. */
+  searchLabel?: string;
 }
 
 export interface NotificationProps {

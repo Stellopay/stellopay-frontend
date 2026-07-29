@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Bell, FileText, Shield, UserRound, Wallet } from "lucide-react";
 import { usePathname, useRouter } from "next/navigation";
 import SettingsHeader, {
@@ -143,20 +143,36 @@ export default function SettingsPageShell({
   const statementCoverage = `${statements.length} ready`;
 
   const [pendingSection, setPendingSection] = useState<string | null>(null);
+  const [highlightedSearchLabel, setHighlightedSearchLabel] = useState<string | null>(null);
 
   // Determine if there are unsaved edits. We use a simple deep comparison
   // against the initial defaults since this shell tracks the state.
   const isProfileDirty = JSON.stringify(profile) !== JSON.stringify(DEFAULT_PROFILE);
   const isDirty = isProfileDirty;
 
-  const handleSectionChange = (nextSection: string) => {
-    if (nextSection === activeSection) return;
+  const handleSectionChange = (nextSection: string, searchLabel?: string) => {
+    if (nextSection === activeSection && !searchLabel) return;
     if (!confirmDiscard()) return;
     setActiveSection(nextSection);
+    if (searchLabel) {
+      setHighlightedSearchLabel(searchLabel);
+    }
     router.replace(`${pathname}?section=${nextSection}`, {
       scroll: false,
     });
   };
+
+  // Clear the search highlight after the next render cycle so the
+  // section component can pick it up and scroll to the control.
+  const prevHighlighted = useRef(highlightedSearchLabel);
+  useEffect(() => {
+    if (prevHighlighted.current && highlightedSearchLabel) {
+      prevHighlighted.current = null;
+      const timer = setTimeout(() => setHighlightedSearchLabel(null), 4000);
+      return () => clearTimeout(timer);
+    }
+    prevHighlighted.current = highlightedSearchLabel;
+  }, [highlightedSearchLabel]);
 
   const handleDiscardChanges = () => {
     // Reset state to clear the dirty flag
@@ -227,6 +243,7 @@ export default function SettingsPageShell({
             profile={profile}
             onProfileChange={setProfile}
             onSaved={setSavedProfile}
+            highlightedSearchLabel={highlightedSearchLabel}
           />
         </TabsContent>
 
@@ -235,6 +252,7 @@ export default function SettingsPageShell({
             settings={notificationSettings}
             onSettingsChange={setNotificationSettings}
             onSaved={setSavedNotificationSettings}
+            highlightedSearchLabel={highlightedSearchLabel}
           />
         </TabsContent>
 
@@ -242,11 +260,12 @@ export default function SettingsPageShell({
           <SecurityTab
             twoFactorEnabled={twoFactorEnabled}
             onTwoFactorEnabledChange={setTwoFactorEnabled}
+            highlightedSearchLabel={highlightedSearchLabel}
           />
         </TabsContent>
 
         <TabsContent value="wallets" className="mt-0">
-          <WalletsSection />
+          <WalletsSection highlightedSearchLabel={highlightedSearchLabel} />
         </TabsContent>
 
         <TabsContent value="documents" className="mt-0">
