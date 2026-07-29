@@ -32,6 +32,10 @@ export interface TransactionFilters {
   fromDate: string;
   toDate: string;
   selectedFilter: string;
+  /** Optional minimum absolute transaction amount filter. */
+  minAmount?: number;
+  /** Optional maximum absolute transaction amount filter. */
+  maxAmount?: number;
   /** Ordered list of sort criteria. The first entry is the primary sort,
    *  the second (if present) is the secondary (tiebreaker) sort, etc. */
   sortConfigs: SortConfig[];
@@ -54,7 +58,14 @@ export interface TransactionProps {
   amount: string;
   status: "Completed" | "Pending" | "Failed";
   tokenIcon: string;
+  /** Optional memo/description for the transaction */
   memo?: string;
+  /** Optional counterparty address or name */
+  counterparty?: string;
+  /** Optional transaction fee */
+  fee?: string;
+  /** Optional raw transaction hash */
+  hash?: string;
 }
 
 // Transaction component props
