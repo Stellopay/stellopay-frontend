@@ -7,11 +7,9 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Form } from "@/components/ui/form";
 import {
-  FormFieldInput,
-  FormFieldPassword,
+  AuthFormField,
   FormFieldCheckbox,
 } from "@/components/ui/form-field";
-import { Separator } from "@/components/ui/separator";
 import { Check, X } from "lucide-react";
 import { SignUpEmailModal } from "./sign-up-email-modal";
 import { AuthSocialButtons } from "../auth-social-buttons";
@@ -99,14 +97,8 @@ export function SignUpForm() {
           </div>
         </div>
       </div>
-      {/* Social Login */}
+      {/* Social Login (includes accessible divider) */}
       <AuthSocialButtons />
-      {/* Divider */}
-      <div className="flex items-center my-6 gap-2">
-        <Separator className="flex-1 bg-muted-foreground" />
-        <span className="text-sm text-muted-foreground">Or</span>
-        <Separator className="flex-1 bg-muted-foreground" />
-      </div>
       {/* Form */}
       <Form {...form}>
         <form
@@ -114,7 +106,7 @@ export function SignUpForm() {
           className="flex flex-col gap-4"
           noValidate
         >
-          <FormFieldInput
+          <AuthFormField
             control={form.control}
             name="fullName"
             type="text"
@@ -123,7 +115,7 @@ export function SignUpForm() {
             required
             autoComplete="name"
           />
-          <FormFieldInput
+          <AuthFormField
             control={form.control}
             name="email"
             type="email"
@@ -131,10 +123,12 @@ export function SignUpForm() {
             placeholder="Enter your email"
             required
             autoComplete="email"
+            inputMode="email"
           />
-          <FormFieldPassword
+          <AuthFormField
             control={form.control}
             name="password"
+            type="password"
             label="Password"
             placeholder="Create a password"
             required
@@ -221,9 +215,10 @@ export function SignUpForm() {
               )}
             </div>
           )}
-          <FormFieldPassword
+          <AuthFormField
             control={form.control}
             name="confirmPassword"
+            type="password"
             label="Confirm Password"
             placeholder="Confirm your password"
             required
