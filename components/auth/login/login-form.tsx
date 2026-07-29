@@ -3,11 +3,13 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm, type FieldErrors } from "react-hook-form";
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Form } from "@/components/ui/form";
 import {
   AuthFormField,
+  FormFieldPassword,
   FormFieldCheckbox,
 } from "@/components/ui/form-field";
 import { Separator } from "@/components/ui/separator";
@@ -40,9 +42,11 @@ type SignInMethod = "password" | "magic-link";
  *           Password values are never logged. `autoComplete="current-password"`
  *           is preserved for password-manager compatibility.
  */
-export function LoginForm() {
+export function LoginForm({ returnTo }: { returnTo?: string }) {
+  const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
+  const [isNetworkError, setIsNetworkError] = useState(false);
   const [signInMethod, setSignInMethod] = useState<SignInMethod>("password");
   const [magicLinkSent, setMagicLinkSent] = useState(false);
   const [magicLinkEmail, setMagicLinkEmail] = useState("");
@@ -79,6 +83,7 @@ export function LoginForm() {
   async function onSubmit(_data: LoginFormValues) {
     setIsLoading(true);
     setErrorMessage("");
+    setIsNetworkError(false);
     try {
       await login(_data);
       // Persist only a non-sensitive identifier (email). The password is
@@ -88,12 +93,14 @@ export function LoginForm() {
       } else {
         safeStorage.removeItem(REMEMBERED_EMAIL_KEY);
       }
-      // Handle successful login redirect or state update here
+      router.push(returnTo || "/dashboard");
     } catch (error) {
       if (error instanceof AuthError) {
         setErrorMessage(error.message);
+        setIsNetworkError(error.kind === "network");
       } else {
         setErrorMessage("Invalid email or password. Please try again.");
+        setIsNetworkError(false);
       }
     } finally {
       setIsLoading(false);
@@ -242,10 +249,9 @@ export function LoginForm() {
                 inputMode="email"
               />
 
-              <AuthFormField
+              <FormFieldPassword
                 control={form.control}
                 name="password"
-                type="password"
                 label="Password"
                 placeholder="Enter your password"
                 disabled={isLoading}
@@ -258,7 +264,7 @@ export function LoginForm() {
                 <div
                   role="alert"
                   aria-live="polite"
-                  className="bg-red-500/10 text-red-300 px-4 py-3 rounded-lg text-sm"
+                  className="bg-red-500/10 text-red-300 px-4 py-3 rounded-lg text-sm flex items-center justify-between gap-3"
                 >
                   {errorMessage}
                 </div>

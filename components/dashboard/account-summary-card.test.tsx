@@ -1,8 +1,24 @@
 import React from 'react';
 import { render, screen } from '@testing-library/react';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import AccountSummaryCard from './account-summary-card';
 import { AccountSummaryCardProps } from './summary-data';
+
+vi.mock("next/link", () => ({
+  default: ({
+    children,
+    href,
+    ...props
+  }: {
+    children: React.ReactNode;
+    href: string;
+    [key: string]: unknown;
+  }) => (
+    <a href={href} {...props}>
+      {children}
+    </a>
+  ),
+}));
 
 const defaultProps: AccountSummaryCardProps = {
   title: "Total Balance",
@@ -24,6 +40,45 @@ describe('AccountSummaryCard', () => {
     expect(screen.getByText("Across all chains")).toBeInTheDocument();
     expect(screen.getByTestId("card-icon")).toBeInTheDocument();
     expect(screen.getByTestId("account-summary-card-value")).toHaveTextContent("$847,500.00");
+  });
+
+  describe('Drill-down navigation', () => {
+    it('renders as a link when filterQuery is provided', () => {
+      render(
+        <AccountSummaryCard {...defaultProps} filterQuery="Payment Sent" />,
+      );
+
+      const link = screen.getByTestId("account-summary-card-link");
+      expect(link).toBeInTheDocument();
+      expect(link).toHaveAttribute(
+        "href",
+        `/transactions?filter=${encodeURIComponent("Payment Sent")}`,
+      );
+      expect(link).toHaveAttribute(
+        "aria-label",
+        "View Total Balance transactions",
+      );
+    });
+
+    it('renders as a plain div (no link) when filterQuery is undefined', () => {
+      render(<AccountSummaryCard {...defaultProps} />);
+
+      expect(
+        screen.queryByTestId("account-summary-card-link"),
+      ).not.toBeInTheDocument();
+      // the value is still rendered
+      expect(
+        screen.getByTestId("account-summary-card-value"),
+      ).toBeInTheDocument();
+    });
+
+    it('navigates with empty filterQuery when value is empty string', () => {
+      render(<AccountSummaryCard {...defaultProps} filterQuery="" />);
+
+      const link = screen.getByTestId("account-summary-card-link");
+      expect(link).toBeInTheDocument();
+      expect(link).toHaveAttribute("href", "/transactions?filter=");
+    });
   });
 
   describe('Currency Formatting Edge Cases', () => {

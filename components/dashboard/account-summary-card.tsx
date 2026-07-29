@@ -1,10 +1,29 @@
 "use client";
 
 import React from "react";
+import Link from "next/link";
 import { TrendingUp, TrendingDown } from "lucide-react";
 import { AccountSummaryCardProps } from './summary-data';
-import { RechartsMiniBarChart } from './RechartsMiniBarChart';
+import dynamic from 'next/dynamic';
+import { Skeleton } from '@/components/ui/skeleton';
 import { formatCurrency } from '@/utils/formatUtils';
+
+const RechartsMiniBarChart = dynamic(
+  () => import('./RechartsMiniBarChart').then(mod => mod.RechartsMiniBarChart),
+  {
+    ssr: false,
+    loading: () => (
+      <div
+        className="flex items-end"
+        style={{ height: '3rem' }}
+        aria-label="Loading chart"
+        role="img"
+      >
+        <Skeleton className="w-full h-full rounded-[4px]" shade="dark" />
+      </div>
+    ),
+  },
+);
 
 export default function AccountSummaryCard({
   title,
@@ -18,14 +37,20 @@ export default function AccountSummaryCard({
   chartData,
   currency,
   decimals,
+  filterQuery,
 }: AccountSummaryCardProps) {
   const displayValue =
     typeof value === 'number'
       ? formatCurrency(value, currency, decimals)
       : value;
 
-  return (
-    <div className="bg-white dark:bg-[#111111] border border-zinc-200 dark:border-zinc-800 rounded-2xl p-6 flex flex-col gap-4 shadow-sm hover:shadow-md transition-shadow min-w-0 overflow-hidden">
+  const href =
+    filterQuery !== undefined
+      ? `/transactions?filter=${encodeURIComponent(filterQuery)}`
+      : undefined;
+
+  const cardContent = (
+    <>
       <div className="flex items-start justify-between min-w-0">
         <div className="flex items-center gap-3 min-w-0">
           <div className={`w-12 h-12 rounded-xl ${iconBgColor} flex items-center justify-center shrink-0`}>
@@ -67,6 +92,28 @@ export default function AccountSummaryCard({
         ariaLabel={`${title} mini chart`}
         height="3rem"
       />
+    </>
+  );
+
+  const baseClasses =
+    "bg-white dark:bg-[#111111] border border-zinc-200 dark:border-zinc-800 rounded-2xl p-6 flex flex-col gap-4 shadow-sm transition-all min-w-0 overflow-hidden";
+
+  if (href) {
+    return (
+      <Link
+        href={href}
+        data-testid="account-summary-card-link"
+        aria-label={`View ${title} transactions`}
+        className={`${baseClasses} cursor-pointer hover:shadow-md hover:border-zinc-400 dark:hover:border-zinc-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900 focus-visible:ring-offset-2 dark:focus-visible:ring-white dark:focus-visible:ring-offset-[#09090B]`}
+      >
+        {cardContent}
+      </Link>
+    );
+  }
+
+  return (
+    <div className={baseClasses}>
+      {cardContent}
     </div>
   );
 }

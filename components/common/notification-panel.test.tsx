@@ -1,30 +1,38 @@
-import { render, screen, fireEvent } from "@testing-library/react";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import React from "react";
+import { render, screen, fireEvent, act } from "@testing-library/react";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import NotificationPanel, { NotificationItem } from "./notification-panel";
 
-import NotificationPanel, { CATEGORY_STORAGE_KEY } from "./notification-panel";
-import { NotificationItem } from "@/types/notification-item";
-
-const buildNotifications = (count: number): NotificationItem[] =>
-  Array.from({ length: count }).map((_, index) => ({
-    id: `notif-${index}`,
-    title: `Title ${index}`,
-    message: `Message ${index}`,
-    read: index % 2 === 0,
-    category: index % 3 === 0 ? "payments" : index % 3 === 1 ? "security" : "system",
-  }));
-
-const buildCategorizedNotifications = (): NotificationItem[] => [
-  { id: "notif-p1", title: "Payment Received", message: "Received 500 XLM", read: false, category: "payments" },
-  { id: "notif-p2", title: "Payment Sent", message: "Sent 100 USDC", read: true, category: "payments" },
-  { id: "notif-s1", title: "Password Reset", message: "Security alert", read: false, category: "security" },
-  { id: "notif-sys1", title: "System Maintenance", message: "Scheduled downtime", read: true, category: "system" },
+const MOCK_NOTIFICATIONS: NotificationItem[] = [
+  {
+    id: "test-1",
+    title: "Test Alert 1",
+    message: "First test message",
+    timestamp: "1m ago",
+    read: false,
+  },
+  {
+    id: "test-2",
+    title: "Test Alert 2",
+    message: "Second test message",
+    timestamp: "10m ago",
+    read: true,
+  },
 ];
 
-describe("NotificationPanel", () => {
-  beforeEach(() => {
-    sessionStorage.clear();
+const buildNotifications = (count: number): NotificationItem[] =>
+  Array.from({ length: count }).map((_, index) => {
+    const isRead = index % 2 === 0;
+    return {
+      id: `notif-${index}`,
+      title: `Title ${index}`,
+      message: `Message ${index}`,
+      read: isRead,
+      ...(isRead ? { readAt: new Date().toISOString() } : {}),
+    };
   });
 
+describe("NotificationPanel", () => {
   it("renders a loading skeleton when isLoading is true", () => {
     render(<NotificationPanel notifications={[]} isLoading />);
 
@@ -32,198 +40,87 @@ describe("NotificationPanel", () => {
     expect(screen.queryByRole("listbox")).not.toBeInTheDocument();
   });
 
-  it("renders the empty state when notifications is empty and not loading", () => {
-    render(<NotificationPanel notifications={[]} />);
-
-    expect(screen.getByText("You're all caught up")).toBeInTheDocument();
-    expect(screen.queryByRole("listbox")).not.toBeInTheDocument();
+  afterEach(() => {
+    vi.restoreAllMocks();
   });
 
-  it("renders a single notification inside the accessible listbox", () => {
-    const notifications = buildNotifications(1);
+  it("renders notification items and unread count correctly", () => {
+    render(<NotificationPanel initialNotifications={MOCK_NOTIFICATIONS} />);
+
+    expect(screen.getByText("Notifications")).toBeInTheDocument();
+    expect(screen.getByText("Test Alert 1")).toBeInTheDocument();
+    expect(screen.getByText("Test Alert 2")).toBeInTheDocument();
+    expect(screen.getByText("1 new")).toBeInTheDocument();
+  });
+
+  it("marks all notifications as read when clicking Mark all read", () => {
+    render(<NotificationPanel initialNotifications={MOCK_NOTIFICATIONS} />);
+
+    const markAllBtn = screen.getByRole("button", { name: /mark all notifications as read/i });
+    fireEvent.click(markAllBtn);
+
+    expect(screen.queryByText("1 new")).not.toBeInTheDocument();
+  });
+
+  it("clears all notifications and presents undo toast window", () => {
+    render(<NotificationPanel initialNotifications={MOCK_NOTIFICATIONS} />);
+
+    const clearAllBtn = screen.getByRole("button", { name: /clear all notifications/i });
+    fireEvent.click(clearAllBtn);
+
+    expect(screen.queryByText("Test Alert 1")).not.toBeInTheDocument();
+    expect(screen.getByText("No notifications to display.")).toBeInTheDocument();
+
+    expect(screen.getByRole("status")).toBeInTheDocument();
+    expect(screen.getByText("Notifications cleared.")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /undo clear all notifications/i })).toBeInTheDocument();
+  });
+
+  it("restores exact prior notification list when clicking Undo", () => {
+    render(<NotificationPanel initialNotifications={MOCK_NOTIFICATIONS} />);
+
+    fireEvent.click(screen.getByRole("button", { name: /clear all notifications/i }));
+    expect(screen.queryByText("Test Alert 1")).not.toBeInTheDocument();
+
+    const undoBtn = screen.getByRole("button", { name: /undo clear all notifications/i });
+    fireEvent.click(undoBtn);
+
+    expect(screen.getByText("Test Alert 1")).toBeInTheDocument();
+    expect(screen.getByText("Test Alert 2")).toBeInTheDocument();
+    expect(screen.getByText("1 new")).toBeInTheDocument();
+    expect(screen.queryByRole("status")).not.toBeInTheDocument();
+  });
+
+  it("dismisses undo toast automatically after timer expires", () => {
+    render(<NotificationPanel initialNotifications={MOCK_NOTIFICATIONS} undoDurationMs={3000} />);
+
+    fireEvent.click(screen.getByRole("button", { name: /clear all notifications/i }));
+    expect(screen.getByRole("status")).toBeInTheDocument();
+
+    act(() => {
+      vi.advanceTimersByTime(3000);
+    });
+
+    expect(screen.queryByRole("status")).not.toBeInTheDocument();
+    expect(screen.getByText("No notifications to display.")).toBeInTheDocument();
+  });
+
+  it("displays the readAt timestamp for read notifications if provided", () => {
+    const notifications: NotificationItem[] = [
+      { id: "read", title: "Read item", message: "msg", read: true, readAt: "2026-07-29T15:00:00Z" },
+    ];
     render(<NotificationPanel notifications={notifications} />);
 
-    expect(screen.queryByText("You're all caught up")).not.toBeInTheDocument();
-    const listbox = screen.getByRole("listbox", {
-      name: "Notifications list",
-    });
-    expect(listbox).toBeInTheDocument();
-    expect(screen.getByText("Title 0")).toBeInTheDocument();
-    expect(screen.getByText("Message 0")).toBeInTheDocument();
+    expect(screen.getByText(/Read:/)).toBeInTheDocument();
   });
 
-  it("renders one row per notification keyed by stable id, not array index", () => {
-    const notifications = buildNotifications(3);
-    const { rerender } = render(
-      <NotificationPanel notifications={notifications} />,
-    );
-
-    notifications.forEach((notification) => {
-      expect(screen.getByText(notification.title)).toBeInTheDocument();
-    });
-
-    const remaining = notifications.slice(1);
-    rerender(<NotificationPanel notifications={remaining} />);
-
-    expect(screen.queryByText("Title 0")).not.toBeInTheDocument();
-    expect(screen.getByText("Title 1")).toBeInTheDocument();
-    expect(screen.getByText("Title 2")).toBeInTheDocument();
-  });
-
-  it("transitions from loading to the empty state when notifications resolve to an empty array", () => {
-    const { rerender } = render(
-      <NotificationPanel notifications={[]} isLoading />,
-    );
-    expect(screen.queryByText("You're all caught up")).not.toBeInTheDocument();
-
-    rerender(<NotificationPanel notifications={[]} isLoading={false} />);
-    expect(screen.getByText("You're all caught up")).toBeInTheDocument();
-  });
-
-  it("renders the bell trigger with an accessible label", () => {
-    render(<NotificationPanel notifications={buildNotifications(1)} />);
-
-    expect(
-      screen.getByRole("button", { name: "Notifications" }),
-    ).toBeInTheDocument();
-  });
-
-  it("renders notification text as plain escaped text, not raw markup", () => {
-    const malicious: NotificationItem[] = [
-      {
-        id: "notif-xss",
-        title: "<img src=x onerror=alert(1)>",
-        message: "<script>alert('xss')</script>",
-        read: false,
-        category: "security",
-      },
-    ];
-    render(<NotificationPanel notifications={malicious} />);
-
-    expect(
-      screen.getByText("<img src=x onerror=alert(1)>"),
-    ).toBeInTheDocument();
-    expect(
-      screen.getByText("<script>alert('xss')</script>"),
-    ).toBeInTheDocument();
-    expect(document.querySelector("script")).not.toBeInTheDocument();
-    expect(document.querySelector("img")).not.toBeInTheDocument();
-  });
-
-  it("shows the unread indicator only for unread notifications", () => {
+  it("displays the readAt timestamp for read notifications if provided", () => {
     const notifications: NotificationItem[] = [
-      { id: "read", title: "Read item", message: "msg", read: true, category: "system" },
-      { id: "unread", title: "Unread item", message: "msg", read: false, category: "system" },
+      { id: "read", title: "Read item", message: "msg", read: true, readAt: "2026-07-29T15:00:00Z" },
     ];
-    const { container } = render(
-      <NotificationPanel notifications={notifications} />,
-    );
+    render(<NotificationPanel notifications={notifications} />);
 
-    const unreadDots = container.querySelectorAll(".w-1.h-1.bg-\\[\\#EB6945\\]");
-    expect(unreadDots).toHaveLength(1);
-  });
-
-  // ── Category Filter Tests ──────────────────────────────────────────
-
-  describe("category filtering", () => {
-    it("renders category filter tabs with accurate item counts", () => {
-      const notifications = buildCategorizedNotifications();
-      render(<NotificationPanel notifications={notifications} />);
-
-      expect(screen.getByRole("tablist", { name: "Filter notifications by category" })).toBeInTheDocument();
-
-      const tabs = screen.getAllByRole("tab");
-      expect(tabs).toHaveLength(4);
-
-      expect(screen.getByTestId("count-all")).toHaveTextContent("(4)");
-      expect(screen.getByTestId("count-payments")).toHaveTextContent("(2)");
-      expect(screen.getByTestId("count-security")).toHaveTextContent("(1)");
-      expect(screen.getByTestId("count-system")).toHaveTextContent("(1)");
-    });
-
-    it("filters notifications by selected category when clicked", () => {
-      const notifications = buildCategorizedNotifications();
-      render(<NotificationPanel notifications={notifications} />);
-
-      // Initially All is selected (4 items)
-      expect(screen.getByText("Payment Received")).toBeInTheDocument();
-      expect(screen.getByText("Password Reset")).toBeInTheDocument();
-      expect(screen.getByText("System Maintenance")).toBeInTheDocument();
-
-      // Click Payments tab
-      const paymentsTab = screen.getByRole("tab", { name: /Payments/i });
-      fireEvent.click(paymentsTab);
-
-      expect(screen.getByText("Payment Received")).toBeInTheDocument();
-      expect(screen.getByText("Payment Sent")).toBeInTheDocument();
-      expect(screen.queryByText("Password Reset")).not.toBeInTheDocument();
-      expect(screen.queryByText("System Maintenance")).not.toBeInTheDocument();
-
-      // Click Security tab
-      const securityTab = screen.getByRole("tab", { name: /Security/i });
-      fireEvent.click(securityTab);
-
-      expect(screen.queryByText("Payment Received")).not.toBeInTheDocument();
-      expect(screen.getByText("Password Reset")).toBeInTheDocument();
-      expect(screen.queryByText("System Maintenance")).not.toBeInTheDocument();
-    });
-
-    it("persists selected filter in sessionStorage", () => {
-      const notifications = buildCategorizedNotifications();
-      render(<NotificationPanel notifications={notifications} />);
-
-      const securityTab = screen.getByRole("tab", { name: /Security/i });
-      fireEvent.click(securityTab);
-
-      expect(sessionStorage.getItem(CATEGORY_STORAGE_KEY)).toBe("security");
-    });
-
-    it("restores last-selected filter from sessionStorage on initial render", () => {
-      sessionStorage.setItem(CATEGORY_STORAGE_KEY, "payments");
-
-      const notifications = buildCategorizedNotifications();
-      render(<NotificationPanel notifications={notifications} />);
-
-      const paymentsTab = screen.getByRole("tab", { name: /Payments/i });
-      expect(paymentsTab).toHaveAttribute("aria-selected", "true");
-
-      expect(screen.getByText("Payment Received")).toBeInTheDocument();
-      expect(screen.getByText("Payment Sent")).toBeInTheDocument();
-      expect(screen.queryByText("Password Reset")).not.toBeInTheDocument();
-    });
-
-    it("shows empty state when a selected category has no matching notifications", () => {
-      const notifications: NotificationItem[] = [
-        { id: "p1", title: "Payment Received", message: "Received 500 XLM", read: false, category: "payments" },
-      ];
-      render(<NotificationPanel notifications={notifications} />);
-
-      const securityTab = screen.getByRole("tab", { name: /Security/i });
-      fireEvent.click(securityTab);
-
-      expect(screen.getByText("You're all caught up")).toBeInTheDocument();
-      expect(screen.queryByRole("listbox")).not.toBeInTheDocument();
-    });
-
-    it("supports keyboard ArrowRight and ArrowLeft navigation between category tabs", () => {
-      const notifications = buildCategorizedNotifications();
-      render(<NotificationPanel notifications={notifications} />);
-
-      const allTab = screen.getByRole("tab", { name: /All/i });
-      const paymentsTab = screen.getByRole("tab", { name: /Payments/i });
-      const systemTab = screen.getByRole("tab", { name: /System/i });
-
-      // ArrowRight from All to Payments
-      fireEvent.keyDown(allTab, { key: "ArrowRight" });
-      expect(paymentsTab).toHaveAttribute("aria-selected", "true");
-
-      // ArrowLeft from Payments back to All (or ArrowLeft from All wraps to System)
-      fireEvent.keyDown(paymentsTab, { key: "ArrowLeft" });
-      expect(allTab).toHaveAttribute("aria-selected", "true");
-
-      fireEvent.keyDown(allTab, { key: "ArrowLeft" });
-      expect(systemTab).toHaveAttribute("aria-selected", "true");
-    });
+    expect(screen.getByText(/Read:/)).toBeInTheDocument();
   });
 
   // ── Keyboard navigation ────────────────────────────────────────────

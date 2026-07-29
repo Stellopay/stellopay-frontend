@@ -17,6 +17,7 @@ export interface TextareaInputProps {
   placeholder?: string;
   onChange: (value: string) => void;
   rows?: number;
+  maxLength?: number;
 }
 
 export interface EmailInputProps {
@@ -28,6 +29,8 @@ export interface FaqCardProps {
   title: string;
   subtitle: string;
   link?: string;
+  icon?: React.ReactNode;
+  articleCount?: number;
 }
 
 export interface SupportTabsProps {
