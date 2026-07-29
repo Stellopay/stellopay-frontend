@@ -90,7 +90,7 @@ export function TransactionsTable({
                   <TableCell className="border border-[#2D2D2D] py-4 px-6">
                     <Skeleton className="h-4 w-24" />
                   </TableCell>
-                  <TableCell className="flex place-items-center space-x-2 py-8 px-6">
+                  <TableCell className="flex place-items-center gap-2 py-8 px-6">
                     <Skeleton className="w-5 h-5 rounded-full" />
                     <Skeleton className="h-4 w-12" />
                   </TableCell>
@@ -123,7 +123,7 @@ export function TransactionsTable({
                   </TableCell>
                   <TableCell className="border border-[#2D2D2D] py-4 px-6 max-w-[200px]">
                     <span
-                      className="block truncate cursor-help focus:outline-none focus:ring-2 focus:ring-[#D7E0EF] rounded px-1 -ml-1"
+                      className="block truncate cursor-help focus:outline-none focus:ring-2 focus:ring-[#D7E0EF] rounded px-1 -ms-1"
                       title={transaction.address}
                       tabIndex={0}
                     >
@@ -135,7 +135,7 @@ export function TransactionsTable({
                       {transaction.date} {transaction.time}
                     </time>
                   </TableCell>
-                  <TableCell className="flex place-items-center space-x-2 py-8 px-6">
+                  <TableCell className="flex place-items-center gap-2 py-8 px-6">
                     <Image
                       src={transaction.tokenIcon}
                       alt={`${transaction.token} token icon`}
@@ -146,7 +146,7 @@ export function TransactionsTable({
                   </TableCell>
                   <TableCell className="border border-[#2D2D2D] py-4 px-6 max-w-[150px]">
                     <span
-                      className="block truncate cursor-help focus:outline-none focus:ring-2 focus:ring-[#D7E0EF] rounded px-1 -ml-1"
+                      className="block truncate cursor-help focus:outline-none focus:ring-2 focus:ring-[#D7E0EF] rounded px-1 -ms-1"
                       title={transaction.amount}
                       tabIndex={0}
                     >
@@ -211,7 +211,7 @@ export function TransactionsTable({
                     {transaction.type} #{transaction.id}
                   </p>
                   <p 
-                    className="text-sm text-muted-foreground block truncate max-w-[180px] cursor-help focus:outline-none focus:ring-2 focus:ring-[#D7E0EF] rounded px-1 -ml-1"
+                    className="text-sm text-muted-foreground block truncate max-w-[180px] cursor-help focus:outline-none focus:ring-2 focus:ring-[#D7E0EF] rounded px-1 -ms-1"
                     title={transaction.address}
                     tabIndex={0}
                   >
@@ -244,7 +244,7 @@ export function TransactionsTable({
                 <div className="min-w-0">
                   <p className="text-sm text-muted-foreground">Amount</p>
                   <p
-                    className={`block truncate max-w-[120px] cursor-help focus:outline-none focus:ring-2 focus:ring-[#D7E0EF] rounded px-1 -ml-1 ${
+                    className={`block truncate max-w-[120px] cursor-help focus:outline-none focus:ring-2 focus:ring-[#D7E0EF] rounded px-1 -ms-1 ${
                       transaction.amount.startsWith("+")
                         ? "text-green-500"
                         : "text-red-500"

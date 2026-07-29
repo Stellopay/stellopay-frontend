@@ -39,4 +39,19 @@ describe("TransactionsTable", () => {
     expect(amountElements[0]).toHaveAttribute("tabIndex", "0");
     expect(amountElements[0]).toHaveClass("truncate");
   });
+
+  it("renders with logical spacing properties in RTL direction", () => {
+    render(
+      <div dir="rtl">
+        <TransactionsTable transactions={mockTransactions} />
+      </div>
+    );
+
+    expect(screen.getByText("Deposit")).toBeInTheDocument();
+    expect(screen.getByText("#1")).toBeInTheDocument();
+
+    const addressElements = screen.getAllByTitle("0x1234567890abcdef1234567890abcdef1234567890abcdef");
+    expect(addressElements.length).toBeGreaterThan(0);
+    expect(addressElements[0]).toHaveClass("-ms-1");
+  });
 });
