@@ -37,6 +37,26 @@ Focused regression coverage lives in components/transactions/transactions-conten
 Bash
 
 npx vitest run components/transactions/transactions-content.test.tsx --coverage.enabled=false
+
+Collapsed sidebar navigation labels
+
+components/common/nav-link.tsx uses the in-repo Radix-based components/ui/popover.tsx primitive for labels in the collapsed desktop sidebar. The legacy external Tooltip package was the only consumer of that package and has been removed.
+
+Accessibility notes:
+
+Each collapsed icon-only link keeps its native anchor semantics, has an explicit aria-label, and exposes aria-current="page" for the active route.
+The label opens on keyboard focus as well as pointer hover. The tooltip content is associated with the focused link through aria-describedby, does not steal focus, and closes on blur or Escape.
+focus-visible:ring-ring and focus-visible:ring-offset-background use the existing design tokens. The popover uses bg-popover, text-popover-foreground, and border-border in both light and dark themes.
+The notification dot is decorative (aria-hidden="true"); the link's accessible name remains the navigation label.
+Responsive hand-off:
+
+Breakpoint	Sidebar behavior	Tooltip behavior
+<640px and sm (640px)	Mobile sidebar uses the expanded, labeled navigation	No tooltip is required; labels remain visible
+md (768px)	Collapsed desktop rail may be 6rem wide	Labels open to the right and Radix collision handling keeps them in the viewport
+lg (1024px)	Same collapsed/expanded desktop states	The max-w constraint prevents long labels from overflowing
+xl (1280px)	Same desktop behavior	Label spacing and token-based surface styling remain unchanged
+Regression coverage for this migration lives in components/common/nav-link.test.tsx and covers active-route semantics, reduced motion, keyboard focus, pointer hover, Escape dismissal, accessible names, token classes, and navigation URLs. Validate it with npx vitest run components/common/nav-link.test.tsx --coverage.enabled=false.
+
 Getting Started
 Prerequisites
 Node.js 20 LTS
@@ -160,53 +180,45 @@ Both files export named constants so tests can assert canonical values without d
 
 TypeScript
 
-## Service Worker & Offline Support
-
+Service Worker & Offline Support
 A minimal PWA service worker caches the app shell so navigation degrades gracefully when the device loses connectivity, instead of surfacing the browser's default "No internet" error page.
 
-### File locations
+File locations
+text
 
-```
 public/
 ├─ sw.js              # Service worker — fetch strategies and cache management
 app/
 └─ offline/
    └─ page.tsx        # Branded offline fallback page (pre-cached by the SW)
-```
-
-### Fetch strategies
-
-| Request type | Strategy | Rationale |
-|---|---|---|
-| `/_next/static/**` | Cache-first | Filenames are content-hashed by Next.js — safe to cache indefinitely |
-| Navigation (`mode: "navigate"`) | Network-first → offline fallback | Always tries the network; if offline, serves the cached page or `/offline` |
-| Everything else (images, API) | Stale-while-revalidate | Instant response from cache; revalidation happens in the background |
-
+Fetch strategies
+Request type	Strategy	Rationale
+/_next/static/**	Cache-first	Filenames are content-hashed by Next.js — safe to cache indefinitely
+Navigation (mode: "navigate")	Network-first → offline fallback	Always tries the network; if offline, serves the cached page or /offline
+Everything else (images, API)	Stale-while-revalidate	Instant response from cache; revalidation happens in the background
 Cross-origin requests and non-GET methods pass through unmodified.
 
-### Cache invalidation strategy
+Cache invalidation strategy
+The service worker uses a versioned cache name — stellopay-shell-v1 — to control stale content after a deploy.
 
-The service worker uses a versioned cache name — `stellopay-shell-v1` — to control stale content after a deploy.
+How invalidation works:
 
-**How invalidation works:**
+The CACHE_VERSION constant in public/sw.js is bumped on each deploy (e.g. "v1" → "v2").
+On activate, the service worker deletes every cache whose name does not match the current CACHE_NAME. This purges all previous shell caches from the user's browser.
+Because sw.js is served with Cache-Control: no-cache (configure this in your hosting layer — see below), browsers always fetch a fresh copy of the worker on each page load.
+Next.js content-hashes all /_next/static/** filenames, so a new build produces new URLs; old cached entries become unreachable and are cleaned up by the activate sweep.
+Recommended CI/CD integration:
 
-1. The `CACHE_VERSION` constant in `public/sw.js` is bumped on each deploy (e.g. `"v1"` → `"v2"`).
-2. On activate, the service worker deletes **every cache whose name does not match the current `CACHE_NAME`**. This purges all previous shell caches from the user's browser.
-3. Because `sw.js` is served with `Cache-Control: no-cache` (configure this in your hosting layer — see below), browsers always fetch a fresh copy of the worker on each page load.
-4. Next.js content-hashes all `/_next/static/**` filenames, so a new build produces new URLs; old cached entries become unreachable and are cleaned up by the activate sweep.
+Inject the build ID into CACHE_VERSION during your pipeline so the cache is automatically busted on every deploy without a manual bump:
 
-**Recommended CI/CD integration:**
+JavaScript
 
-Inject the build ID into `CACHE_VERSION` during your pipeline so the cache is automatically busted on every deploy without a manual bump:
-
-```js
 // public/sw.js — replace the static string with your CI build identifier
 const CACHE_VERSION = process.env.BUILD_ID ?? "v1";
-```
+Or, for a simpler approach using a deploy timestamp in next.config.ts:
 
-Or, for a simpler approach using a deploy timestamp in `next.config.ts`:
+TypeScript
 
-```ts
 // next.config.ts
 const nextConfig: NextConfig = {
   headers: async () => [
@@ -216,27 +228,23 @@ const nextConfig: NextConfig = {
     },
   ],
 };
-```
+With a no-cache header on sw.js, the browser re-fetches the script on every page load. The browser's byte-diff check means only a changed CACHE_VERSION string actually triggers a new install-and-activate cycle — there's no unnecessary churn.
 
-With a `no-cache` header on `sw.js`, the browser re-fetches the script on every page load. The browser's byte-diff check means only a changed `CACHE_VERSION` string actually triggers a new install-and-activate cycle — there's no unnecessary churn.
+Offline fallback page (/offline)
+app/offline/page.tsx is pre-cached in SHELL_ASSETS during the service worker install step. It matches the visual language of the branded 404 page (app/not-found.tsx) — same design tokens (bg-background, text-foreground, text-muted-foreground), same Button+Link CTA pattern, responsive layout, and WCAG 2.1 AA accessible.
 
-### Offline fallback page (`/offline`)
+Accessibility notes:
 
-`app/offline/page.tsx` is pre-cached in `SHELL_ASSETS` during the service worker install step. It matches the visual language of the branded 404 page (`app/not-found.tsx`) — same design tokens (`bg-background`, `text-foreground`, `text-muted-foreground`), same Button+Link CTA pattern, responsive layout, and WCAG 2.1 AA accessible.
+Single <h1> — screen readers announce "You're offline" as the page title.
+<main id="main-content"> matches the skip-link target in the root layout.
+WifiOff icon is decorative (aria-hidden="true").
+CTA buttons are keyboard-focusable <a> elements via Button asChild.
+Colour contrast meets WCAG 2.1 AA for text on bg-background in both light and dark themes.
+Registration
+The service worker is registered from an inline <script> tag in app/layout.tsx (rendered server-side as static HTML). The registration is deliberately deferred behind the window load event so it never competes with first-paint resources:
 
-**Accessibility notes:**
+HTML
 
-- Single `<h1>` — screen readers announce "You're offline" as the page title.
-- `<main id="main-content">` matches the skip-link target in the root layout.
-- `WifiOff` icon is decorative (`aria-hidden="true"`).
-- CTA buttons are keyboard-focusable `<a>` elements via `Button asChild`.
-- Colour contrast meets WCAG 2.1 AA for text on `bg-background` in both light and dark themes.
-
-### Registration
-
-The service worker is registered from an inline `<script>` tag in `app/layout.tsx` (rendered server-side as static HTML). The registration is deliberately deferred behind the `window load` event so it never competes with first-paint resources:
-
-```html
 <script>
   if ('serviceWorker' in navigator) {
     window.addEventListener('load', function () {
@@ -248,7 +256,7 @@ The service worker is registered from an inline `<script>` tag in `app/layout.ts
     });
   }
 </script>
-```
+Registration failure is non-fatal — a .catch() handler logs a warning and the app continues to function normally without the service worker.
 
 Registration failure is non-fatal — a `.catch()` handler logs a warning and the app continues to function normally without the service worker.
 
@@ -288,27 +296,22 @@ The sitemap pointer in robots.txt is https://stellopay.com/sitemap.xml
 Metadata & Viewport
 Following Next.js 15 conventions, global metadata (titles, descriptions, OpenGraph) and viewport configurations are exported as separate objects in app/layout.tsx.
 
-Following Next.js 15 conventions, global metadata (titles, descriptions, OpenGraph) and viewport configurations are exported as separate objects in `app/layout.tsx`.
+Following Next.js 15 conventions, global metadata (titles, descriptions, OpenGraph) and viewport configurations are exported as separate objects in app/layout.tsx.
 
-- **`metadata`**: Contains SEO tags, OpenGraph data, and Twitter cards.
-- **`viewport`**: Contains responsive design parameters (e.g., `width`, `initialScale`) and theme colors for dark/light modes.
+metadata: Contains SEO tags, OpenGraph data, and Twitter cards.
+viewport: Contains responsive design parameters (e.g., width, initialScale) and theme colors for dark/light modes.
+JSON-LD Structured Data
+app/page.tsx renders a <script type="application/ld+json"> tag containing an Organization and WebSite schema that lets search engines build a knowledge-panel entry and a Sitelinks Search Box for StelloPay.
 
-## JSON-LD Structured Data
+Schema types
+Type	Purpose
+Organization	Brand identity, logo URL, and sameAs social-profile links for knowledge panels
+WebSite	Enables the Sitelinks Search Box in Google via potentialAction: SearchAction
+Shared constants module
+All SEO-critical values live in a single file — lib/seo-constants.ts — so a domain change or brand rename is a one-file edit:
 
-`app/page.tsx` renders a `<script type="application/ld+json">` tag containing an **Organization** and **WebSite** schema that lets search engines build a knowledge-panel entry and a Sitelinks Search Box for StelloPay.
+TypeScript
 
-### Schema types
-
-| Type | Purpose |
-|------|---------|
-| `Organization` | Brand identity, logo URL, and `sameAs` social-profile links for knowledge panels |
-| `WebSite` | Enables the Sitelinks Search Box in Google via `potentialAction: SearchAction` |
-
-### Shared constants module
-
-All SEO-critical values live in a single file — **`lib/seo-constants.ts`** — so a domain change or brand rename is a one-file edit:
-
-```ts
 import {
   SITE_URL,         // "https://stellopay.com"
   SITE_NAME,        // "StelloPay"
@@ -317,66 +320,52 @@ import {
   SITE_SAME_AS,     // social / authoritative profile URLs
   JSONLD_PAYLOAD,   // fully typed Organization + WebSite @graph object
 } from "@/lib/seo-constants";
-```
+JSONLD_PAYLOAD is also re-exported from app/page.tsx as jsonLdPayload so tests can assert the exact payload without parsing the rendered DOM:
 
-`JSONLD_PAYLOAD` is also re-exported from `app/page.tsx` as `jsonLdPayload` so tests can assert the exact payload without parsing the rendered DOM:
+TypeScript
 
-```ts
 import { jsonLdPayload } from "@/app/page";
-```
-
-### Validating the structured data
-
+Validating the structured data
 After deploying, check the output with:
 
-- **Google Rich Results Test**: https://search.google.com/test/rich-results
-- **Schema.org validator**: https://validator.schema.org/
-
+Google Rich Results Test: https://search.google.com/test/rich-results
+Schema.org validator: https://validator.schema.org/
 To inspect the raw script tag locally:
 
-```bash
+Bash
+
 npm run dev
 # View source at http://localhost:3000 and search for application/ld+json
-```
+Tests
+JSON-LD coverage lives in app/metadata.test.ts alongside the existing sitemap and robots suites:
 
-### Tests
+Bash
 
-JSON-LD coverage lives in `app/metadata.test.ts` alongside the existing sitemap and robots suites:
-
-```bash
 npm test app/metadata.test.ts
-```
-
 The suite asserts:
-- All `SITE_*` constants match canonical values (URL, name, logo, description, sameAs)
-- `JSONLD_PAYLOAD` contains both `Organization` and `WebSite` nodes with correct `@type`, `@id`, `name`, `url`, `logo`, `description`, `sameAs`, `publisher`, and `potentialAction` fields
-- The `SearchAction` `urlTemplate` is rooted at `SITE_URL` and contains the `{search_term_string}` placeholder
-- The payload serialises to valid JSON and round-trips without data loss
-- `jsonLdPayload` (re-export from `app/page.tsx`) is the same reference as `JSONLD_PAYLOAD`
 
-### Accessibility
+All SITE_* constants match canonical values (URL, name, logo, description, sameAs)
+JSONLD_PAYLOAD contains both Organization and WebSite nodes with correct @type, @id, name, url, logo, description, sameAs, publisher, and potentialAction fields
+The SearchAction urlTemplate is rooted at SITE_URL and contains the {search_term_string} placeholder
+The payload serialises to valid JSON and round-trips without data loss
+jsonLdPayload (re-export from app/page.tsx) is the same reference as JSONLD_PAYLOAD
+Accessibility
+The <script> element is an inert metadata node — it has no visual rendering and is not exposed to the accessibility tree. No ARIA attributes are required.
 
-The `<script>` element is an inert metadata node — it has no visual rendering and is not exposed to the accessibility tree. No ARIA attributes are required.
+Dynamic Open Graph Image
+app/opengraph-image.tsx implements the Next.js file-convention OG image route. It is served automatically at /opengraph-image and generates a 1200 × 630 px PNG at request time using next/og (ImageResponse / Satori).
 
-## Dynamic Open Graph Image
-
-`app/opengraph-image.tsx` implements the [Next.js file-convention OG image route](https://nextjs.org/docs/app/api-reference/file-conventions/opengraph-image). It is served automatically at `/opengraph-image` and generates a **1200 × 630 px PNG** at request time using `next/og` (`ImageResponse` / Satori).
-
-### What's rendered
-
-| Element | Detail |
-|---|---|
-| Background | White (`#FFFFFF`) — matches the light-mode hero surface |
-| Badge | Dark pill with the StelloPay brand name and "Blockchain Payroll" label |
-| Headline | Three-line hero h1 — "The Future of / **Payroll on** / Blockchain" |
-| Gradient | "Payroll on" uses the brand gradient: `#2563EB → #7C3AED → #059669` |
-| Tagline | Hero paragraph copy — "Built for modern businesses…" |
-| Font | Clash Display Variable loaded from `public/font/clash-display-variable.ttf` |
-| Decorative blobs | Three radial-gradient orbs mirroring the hero decorative orbs |
-| Accent bar | Bottom-right brand gradient stripe |
-
-### Accessibility
-
+What's rendered
+Element Detail
+Background White (#FFFFFF) — matches the light-mode hero surface
+Badge Dark pill with the StelloPay brand name and "Blockchain Payroll" label
+Headline Three-line hero h1 — "The Future of / Payroll on / Blockchain"
+Gradient "Payroll on" uses the brand gradient: #2563EB → #7C3AED → #059669
+Tagline Hero paragraph copy — "Built for modern businesses…"
+Font Clash Display Variable loaded from public/font/clash-display-variable.ttf
+Decorative blobs Three radial-gradient orbs mirroring the hero decorative orbs
+Accent bar Bottom-right brand gradient stripe
+Accessibility
 What's rendered
 Element Detail
 Background White (#FFFFFF) — matches the light-mode hero surface

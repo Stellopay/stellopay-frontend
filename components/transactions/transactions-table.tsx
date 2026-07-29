@@ -14,7 +14,7 @@ import { Badge } from "@/components/ui/badge";
 import Image from "next/image";
 import { Skeleton } from "@/components/ui/skeleton";
 import { TransactionTableSkeleton } from "@/components/ui/table-skeleton";
-import { getStatusColor } from "@/utils/transactionUtils";
+import { getStatusColor, getStatusIcon } from "@/utils/transactionUtils";
 import { truncateStellarAddress } from "@/utils/stellarAddress";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -57,6 +57,8 @@ function TransactionQuickViewDialog({
 }) {
   if (!transaction) return null;
 
+  const StatusIcon = getStatusIcon(transaction.status);
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
@@ -80,6 +82,7 @@ function TransactionQuickViewDialog({
               aria-label={`Status: ${transaction.status}`}
               className={getStatusColor(transaction.status)}
             >
+              <StatusIcon className="size-4" aria-hidden="true" />
               <span className="text-sm">{transaction.status}</span>
             </Badge>
           </DialogTitle>
@@ -336,7 +339,7 @@ export function TransactionsTable({
   return (
     <>
       {/* Density Toggle */}
-      <div className="hidden md:flex items-center gap-2 mb-3">
+      <div className="hidden md:flex items-center gap-2 mb-3 print:hidden">
         <span className="text-xs text-zinc-400">Density:</span>
         <div
           role="radiogroup"
@@ -365,7 +368,7 @@ export function TransactionsTable({
       {/* Desktop Table */}
       <div
         ref={tableWrapperRef}
-        className="hidden md:block w-full rounded-[12px] overflow-auto border border-[#2D2D2D]"
+        className="hidden md:block print:block w-full rounded-[12px] overflow-auto border border-[#2D2D2D]"
       >
         <Table>
           {/* caption is visually hidden but announced by screen readers */}
@@ -377,7 +380,7 @@ export function TransactionsTable({
               {isSelectable && (
                 <TableHead
                   scope="col"
-                  className="text-white font-bold border-[#2D2D2D] border-y-2 border-t-0 py-4 px-4 w-12"
+                  className="text-white font-bold border-[#2D2D2D] border-y-2 border-t-0 py-4 px-4 w-12 print:hidden"
                 >
                   <Checkbox
                     aria-label={
@@ -389,7 +392,7 @@ export function TransactionsTable({
                     onCheckedChange={(checked) =>
                       onSelectAll?.(checked === true)
                     }
-                    className="border-[#555] data-[state=checked]:border-white data-[state=indeterminate]:border-white"
+                    className="border-[#555] data-[state=checked]:border-white data-[state=indeterminate]:border-white print:hidden"
                   />
                 </TableHead>
               )}
@@ -431,7 +434,7 @@ export function TransactionsTable({
               </TableHead>
               <TableHead
                 scope="col"
-                className={`text-white font-bold border-[#2D2D2D] border-y-2 border-t-0 ${s.head} w-[140px]`}
+                className={`text-white font-bold border-[#2D2D2D] border-y-2 border-t-0 ${s.head} w-[140px] print:hidden`}
               >
                 Receipt
               </TableHead>
@@ -479,7 +482,9 @@ export function TransactionsTable({
                 </TableCell>
               </TableRow>
             ) : (
-              transactions.map((transaction, index) => (
+              transactions.map((transaction, index) => {
+                const StatusIcon = getStatusIcon(transaction.status);
+                return (
                 <TableRow
                   key={transaction.id ?? index}
                   className="border border-[#2D2D2D]"
@@ -528,10 +533,11 @@ export function TransactionsTable({
                       aria-label={`Status: ${transaction.status}`}
                       className={getStatusColor(transaction.status)}
                     >
+                      <StatusIcon className="size-4" aria-hidden="true" />
                       <span className="text-sm">{transaction.status}</span>
                     </Badge>
                   </TableCell>
-                  <TableCell className={s.cell}>
+                  <TableCell className={`${s.cell} print:hidden`}>
                     <DownloadReceiptButton
                       transaction={{
                         id: transaction.id,
@@ -543,13 +549,13 @@ export function TransactionsTable({
                     />
                   </TableCell>
                 </TableRow>
-              )            ))}
+              )))}
           </TableBody>
         </Table>
       </div>
 
       {/* Mobile Cards */}
-      <div className="md:hidden space-y-4">
+      <div className="md:hidden space-y-4 print:hidden">
         {isLoading ? (
           <div className="p-4 border rounded-lg border-[#2D2D2D]">
             <TransactionTableSkeleton rows={TRANSACTIONS_PAGE_SIZE} />
@@ -562,7 +568,9 @@ export function TransactionsTable({
             />
           </div>
         ) : (
-          transactions.map((transaction, index) => (
+          transactions.map((transaction, index) => {
+            const StatusIcon = getStatusIcon(transaction.status);
+            return (
             <button
               key={index}
               type="button"
@@ -586,15 +594,11 @@ export function TransactionsTable({
                   </p>
                 </div>
                 <Badge
-                  variant={
-                    transaction.status === "Completed"
-                      ? "default"
-                      : transaction.status === "Pending"
-                        ? "secondary"
-                        : "destructive"
-                  }
+                  aria-label={`Status: ${transaction.status}`}
+                  className={getStatusColor(transaction.status)}
                 >
-                  {transaction.status}
+                  <StatusIcon className="size-4" aria-hidden="true" />
+                  <span className="text-sm">{transaction.status}</span>
                 </Badge>
               </div>
               <div className="mt-2 grid grid-cols-2 gap-2">
@@ -625,7 +629,8 @@ export function TransactionsTable({
                 </div>
               </div>
             </button>
-          ))
+            );
+          })
         )}
       </div>
 

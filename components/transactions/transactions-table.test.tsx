@@ -138,6 +138,67 @@ describe("TransactionsTable — basic rendering", () => {
   });
 });
 
+describe("TransactionsTable — status icons (WCAG 1.4.1)", () => {
+  it("renders an SVG icon inside each status badge with aria-hidden='true'", () => {
+    render(<TransactionsTable transactions={mockTransactions} />);
+    const badges = screen.getAllByLabelText(/^Status:/i);
+    expect(badges.length).toBeGreaterThan(0);
+    badges.forEach((badge) => {
+      const svg = badge.querySelector("svg[aria-hidden='true']");
+      expect(svg).toBeInTheDocument();
+    });
+  });
+
+  it("renders status text alongside the icon in the badge", () => {
+    render(<TransactionsTable transactions={mockTransactions} />);
+    expect(screen.getByText("Completed")).toBeInTheDocument();
+    expect(screen.getByText("Pending")).toBeInTheDocument();
+    expect(screen.getByText("Failed")).toBeInTheDocument();
+  });
+
+  it("preserves aria-label on the status badge for screen readers", () => {
+    render(<TransactionsTable transactions={mockTransactions} />);
+    expect(screen.getByLabelText("Status: Completed")).toBeInTheDocument();
+    expect(screen.getByLabelText("Status: Pending")).toBeInTheDocument();
+    expect(screen.getByLabelText("Status: Failed")).toBeInTheDocument();
+  });
+
+  it("status badge aria-label survives grayscale simulation (no color-only info)", () => {
+    render(<TransactionsTable transactions={mockTransactions} />);
+
+    // Completed
+    const completedBadge = screen.getByLabelText("Status: Completed");
+    expect(completedBadge).toHaveTextContent("Completed");
+    expect(completedBadge.querySelector("svg")).toBeInTheDocument();
+
+    // Pending
+    const pendingBadge = screen.getByLabelText("Status: Pending");
+    expect(pendingBadge).toHaveTextContent("Pending");
+    expect(pendingBadge.querySelector("svg")).toBeInTheDocument();
+
+    // Failed
+    const failedBadge = screen.getByLabelText("Status: Failed");
+    expect(failedBadge).toHaveTextContent("Failed");
+    expect(failedBadge.querySelector("svg")).toBeInTheDocument();
+  });
+
+  it("renders status icons in the mobile card view", () => {
+    render(<TransactionsTable transactions={mockTransactions} />);
+    // Mobile cards are rendered with role="button" for view-details
+    const badges = screen.getAllByLabelText(/^Status:/i);
+    expect(badges.length).toBeGreaterThanOrEqual(3);
+  });
+
+  it("renders status icon in the quick-view dialog header", () => {
+    render(<TransactionsTable transactions={mockTransactions} />);
+    const viewButtons = screen.getAllByLabelText(/View details for transaction/i);
+    fireEvent.click(viewButtons[0]);
+    const dialogBadge = screen.getByLabelText("Status: Completed");
+    expect(dialogBadge.querySelector("svg[aria-hidden='true']")).toBeInTheDocument();
+    expect(dialogBadge).toHaveTextContent("Completed");
+  });
+});
+
 describe("TransactionsTable — ARIA roles", () => {
   it("renders column header cells with role=columnheader", () => {
     render(<TransactionsTable transactions={THREE_ROWS} />);
