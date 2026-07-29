@@ -792,3 +792,27 @@ This ensures a contrast ratio of at least 4.5:1 for standard text and 3:1 for la
 
 **WCAG:** 1.4.3 Contrast (Minimum)
 **axe rule:** `color-contrast`
+
+---
+
+## Dashboard Header Icon Actions
+
+**File:** `components/dashboard/dashboard-header.tsx`
+**Standard:** WCAG 2.1 Level AA
+
+The search, notification, and settings controls are icon-only, so each has a
+unique accessible name: `Search dashboard`, `View notifications`, and `Open
+dashboard settings`. Their Lucide SVGs are `aria-hidden` because the button
+name is supplied by the control itself.
+
+- **Keyboard navigation (WCAG 2.1.1, 2.4.7):** Native buttons support Tab,
+  Enter, and Space. `focus:ring-2 focus:ring-blue-500 focus:ring-offset-2`
+  provides a visible focus indicator.
+- **Contrast (WCAG 1.4.3):** The controls retain the header's existing
+  gray-on-white design tokens; hover and focus styles add a non-colour-only
+  interaction cue.
+- **Responsive reflow (WCAG 1.4.10):** `size-11` provides a 44 px target at
+  every breakpoint (sm 640 px, md 768 px, lg 1024 px, xl 1280 px), while
+  `shrink-0` keeps the action group usable beside long dashboard titles.
+- **Regression coverage:** `components/dashboard/dashboard-header.test.tsx`
+  asserts that every icon-only action has its accessible name.
