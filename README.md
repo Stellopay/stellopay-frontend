@@ -112,6 +112,13 @@ The App Router uses two cooperating client boundaries.
 
 Coverage for `app/error.tsx` is gated by the same 95% thresholds as the rest of the suite via `vitest.config.ts`. See `app/error.test.tsx` for the unit coverage.
 
+## Metadata & Viewport
+
+Following Next.js 15 conventions, global metadata (titles, descriptions, OpenGraph) and viewport configurations are exported as separate objects in `app/layout.tsx`.
+
+- **`metadata`**: Contains SEO tags, OpenGraph data, and Twitter cards.
+- **`viewport`**: Contains responsive design parameters (e.g., `width`, `initialScale`) and theme colors for dark/light modes.
+
 ## Project Structure
 
 ```
