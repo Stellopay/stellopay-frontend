@@ -16,13 +16,6 @@ const buildNotifications = (count: number): NotificationItem[] =>
     };
   });
 
-const buildCategorizedNotifications = (): NotificationItem[] => [
-  { id: "notif-p1", title: "Payment Received", message: "Received 500 XLM", read: false, category: "payments" },
-  { id: "notif-p2", title: "Payment Sent", message: "Sent 100 USDC", read: true, category: "payments" },
-  { id: "notif-s1", title: "Password Reset", message: "Security alert", read: false, category: "security" },
-  { id: "notif-sys1", title: "System Maintenance", message: "Scheduled downtime", read: true, category: "system" },
-];
-
 describe("NotificationPanel", () => {
   beforeEach(() => {
     sessionStorage.clear();

@@ -65,10 +65,30 @@ TransactionsContent
 
 ### Selection state management
 
-Selection state (`Set<string>` of transaction `id`s) lives in
-`TransactionsContent`, not inside `TransactionsTable`.  This lets the parent
-clear the selection atomically whenever filters, sort order, or the active page
-change, avoiding "ghost selections" that reference rows no longer visible.
+### Props
+- `value` (string): The primary large metric value to display.
+- `label` (string): The secondary description label below the value.
+- `className` (string): Additional CSS classes applied to the value text.
+
+### Usage Example
+```tsx
+import EnterpriseSolutionCard from "@/components/ui/enterprise-solution-card";
+
+export default function MetricView() {
+  return (
+    <EnterpriseSolutionCard 
+      value="$1.2M" 
+      label="Total Processed Volume" 
+      className="text-green-500" 
+    />
+  );
+}
+```
+
+### Near-Duplicate Notice
+> **Note**: This component serves a similar purpose to a standard `MetricCard` or `StatCard` but has a fixed layout (`h-[118px]`) and centered alignment. It should not be reused blindly if a generic, flexible card is needed.
+
+### Accessibility Notes (WCAG 2.1 AA)
 
 The table receives selection as **controlled props**:
 
@@ -81,53 +101,43 @@ The table receives selection as **controlled props**:
 />
 ```
 
-When `onSelectRow` / `onSelectAll` are omitted the checkbox column is hidden
-entirely, preserving full backwards-compatibility.
+- **Flex Layout**: Uses `flex flex-col gap-2` to stack the value and label vertically, adapting to varying text lengths gracefully.
+- **Dimensions**: Retains a fixed height (`h-[118px]`) with `w-full`, allowing the card to stretch fluidly across CSS grid or flex layouts across breakpoints (`sm`, `md`, `lg`, `xl`).
+- **Text Wrapping**: The text is centered (`text-center`) and breaks naturally, preserving readability on smaller screens.
 
-### Bulk action bar
+---
 
-`BulkActionBar` is a pure-display component that returns `null` when
-`selectedCount === 0`, so no DOM is emitted when nothing is selected.
+## Card Skeleton (components/ui/card-skeleton.tsx)
 
+Provides loading placeholder states for various card layouts.
+
+### Props (CardSkeleton)
+- `showHeader` (boolean, optional): Whether to display a header block. Defaults to `true`.
+- `lines` (number, optional): Number of content lines to display. Defaults to `3`.
+- `className` (string, optional): Additional classes to apply to the root element.
+
+### Usage Example
 ```tsx
-<BulkActionBar
-  selectedCount={selectedIds.size}
-  onExport={handleBulkExport}  // generates CSV download from current page
-  onTag={handleBulkTag}        // stub – opens tag dialog
-  onArchive={handleBulkArchive} // stub – sends archive request
-  onClearSelection={clearSelection}
-/>
+import { CardSkeleton, AccountSummaryCardSkeleton } from "@/components/ui/card-skeleton";
+
+export default function LoadingState() {
+  return (
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <CardSkeleton showHeader={true} lines={4} />
+      <AccountSummaryCardSkeleton />
+    </div>
+  );
+}
 ```
 
-The Export handler currently generates a client-side CSV from the already-loaded
-page data and triggers a browser download.  Tag and Archive are stubs (`console.log`)
-that are ready to be connected to API endpoints once those are available.
+### Near-Duplicate Notice
+> **Note**: `CardSkeleton` is a lightweight wrapper around `SkeletonCard` from `./skeleton.tsx`. When building new skeletons, consider if `SkeletonCard` is more appropriate or if a new specific component like `AccountSummaryCardSkeleton` should be added here instead of duplicating.
 
-### Accessibility (WCAG 2.1 AA)
+### Accessibility Notes (WCAG 2.1 AA)
+- **ARIA**: These components represent loading states. They should be wrapped in an `aria-busy="true"` container or use `aria-hidden="true"` to prevent screen readers from announcing meaningless content while loading.
+- **Contrast**: The skeleton background colors use subdued, low-contrast tokens by design to indicate a placeholder, but they adapt correctly to light and dark modes.
 
-| Concern | Implementation |
-|---------|---------------|
-| **Screen reader announcement** | `aria-live="polite" aria-atomic="true"` sr-only `<div>` in `TransactionsContent` announces the selected count whenever it changes. |
-| **Checkbox labels** | Header: `"Select all transactions on this page"` / `"Deselect all transactions on this page"`. Row: `"Select transaction {id}"`. |
-| **Indeterminate state** | Radix `Checkbox` supports `checked="indeterminate"`. The header uses `"indeterminate"` when some but not all rows are selected. |
-| **Row selection indicator** | `aria-selected` is set on each `<tr>` when selection props are present. |
-| **Bulk bar region** | `role="region" aria-label="Bulk actions"`. Buttons are grouped in `role="toolbar" aria-label="Bulk action buttons"`. |
-| **Icon-only button** | The clear (×) button has `aria-label="Clear selection"` so screen readers announce its purpose. |
-| **Keyboard navigation** | All checkboxes and buttons are in natural tab order. No focus trapping or programmatic focus moves. Space toggles checkboxes; Enter activates buttons. |
-| **Contrast** | Text on the dark `#1e1a1f` bar uses `#D7E0EF` (≥ 7:1 ratio). Selected row highlight `#1e1a1f` keeps all existing text colours compliant. |
+### Responsive Behavior
+- **Fluid Width**: Components use `w-full` to fit within their parent containers.
+- **Heights**: `AccountSummaryCardSkeleton` uses a fixed height `h-[7.5rem]` while `CardSkeleton` grows based on the `lines` prop. Both respect fluid layout breakpoints (`sm` to `xl`).
 
-### Responsive behaviour
-
-| Breakpoint | Behaviour |
-|-----------|-----------|
-| `< md` (mobile) | Mobile cards are shown. Each card gains a leading checkbox. No header select-all (no table header in card layout). Bulk bar remains fixed to viewport bottom. |
-| `≥ md` (desktop) | Full table with checkbox column as the first `<th>` / `<td>`. Header select-all checkbox present. |
-
-### Before / After
-
-**Before:** Single-row operations only (no checkboxes, no bulk bar).
-
-**After:** Checkbox column in every row + header select-all + floating bulk-action
-bar with Export / Tag / Archive / Clear.  Selection is cleared automatically
-when the user changes a filter, sort, or page so there are never stale
-selections pointing at off-screen rows.
