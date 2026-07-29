@@ -204,28 +204,69 @@ and debugging stay frictionless.
 `react-icons` and `@hugeicons/*` are restricted — always import icons from
 `lucide-react`.
 
-## RTL / Logical Property Conventions
+## Icon Library Policy
 
-The application supports right-to-left (RTL) locales. To ensure UI elements render correctly in both LTR and RTL directions:
+To keep the bundle small and the visual language consistent, all UI icons must
+come from **`lucide-react`**. This is the single source of truth, enforced both
+by the ESLint `no-restricted-imports` rule above and by the import-guard test
+in `utils/import-guard.test.ts`.
 
-- **Use logical margin/padding utilities** (`ms-`, `me-`, `ps-`, `pe-`) instead of physical ones (`ml-`, `mr-`, `pl-`, `pr-`). Logical properties automatically flip when the document direction is `rtl`.
-- **Use `gap-*` on flex containers** instead of `space-x-*` / `space-y-*` where possible. `gap-*` is direction-agnostic and works identically in LTR and RTL.
-- **`px-*` and `py-*` are safe** — in Tailwind v4 they map to `padding-inline` and `padding-block` respectively.
-- Test RTL rendering by wrapping the component in `<div dir="rtl">` and verifying icon/text alignment.
+### Decision tree
 
-Example — prefer:
-```tsx
-<div className="flex gap-2">
-  <span className="ms-1">content</span>
-</div>
+```
+Need an icon?
+│
+├─ Is it available in lucide-react?
+│   └─ YES → import { IconName } from "lucide-react"   ✅
+│
+├─ Is it a brand logo or a unique custom shape not expressible
+│  as a stroke icon (e.g. the filled bell notification badge)?
+│   └─ YES → write a minimal inline SVG component under
+│             components/icons/ and document the exception
+│             in design/icons.md                        ✅ (see below)
+│
+└─ Otherwise → do NOT reach for react-icons or @hugeicons  ❌
 ```
 
-Instead of:
-```tsx
-<div className="flex space-x-2">
-  <span className="ml-1">content</span>
-</div>
-```
+### When to write a custom SVG component
+
+A custom SVG under `components/icons/` is justified **only** when:
+
+1. The icon is not available in lucide-react at all, **and**
+2. The required shape is filled / brand-specific and cannot be reasonably
+   approximated by a lucide stroke icon.
+
+When you add one, follow these rules:
+
+- Place it in `components/icons/<name>-icon.tsx`.
+- Accept `IconProps` from `@/types/icons` (which extends
+  `React.SVGProps<SVGSVGElement>`) so callers can pass `className`,
+  `aria-label`, etc.
+- **Do not hard-code colours.** Use `currentColor` (inherits from CSS) or
+  accept a `fill`/`stroke` prop so the icon respects the design token system
+  and dark-mode.
+- Add `aria-hidden="true"` by default and rely on a wrapping element or an
+  explicit `aria-label` prop for accessible names — never describe the raw
+  shape in the label.
+- Document the exception in `design/icons.md` with a short rationale.
+- Write a `components/icons/<name>-icon.test.tsx` that verifies the SVG
+  structure, any forwarded props, and accessibility attributes.
+
+### Existing exception — `components/icons/bell-fill-icon.tsx`
+
+`lucide-react`'s `Bell` icon is a stroke outline. The notification badge in
+the dashboard requires a **filled** bell shape that is not available as a
+lucide variant. `IconBell` is the approved custom component for this use case.
+
+> ⚠ The current implementation hard-codes `fill="#333333"`. This is a known
+> limitation — tracked for migration to `currentColor` so the icon responds to
+> dark-mode and design tokens. Until then, do not copy this pattern for new
+> icons.
+
+### Size and stroke conventions
+
+See [`design/icons.md`](design/icons.md) for the full sizing system
+(16 / 20 / 24 px), default stroke width (2), and import tree-shaking rules.
 
 ## Testing Expectations
 
