@@ -162,3 +162,50 @@ Frontend implementation can reference the Figma file for:
 
 **Figma File:** [\[Link to Figma\]](https://www.figma.com/design/Ntcbc8bESxTjkb0bT4ilLW/Stellopay---Help-Support-Page-Redesign?node-id=0-1&t=CPUyDeLZZiDXFXJv-1)  
 **Last Updated:** January 29, 2026
+
+---
+
+## Global Floating Feedback Widget
+
+**Issue:** #917  
+**Status:** Implemented  
+**Type:** Frontend Feature
+
+### Overview
+
+A global floating feedback widget has been added to provide users with a quick way to report bugs and suggest features from any authenticated page.
+
+### Features
+
+- Floating feedback button (bottom-right corner) on all authenticated pages
+- Modal dialog with two feedback types: Bug Report and Feature Request
+- Form fields: Subject and Description (with client-side Zod validation)
+- Optional screenshot upload (PNG, JPEG, WebP, GIF; max 10 MB)
+- Integration with the existing Help/Support API endpoint (`POST /api/support`)
+- Success and error feedback messages
+- Auto-close after successful submission
+
+### Accessibility
+
+- WCAG 2.1 AA compliant
+- Keyboard accessible (Enter/Space to open, Escape to close, Tab to navigate)
+- ARIA labels on all interactive elements
+- `role="dialog"`, `aria-modal`, `aria-labelledby`, `aria-describedby` on the modal
+- Screen reader live region for status announcements
+
+### Responsive Design
+
+- Mobile-friendly with full-width form elements
+- Responsive max-width (`sm:max-w-[500px]`)
+- Body scroll lock when modal is open
+
+### Dark Mode
+
+- Uses CSS variable classes (`bg-background`, `text-foreground`, `border-border`, etc.)
+- Automatically adapts to the application's dark mode theme
+
+### Files Changed
+
+- `components/common/feedback-widget.tsx` — New component (inline modal)
+- `components/common/app-layout.tsx` — Integrated FeedbackWidget
+- `components/common/app-layout.test.tsx` — Comprehensive tests (22 tests)
