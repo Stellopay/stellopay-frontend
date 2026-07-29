@@ -22,6 +22,12 @@
     --elevation-3: 0 10px 15px -3px rgb(0 0 0 / 0.08), 0 4px 6px -4px rgb(0 0 0 / 0.04);
     --elevation-4: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.05);
 
+    /* Disabled state token — single source of truth for all disabled controls
+     * Applied via the cursor-disabled and opactiy-disabled utilities below.
+     * Used across Button, Checkbox, TextInput, and Input.
+     */
+    --disabled-opacity: 0.5;
+
     /* Section vertical-rhythm spacing tokens
      * Applied as py-section-sm / py-section-md / py-section-lg via
      * the @utility helpers below, or directly via Tailwind responsive
@@ -77,6 +83,32 @@
   --shadow-elevation-2: var(--elevation-2);
   --shadow-elevation-3: var(--elevation-3);
   --shadow-elevation-4: var(--elevation-4);
+
+  /* Disabled-state tokens — mapped so Tailwind generates cursor-disabled
+   * and opacity-disabled utilities consumed by every disabled control.
+   */
+  --opacity-disabled: var(--disabled-opacity);
+  --cursor-disabled: not-allowed;
+}
+
+/**
+ * disabled-state
+ * ---------------
+ * Composable utility that applies the canonical disabled look to any element.
+ * Each property is driven by a CSS custom property so a single token edit
+ * updates every disabled control in the project.
+ *
+ * Usage:
+ *   <button className="disabled-state" disabled>Save</button>
+ *
+ * Note: Because Tailwind's disabled: variant does not compose with @utility,
+ * prefer the individual utilities in most cases:
+ *   className="disabled:cursor-disabled disabled:opacity-disabled"
+ */
+@utility disabled-state {
+  opacity: var(--disabled-opacity);
+  cursor: var(--disabled-cursor, not-allowed);
+  pointer-events: none;
 }
 
 @utility text-display-2xl {

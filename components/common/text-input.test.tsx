@@ -102,6 +102,40 @@ describe("TextInput", () => {
     });
   });
 
+  describe("disabled state", () => {
+    it("disables the input element when disabled prop is true", () => {
+      render(<TextInput label="Name" onChange={() => {}} disabled />);
+
+      const input = screen.getByLabelText("Name");
+      expect(input).toBeDisabled();
+    });
+
+    it("applies opacity-disabled class to the wrapper when disabled", () => {
+      const { container } = render(
+        <TextInput label="Name" onChange={() => {}} disabled />,
+      );
+
+      const wrapper = container.querySelector(".flex.items-center.border");
+      expect(wrapper?.className).toMatch(/opacity-disabled/);
+    });
+
+    it("applies cursor-disabled class to the wrapper when disabled", () => {
+      const { container } = render(
+        <TextInput label="Name" onChange={() => {}} disabled />,
+      );
+
+      const wrapper = container.querySelector(".flex.items-center.border");
+      expect(wrapper?.className).toMatch(/cursor-disabled/);
+    });
+
+    it("does not disable the input when disabled is false", () => {
+      render(<TextInput label="Name" onChange={() => {}} />);
+
+      const input = screen.getByLabelText("Name");
+      expect(input).not.toBeDisabled();
+    });
+  });
+
   describe("aria attributes", () => {
     it("wires up aria-describedby for helperText", () => {
       render(

@@ -5,7 +5,7 @@
  * - All six `variant` values: default, destructive, outline, secondary, ghost, link
  * - All four `size` values: default, sm, lg, icon
  * - `asChild` prop (Radix Slot composition)
- * - Disabled state: pointer-events, opacity, aria attributes
+ * - Disabled state: pointer-events, cursor, opacity, aria attributes
  * - Custom `className` merging via `cn()`
  * - Keyboard interaction (Enter / Space activation)
  * - ARIA attributes: role, aria-disabled
@@ -161,9 +161,14 @@ describe("Button — disabled state", () => {
     expect(btn).toBeDisabled();
   });
 
-  it("applies disabled:opacity-50 class when disabled", () => {
+  it("applies disabled:opacity-disabled class when disabled", () => {
     const btn = renderButton({ disabled: true });
-    expect(btn.className).toMatch(/disabled:opacity-50/);
+    expect(btn.className).toMatch(/disabled:opacity-disabled/);
+  });
+
+  it("applies disabled:cursor-disabled class when disabled", () => {
+    const btn = renderButton({ disabled: true });
+    expect(btn.className).toMatch(/disabled:cursor-disabled/);
   });
 
   it("applies disabled:pointer-events-none class", () => {
