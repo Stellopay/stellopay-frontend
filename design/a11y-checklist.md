@@ -419,6 +419,72 @@ animation utilities are disabled when that media query is active.
 
 The quick-actions grid previously required Tab-by-Tab traversal across every card. With only two enabled cards and four disabled (coming-soon) cards, keyboard users had to Tab through six elements to reach the end of the group — and four of those were non-interactive placeholders.
 
+feat/global-error-report-action
+**WCAG:** 1.4.3 Contrast (Minimum)
+**axe rule:** `color-contrast`
+
+---
+
+## Global Error Boundary — Report Issue Action (Issue #feat/global-error-report-action)
+
+**Branch:** `feat/global-error-report-action`  
+**Scope:** `app/global-error.tsx`, `app/global-error.test.tsx`  
+**Standard:** WCAG 2.1 Level AA  
+**Date:** 2026-07-29
+
+### Overview
+
+`global-error.tsx` is the last-resort error boundary rendered when the root layout itself crashes. Previously it displayed only a generic message and a "Try again" button, giving users no way to report the failure. A "Report this issue" link was added that opens a `mailto:` link pre-filled with the error digest as a reference identifier.
+
+### WCAG Criteria addressed
+
+#### 1. Link semantics — `<a>` with `href` (WCAG 4.1.2 — Name, Role, Value)
+
+The report action is rendered as a native `<a>` element with a valid `mailto:` `href`. Native links are implicitly recognised by assistive technology as links with a "go" action. No custom ARIA roles are required.
+
+**axe rules satisfied:** `link-name`, `aria-allowed-attr`
+
+#### 2. Accessible name via `aria-label` (WCAG 4.1.2)
+
+The link includes `aria-label="Report this issue to support with reference {digest}"` so screen readers announce the purpose and the reference identifier together, even though the visible text is "Report this issue".
+
+#### 3. Keyboard activation (WCAG 2.1.1 — Keyboard)
+
+Native `<a href="mailto:...">` elements are keyboard-focusable and activated by Enter by default. An `onKeyDown` handler additionally handles the Space key for the `mailto:` protocol (which some browsers may not activate with Space on `mailto:` links). The link receives visible focus via the browser's default focus ring.
+
+**axe rules satisfied:** `interactive-supports-focus`
+
+#### 4. Visual hierarchy — secondary action (WCAG 1.4.1 — Use of Color)
+
+The report link is styled at `0.8rem` in `#6b7280` (muted gray) with underline, visually subordinate to the primary "Try again" button (`0.95rem`, `#ffffff` on `#111827`). The link is distinguishable by both colour and underlining, not by colour alone.
+
+#### 5. Contrast — report link text (WCAG 1.4.3 — Contrast Minimum)
+
+| Element | Foreground | Background | Ratio | Threshold | Pass |
+|---------|------------|------------|-------|-----------|------|
+| Report link text | `#6b7280` | `#f9fafb` | **4.7:1** | 4.5:1 | ✅ |
+
+The link text passes WCAG 2.1 AA at 4.7:1 against the page background.
+
+#### 6. No error content in user-facing payload (Security + WCAG 1.1.1)
+
+The `mailto:` body contains only the digest reference and a prompt to describe what the user was doing. The raw `error.message` and `error.stack` are deliberately excluded from the mailto URI to prevent leaking internal paths or sensitive information.
+
+### Keyboard navigation — manual test results
+
+| Action | Expected behaviour | Status |
+|--------|--------------------|--------|
+| Tab from "Try again" to "Report this issue" | Focus moves to the link | ✅ |
+| Enter on the link | Opens default mail client with pre-filled subject/body | ✅ |
+| Space on the link | Opens default mail client (custom handler) | ✅ |
+| Focus ring visible on the link | Browser default focus ring | ✅ |
+
+### Responsive behaviour
+
+| Breakpoint | Behaviour |
+|------------|-----------|
+| All (inline styles, no CSS dependencies) | Actions stack vertically inside a flex column; link wraps naturally. No horizontal scrolling. |
+
 A roving-tabindex pattern now lets ArrowLeft/ArrowRight (and ArrowUp/ArrowDown in multi-column layouts) move focus between enabled cards with a single Tab to enter the group and a single Shift+Tab to leave it.
 
 ### Implementation
@@ -436,11 +502,18 @@ A roving-tabindex pattern now lets ArrowLeft/ArrowRight (and ArrowUp/ArrowDown i
 | 2.1.1 Keyboard | Arrow keys move focus between cards; Tab/Shift+Tab enters/exits the group in one step |
 | 2.4.3 Focus Order | Roving tabindex maintains logical focus order |
 | 4.1.2 Name, Role, Value | Each card retains its `aria-label` and semantic role (`link` or `button`) |
+ main
 
 ### Files changed
 
 | File | Changes |
 |------|---------|
+ feat/global-error-report-action
+| `app/global-error.tsx` | Added `error` prop destructuring; added "Report this issue" `<a>` mailto link with digest; wrapped actions in flex column |
+| `app/global-error.test.tsx` | Added 6 test cases: link renders, mailto contains digest, no error message in href, aria-label present, empty digest fallback, both actions present |
+| `design/a11y-checklist.md` | Added this section |
+
 | `components/dashboard/quick-actions.tsx` | Added `activeIndex` state, `gridRef`, `handleGridKeyDown`, `data-quick-action` and `tabIndex` on cards, `onFocus` handlers, grid `role="group"` and `aria-label` |
 | `components/dashboard/quick-actions.test.tsx` | Added roving tabindex tests: single tabIndex 0, arrow key movement, Home/End, disabled card exclusion, focus tracking |
 | `design/a11y-checklist.md` | Updated — this section |
+main
