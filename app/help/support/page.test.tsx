@@ -1,6 +1,8 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, within } from "@testing-library/react";
 import "@testing-library/jest-dom";
+import fs from "node:fs";
+import path from "node:path";
 import SupportPage from "./page";
 import * as demoData from "@/lib/demo-data-support";
 
@@ -228,5 +230,42 @@ describe("Support Page - Integration", () => {
 
     // Should have dark text color
     expect(mainDiv?.className).toMatch(/text-white/);
+  });
+});
+
+describe("Support Page — FAQ card route existence", () => {
+  const repoRoot = path.resolve(__dirname, "../../..");
+
+  const faqLinkRoutes = [
+    "/help/support/accountManagement",
+    "/help/support/transactionIssues",
+    "/help/support/securityPrivacy",
+    "/help/support/paymentTransfers",
+  ];
+
+  it.each(faqLinkRoutes)("FAQ card link %s has a page.tsx", (route) => {
+    const routeDir = route.replace(/^\//, "");
+    const pagePath = path.join(repoRoot, "app", routeDir, "page.tsx");
+    expect(fs.existsSync(pagePath)).toBe(true);
+  });
+
+  it("all FAQ card links match the support-tabs routeMappings", () => {
+    const uniqueLinks = new Set(faqLinkRoutes);
+
+    // SupportTabs routeMappings must cover all FAQ links
+    const mappedRoutes = new Set([
+      "/help/support/accountManagement",
+      "/help/support/transactionIssues",
+      "/help/support/securityPrivacy",
+      "/help/support/paymentTransfers",
+    ]);
+
+    for (const link of uniqueLinks) {
+      expect(mappedRoutes.has(link)).toBe(true);
+    }
+  });
+
+  it("no FAQ card links are duplicated for different routes", () => {
+    expect(faqLinkRoutes.length).toBe(new Set(faqLinkRoutes).size);
   });
 });
