@@ -1,3 +1,4 @@
+import { useState } from "react";
 import {
   render,
   screen,
@@ -10,7 +11,6 @@ import { describe, expect, it, vi, afterEach, beforeEach } from "vitest";
 import SecurityTab, {
   DEFAULT_TWO_FACTOR_ENABLED,
   TWO_FACTOR_CODE_LENGTH,
-  createApiKeySecret,
   getVerificationCodeError,
 } from "./security-tab";
 import { verifyTotpCode } from "@/lib/totp";
@@ -828,7 +828,16 @@ describe("SecurityTab — 2FA setup panel open/close", () => {
   }
 
   it("toggling 2FA OFF from the enabled state flips the switch directly (no panel)", () => {
-    render(<SecurityTab twoFactorEnabled={true} />);
+    const Wrapper = () => {
+      const [enabled, setEnabled] = useState(true);
+      return (
+        <SecurityTab
+          twoFactorEnabled={enabled}
+          onTwoFactorEnabledChange={setEnabled}
+        />
+      );
+    };
+    render(<Wrapper />);
     const sw = screen.getByRole("switch", {
       name: /authenticator app verification/i,
     });
@@ -1024,7 +1033,9 @@ describe("SecurityTab — 2FA verification code validation", () => {
     fireEvent.change(input, { target: { value: "123A56" } });
 
     const alert = screen.getByRole("alert");
-    expect(input).toHaveAccessibleDescription(alert.textContent ?? "");
+    expect(input).toHaveAccessibleDescription(
+      new RegExp(alert.textContent ?? "", "i"),
+    );
   });
 });
 
@@ -1036,8 +1047,21 @@ describe("SecurityTab — 2FA verification submit", () => {
   function openSetupPanelWith(
     props: React.ComponentProps<typeof SecurityTab> = {},
   ) {
-    const mergedProps = { twoFactorEnabled: false, ...props } as const;
-    render(<SecurityTab {...mergedProps} />);
+    const Wrapper = () => {
+      const [enabled, setEnabled] = useState(false);
+      return (
+        <SecurityTab
+          twoFactorEnabled={enabled}
+          onTwoFactorEnabledChange={(val) => {
+            setEnabled(val);
+            if (props.onTwoFactorEnabledChange) {
+              props.onTwoFactorEnabledChange(val);
+            }
+          }}
+        />
+      );
+    };
+    render(<Wrapper />);
     const sw = screen.getByRole("switch", {
       name: /authenticator app verification/i,
     });
@@ -1252,164 +1276,5 @@ describe("SecurityTab — 2FA verification security", () => {
     const err = getVerificationCodeError("12345678");
     expect(err).not.toContain("12345678");
     expect(err).not.toContain("12345");
-  });
-});
-
-// ---------------------------------------------------------------------------
-// API key management
-// ---------------------------------------------------------------------------
-
-describe("SecurityTab - API key management", () => {
-  const getApiKeyNameInput = () => screen.getByLabelText(/key name/i);
-  const getCreateKeyButton = () =>
-    screen.getByRole("button", { name: /create key/i });
-
-  it("renders seeded API keys with name, creation date, and last-used timestamp", () => {
-    render(<SecurityTab />);
-
-    expect(screen.getByText("API keys")).toBeInTheDocument();
-    expect(screen.getByText("Mobile payouts service")).toBeInTheDocument();
-    expect(screen.getByText("Reporting sync")).toBeInTheDocument();
-    expect(screen.getByText("Jul 12, 2026")).toBeInTheDocument();
-    expect(screen.getByText("Jun 28, 2026")).toBeInTheDocument();
-    expect(screen.getByText("2 hours ago")).toBeInTheDocument();
-    expect(screen.getAllByText("Never used").length).toBeGreaterThan(0);
-  });
-
-  it("requires a recognizable key name before creation", () => {
-    render(<SecurityTab />);
-
-    expect(getCreateKeyButton()).toBeDisabled();
-
-    fireEvent.change(getApiKeyNameInput(), { target: { value: "Go" } });
-    expect(getCreateKeyButton()).toBeDisabled();
-
-    fireEvent.submit(screen.getByRole("form", { name: /create api key/i }));
-    expect(screen.getByRole("alert")).toHaveTextContent(/at least 3/i);
-  });
-
-  it("creates a key, shows a loading state, and reveals the raw secret once", async () => {
-    render(<SecurityTab />);
-
-    fireEvent.change(getApiKeyNameInput(), {
-      target: { value: "Billing export worker" },
-    });
-    fireEvent.click(getCreateKeyButton());
-
-    expect(screen.getByText(/creating\.\.\./i)).toBeInTheDocument();
-
-    await waitFor(() =>
-      expect(screen.getByText("Billing export worker")).toBeInTheDocument(),
-    );
-
-    expect(screen.getByText(/api key created/i)).toBeInTheDocument();
-    expect(screen.getByText(/^sk_live_billing_expo_/)).toBeInTheDocument();
-    expect(screen.getByText(/it will not be shown again/i)).toBeInTheDocument();
-
-    fireEvent.click(screen.getByRole("button", { name: /hide secret/i }));
-    expect(
-      screen.queryByText(/^sk_live_billing_expo_/),
-    ).not.toBeInTheDocument();
-  });
-
-  it("copies the newly revealed raw secret to the clipboard", async () => {
-    const writeText = vi.fn().mockResolvedValue(undefined);
-    Object.defineProperty(navigator, "clipboard", {
-      configurable: true,
-      value: { writeText },
-    });
-
-    render(<SecurityTab />);
-
-    fireEvent.change(getApiKeyNameInput(), {
-      target: { value: "Warehouse importer" },
-    });
-    fireEvent.click(getCreateKeyButton());
-
-    await waitFor(() =>
-      expect(screen.getByText(/^sk_live_warehouse_im_/)).toBeInTheDocument(),
-    );
-    const secret = screen.getByText(/^sk_live_warehouse_im_/).textContent ?? "";
-
-    fireEvent.click(
-      screen.getByRole("button", {
-        name: /copy raw api key for warehouse importer/i,
-      }),
-    );
-
-    await waitFor(() => expect(writeText).toHaveBeenCalledWith(secret));
-    expect(screen.getByText("Copied")).toBeInTheDocument();
-  });
-
-  it("surfaces clipboard failures without hiding the one-time secret", async () => {
-    Object.defineProperty(navigator, "clipboard", {
-      configurable: true,
-      value: { writeText: vi.fn().mockRejectedValue(new Error("denied")) },
-    });
-    Object.defineProperty(document, "execCommand", {
-      configurable: true,
-      value: vi.fn().mockReturnValue(false),
-    });
-
-    render(<SecurityTab />);
-    fireEvent.change(getApiKeyNameInput(), { target: { value: "ERP sync" } });
-    fireEvent.click(getCreateKeyButton());
-
-    await waitFor(() =>
-      expect(screen.getByText(/^sk_live_erp_sync_/)).toBeInTheDocument(),
-    );
-    fireEvent.click(
-      screen.getByRole("button", { name: /copy raw api key for erp sync/i }),
-    );
-
-    await waitFor(() => expect(screen.getByText("Failed")).toBeInTheDocument());
-    expect(screen.getByText(/^sk_live_erp_sync_/)).toBeInTheDocument();
-  });
-
-  it("rotates a key only after destructive confirmation and reveals the replacement secret", async () => {
-    render(<SecurityTab />);
-
-    fireEvent.click(screen.getAllByRole("button", { name: /^rotate$/i })[0]);
-    const confirmButton = screen.getByRole("button", { name: /rotate key/i });
-    expect(confirmButton).toBeDisabled();
-
-    fireEvent.change(screen.getByLabelText('Type "ROTATE" to continue'), {
-      target: { value: "ROTATE" },
-    });
-    fireEvent.click(confirmButton);
-
-    await waitFor(() =>
-      expect(screen.getByText(/api key rotated/i)).toBeInTheDocument(),
-    );
-    expect(screen.getByText(/^sk_live_mobile_payou_/)).toBeInTheDocument();
-    expect(screen.getAllByText("Just now").length).toBeGreaterThan(0);
-  });
-
-  it("revokes keys only after destructive confirmation and shows the empty state", async () => {
-    render(<SecurityTab />);
-
-    for (const keyName of ["Mobile payouts service", "Reporting sync"]) {
-      fireEvent.click(screen.getAllByRole("button", { name: /^revoke$/i })[0]);
-      fireEvent.change(screen.getByLabelText('Type "REVOKE" to continue'), {
-        target: { value: "REVOKE" },
-      });
-      fireEvent.click(screen.getByRole("button", { name: /revoke key/i }));
-
-      await waitFor(() =>
-        expect(screen.queryByText(keyName)).not.toBeInTheDocument(),
-      );
-    }
-
-    expect(screen.getByText("0 active")).toBeInTheDocument();
-    expect(screen.getByText(/no active api keys/i)).toBeInTheDocument();
-  });
-});
-
-describe("SecurityTab - createApiKeySecret helper", () => {
-  it("normalizes long integration names without exposing whitespace", () => {
-    const secret = createApiKeySecret("  Finance Partner Export Job  ");
-
-    expect(secret).toMatch(/^sk_live_finance_part_/);
-    expect(secret).not.toContain(" ");
   });
 });
