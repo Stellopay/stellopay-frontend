@@ -431,3 +431,19 @@ To prevent hardcoded realistic PII (Personal Identifiable Information) and fabri
 - **Security Compliance**: All mockup emails, phone numbers, and wallet addresses are set to standard, obvious placeholder domains/values (e.g. `example.com`, `+1 555 0100`, and redacted addresses like `GB-REDACTED-DEMO-STELLAR-ADDRESS-XXXX`). This reduces compliance exposure and prevents test/seed data from being mistaken for active production credentials.
 - **Illustrative Marketing Stats**: Landing page statistics are managed via the same config file and clearly decorated with visual badges indicating they are illustrative placeholders.
 - **Backend Integration**: These structures are designed to be easily replaced by backend API hooks once user authentication, profile retrieval, and wallet connectivity endpoints are finalized.
+
+## Metadata and Open Graph Architecture
+
+Route-level metadata is defined across application routes in the Next.js App Router to ensure optimal SEO, canonical URLs, and distinct social preview cards (Open Graph / Twitter).
+
+### Metadata Configurations
+
+- **Root Layout (`app/layout.tsx`)**: Defines root default title templates, fallback description, global site name, and default dynamic `/opengraph-image` preview card.
+- **Dashboard (`app/dashboard/layout.tsx`)**: Configures route title, description, canonical URL (`https://stellopay.com/dashboard`), custom Open Graph image (`/dashboard-preview.jpg`), and private route `robots: { index: false, follow: false }` directives.
+- **Transactions (`app/transactions/layout.tsx`)**: Configures route title, description, canonical URL (`https://stellopay.com/transactions`), Open Graph image (`/opengraph-image`), and `robots: { index: false, follow: false }` directives.
+- **Settings & Preferences (`app/settings/preferences/layout.tsx`)**: Configures route title, description, canonical URL (`https://stellopay.com/settings/preferences`), Open Graph image (`/opengraph-image`), and `robots: { index: false, follow: false }` directives.
+
+### Testing and Validation
+
+All metadata exports are covered by unit tests in `app/metadata.test.ts` to verify uniqueness of titles/descriptions, correct canonical URLs, Open Graph parameters, and fallback logic.
+
