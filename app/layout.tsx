@@ -12,20 +12,29 @@ import { Toaster } from "@/components/ui/toaster";
 const inter = Inter({
   variable: "--font-inter",
   subsets: ["latin"],
+  // Keep the fallback visible for the remaining custom typeface as well.
+  display: "swap",
 });
 
+/**
+ * These first-viewport local fonts explicitly use Next.js preloading and a
+ * swap display policy. Next.js emits fingerprinted preload links, so there is
+ * no fragile hand-written URL that could become stale after a build.
+ */
 const clashDisplay = localFont({
   src: "../public/font/clash-display-variable.ttf",
   variable: "--font-clash",
   weight: "500",
   display: "swap",
+  preload: true,
 });
 
 const generalSans = localFont({
   src: "../public/font/general-sans-variable.ttf",
-  variable: "--font-general",
+  variable: "--font-general-sans",
   weight: "400",
   display: "swap",
+  preload: true,
 });
 
 /**

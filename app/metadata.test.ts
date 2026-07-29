@@ -1,14 +1,21 @@
 import { describe, expect, it, vi } from "vitest";
 
+const { mockLocalFont } = vi.hoisted(() => ({
+  mockLocalFont: vi.fn(() => ({ variable: "font-local" })),
+}));
+
 vi.mock("next/font/google", () => ({
   Inter: () => ({ variable: "font-inter" }),
 }));
 
 vi.mock("next/font/local", () => ({
-  default: () => ({ variable: "font-local" }),
+  default: mockLocalFont,
 }));
 
-import { metadata as rootMetadata, viewport as rootViewport } from "@/app/layout";
+import {
+  metadata as rootMetadata,
+  viewport as rootViewport,
+} from "@/app/layout";
 import sitemap, { BASE_URL, PUBLIC_ROUTES } from "@/app/sitemap";
 import robots, { DISALLOWED_PATHS } from "@/app/robots";
 import { metadata as dashboardMetadata } from "@/app/dashboard/layout";
@@ -31,6 +38,28 @@ describe("Route Metadata Exports", () => {
     expect(rootViewport).toBeDefined();
     expect(rootViewport.themeColor).toBeDefined();
     expect(rootViewport.width).toBe("device-width");
+  });
+
+  it("preloads above-the-fold local fonts and uses swap to avoid FOIT", () => {
+    const localFonts = mockLocalFont.mock.calls.map(([options]) => options);
+
+    expect(localFonts).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          src: "../public/font/clash-display-variable.ttf",
+          variable: "--font-clash",
+          display: "swap",
+          preload: true,
+        }),
+        expect.objectContaining({
+          src: "../public/font/general-sans-variable.ttf",
+          // Matches the body typography token in app/globals.css.
+          variable: "--font-general-sans",
+          display: "swap",
+          preload: true,
+        }),
+      ]),
+    );
   });
 
   it("each route exports unique page titles and descriptions", () => {
@@ -119,21 +148,33 @@ describe("Route Metadata Exports", () => {
 
   it("exports canonical URLs for dashboard, transactions, and settings routes", () => {
     expect(dashboardMetadata.alternates?.canonical).toBe(
-      "https://stellopay.com/dashboard"
+      "https://stellopay.com/dashboard",
     );
     expect(transactionsMetadata.alternates?.canonical).toBe(
-      "https://stellopay.com/transactions"
+      "https://stellopay.com/transactions",
     );
     expect(settingsMetadata.alternates?.canonical).toBe(
-      "https://stellopay.com/settings/preferences"
+      "https://stellopay.com/settings/preferences",
     );
   });
 
   it("exports Open Graph and Twitter metadata variants with dedicated images", () => {
     const routes = [
-      { meta: dashboardMetadata, expectedUrl: "https://stellopay.com/dashboard", expectedImage: "/dashboard-preview.jpg" },
-      { meta: transactionsMetadata, expectedUrl: "https://stellopay.com/transactions", expectedImage: "/opengraph-image" },
-      { meta: settingsMetadata, expectedUrl: "https://stellopay.com/settings/preferences", expectedImage: "/opengraph-image" },
+      {
+        meta: dashboardMetadata,
+        expectedUrl: "https://stellopay.com/dashboard",
+        expectedImage: "/dashboard-preview.jpg",
+      },
+      {
+        meta: transactionsMetadata,
+        expectedUrl: "https://stellopay.com/transactions",
+        expectedImage: "/opengraph-image",
+      },
+      {
+        meta: settingsMetadata,
+        expectedUrl: "https://stellopay.com/settings/preferences",
+        expectedImage: "/opengraph-image",
+      },
     ];
 
     routes.forEach(({ meta, expectedUrl, expectedImage }) => {
@@ -142,7 +183,10 @@ describe("Route Metadata Exports", () => {
       expect(meta.openGraph?.siteName).toBe("StelloPay");
       expect(meta.openGraph?.images).toBeDefined();
 
-      const ogImages = meta.openGraph?.images as Array<{ url: string | URL; alt?: string }>;
+      const ogImages = meta.openGraph?.images as Array<{
+        url: string | URL;
+        alt?: string;
+      }>;
       expect(ogImages.length).toBeGreaterThan(0);
       expect(String(ogImages[0].url)).toBe(expectedImage);
 
@@ -401,7 +445,9 @@ describe("Robots — app/robots.ts", () => {
   it("result includes a sitemap URL", () => {
     const result = robots();
     expect(result.sitemap).toBeDefined();
-    expect(typeof result.sitemap === "string" || Array.isArray(result.sitemap)).toBe(true);
+    expect(
+      typeof result.sitemap === "string" || Array.isArray(result.sitemap),
+    ).toBe(true);
   });
 
   it("sitemap URL points to /sitemap.xml on the canonical domain", () => {
@@ -428,7 +474,11 @@ describe("Robots — app/robots.ts", () => {
   });
 
   it("DISALLOWED_PATHS does not contain public marketing routes", () => {
-    const publicRoutes = ["/", "/help/support", "/help/support/accountManagement"];
+    const publicRoutes = [
+      "/",
+      "/help/support",
+      "/help/support/accountManagement",
+    ];
     publicRoutes.forEach((route) => {
       expect(DISALLOWED_PATHS).not.toContain(route);
     });
