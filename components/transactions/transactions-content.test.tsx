@@ -123,12 +123,22 @@ describe("TransactionsTable skeleton count parity", () => {
 // ---------------------------------------------------------------------------
 
 import { useTransactions } from "@/hooks/useTransactions";
+import { WalletProvider } from "@/context/wallet-context";
 import TransactionsContent from "./transactions-content";
 
 // Mock the hook
 vi.mock("@/hooks/useTransactions", () => ({
   useTransactions: vi.fn(),
 }));
+
+/** Helper: render TransactionsContent inside a WalletProvider. */
+function renderTransactionsContent() {
+  return render(
+    <WalletProvider>
+      <TransactionsContent />
+    </WalletProvider>,
+  );
+}
 
 describe("TransactionsContent states", () => {
   beforeEach(() => {
@@ -144,7 +154,7 @@ describe("TransactionsContent states", () => {
       refetch: mockRefetch,
     });
 
-    render(<TransactionsContent />);
+    renderTransactionsContent();
     
     // Should see error state
     expect(screen.getByRole("alert")).toBeInTheDocument();
@@ -164,7 +174,7 @@ describe("TransactionsContent states", () => {
       refetch: vi.fn(),
     });
 
-    render(<TransactionsContent />);
+    renderTransactionsContent();
     
     // No error state
     expect(screen.queryByRole("alert")).not.toBeInTheDocument();

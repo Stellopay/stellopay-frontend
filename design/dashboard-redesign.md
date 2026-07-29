@@ -65,3 +65,68 @@ The Advanced Filter Panel is a togglable drawer that combines all transaction fi
 - **Amount Range**: Two-column grid (`grid-cols-2`) adapts well at all breakpoints.
 - **Advanced Toggle Button**: Label text is hidden on mobile (`hidden sm:inline`) to conserve space; the sliders icon remains visible.
 - **Chips**: Use `flex-wrap` for natural wrapping on narrow viewports.
+
+## Saved Views Feature (Added: feature/transactions-saved-views)
+
+The Saved Views feature lets users name and persist filter/sort combinations so they can recall them across visits without rebuilding state by hand. Views are stored per-account in localStorage via the existing `safeStorage` utility.
+
+### Components
+
+| File | Purpose |
+|------|---------|
+| `components/transactions/transactions-filters.tsx` | Updated with "Save" button and "Saved Views" dropdown (load, rename, delete) |
+| `components/transactions/transactions-content.tsx` | Manages saved views state, CRUD operations, and localStorage persistence |
+| `types/transaction.ts` | Added `SavedView` interface and extended `TransactionsFiltersProps` |
+
+### State Model
+
+- A `SavedView` captures the full `TransactionFilters` state (type filter, sort configs, advanced filters, date range, search query) plus a user-defined name.
+- Saved views are stored under `stellopay.transactions-saved-views.{walletAddress}` (or `.default` when no wallet is connected).
+- Maximum 10 saved views per account; names are limited to 50 characters.
+- A `hasHydratedViews` flag prevents overwriting localStorage with empty defaults before the stored data is restored on mount.
+
+### User Interactions
+
+| Action | Trigger | Behavior |
+|--------|---------|----------|
+| **Save** | Click "Save" button | Prompts for a name via `window.prompt`, then stores the current filter/sort state |
+| **Load** | Click a saved view name | Replaces all active filters and sort configs with the stored preset |
+| **Rename** | Click pencil icon | Inline text input appears; Enter or blur commits, Escape cancels |
+| **Delete** | Click trash icon | Confirmation dialog appears before removal |
+
+### Accessibility Notes (WCAG 2.1 AA)
+
+#### Save View Button
+
+- **Label**: `aria-label="Save current view"` on the button.
+- **Visibility**: Hidden when 10 views already exist (max reached) or when the callback is not provided.
+- **Contrast**: Gray-400 text on dark background; brightens to white on hover — passes AA.
+
+#### Saved Views Dropdown
+
+- **Label**: `aria-label="Saved views"` on the dropdown trigger.
+- **Count Badge**: Shows the number of saved views for quick scanning.
+- **Items**: Each saved view is wrapped in `role="group"` with `aria-label="Saved view: {name}"`.
+- **Load Button**: Descriptive `aria-label="Load saved view: {name}"`.
+- **Rename Button**: `aria-label="Rename saved view: {name}"`; inline input has `aria-label="Rename saved view"` and `focus-visible:ring-2` for keyboard focus indication.
+- **Delete Button**: `aria-label="Delete saved view: {name}"` with a `window.confirm` guard.
+- **Keyboard Navigation**: All interactive elements are fully keyboard-accessible with visible focus rings. Enter commits rename, Escape cancels.
+
+#### Action Button Visibility
+
+- On desktop (`sm`+), rename/delete buttons appear on row hover/focus via `sm:group-hover:opacity-100` / `sm:group-focus-within:opacity-100`.
+- On mobile/touch devices, action buttons are always visible (`opacity-100`) for discoverability.
+
+#### Contrast
+
+- Saved view names: white text on `#160f17` dark background — passes AA.
+- Action buttons: gray-500 to white on hover; delete button to red-400 on hover.
+- Rename input: white text on `bg-[#1A1A1A]` with `border-[#2D2D2D]` — consistent with the search input.
+- Focus rings: `focus-visible:ring-[#04842E]` (green) for interactive elements, `focus-visible:ring-red-500` for the delete button.
+
+#### Responsive Behavior
+
+- Save button label text is hidden on mobile (`hidden sm:inline`); the bookmark icon remains visible.
+- Saved Views dropdown label shows the view count badge; the "Views" label is hidden on mobile.
+- Inline rename input adapts to the dropdown width with `flex-1`.
+- Action buttons use `flex` layout that adapts naturally to narrow viewports.

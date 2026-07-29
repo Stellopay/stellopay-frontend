@@ -1,12 +1,13 @@
 "use client";
 
-import { useState, useMemo, useCallback } from "react";
+import { useState, useMemo, useCallback, useEffect, useRef } from "react";
 import type {
   SortField,
   SortConfig,
   TransactionFilters,
   Transaction,
   TransactionProps,
+  SavedView,
 } from "@/types/transaction";
 import { useTransactions } from "@/hooks/useTransactions";
 import { TransactionTableSkeleton } from "@/components/ui/table-skeleton";
@@ -23,6 +24,8 @@ import {
   TRANSACTIONS_PAGE_SIZE,
   getDefaultDateRange,
 } from "./transactions-config";
+import { safeStorage } from "@/utils/safeStorage";
+import { useWallet } from "@/context/wallet-context";
 
 /** Map token symbol → icon path */
 const getTokenIcon = (token: string): string => {
@@ -35,6 +38,47 @@ const getTokenIcon = (token: string): string => {
       return "/usd.png";
   }
 };
+
+/** localStorage key prefix for saved views. Appended with the wallet address for per-account isolation. */
+const SAVED_VIEWS_KEY_PREFIX = "stellopay.transactions-saved-views";
+
+/** Maximum number of saved views per account. */
+const MAX_SAVED_VIEWS = 10;
+
+/** Maximum length for a saved view name. */
+const MAX_VIEW_NAME_LENGTH = 50;
+
+/** Build the per-account storage key. */
+function getSavedViewsKey(address: string | null): string {
+  if (!address) return `${SAVED_VIEWS_KEY_PREFIX}.default`;
+  return `${SAVED_VIEWS_KEY_PREFIX}.${address}`;
+}
+
+/** Load saved views from localStorage, returning an empty array on any failure. */
+function loadSavedViews(address: string | null): SavedView[] {
+  const stored = safeStorage.getItem(getSavedViewsKey(address));
+  if (!stored) return [];
+  try {
+    const parsed = JSON.parse(stored);
+    if (!Array.isArray(parsed)) return [];
+    return parsed.filter(
+      (v: unknown): v is SavedView =>
+        typeof v === "object" &&
+        v !== null &&
+        typeof (v as SavedView).id === "string" &&
+        typeof (v as SavedView).name === "string" &&
+        typeof (v as SavedView).createdAt === "string" &&
+        typeof (v as SavedView).filters === "object",
+    );
+  } catch {
+    return [];
+  }
+}
+
+/** Persist saved views to localStorage. */
+function persistSavedViews(address: string | null, views: SavedView[]): void {
+  safeStorage.setItem(getSavedViewsKey(address), JSON.stringify(views));
+}
 
 /** Convert internal Transaction → display TransactionProps */
 const toTransactionProps = (t: Transaction): TransactionProps => ({
@@ -88,6 +132,8 @@ function buildFilterChips(filters: TransactionFilters): FilterChip[] {
 }
 
 export default function TransactionsContent() {
+  const { address } = useWallet();
+
   const [filters, setFilters] = useState<TransactionFilters>(() => ({
     searchQuery: "",
     filterQuery: "",
@@ -96,6 +142,26 @@ export default function TransactionsContent() {
     sortConfigs: [{ field: "date", direction: "desc" }],
   }));
   const [currentPage, setCurrentPage] = useState(1);
+  const [savedViews, setSavedViews] = useState<SavedView[]>([]);
+  const [hasHydratedViews, setHasHydratedViews] = useState(false);
+  const addressRef = useRef(address);
+
+  // Hydrate saved views from localStorage on mount
+  useEffect(() => {
+    setSavedViews(loadSavedViews(address));
+    setHasHydratedViews(true);
+  }, [address]);
+
+  // Persist saved views whenever they change (skip initial render before hydration)
+  useEffect(() => {
+    if (!hasHydratedViews) return;
+    persistSavedViews(address, savedViews);
+  }, [savedViews, address, hasHydratedViews]);
+
+  // Keep the address ref in sync so downstream effects can detect account switches.
+  useEffect(() => {
+    addressRef.current = address;
+  }, [address]);
   const [advancedPanelOpen, setAdvancedPanelOpen] = useState(false);
   const itemsPerPage = TRANSACTIONS_PAGE_SIZE;
 
@@ -164,6 +230,49 @@ export default function TransactionsContent() {
     },
     [],
   );
+
+  // ── Saved views helpers ────────────────────────────────────────────────
+
+  /** Save the current filter/sort state as a named view. */
+  const handleSaveView = useCallback(
+    (name: string) => {
+      const trimmed = name.trim();
+      if (!trimmed || trimmed.length > MAX_VIEW_NAME_LENGTH) return;
+      if (savedViews.length >= MAX_SAVED_VIEWS) return;
+
+      const newView: SavedView = {
+        id: crypto.randomUUID?.() ?? `sv-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`,
+        name: trimmed,
+        filters: { ...filters },
+        createdAt: new Date().toISOString(),
+      };
+      setSavedViews((prev) => [...prev, newView]);
+    },
+    [filters, savedViews.length],
+  );
+
+  /** Load (apply) a saved view's filter/sort state. */
+  const handleLoadView = useCallback((view: SavedView) => {
+    setFilters(view.filters);
+    setCurrentPage(1);
+  }, []);
+
+  /** Rename a saved view. */
+  const handleRenameView = useCallback(
+    (view: SavedView, newName: string) => {
+      const trimmed = newName.trim();
+      if (!trimmed || trimmed.length > MAX_VIEW_NAME_LENGTH) return;
+      setSavedViews((prev) =>
+        prev.map((v) => (v.id === view.id ? { ...v, name: trimmed } : v)),
+      );
+    },
+    [],
+  );
+
+  /** Delete a saved view. */
+  const handleDeleteView = useCallback((view: SavedView) => {
+    setSavedViews((prev) => prev.filter((v) => v.id !== view.id));
+  }, []);
 
   // ── Advanced filter panel helpers ──────────────────────────────────────
 
@@ -291,6 +400,11 @@ export default function TransactionsContent() {
               filters.maxAmount !== undefined ||
               !!filters.counterparty
             }
+            savedViews={hasHydratedViews ? savedViews : undefined}
+            onSaveView={handleSaveView}
+            onLoadView={handleLoadView}
+            onRenameView={handleRenameView}
+            onDeleteView={handleDeleteView}
           />
 
           {/* Active filter chips */}
