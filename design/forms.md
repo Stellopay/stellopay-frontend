@@ -26,6 +26,7 @@ The base `Input` component handles all semantic states:
 
 Use high-level abstractions for common patterns:
 
+- `AuthFormField`: Reusable field wrapper for authentication forms (`LoginForm`, `SignUpForm`) that unifies label, error message, input wrapper markup, and automatically delegates to `FormFieldPassword` when `type="password"` or `FormFieldInput` for text/email fields.
 - `FormFieldInput`: Standard text/email inputs.
 - `FormFieldPassword`: Password input with show/hide toggle.
 - `FormFieldCheckbox`: Checkbox with label alignment.
