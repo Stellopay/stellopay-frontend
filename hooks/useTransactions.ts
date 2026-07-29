@@ -99,6 +99,8 @@ export function useTransactions(
     filters?.toDate,
     filters?.sortField,
     filters?.sortDirection,
+    filters?.minAmount,
+    filters?.maxAmount,
     page,
     pageSize,
     tick,
