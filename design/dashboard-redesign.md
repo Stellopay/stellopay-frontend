@@ -59,3 +59,29 @@ The file also hardcodes non-token hex values that are **not** `zinc-*` utilities
 - Verified visually and via existing tests across the `showNotifications`/`showDropdown` permutations, which drive the `sm`/`md` breakpoint layout switch (`flex-col md:flex-row`) — no layout classes were touched, only color utilities.
 - All existing tests in `components/analytics/analytics-view.test.tsx` pass against the new markup (one unrelated pre-existing failure, `renders empty state component when empty data is provided`, reproduces identically on `main` and is unrelated to this change).
 - No text or non-text contrast regressions: token swaps were chosen to preserve or exceed the contrast ratios of the `zinc-*` values they replaced (see notes above).
+
+## Notification Panel Per-Category Filter (#790)
+
+### Overview
+`components/common/notification-panel.tsx` now supports per-category filtering using lightweight filter chips (`All`, `Payments`, `Security`, `System`) derived from `types/notification-item.ts`.
+
+### Features & Behavior
+- **Category Filter Chips**: Filter tabs allow users to quickly switch between `All`, `Payments`, `Security`, and `System` categories.
+- **Dynamic Category Item Counts**: Each chip displays the category label and live item count, e.g. `All (4)`, `Payments (2)`, `Security (1)`, `System (1)`.
+- **Session Persistence**: The user's last selected filter category is persisted in `sessionStorage` under the key `notification-panel-category-filter` (`CATEGORY_STORAGE_KEY`) and automatically restored when the notification panel is rendered again during the session. Safe fallback handling ensures grace when `sessionStorage` is unavailable.
+- **Empty States**: If a selected category filter returns zero matching notifications, the accessible `NotificationPanelEmptyState` ("You're all caught up") is displayed cleanly.
+
+### Accessibility Annotations (WCAG 2.1 AA)
+- **Contrast**: Selected category chip uses high-contrast surface treatment (`bg-[#1E1E1E]` text `white` with border `#3E3E3E`) meeting 4.5:1 AA contrast against the dark card surface. Unselected chips use `#A0A0A0` text with hover escalation to `#E5E5E5`.
+- **Keyboard Navigation**:
+  - `role="tablist"` with `aria-label="Filter notifications by category"`.
+  - Individual category chips have `role="tab"`, `aria-selected`, `aria-controls="notification-list-panel"`, and roving `tabIndex`.
+  - Arrow key navigation (`ArrowRight` / `ArrowLeft`) moves focus between category tabs with automatic selection and focus placement.
+  - Visible focus indicator (`focus-visible:ring-2 focus-visible:ring-[#D7E0EF]`) on focused chips and list items.
+- **ARIA & Screen Readers**:
+  - List items maintain the WAI-ARIA `listbox` pattern with roving `tabIndex` (`ArrowUp`, `ArrowDown`, `Home`, `End`, `Escape`, `Enter`, `Space`).
+  - XSS safe text rendering prevents HTML injection in titles and notification messages.
+
+### Responsive Breakpoint Validation
+- Category chip container utilizes `flex flex-wrap gap-1.5 sm:gap-2 mb-4` to wrap cleanly across small (`sm: 640px`), medium (`md: 768px`), large (`lg: 1024px`), and extra-large (`xl: 1280px`) viewports without overflowing the max `400px` panel container.
+
