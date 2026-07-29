@@ -18,7 +18,14 @@ const FOCUSABLE_SELECTOR = [
   '[tabindex]:not([tabindex="-1"])',
 ].join(", ");
 
-export default function DashboardNavbar() {
+interface DashboardNavbarProps {
+  /** Number of unread notifications; hides the badge when 0. */
+  unreadCount?: number;
+}
+
+export default function DashboardNavbar({
+  unreadCount = 0,
+}: DashboardNavbarProps) {
   const { theme, resolvedTheme, toggleTheme } = useTheme();
   const { address, isConnected, connect, disconnect } = useWallet();
   const [mobileDrawerOpen, setMobileDrawerOpen] = useState(false);
@@ -131,11 +138,15 @@ export default function DashboardNavbar() {
           </div>
 
           <button
-            aria-label="Notifications"
+            aria-label={`Notifications${unreadCount > 0 ? `, ${unreadCount > 9 ? "9+" : unreadCount} unread` : ""}`}
             className="relative p-2 rounded-lg text-zinc-500 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors hidden sm:block cursor-pointer"
           >
             <Bell size={20} strokeWidth={2} />
-            <span className="absolute top-2 right-2.5 w-2 h-2 bg-red-500 rounded-full border-2 border-white dark:border-[#0D0D0D]" />
+            {unreadCount > 0 && (
+              <span className="absolute -top-0.5 -right-0.5 flex items-center justify-center min-w-[18px] h-[18px] px-1 text-[10px] font-bold leading-none text-white bg-red-500 rounded-full border-2 border-white dark:border-[#0D0D0D]">
+                {unreadCount > 9 ? "9+" : unreadCount}
+              </span>
+            )}
           </button>
 
           <button
@@ -207,11 +218,11 @@ export default function DashboardNavbar() {
             </button>
           )}
 
-          {/* Hamburger toggle — visible only below sm breakpoint */}
+          {/* Hamburger toggle — visible only below md breakpoint */}
           <button
             ref={menuButtonRef}
             type="button"
-            className="sm:hidden p-2 rounded-lg text-zinc-500 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors cursor-pointer"
+            className="md:hidden p-2 rounded-lg text-zinc-500 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors cursor-pointer"
             aria-label={mobileDrawerOpen ? "Close navigation menu" : "Open navigation menu"}
             aria-expanded={mobileDrawerOpen}
             aria-controls="dashboard-mobile-drawer"
@@ -229,7 +240,7 @@ export default function DashboardNavbar() {
       {/* Mobile drawer overlay */}
       {mobileDrawerOpen && (
         <div
-          className="fixed inset-0 z-40 bg-black/50 sm:hidden"
+          className="fixed inset-0 z-40 bg-black/50 md:hidden"
           aria-hidden="true"
           onClick={() => setMobileDrawerOpen(false)}
         />
@@ -240,7 +251,7 @@ export default function DashboardNavbar() {
         <nav
           id="dashboard-mobile-drawer"
           ref={drawerRef}
-          className="fixed top-20 left-0 right-0 z-40 sm:hidden"
+          className="fixed top-20 left-0 right-0 z-40 md:hidden"
           aria-label="Mobile navigation menu"
           aria-modal="true"
           role="dialog"
@@ -263,14 +274,20 @@ export default function DashboardNavbar() {
             {/* Notifications & Settings row */}
             <div className="flex items-center gap-4">
               <button
-                aria-label="Notifications"
+                aria-label={`Notifications${unreadCount > 0 ? `, ${unreadCount > 9 ? "9+" : unreadCount} unread` : ""}`}
                 className="flex items-center gap-3 p-3 rounded-lg text-zinc-500 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors cursor-pointer w-full"
               >
-                <Bell size={20} strokeWidth={2} />
+                <div className="relative">
+                  <Bell size={20} strokeWidth={2} />
+                  {unreadCount > 0 && (
+                    <span className="absolute -top-1.5 -right-1.5 flex items-center justify-center min-w-[16px] h-[16px] px-[3px] text-[9px] font-bold leading-none text-white bg-red-500 rounded-full">
+                      {unreadCount > 9 ? "9+" : unreadCount}
+                    </span>
+                  )}
+                </div>
                 <span className="text-sm font-medium text-zinc-900 dark:text-zinc-100">
                   Notifications
                 </span>
-                <span className="ml-auto w-2 h-2 bg-red-500 rounded-full" />
               </button>
 
               <button
