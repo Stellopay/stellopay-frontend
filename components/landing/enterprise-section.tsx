@@ -48,10 +48,13 @@ const enterpriseSolutionCardData: IEnterpriseSolutionCardData[] = [
 const EnterpriseSolutionSection = () => {
   return (
     <section
-      className="bg-[#FFFFFF] border-2 border-[#E4E4E7] dark:bg-[#18181B] dark:border-[#27272A] shadow-lg shadow-gray-500 dark:shadow-gray-100/50 p-10 lg:p-[65px] rounded-[48px] flex gap-10 flex-col lg:flex-row lg:gap-5 justify-between items-center m-4 2xl:max-w-[1095px] 2xl:mx-auto print:bg-white print:shadow-none print:border-gray-300 print:text-black"
+      className="py-16 sm:py-20 lg:py-24 px-4 bg-white dark:bg-[#0D0D0D]"
       aria-labelledby="enterprise-solution-title"
-      aria-describedby="enterprise-solution-desc"
     >
+      <div
+        className="bg-[#FFFFFF] border-2 border-[#E4E4E7] dark:bg-[#18181B] dark:border-[#27272A] shadow-lg shadow-gray-500 dark:shadow-gray-100/50 p-10 lg:p-[65px] rounded-[48px] flex gap-10 flex-col lg:flex-row lg:gap-5 justify-between items-center 2xl:max-w-[1095px] 2xl:mx-auto print:bg-white print:shadow-none print:border-gray-300 print:text-black"
+        aria-describedby="enterprise-solution-desc"
+      >
       <div className="flex flex-col items-start gap-5 flex-1">
         <div>
           <h4 className="font-bold text-3xl lg:text-5xl leading-12 tracking-[0.35px] text-[#09090B] dark:text-[#FAFAFA] print:text-black">
@@ -112,6 +115,7 @@ const EnterpriseSolutionSection = () => {
           ),
         )}
       </div>
+    </div>
     </section>
   );
 };

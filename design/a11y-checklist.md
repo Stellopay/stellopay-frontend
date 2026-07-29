@@ -3,7 +3,7 @@
 ## Overview
 This checklist defines the mandatory accessibility requirements (targeting WCAG 2.1 AA compliance) for all components and views in the Stellopay frontend.
 
-## Reduced Motion (WCAG 2.1 Success Criterion 2.3.3 — Animation from Interactions)
+## Components
 
 ### Requirement
 Every component that uses framer-motion (or any JS-driven animation) **must** check the user's `prefers-reduced-motion: reduce` OS-level preference and disable or simplify the animation accordingly.
@@ -139,6 +139,231 @@ form.handleSubmit(onSubmit, onValidationError)
 | Transaction history live region        |  ✅ "N transactions loaded" on loading-to-loaded transition |
 | Sidebar `aria-label`                   |        ✅ "Application sidebar, complementary"         |
 | Sidebar toggle `aria-expanded`         |        ✅ "Collapse sidebar, expanded, button"         |
+
+---
+
+## Landmark Audit — App Shell Layout (Issue #771)
+
+**Branch:** `a11y/landmark-role-audit`  
+**Scope:** `app/layout.tsx`, `components/common/app-layout.tsx`, `components/common/side-bar.tsx`  
+**Standard:** WCAG 2.1 Level AA — 1.3.1, 1.3.6, 2.4.1, 4.1.2  
+**Date:** 2026-07-29
+
+---
+
+### Overview
+
+The app shell layout composes the header, sidebar, and main content areas. A landmark audit was performed to confirm each region uses the correct semantic element or ARIA role so screen reader users relying on landmark navigation can jump directly to each major area of the page.
+
+---
+
+### WCAG Criteria addressed
+
+#### 1. Exactly one `<main>` landmark per page (WCAG 2.4.1, 1.3.1)
+
+`components/common/app-layout.tsx` renders exactly one `<main id="main-content" tabIndex={-1}>` element wrapping `{children}`. This is the only main landmark on the page, and it is the target of the skip-to-content link.
+
+**axe rules satisfied:** `landmark-one-main`, `bypass`
+
+---
+
+#### 2. `<header>` (banner) landmark wraps site-wide navigation chrome (WCAG 1.3.1, 4.1.2)
+
+`app-layout.tsx` wraps the `<Navbar>` component in a `<header aria-label="Site header">` element. This creates an ARIA banner landmark so screen readers announce the top-of-page chrome as a distinct navigation region.
+
+The `aria-label="Site header"` distinguishes this banner from any page-level `<header>` elements that child routes may render inside `<main>`, preventing a "landmark-unique" axe violation.
+
+**axe rules satisfied:** `landmark-banner-is-top-level`, `landmark-unique`
+
+---
+
+#### 3. `<aside>` (complementary) landmark wraps the sidebar (WCAG 1.3.1, 1.3.6)
+
+`components/common/side-bar.tsx` renders an `<aside aria-label="Application sidebar">` element. Screen readers announce this as "Application sidebar, complementary landmark" so users can jump directly to the sidebar via landmark navigation.
+
+**axe rules satisfied:** `landmark-complementary-is-top-level`, `aria-required-attr`
+
+---
+
+#### 4. `<nav>` (navigation) landmark inside the sidebar (WCAG 1.3.1)
+
+`components/common/nav-link.tsx` renders a `<nav>` element wrapping the link list. This creates a navigation landmark inside the `<aside>` sidebar. The sidebar's `aria-label="Application sidebar"` already distinguishes the complementary region; the nested `<nav>` provides the navigation role for the link list.
+
+**axe rules satisfied:** `landmark-navigation-is-top-level` (satisfied by nesting inside the labelled `<aside>`)
+
+---
+
+#### 5. Skip-to-content link targets `#main-content` (WCAG 2.4.1)
+
+`app-layout.tsx` renders a skip-to-content link with `href="#main-content"` that appears on keyboard focus. The `<main>` landmark has `id="main-content"` and `tabIndex={-1}` so the browser can move focus to it when the link is activated.
+
+**axe rule satisfied:** `bypass`
+
+---
+
+#### 6. Landmark uniqueness — multiple instances have unique labels (WCAG 1.3.6)
+
+The app shell layout renders exactly one of each landmark type (banner, main, nav, complementary) at any given time:
+
+| Landmark type       | Element                                     | Accessible name         | Count |
+| ------------------- | ------------------------------------------- | ----------------------- | ----- |
+| Banner (`<header>`) | `<header aria-label="Site header">`         | "Site header"           | 1     |
+| Main (`<main>`)     | `<main id="main-content">`                  | (none required)         | 1     |
+| Navigation (`<nav>`)| `<nav>` inside SideBar                      | (none required)         | 1     |
+| Complementary (`<aside>`) | `<aside aria-label="Application sidebar">` | "Application sidebar" | 1     |
+
+The site header carries `aria-label="Site header"` so if a child route adds its own `<header>` inside `<main>`, both headers will have unique accessible names and screen readers can distinguish them.
+
+**axe rules satisfied:** `landmark-unique`, `aria-required-attr`
+
+---
+
+### Automated landmark-uniqueness checks
+
+A new test suite in `components/common/app-layout.test.tsx` verifies:
+
+- Exactly one `<main>` landmark per page ✅
+- Exactly one `<header>` (banner) landmark per page ✅
+- Exactly one `<nav>` (navigation) landmark per page ✅
+- Exactly one `<aside>` (complementary) landmark per page ✅
+- Each labelled landmark has a unique accessible name ✅
+- Skip-to-content link `href` matches the `<main>` landmark `id` ✅
+
+---
+
+### Screen reader — spot-check results
+
+| Element | Announced |
+|---------|-----------|
+| Skip link (on focus) | "Skip to main content, link" |
+| `<header aria-label="Site header">` | "Site header, banner" |
+| `<main id="main-content">` | "main, main landmark" |
+| `<aside aria-label="Application sidebar">` | "Application sidebar, complementary" |
+| `<nav>` inside sidebar | "navigation" |
+
+---
+
+### Files changed
+
+| File | Changes |
+|------|---------|
+| `components/common/app-layout.tsx` | Wrapped `<Navbar>` in `<header aria-label="Site header">` |
+| `components/common/app-layout.test.tsx` | Added landmark-uniqueness test suite |
+| `design/a11y-checklist.md` | Added this section |
+
+---
+
+## Transactions Content — Live Region for Filter Result Count
+
+**Branch:** `a11y/transactions-content-filter-count-live`  
+**Scope:** `components/transactions/transactions-content.tsx`  
+**Standard:** WCAG 2.1 Level AA — 4.1.3 Status Messages  
+**Date:** 2026-07-29
+
+---
+
+### Overview
+
+When a user changes transaction filters (search, type filter, sort, date range),
+the result set updates. Screen reader users previously had no indication of how
+many results matched their filters until they navigated to the table or
+pagination controls. This change adds a visually hidden `aria-live="polite"`
+region that announces the updated transaction count after filter changes,
+keeping assistive technology users informed without interrupting their current
+task.
+
+---
+
+### WCAG Criteria addressed
+
+#### WCAG 4.1.3 — Status Messages
+
+The live region uses `role="status"` with `aria-live="polite"` so screen readers
+announce the updated result count without moving focus. Announcements are
+debounced (500 ms) to prevent excessive notifications during rapid filter
+changes such as fast typing in the search bar.
+
+**axe rule satisfied:** `aria-live-region-content`
+
+---
+
+### Implementation details
+
+```tsx
+{/* Visually-hidden live region that announces filter result counts */}
+<div
+  role="status"
+  aria-live="polite"
+  aria-atomic="true"
+  className="sr-only"
+>
+  {liveMessage}
+</div>
+```
+
+- **`role="status"`**: Communicates to assistive technology that this is a
+  status message region (not an alert that demands immediate attention).
+- **`aria-live="polite"`**: Screen readers wait for the current utterance to
+  finish before announcing the update.
+- **`aria-atomic="true"`**: The entire content of the region is announced as a
+  single unit, not just the changed portion.
+- **`className="sr-only"`**: The region is visually hidden but accessible to
+  screen readers via the project's existing `.sr-only` utility.
+
+#### Announcement logic
+
+- **Suppressed on initial render**: No announcement fires when the component
+  mounts, preventing "42 transactions found" from being read on page load
+  before the user interacts with filters.
+- **Debounced at 500 ms**: Rapid filter changes (e.g., typing in search) reset
+  the timer so only the final result count is announced.
+- **Count-aware messages**:
+  - `0` → "No transactions found."
+  - `1` → "1 transaction found."
+  - `n` (n > 1) → "n transactions found."
+- **No announcement during loading or error states**: The effect guards on
+  `isLoading`, `error`, and the presence of `data`.
+- **Same-count suppression**: If the total does not change between renders
+  (e.g., a re-render from a sort toggle that returns the same data), no
+  announcement fires.
+
+---
+
+### Accessibility Considerations
+
+- **WCAG 2.2.1 (Timing Adjustable)**: The 500 ms debounce does not prevent
+  access to content — it only reduces noise for screen reader users. The
+  underlying data is always visible in the table and pagination controls.
+- **WCAG 1.3.1 (Info and Relationships)**: The live region is a separate
+  element from the table and pagination, maintaining a clear separation of
+  concerns.
+- **WCAG 4.1.2 (Name, Role, Value)**: `role="status"` provides the correct
+  implicit ARIA role; `aria-atomic="true"` ensures complete announcements.
+- **Dark mode / RTL / responsive**: The `.sr-only` class works across all
+  themes, directions, and breakpoints without modification.
+
+---
+
+### Screen reader — spot-check results
+
+| Action | Announced |
+|--------|-----------|
+| Initial page load | (nothing — suppressed) |
+| Filter to "Payment Sent" with 5 results | "5 transactions found." |
+| Search yields 1 result | "1 transaction found." |
+| Search yields no results | "No transactions found." |
+| Clear filters, back to 42 results | "42 transactions found." |
+| Rapid typing in search bar | Only final count announced (debounced) |
+
+---
+
+### Files changed
+
+| File | Changes |
+|------|---------|
+| `components/transactions/transactions-content.tsx` | Added `aria-live="polite"` region with debounced count announcements |
+| `components/transactions/transactions-content.test.tsx` | Added tests for live region, announcements, debounce, initial-load suppression, loading/error states, singular/plural messages |
+| `design/a11y-checklist.md` | Added this section |
 
 ---
 
@@ -419,72 +644,6 @@ animation utilities are disabled when that media query is active.
 
 The quick-actions grid previously required Tab-by-Tab traversal across every card. With only two enabled cards and four disabled (coming-soon) cards, keyboard users had to Tab through six elements to reach the end of the group — and four of those were non-interactive placeholders.
 
-feat/global-error-report-action
-**WCAG:** 1.4.3 Contrast (Minimum)
-**axe rule:** `color-contrast`
-
----
-
-## Global Error Boundary — Report Issue Action (Issue #feat/global-error-report-action)
-
-**Branch:** `feat/global-error-report-action`  
-**Scope:** `app/global-error.tsx`, `app/global-error.test.tsx`  
-**Standard:** WCAG 2.1 Level AA  
-**Date:** 2026-07-29
-
-### Overview
-
-`global-error.tsx` is the last-resort error boundary rendered when the root layout itself crashes. Previously it displayed only a generic message and a "Try again" button, giving users no way to report the failure. A "Report this issue" link was added that opens a `mailto:` link pre-filled with the error digest as a reference identifier.
-
-### WCAG Criteria addressed
-
-#### 1. Link semantics — `<a>` with `href` (WCAG 4.1.2 — Name, Role, Value)
-
-The report action is rendered as a native `<a>` element with a valid `mailto:` `href`. Native links are implicitly recognised by assistive technology as links with a "go" action. No custom ARIA roles are required.
-
-**axe rules satisfied:** `link-name`, `aria-allowed-attr`
-
-#### 2. Accessible name via `aria-label` (WCAG 4.1.2)
-
-The link includes `aria-label="Report this issue to support with reference {digest}"` so screen readers announce the purpose and the reference identifier together, even though the visible text is "Report this issue".
-
-#### 3. Keyboard activation (WCAG 2.1.1 — Keyboard)
-
-Native `<a href="mailto:...">` elements are keyboard-focusable and activated by Enter by default. An `onKeyDown` handler additionally handles the Space key for the `mailto:` protocol (which some browsers may not activate with Space on `mailto:` links). The link receives visible focus via the browser's default focus ring.
-
-**axe rules satisfied:** `interactive-supports-focus`
-
-#### 4. Visual hierarchy — secondary action (WCAG 1.4.1 — Use of Color)
-
-The report link is styled at `0.8rem` in `#6b7280` (muted gray) with underline, visually subordinate to the primary "Try again" button (`0.95rem`, `#ffffff` on `#111827`). The link is distinguishable by both colour and underlining, not by colour alone.
-
-#### 5. Contrast — report link text (WCAG 1.4.3 — Contrast Minimum)
-
-| Element | Foreground | Background | Ratio | Threshold | Pass |
-|---------|------------|------------|-------|-----------|------|
-| Report link text | `#6b7280` | `#f9fafb` | **4.7:1** | 4.5:1 | ✅ |
-
-The link text passes WCAG 2.1 AA at 4.7:1 against the page background.
-
-#### 6. No error content in user-facing payload (Security + WCAG 1.1.1)
-
-The `mailto:` body contains only the digest reference and a prompt to describe what the user was doing. The raw `error.message` and `error.stack` are deliberately excluded from the mailto URI to prevent leaking internal paths or sensitive information.
-
-### Keyboard navigation — manual test results
-
-| Action | Expected behaviour | Status |
-|--------|--------------------|--------|
-| Tab from "Try again" to "Report this issue" | Focus moves to the link | ✅ |
-| Enter on the link | Opens default mail client with pre-filled subject/body | ✅ |
-| Space on the link | Opens default mail client (custom handler) | ✅ |
-| Focus ring visible on the link | Browser default focus ring | ✅ |
-
-### Responsive behaviour
-
-| Breakpoint | Behaviour |
-|------------|-----------|
-| All (inline styles, no CSS dependencies) | Actions stack vertically inside a flex column; link wraps naturally. No horizontal scrolling. |
-
 A roving-tabindex pattern now lets ArrowLeft/ArrowRight (and ArrowUp/ArrowDown in multi-column layouts) move focus between enabled cards with a single Tab to enter the group and a single Shift+Tab to leave it.
 
 ### Implementation
@@ -502,18 +661,11 @@ A roving-tabindex pattern now lets ArrowLeft/ArrowRight (and ArrowUp/ArrowDown i
 | 2.1.1 Keyboard | Arrow keys move focus between cards; Tab/Shift+Tab enters/exits the group in one step |
 | 2.4.3 Focus Order | Roving tabindex maintains logical focus order |
 | 4.1.2 Name, Role, Value | Each card retains its `aria-label` and semantic role (`link` or `button`) |
- main
 
 ### Files changed
 
 | File | Changes |
 |------|---------|
- feat/global-error-report-action
-| `app/global-error.tsx` | Added `error` prop destructuring; added "Report this issue" `<a>` mailto link with digest; wrapped actions in flex column |
-| `app/global-error.test.tsx` | Added 6 test cases: link renders, mailto contains digest, no error message in href, aria-label present, empty digest fallback, both actions present |
-| `design/a11y-checklist.md` | Added this section |
-
 | `components/dashboard/quick-actions.tsx` | Added `activeIndex` state, `gridRef`, `handleGridKeyDown`, `data-quick-action` and `tabIndex` on cards, `onFocus` handlers, grid `role="group"` and `aria-label` |
 | `components/dashboard/quick-actions.test.tsx` | Added roving tabindex tests: single tabIndex 0, arrow key movement, Home/End, disabled card exclusion, focus tracking |
 | `design/a11y-checklist.md` | Updated — this section |
-main

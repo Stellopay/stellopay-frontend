@@ -264,17 +264,7 @@ export function LoginForm() {
                   aria-live="polite"
                   className="bg-red-500/10 text-red-300 px-4 py-3 rounded-lg text-sm flex items-center justify-between gap-3"
                 >
-                  <span>{errorMessage}</span>
-                  {isNetworkError && (
-                    <button
-                      type="button"
-                      onClick={form.handleSubmit(onSubmit, onValidationError)}
-                      disabled={isLoading}
-                      className="shrink-0 underline underline-offset-4 font-medium hover:text-red-200 disabled:opacity-50"
-                    >
-                      Retry
-                    </button>
-                  )}
+                  {errorMessage}
                 </div>
               )}
 

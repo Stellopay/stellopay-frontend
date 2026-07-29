@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useMemo, useCallback, useEffect, useRef } from "react";
-import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { FileText } from "lucide-react";
 import type {
   SortField,
@@ -390,6 +389,50 @@ export default function TransactionsContent() {
     pageSize: 100,
   });
 
+  // ── aria-live announcement for filter result count ──────────────────
+  const prevTotalRef = useRef<number | undefined>(undefined);
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [liveMessage, setLiveMessage] = useState("");
+
+  useEffect(() => {
+    // Only announce when data is present and not in a loading / error state.
+    if (isLoading || error || !data) return;
+
+    const total = data.total ?? 0;
+    const prev = prevTotalRef.current;
+
+    // Suppress announcement on the initial render.
+    if (prev === undefined) {
+      prevTotalRef.current = total;
+      return;
+    }
+
+    // Suppress when the count hasn't actually changed (e.g. re-render).
+    if (prev === total) return;
+
+    // Debounce so rapid filter changes only produce one announcement.
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+
+    debounceRef.current = setTimeout(() => {
+      setLiveMessage(
+        total === 0
+          ? "No transactions found."
+          : `${total} transaction${total === 1 ? "" : "s"} found.`,
+      );
+    }, 500);
+
+    prevTotalRef.current = total;
+
+    // Cancel pending timer on re-run (e.g. when transitioning to
+    // loading / error) or on unmount.
+    return () => {
+      if (debounceRef.current) {
+        clearTimeout(debounceRef.current);
+        debounceRef.current = null;
+      }
+    };
+  }, [data, isLoading, error]);
+
   const paginatedTransactions: TransactionProps[] = useMemo(
     () => (data?.data ?? []).map(toTransactionProps),
     [data],
@@ -571,6 +614,18 @@ export default function TransactionsContent() {
             onClose={() => setStatementRange(null)}
           />
         )}
+
+        {/* Visually-hidden live region that announces filter result counts to
+             screen readers. Uses aria-live="polite" so announcements do not
+             interrupt the user's current task. */}
+        <div
+          role="status"
+          aria-live="polite"
+          aria-atomic="true"
+          className="sr-only"
+        >
+          {liveMessage}
+        </div>
 
         <div className="px-4 sm:px-6 lg:px-8 bg-[#160f17] pt-3 border-[#2D2D2D] border rounded-xl">
           <TransactionsFilters
