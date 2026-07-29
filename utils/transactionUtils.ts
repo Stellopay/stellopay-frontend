@@ -10,6 +10,30 @@ import { formatDate } from "./date-utils";
 type SortComparable = Date | number | string;
 
 /**
+ * Simple memoization helper that caches the last result based on a
+ * serialised argument key. Only the most recent call is cached — this
+ * is intentionally lightweight because the sort/filter pipeline is
+ * called once per effect run in the transactions hook, not repeatedly
+ * with many different argument combinations.
+ */
+function memoizeLast<Args extends unknown[], Result>(
+  fn: (...args: Args) => Result,
+): (...args: Args) => Result {
+  let lastKey: string | undefined;
+  let lastResult: Result | undefined;
+
+  return (...args: Args): Result => {
+    const key = JSON.stringify(args);
+    if (key === lastKey && lastResult !== undefined) {
+      return lastResult;
+    }
+    lastKey = key;
+    lastResult = fn(...args);
+    return lastResult as Result;
+  };
+}
+
+/**
  * Formats transaction amount with proper currency formatting
  * @param amount - The amount to format
  * @returns Formatted currency string
@@ -256,3 +280,50 @@ export const getStatusColor = (status: string): string => {
   const normalizedStatus = status.toLowerCase() as KnownTransactionStatus;
   return STATUS_COLOR_PALETTE[normalizedStatus] ?? UNKNOWN_STATUS_COLOR;
 };
+
+/**
+ * Applies the full filter → sort pipeline and returns the resulting array.
+ *
+ * This is the preferred entry-point for consumers that need both operations
+ * in sequence; it is memoized so repeated calls with identical arguments
+ * return the same array reference without re-executing the pipeline.
+ *
+ * @param transactions - Raw transaction array
+ * @param searchQuery - Free-text search
+ * @param selectedFilter - Dropdown filter label (e.g. "Payment Sent")
+ * @param fromDate - Start date (ISO string)
+ * @param toDate - End date (ISO string)
+ * @param filterQuery - Additional filter query
+ * @param minAmount - Minimum absolute amount
+ * @param maxAmount - Maximum absolute amount
+ * @param counterparty - Counterparty address substring
+ * @param sortConfigs - Ordered sort criteria
+ * @returns Filtered and sorted transaction array
+ */
+export const sortAndFilterTransactions = memoizeLast(
+  (
+    transactions: Transaction[],
+    searchQuery: string,
+    selectedFilter: string,
+    fromDate: string,
+    toDate: string,
+    filterQuery: string,
+    minAmount: number | undefined,
+    maxAmount: number | undefined,
+    counterparty: string | undefined,
+    sortConfigs: SortConfig[],
+  ): Transaction[] => {
+    const filtered = filterTransactions(
+      transactions,
+      searchQuery,
+      selectedFilter,
+      fromDate,
+      toDate,
+      filterQuery,
+      minAmount,
+      maxAmount,
+      counterparty,
+    );
+    return sortTransactionsMulti(filtered, sortConfigs);
+  },
+);
