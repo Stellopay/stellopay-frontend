@@ -104,7 +104,7 @@ describe("getTransactions", () => {
 
   it("sorts by absolute amount ascending", async () => {
     const result = await getTransactions({
-      filters: { sortField: "amount", sortDirection: "asc" },
+      filters: { sortConfigs: [{ field: "amount", direction: "asc" }] },
       pageSize: 100,
     });
     const amounts = result.data.map((t) => Math.abs(t.amount));
@@ -114,7 +114,7 @@ describe("getTransactions", () => {
 
   it("sorts by absolute amount descending", async () => {
     const result = await getTransactions({
-      filters: { sortField: "amount", sortDirection: "desc" },
+      filters: { sortConfigs: [{ field: "amount", direction: "desc" }] },
       pageSize: 100,
     });
     const amounts = result.data.map((t) => Math.abs(t.amount));
