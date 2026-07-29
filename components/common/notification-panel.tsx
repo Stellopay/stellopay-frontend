@@ -113,65 +113,27 @@ export default function NotificationPanel({
               className="px-2 py-0.5 text-xs font-semibold rounded-full bg-primary/10 text-primary dark:bg-primary/20"
               aria-label={`${unreadCount} unread notifications`}
             >
-              {unreadCount} new
-            </span>
-          )}
-        </div>
-        <div className="flex items-center space-x-1 sm:space-x-2">
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={handleMarkAllRead}
-            disabled={notifications.length === 0 || unreadCount === 0}
-            className="text-xs h-8 px-2 sm:px-3 focus-visible:ring-2 focus-visible:ring-ring"
-            aria-label="Mark all notifications as read"
-          >
-            <Check className="h-3.5 w-3.5 mr-1 text-muted-foreground" aria-hidden="true" />
-            Mark all read
-          </Button>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={handleClearAll}
-            disabled={notifications.length === 0}
-            className="text-xs h-8 px-2 sm:px-3 text-destructive hover:text-destructive hover:bg-destructive/10 focus-visible:ring-2 focus-visible:ring-ring"
-            aria-label="Clear all notifications"
-          >
-            <Trash2 className="h-3.5 w-3.5 mr-1" aria-hidden="true" />
-            Clear all
-          </Button>
-        </div>
-      </div>
-
-      {/* Notifications List */}
-      <div
-        className="mt-3 space-y-2 max-h-80 overflow-y-auto pr-1"
-        role="region"
-        aria-live="polite"
-        aria-label="Notification list"
-      >
-        {notifications.length === 0 ? (
-          <div className="py-12 text-center text-muted-foreground">
-            <p className="text-sm">No notifications to display.</p>
-          </div>
-        ) : (
-          notifications.map((item) => (
-            <div
-              key={item.id}
-              className={`p-3 rounded-lg border transition-colors flex items-start justify-between space-x-3 ${
-                item.read
-                  ? "bg-card border-border/50 text-muted-foreground"
-                  : "bg-muted/40 border-primary/20 text-foreground font-medium"
-              }`}
-            >
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center justify-between">
-                  <p className="text-sm font-semibold truncate">{item.title}</p>
-                  <span className="text-xs text-muted-foreground ml-2 shrink-0">
-                    {item.timestamp}
-                  </span>
-                </div>
-                <p className="text-xs mt-1 text-muted-foreground line-clamp-2">{item.message}</p>
+              <div className="grid gap-1">
+                <p className="font-light text-[#E5E5E5] text-sm">
+                  {notification.title}
+                </p>
+                <p className="text-xs text-[#505050] truncate">
+                  {notification.message}
+                </p>
+                {notification.read && notification.readAt && (
+                  <p className="text-[10px] text-[#505050] mt-1">
+                    Read: {new Date(notification.readAt).toLocaleString(undefined, {
+                      dateStyle: 'medium',
+                      timeStyle: 'short'
+                    })}
+                  </p>
+                )}
+              </div>
+              <div className="relative w-[24px] h-[24px] flex items-center justify-center bg-[#0D0D0D80]/50 border border-[#2E2E2E] rounded-sm">
+                <IconBell />
+                {!notification.read && (
+                  <div className="absolute top-2 right-[7px] w-1 h-1 bg-[#EB6945] rounded-full" />
+                )}
               </div>
               {!item.read && (
                 <Button

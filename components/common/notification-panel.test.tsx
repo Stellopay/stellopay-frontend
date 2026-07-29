@@ -20,9 +20,24 @@ const MOCK_NOTIFICATIONS: NotificationItem[] = [
   },
 ];
 
-describe("NotificationPanel (#792 Clear All with Undo)", () => {
-  beforeEach(() => {
-    vi.useFakeTimers();
+const buildNotifications = (count: number): NotificationItem[] =>
+  Array.from({ length: count }).map((_, index) => {
+    const isRead = index % 2 === 0;
+    return {
+      id: `notif-${index}`,
+      title: `Title ${index}`,
+      message: `Message ${index}`,
+      read: isRead,
+      ...(isRead ? { readAt: new Date().toISOString() } : {}),
+    };
+  });
+
+describe("NotificationPanel", () => {
+  it("renders a loading skeleton when isLoading is true", () => {
+    render(<NotificationPanel notifications={[]} isLoading />);
+
+    expect(screen.queryByText("You're all caught up")).not.toBeInTheDocument();
+    expect(screen.queryByRole("listbox")).not.toBeInTheDocument();
   });
 
   afterEach(() => {
@@ -88,6 +103,15 @@ describe("NotificationPanel (#792 Clear All with Undo)", () => {
 
     expect(screen.queryByRole("status")).not.toBeInTheDocument();
     expect(screen.getByText("No notifications to display.")).toBeInTheDocument();
+  });
+
+  it("displays the readAt timestamp for read notifications if provided", () => {
+    const notifications: NotificationItem[] = [
+      { id: "read", title: "Read item", message: "msg", read: true, readAt: "2026-07-29T15:00:00Z" },
+    ];
+    render(<NotificationPanel notifications={notifications} />);
+
+    expect(screen.getByText(/Read:/)).toBeInTheDocument();
   });
 
   it("displays the readAt timestamp for read notifications if provided", () => {
