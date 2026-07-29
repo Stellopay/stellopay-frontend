@@ -61,31 +61,33 @@ const AccordionItem = ({
           "bg-white dark:bg-[#1A1A1A] border-[#F2F2F2] dark:border-[#262626]",
       )}
     >
-      <button
-        ref={buttonRef}
-        onClick={onToggle}
-        onKeyDown={onKeyDown}
-        className="w-full flex items-center justify-between p-6 md:p-8 text-left focus:outline-none"
-        aria-expanded={isOpen}
-      >
-        <span className="text-lg md:text-xl font-semibold text-[#09090B] dark:text-[#FAFAFA] font-sans">
-          {item.question}
-        </span>
-        <div
-          className={cn(
-            "flex-shrink-0 w-10 h-10 md:w-12 md:h-12 rounded-2xl flex items-center justify-center transition-colors duration-300",
-            isOpen
-              ? "bg-gradient-to-b from-[#93B4FF] via-[#A78BFA] to-[#7C3AED] dark:from-[#7C9EFF] dark:via-[#8B5CF6] dark:to-[#6D28D9] text-white"
-              : "bg-gradient-to-b from-[#93B4FF] via-[#A78BFA] to-[#7C3AED] dark:from-[#7C9EFF] dark:via-[#8B5CF6] dark:to-[#6D28D9] text-white",
-          )}
+      <h3>
+        <button
+          ref={buttonRef}
+          onClick={onToggle}
+          onKeyDown={onKeyDown}
+          className="w-full flex items-center justify-between p-6 md:p-8 text-left focus:outline-none"
+          aria-expanded={isOpen}
         >
-          {isOpen ? (
-            <Minus className="w-5 h-5 md:w-6 md:h-6" strokeWidth={2.5} />
-          ) : (
-            <Plus className="w-5 h-5 md:w-6 md:h-6" strokeWidth={2.5} />
-          )}
-        </div>
-      </button>
+          <span className="text-lg md:text-xl font-semibold text-[#09090B] dark:text-[#FAFAFA] font-sans">
+            {item.question}
+          </span>
+          <div
+            className={cn(
+              "flex-shrink-0 w-10 h-10 md:w-12 md:h-12 rounded-2xl flex items-center justify-center transition-colors duration-300",
+              isOpen
+                ? "bg-gradient-to-b from-[#93B4FF] via-[#A78BFA] to-[#7C3AED] dark:from-[#7C9EFF] dark:via-[#8B5CF6] dark:to-[#6D28D9] text-white"
+                : "bg-gradient-to-b from-[#93B4FF] via-[#A78BFA] to-[#7C3AED] dark:from-[#7C9EFF] dark:via-[#8B5CF6] dark:to-[#6D28D9] text-white",
+            )}
+          >
+            {isOpen ? (
+              <Minus className="w-5 h-5 md:w-6 md:h-6" strokeWidth={2.5} />
+            ) : (
+              <Plus className="w-5 h-5 md:w-6 md:h-6" strokeWidth={2.5} />
+            )}
+          </div>
+        </button>
+      </h3>
 
       {reducedMotion ? (
         isOpen && (

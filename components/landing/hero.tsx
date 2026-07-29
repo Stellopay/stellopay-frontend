@@ -110,15 +110,18 @@ const Hero = () => {
             <ArrowRight className="text-[#52525B] dark:text-[#A1A1AA] w-[13.99px] h-[13.99px]" />
           </a>
           {/* header text */}
-          <h1 className="font-bold text-4xl lg:text-7xl">
-            The Future of
+          <h1 className="font-bold text-4xl lg:text-7xl text-display-2xl">
+            The Future of{" "}
             <span className="bg-gradient-to-r from-[#2563EB] dark:from-[#3B82F6] via-[#7C3AED] dark:via-[#8B5CF6] via-16% lg:via-33% to-[#059669] dark:to-[#10B981] to-33% lg:to-66% bg-clip-text text-transparent block">
               Payroll on
-            </span>
+            </span>{" "}
             Blockchain
           </h1>
           {/* paragraph text */}
-          <p className="text-base lg:text-lg font-normal text-[#52525B] dark:text-[#A1A1AA] lg:w-[90%]">
+          <p
+            data-testid="hero-subtext"
+            className="text-base lg:text-lg font-normal text-[#52525B] dark:text-[#A1A1AA] lg:w-[90%] text-body-lg"
+          >
             Built for modern businesses. Designed for global payments. Powered
             by blockchain technology.
           </p>
@@ -211,7 +214,7 @@ const Hero = () => {
                 <p className=" text-xs font-normal text-[#52525B] dark:text-[#A1A1AA]">
                   Escrow Dashboard
                 </p>
-                <h4 className="text-base font-bold">Multi-Chain Platform</h4>
+                <p className="text-base font-bold">Multi-Chain Platform</p>
               </div>
             </div>
 

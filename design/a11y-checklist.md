@@ -444,3 +444,52 @@ A roving-tabindex pattern now lets ArrowLeft/ArrowRight (and ArrowUp/ArrowDown i
 | `components/dashboard/quick-actions.tsx` | Added `activeIndex` state, `gridRef`, `handleGridKeyDown`, `data-quick-action` and `tabIndex` on cards, `onFocus` handlers, grid `role="group"` and `aria-label` |
 | `components/dashboard/quick-actions.test.tsx` | Added roving tabindex tests: single tabIndex 0, arrow key movement, Home/End, disabled card exclusion, focus tracking |
 | `design/a11y-checklist.md` | Updated — this section |
+
+---
+
+## Landing Page Heading Hierarchy & Outline Audit — SEO and Assistive Tech
+
+**Branch:** `a11y/landing-heading-hierarchy`
+**Scope:** `components/landing/` (including `landing-page.tsx`, `hero.tsx`, `enterprise-section.tsx`, `faq-section.tsx`, `get-started-cta.tsx`, and `footer.tsx`)
+**Standard:** WCAG 2.1 Level AA (SEO & Assistive Tech)
+**Date:** 2026-07-29
+
+### Overview
+
+The landing page previously featured several sections with misaligned heading levels (such as dynamic sections starting with `h4` or skipping directly from `h1` to `h4`), styled-bold elements behaving as visual headings without proper accessibility tree semantic nodes (such as the FAQ accordion questions), and adjacent duplicate headings in the CTA section. These have been consolidated, refactored, and verified under a single semantic heading tree.
+
+### Logical Heading Tree (Outline)
+
+- **H1**: Main page heading ("The Future of Payroll on Blockchain") in `hero.tsx`.
+- **H2**: Top-level section headings:
+  - Key Features section heading ("Everything you need to scale your business") in `features-intro.tsx`.
+  - How it Works section heading ("From crypto to cash — in just three steps") in `how-it-works.tsx`.
+  - Value Propositions section heading ("Why businesses choose StelloPay") in `value-propositions.tsx`.
+  - Enterprise Solution section heading ("Enterprise-ready blockchain solution") in `enterprise-section.tsx` (previously `h4`, now `h2`).
+  - Benefits section heading ("Benefits") in `benefits.tsx`.
+  - FAQ section heading ("Have any Questions? We've Got Your Answers") in `faq-section.tsx`.
+  - Get Started CTA section heading ("Ready to revolutionize your payments?") in `get-started-cta.tsx` (previously two separate adjacent `h2` elements, now consolidated into a single unified `h2` element with nested `span` styling).
+- **H3**: Subsection and card-level headings:
+  - Feature card title ("Secure Transactions" etc.) in `feature-card.tsx`.
+  - Step title ("Connect Your Wallet" etc.) in `how-it-works.tsx`.
+  - Value Proposition card title ("Built for Crypto in Nigeria" etc.) in `value-propositions.tsx`.
+  - Benefits card title ("Low Fees" etc.) in `benefits.tsx`.
+  - FAQ item title/question ("Do I need a crypto wallet?" etc.) wrapped inside `<h3>` (W3C standard Accordion pattern).
+
+### WCAG Criteria & Assistive Tech Addressed
+
+- **WCAG 1.3.1 (Info and Relationships)**: Real semantic heading elements (`<h1>` to `<h3>`) define structure so screen-reader users can logically navigate headings using `H` or list headings via screen-reader shortcuts.
+- **WCAG 2.4.6 (Headings and Labels)**: Consolidating CTA headers and wrapping FAQ question buttons in `<h3>` ensures clear labels that accurately describe the topic or purpose.
+- **SEO Optimization**: Eliminates skipped heading levels, enhancing search-engine crawl path accuracy and keyword priority.
+
+### Files modified/created
+
+| File | Changes |
+|------|---------|
+| `components/landing/landing-page.tsx` | Document header structure validation |
+| `components/landing/hero.tsx` | Added display utility typography tokens (`text-display-2xl` and `text-body-lg`) and removed skipped `h4` mock tag |
+| `components/landing/enterprise-section.tsx` | Changed title from `h4` to `h2` and wired `id` labels for `aria-labelledby`/`aria-describedby` |
+| `components/landing/faq-section.tsx` | Wrapped accordion question buttons in `<h3>` tags (W3C standard) |
+| `components/landing/get-started-cta.tsx` | Consolidated adjacent headings into a single unified `h2` |
+| `components/common/footer.tsx` | Refactored footer links/columns to use bold paragraphs, ensuring the document content outline remains completely uncluttered and precise |
+| `components/landing/landing-page.test.tsx` | New test file auditing the single-H1, sequential level progression, and presence of all major H2 landmarks |

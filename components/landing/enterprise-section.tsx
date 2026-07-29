@@ -54,15 +54,21 @@ const EnterpriseSolutionSection = () => {
     >
       <div className="flex flex-col items-start gap-5 flex-1">
         <div>
-          <h4 className="font-bold text-3xl lg:text-5xl leading-12 tracking-[0.35px] text-[#09090B] dark:text-[#FAFAFA] print:text-black">
+          <h2
+            id="enterprise-solution-title"
+            className="font-bold text-3xl lg:text-5xl leading-12 tracking-[0.35px] text-[#09090B] dark:text-[#FAFAFA] print:text-black"
+          >
             Enterprise-ready <br />
             <span className="bg-linear-to-r from-[#83A7FF] to-[#8B5CF6] bg-clip-text text-transparent print:bg-none print:text-[#09090B]">
               blockchain solution
             </span>
-          </h4>
+          </h2>
         </div>
         <div className="w-full lg:w-[458.5px]">
-          <p className="text-[#52525B] dark:text-[#A1A1AA] text-start font-normal text-xl leading-[32.5px] print:text-black">
+          <p
+            id="enterprise-solution-desc"
+            className="text-[#52525B] dark:text-[#A1A1AA] text-start font-normal text-xl leading-[32.5px] print:text-black"
+          >
             StelloPay is built for scale. Whether you&apos;re a startup or an
             enterprise, our platform grows with your business needs.
           </p>

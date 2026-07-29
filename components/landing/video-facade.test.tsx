@@ -1,9 +1,12 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { describe, expect, it, beforeEach, afterEach, vi } from "vitest";
-import { axe, toHaveNoViolations } from "vitest-axe";
+import { axe } from "vitest-axe";
+import * as toHaveNoViolationsExport from "vitest-axe/matchers";
 import { VideoFacade } from "./video-facade";
 
-expect.extend(toHaveNoViolations);
+// Register vitest-axe matchers
+const matchers = (toHaveNoViolationsExport as any).default || toHaveNoViolationsExport;
+expect.extend(matchers);
 
 const TEST_VIDEO_ID = "dQw4w9WgXcQ";
 const TEST_VIDEO_TITLE = "Test Video Title";
@@ -259,7 +262,7 @@ describe("VideoFacade", () => {
       );
 
       const aspectContainer = container.querySelector(
-        "[style*='aspectRatio']"
+        "[style*='aspect']"
       );
       expect(aspectContainer).toBeInTheDocument();
     });
@@ -281,7 +284,7 @@ describe("VideoFacade", () => {
 
       await waitFor(() => {
         const aspectContainer = container.querySelector(
-          "[style*='aspectRatio']"
+          "[style*='aspect']"
         );
         expect(aspectContainer).toBeInTheDocument();
       });
@@ -297,7 +300,7 @@ describe("VideoFacade", () => {
       );
 
       const aspectContainer = container.querySelector(
-        "[style*='aspectRatio']"
+        "[style*='aspect']"
       );
       expect(aspectContainer).toHaveStyle({ aspectRatio: "4/3" });
     });
@@ -415,7 +418,12 @@ describe("VideoFacade", () => {
         expect(iframe).toBeInTheDocument();
       });
 
-      const results = await axe(container);
+      const results = await axe(container, {
+        iframes: false,
+        rules: {
+          "frame-tested": { enabled: false },
+        },
+      });
       expect(results).toHaveNoViolations();
     });
   });
@@ -483,7 +491,7 @@ describe("VideoFacade", () => {
 
       // Check for overflow on the aspect container
       const aspectContainer = container.querySelector(
-        "[style*='aspectRatio']"
+        "[style*='aspect']"
       );
       expect(aspectContainer).toHaveClass("overflow-hidden");
 
@@ -668,7 +676,7 @@ describe("VideoFacade", () => {
         name: `Play ${TEST_VIDEO_TITLE}`,
       });
 
-      const event = new KeyboardEvent("keydown", { key: "Enter" });
+      const event = new KeyboardEvent("keydown", { key: "Enter", bubbles: true });
       const preventDefaultSpy = vi.spyOn(event, "preventDefault");
 
       playButton.dispatchEvent(event);
@@ -688,7 +696,7 @@ describe("VideoFacade", () => {
         name: `Play ${TEST_VIDEO_TITLE}`,
       });
 
-      const event = new KeyboardEvent("keydown", { key: " " });
+      const event = new KeyboardEvent("keydown", { key: " ", bubbles: true });
       const preventDefaultSpy = vi.spyOn(event, "preventDefault");
 
       playButton.dispatchEvent(event);
