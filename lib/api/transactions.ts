@@ -8,7 +8,10 @@
 
 import type { Transaction, TransactionFilters } from "@/types/transaction";
 import { allTransactions } from "@/lib/transactions";
-import { sortAndFilterTransactions } from "@/utils/transactionUtils";
+import {
+  filterTransactions,
+  sortTransactionsMulti,
+} from "@/utils/transactionUtils";
 
 export interface PaginatedTransactions {
   data: Transaction[];
@@ -219,7 +222,7 @@ export async function getTransactions(
     throw new DOMException("Aborted", "AbortError");
   }
 
-  const sorted = sortAndFilterTransactions(
+  const filtered = filterTransactions(
     allTransactions,
     searchQuery,
     selectedFilter,
@@ -229,8 +232,9 @@ export async function getTransactions(
     minAmount,
     maxAmount,
     counterparty,
-    sortConfigs,
   );
+
+  const sorted = sortTransactionsMulti(filtered, sortConfigs);
 
   const total = sorted.length;
   const totalPages = Math.max(1, Math.ceil(total / safePageSize));

@@ -113,27 +113,52 @@ export default function NotificationPanel({
               className="px-2 py-0.5 text-xs font-semibold rounded-full bg-primary/10 text-primary dark:bg-primary/20"
               aria-label={`${unreadCount} unread notifications`}
             >
-              <div className="grid gap-1">
-                <p className="font-light text-[#E5E5E5] text-sm">
-                  {notification.title}
-                </p>
-                <p className="text-xs text-[#505050] truncate">
-                  {notification.message}
-                </p>
-                {notification.read && notification.readAt && (
-                  <p className="text-[10px] text-[#505050] mt-1">
-                    Read: {new Date(notification.readAt).toLocaleString(undefined, {
-                      dateStyle: 'medium',
-                      timeStyle: 'short'
-                    })}
-                  </p>
-                )}
-              </div>
-              <div className="relative w-[24px] h-[24px] flex items-center justify-center bg-[#0D0D0D80]/50 border border-[#2E2E2E] rounded-sm">
-                <IconBell />
-                {!notification.read && (
-                  <div className="absolute top-2 right-[7px] w-1 h-1 bg-[#EB6945] rounded-full" />
-                )}
+              {unreadCount}
+            </span>
+          )}
+        </div>
+        <div className="flex items-center space-x-1">
+          {unreadCount > 0 && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={handleMarkAllRead}
+              className="text-xs h-8 px-2 text-muted-foreground hover:text-foreground"
+            >
+              Mark all read
+            </Button>
+          )}
+          {notifications.length > 0 && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={handleClearAll}
+              className="text-xs h-8 px-2 text-destructive hover:text-destructive"
+            >
+              Clear all
+            </Button>
+          )}
+        </div>
+      </div>
+
+      {/* Notification List */}
+      <div className="divide-y divide-border max-h-80 overflow-y-auto my-2">
+        {notifications.length === 0 ? (
+          <p className="p-4 text-center text-sm text-muted-foreground">
+            No notifications available.
+          </p>
+        ) : (
+          notifications.map((item) => (
+            <div
+              key={item.id}
+              className={`p-3 flex items-start justify-between gap-3 text-sm transition-colors ${
+                item.read ? "opacity-70" : "bg-muted/30"
+              }`}
+            >
+              <div className="space-y-1">
+                <p className="font-medium leading-none">{item.title}</p>
+                <p className="text-xs text-muted-foreground">{item.message}</p>
+                <p className="text-[10px] text-muted-foreground">{item.timestamp}</p>
               </div>
               {!item.read && (
                 <Button

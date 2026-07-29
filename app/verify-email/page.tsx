@@ -413,6 +413,8 @@ function VerifyEmailForm() {
             >
               Go Back
             </button>
+          </>
+        )}
       </div>
     </div>
   );
