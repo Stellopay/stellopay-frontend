@@ -13,6 +13,7 @@ import { Tooltip } from "@material-tailwind/react";
 import { usePathname } from "next/navigation";
 import Link from "next/link";
 import { useTheme } from "@/context/theme-context";
+import { transition } from "@/lib/motion";
 import {
   isLinkActive,
   shouldExpandSidebar,
@@ -113,11 +114,7 @@ export const NavLink = () => {
                           isMobile,
                           isExpanded,
                         )}
-                        transition={{
-                          type: "spring",
-                          bounce: 0.2,
-                          duration: 0.6,
-                        }}
+                        transition={transition.spring}
                       />
                     ))}
                 </Link>
@@ -161,11 +158,7 @@ export const NavLink = () => {
                         className="absolute left-0 top-0 w-8 h-8 self-center bg-zinc-900 dark:bg-white rounded-xl z-10 shadow-sm"
                         style={{ left: "50%", transform: "translateX(-50%)" }}
                         layoutId="activeLink-collapsed"
-                        transition={{
-                          type: "spring",
-                          bounce: 0.2,
-                          duration: 0.6,
-                        }}
+                        transition={transition.spring}
                       />
                     ))}
                 </Link>

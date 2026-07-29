@@ -252,3 +252,63 @@ The design tokens (`bg-background`, `text-foreground`, `text-red-500`, rounded-x
 - **Keyboard Nav**: The "Try Again" button is fully keyboard navigable. Focus order is maintained.
 - **ARIA**: The `ErrorState` component utilizes `role="alert"` and `aria-live="assertive"` so screen readers can proactively announce network failures. Loading/Retrying indicators use `aria-hidden="true"` on non-text elements and `aria-label` or `aria-disabled` where appropriate to ensure status is accurately conveyed.
 - **New props**: `eventId` is rendered in a `<code>` block with `aria-label` describing the reference; the report link uses `aria-label="Report this issue"` so screen readers announce purpose clearly.
+
+---
+
+## Motion Duration & Easing Tokens (#758)
+
+### Token Scale
+
+| Token      | Value | Use Case                                | Example Components               |
+| :--------- | :---- | :-------------------------------------- | :------------------------------- |
+| `fast`     | 200ms | Micro-interactions (hover, tap, focus)  | Sidebar logo fade, toggle button |
+| `base`     | 300ms | Standard UI transitions                 | FAQ accordion expand/collapse    |
+| `slow`     | 500ms | Entrance / scroll-reveal animations     | Hero section, how-it-works steps |
+| `xslow`    | 600ms | Layout animations, spring-like movement | Nav-link active indicator        |
+
+### Easing Curves
+
+| Curve       | Cubic Bézier                        | Use Case                    |
+| :---------- | :---------------------------------- | :-------------------------- |
+| `easeOut`   | `cubic-bezier(0.16, 1, 0.3, 1)`    | Entrance animations         |
+| `easeInOut` | `cubic-bezier(0.65, 0, 0.35, 1)`   | UI toggle / accordion       |
+
+### Transition Presets (`lib/motion.ts`)
+
+Exported framer-motion transition objects that combine duration + easing:
+
+```typescript
+transition.fast   // { duration: 0.2, ease: [0.16, 1, 0.3, 1] }
+transition.base   // { duration: 0.3, ease: [0.65, 0, 0.35, 1] }
+transition.slow   // { duration: 0.5, ease: [0.16, 1, 0.3, 1] }
+transition.spring // { type: "spring", bounce: 0.2, duration: 0.6 }
+```
+
+### Variant Presets
+
+| Variant               | Behavior                           |
+| :-------------------- | :--------------------------------- |
+| `variants.fadeOnly`   | Opacity 0 → 1 (no transform)       |
+| `variants.fadeSlideUp`| Opacity 0 + y:20 → Opacity 1 + y:0 |
+
+### Reduced Motion
+
+The `resolveVariants(prefersReduced, delay?)` helper returns `fadeOnly` (zero-duration) when the user has `prefers-reduced-motion: reduce`, and animated `fadeSlideUp` variants otherwise.
+
+### Migrated Components
+
+| Component                                 | Before (inline)         | After (token)              |
+| :---------------------------------------- | :---------------------- | :------------------------- |
+| `components/landing/how-it-works.tsx`     | `duration: 0.5, easeOut`| `duration.slow, easing.easeOut` |
+| `components/landing/feature-card-grid.tsx`| `duration: 0.5, easeOut`| `duration.slow, easing.easeOut` |
+| `components/landing/faq-section.tsx`      | `duration: 0.3, easeInOut` | `duration.base, easing.easeInOut` |
+| `components/common/nav-link.tsx`          | `spring, bounce: 0.2, duration: 0.6` | `transition.spring` |
+| `components/landing/hero.tsx`             | N/A (no framer-motion)  | `resolveVariants()` with `duration.slow` |
+| `components/common/side-bar.tsx`          | CSS `duration-200`      | `transition.fast` via framer-motion |
+
+### Accessibility (WCAG 2.1 AA)
+
+- **Reduced Motion**: All motion-enabled components check `useReducedMotion()` and disable non-essential movement when the OS-level `prefers-reduced-motion: reduce` is set.
+- **No Content Loss**: Hidden decorative elements (gradient orbs, rotating cards) remain visually hidden without animation; all content stays accessible and functional.
+- **Focus Management**: Sidebar open/close preserves focus order and returns focus to `#main-content` on close (handled in `AppLayout`).
+- **Contrast**: All transition elements use the existing color token system with `dark:` variants for sufficient contrast.
