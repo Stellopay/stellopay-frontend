@@ -94,6 +94,57 @@ We exclusively use the **Next.js App Router** (no `pages/` directory). Here is o
 - `utils/`: Small utility functions and helpers.
 - `types/`: TypeScript definitions and interfaces.
 
+## Settings Search Feature
+
+The settings preferences page includes a cross-tab search feature that allows users to quickly find controls across all four settings sections (Account, Notifications, Security, Wallets).
+
+### How to add a new searchable control
+
+When adding a new control to any settings section:
+
+1. **Update `SEARCHABLE_CONTROLS`** in `components/settings-search.tsx`:
+   ```tsx
+   {
+     label: "Your control name",
+     section: "account", // or "notifications", "security", "wallets"
+     keywords: ["keyword1", "keyword2", "synonym"],
+   }
+   ```
+
+2. **Keywords should include**:
+   - The primary control name (e.g., "password")
+   - Related synonyms (e.g., "security", "authentication")
+   - The section name (e.g., "account")
+   - Any category words (e.g., "danger" for destructive actions)
+
+3. **Security note**: Only include non-sensitive labels and keywords. Never add email addresses, wallet keys, or PII to the search index.
+
+### Search behavior
+
+- **Query matching**: Searches are case-insensitive substring matches against both label and keywords
+- **Relevance ranking**: Results are ranked by match type (exact > starts-with > contains)
+- **Keyboard navigation**: Users can navigate results with arrow keys (↑/↓) and select with Enter
+- **Tab switching**: Selecting a result automatically switches to the appropriate tab
+- **Keyboard accessible**: Fully operable without a mouse (Tab, Enter, Escape, Arrow keys)
+
+### Testing the search feature
+
+Run Playwright e2e tests to verify search functionality:
+
+```bash
+npm run test:e2e -- tests/settings-search.spec.ts
+```
+
+Key test scenarios covered:
+- Cross-tab navigation and tab switching
+- Keyboard navigation (arrow keys, Enter, Escape)
+- Search ranking by relevance
+- No-results state
+- Accessibility (keyboard-only operation, screen reader support)
+- Responsive behavior across breakpoints (mobile, tablet, desktop)
+- Dark mode rendering
+
+
 ## Data-Layer Rules
 
 We enforce a strict separation of concerns for data access.
@@ -153,9 +204,87 @@ and debugging stay frictionless.
 `react-icons` and `@hugeicons/*` are restricted — always import icons from
 `lucide-react`.
 
+## Icon Library Policy
+
+To keep the bundle small and the visual language consistent, all UI icons must
+come from **`lucide-react`**. This is the single source of truth, enforced both
+by the ESLint `no-restricted-imports` rule above and by the import-guard test
+in `utils/import-guard.test.ts`.
+
+### Decision tree
+
+```
+Need an icon?
+│
+├─ Is it available in lucide-react?
+│   └─ YES → import { IconName } from "lucide-react"   ✅
+│
+├─ Is it a brand logo or a unique custom shape not expressible
+│  as a stroke icon (e.g. the filled bell notification badge)?
+│   └─ YES → write a minimal inline SVG component under
+│             components/icons/ and document the exception
+│             in design/icons.md                        ✅ (see below)
+│
+└─ Otherwise → do NOT reach for react-icons or @hugeicons  ❌
+```
+
+### When to write a custom SVG component
+
+A custom SVG under `components/icons/` is justified **only** when:
+
+1. The icon is not available in lucide-react at all, **and**
+2. The required shape is filled / brand-specific and cannot be reasonably
+   approximated by a lucide stroke icon.
+
+When you add one, follow these rules:
+
+- Place it in `components/icons/<name>-icon.tsx`.
+- Accept `IconProps` from `@/types/icons` (which extends
+  `React.SVGProps<SVGSVGElement>`) so callers can pass `className`,
+  `aria-label`, etc.
+- **Do not hard-code colours.** Use `currentColor` (inherits from CSS) or
+  accept a `fill`/`stroke` prop so the icon respects the design token system
+  and dark-mode.
+- Add `aria-hidden="true"` by default and rely on a wrapping element or an
+  explicit `aria-label` prop for accessible names — never describe the raw
+  shape in the label.
+- Document the exception in `design/icons.md` with a short rationale.
+- Write a `components/icons/<name>-icon.test.tsx` that verifies the SVG
+  structure, any forwarded props, and accessibility attributes.
+
+### Existing exception — `components/icons/bell-fill-icon.tsx`
+
+`lucide-react`'s `Bell` icon is a stroke outline. The notification badge in
+the dashboard requires a **filled** bell shape that is not available as a
+lucide variant. `IconBell` is the approved custom component for this use case.
+
+> ⚠ The current implementation hard-codes `fill="#333333"`. This is a known
+> limitation — tracked for migration to `currentColor` so the icon responds to
+> dark-mode and design tokens. Until then, do not copy this pattern for new
+> icons.
+
+### Size and stroke conventions
+
+See [`design/icons.md`](design/icons.md) for the full sizing system
+(16 / 20 / 24 px), default stroke width (2), and import tree-shaking rules.
+
 ## Testing Expectations
 
 We expect all new utility functions and business logic to have **minimum 95% test coverage**.
+
+### Runtime Guard Coverage
+
+Runtime type guards that validate external payloads must have focused unit tests
+near the type they protect. Cover valid payloads, invalid payloads, and at least
+one representative TypeScript narrowing path. When a broader component or
+context suite also needs the same payload shape, put reusable samples in a
+shared fixture module instead of duplicating them across test files.
+
+Guard-only changes have no visual UI state to screenshot, but the PR should
+say so explicitly. If the guarded payload drives rendered UI, include notes for
+WCAG 2.1 AA contrast, keyboard navigation, ARIA semantics, dark mode, RTL,
+long text, and responsive checks at `sm` 640px, `md` 768px, `lg` 1024px, and
+`xl` 1280px.
 
 ### Test Commands
 
@@ -181,6 +310,16 @@ We expect all new utility functions and business logic to have **minimum 95% tes
   ```
   Runs TypeScript compiler (`tsc --noEmit`) to verify types without building.
 
+### Integration Tests & Guards
+
+When building components that combine UI behaviors (like tab-switching coupled with unsaved-changes guards), write **integration tests** that exercise the combined user flow. 
+
+For example, when testing an unsaved changes guard, ensure the test:
+- Dirties the form state
+- Attempts the guarded action (e.g. switching tabs)
+- Asserts that the guard intercepts the action
+- Confirms both paths (Discard / Stay) to verify the state and UI accurately update.
+
 ## Branching, Commits, and PRs
 
 1. **Branch Naming**: Use descriptive branch names like `feat/feature-name`, `fix/bug-name`, or `docs/doc-update`.
@@ -190,3 +329,6 @@ We expect all new utility functions and business logic to have **minimum 95% tes
 ### Security Notes
 
 Examples must not include real secrets, tokens, or addresses. Always use placeholder domains (e.g., `example.com`) and redacted addresses in your tests and mockups.
+## Local Accessibility Testing Guide
+Before opening a pull request, please ensure your changes comply with our accessibility guidelines (targeting WCAG 2.1 AA compliance).
+Refer to the full manual and automated criteria in [design/a11y-checklist.md](design/a11y-checklist.md).
