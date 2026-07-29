@@ -50,11 +50,17 @@ describe("QuickActions – default destinations", () => {
   it("renders all six action cards", () => {
     renderDefault();
 
-    expect(screen.getByRole("link", { name: "Send Payment" })).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "View Reports" })).toBeInTheDocument();
+    expect(
+      screen.getByRole("link", { name: "Send Payment" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("link", { name: "View Reports" }),
+    ).toBeInTheDocument();
 
     for (const title of COMING_SOON_TITLES) {
-      expect(screen.getByLabelText(`${title}, coming soon`)).toBeInTheDocument();
+      expect(
+        screen.getByLabelText(`${title}, coming soon`),
+      ).toBeInTheDocument();
     }
   });
 
@@ -75,13 +81,17 @@ describe("QuickActions – default destinations", () => {
   it("no two distinct active actions share the same href", () => {
     renderDefault();
 
-    const links = screen.getAllByRole("link").filter(
-      (el) => !el.closest("header") && el.getAttribute("href") !== undefined
-    );
+    const links = screen
+      .getAllByRole("link")
+      .filter(
+        (el) => !el.closest("header") && el.getAttribute("href") !== undefined,
+      );
 
     // Exclude the Customize link (it has no aria-label matching an action)
     const actionLinks = links.filter((el) =>
-      ["Send Payment", "View Reports"].includes(el.getAttribute("aria-label") ?? "")
+      ["Send Payment", "View Reports"].includes(
+        el.getAttribute("aria-label") ?? "",
+      ),
     );
 
     const hrefs = actionLinks.map((el) => el.getAttribute("href"));
@@ -100,9 +110,13 @@ describe("QuickActions – disabled (coming soon) cards", () => {
     (title) => {
       renderDefault();
 
-      expect(screen.queryByRole("link", { name: title })).not.toBeInTheDocument();
-      expect(screen.queryByRole("button", { name: title })).not.toBeInTheDocument();
-    }
+      expect(
+        screen.queryByRole("link", { name: title }),
+      ).not.toBeInTheDocument();
+      expect(
+        screen.queryByRole("button", { name: title }),
+      ).not.toBeInTheDocument();
+    },
   );
 
   it.each(COMING_SOON_TITLES)(
@@ -112,7 +126,7 @@ describe("QuickActions – disabled (coming soon) cards", () => {
 
       const card = screen.getByLabelText(`${title}, coming soon`);
       expect(card).toBeInTheDocument();
-    }
+    },
   );
 
   it.each(COMING_SOON_TITLES)(
@@ -122,7 +136,7 @@ describe("QuickActions – disabled (coming soon) cards", () => {
 
       const card = screen.getByLabelText(`${title}, coming soon`);
       expect(card).toHaveTextContent(/coming soon/i);
-    }
+    },
   );
 
   it.each(COMING_SOON_TITLES)(
@@ -135,7 +149,7 @@ describe("QuickActions – disabled (coming soon) cards", () => {
       expect(card.tagName).not.toBe("A");
       expect(card.tagName).not.toBe("BUTTON");
       expect(card).not.toHaveAttribute("tabindex", "0");
-    }
+    },
   );
 });
 
@@ -168,9 +182,7 @@ describe("QuickActions – accessibility", () => {
     const buttons = screen.getAllByRole("button");
 
     for (const el of [...links, ...buttons]) {
-      const name =
-        el.getAttribute("aria-label") ??
-        el.textContent?.trim();
+      const name = el.getAttribute("aria-label") ?? el.textContent?.trim();
       expect(name).toBeTruthy();
     }
   });
@@ -318,8 +330,13 @@ describe("QuickActions – custom actions prop", () => {
 
     render(<QuickActions actions={customActions} />);
 
-    expect(screen.getByRole("link", { name: "Alpha" })).toHaveAttribute("href", "/alpha");
-    expect(screen.queryByRole("link", { name: "Beta" })).not.toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Alpha" })).toHaveAttribute(
+      "href",
+      "/alpha",
+    );
+    expect(
+      screen.queryByRole("link", { name: "Beta" }),
+    ).not.toBeInTheDocument();
     expect(screen.getByLabelText("Beta, coming soon")).toBeInTheDocument();
   });
 });

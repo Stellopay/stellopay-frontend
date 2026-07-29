@@ -21,8 +21,12 @@ describe("AuthSocialButtons", () => {
 
   it("renders both provider buttons", () => {
     render(<AuthSocialButtons />);
-    expect(screen.getByRole("button", { name: /continue with google/i })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /continue with apple/i })).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: /continue with google/i }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: /continue with apple/i }),
+    ).toBeInTheDocument();
   });
 
   it("shows provider logos in the idle state", () => {
@@ -33,8 +37,12 @@ describe("AuthSocialButtons", () => {
 
   it("all buttons are enabled and not busy in the default idle state", () => {
     render(<AuthSocialButtons />);
-    const googleBtn = screen.getByRole("button", { name: /continue with google/i });
-    const appleBtn  = screen.getByRole("button", { name: /continue with apple/i });
+    const googleBtn = screen.getByRole("button", {
+      name: /continue with google/i,
+    });
+    const appleBtn = screen.getByRole("button", {
+      name: /continue with apple/i,
+    });
 
     expect(googleBtn).not.toBeDisabled();
     expect(appleBtn).not.toBeDisabled();
@@ -49,7 +57,9 @@ describe("AuthSocialButtons", () => {
 
   it("disables both buttons and marks google button aria-busy while google flow is in-flight", async () => {
     let resolveFlow!: () => void;
-    const flowPromise = new Promise<void>((res) => { resolveFlow = res; });
+    const flowPromise = new Promise<void>((res) => {
+      resolveFlow = res;
+    });
 
     // Temporarily make the google branch async by patching React.useState
     // is too fragile; instead we test the real component's synchronous guard
@@ -63,11 +73,17 @@ describe("AuthSocialButtons", () => {
     // machine through aria/disabled attributes after settlement.
 
     render(<AuthSocialButtons />);
-    const googleBtn = screen.getByRole("button", { name: /continue with google/i });
-    const appleBtn  = screen.getByRole("button", { name: /continue with apple/i });
+    const googleBtn = screen.getByRole("button", {
+      name: /continue with google/i,
+    });
+    const appleBtn = screen.getByRole("button", {
+      name: /continue with apple/i,
+    });
 
     // Start the click – handler is synchronous today so state settles quickly.
-    await act(async () => { await userEvent.click(googleBtn); });
+    await act(async () => {
+      await userEvent.click(googleBtn);
+    });
 
     // After settlement both buttons must be re-enabled.
     expect(googleBtn).not.toBeDisabled();
@@ -79,10 +95,16 @@ describe("AuthSocialButtons", () => {
 
   it("disables both buttons and marks apple button aria-busy while apple flow is in-flight", async () => {
     render(<AuthSocialButtons />);
-    const googleBtn = screen.getByRole("button", { name: /continue with google/i });
-    const appleBtn  = screen.getByRole("button", { name: /continue with apple/i });
+    const googleBtn = screen.getByRole("button", {
+      name: /continue with google/i,
+    });
+    const appleBtn = screen.getByRole("button", {
+      name: /continue with apple/i,
+    });
 
-    await act(async () => { await userEvent.click(appleBtn); });
+    await act(async () => {
+      await userEvent.click(appleBtn);
+    });
 
     expect(googleBtn).not.toBeDisabled();
     expect(appleBtn).not.toBeDisabled();
@@ -95,7 +117,9 @@ describe("AuthSocialButtons", () => {
     // deferred promise injected via a module-level side-effect.
     // For the synchronous-TODO implementation we verify post-click reset.
     render(<AuthSocialButtons />);
-    const googleBtn = screen.getByRole("button", { name: /continue with google/i });
+    const googleBtn = screen.getByRole("button", {
+      name: /continue with google/i,
+    });
 
     await userEvent.click(googleBtn);
 
@@ -107,7 +131,9 @@ describe("AuthSocialButtons", () => {
 
   it("apple button shows spinner (aria-busy=true) while loading, then resets", async () => {
     render(<AuthSocialButtons />);
-    const appleBtn = screen.getByRole("button", { name: /continue with apple/i });
+    const appleBtn = screen.getByRole("button", {
+      name: /continue with apple/i,
+    });
 
     await userEvent.click(appleBtn);
 
@@ -120,8 +146,12 @@ describe("AuthSocialButtons", () => {
   it("a rapid double-click on google does not leave buttons permanently disabled", async () => {
     const user = userEvent.setup();
     render(<AuthSocialButtons />);
-    const googleBtn = screen.getByRole("button", { name: /continue with google/i });
-    const appleBtn  = screen.getByRole("button", { name: /continue with apple/i });
+    const googleBtn = screen.getByRole("button", {
+      name: /continue with google/i,
+    });
+    const appleBtn = screen.getByRole("button", {
+      name: /continue with apple/i,
+    });
 
     await user.dblClick(googleBtn);
 
@@ -132,8 +162,12 @@ describe("AuthSocialButtons", () => {
   it("clicking apple after google completes works independently (no cross-provider lock)", async () => {
     const user = userEvent.setup();
     render(<AuthSocialButtons />);
-    const googleBtn = screen.getByRole("button", { name: /continue with google/i });
-    const appleBtn  = screen.getByRole("button", { name: /continue with apple/i });
+    const googleBtn = screen.getByRole("button", {
+      name: /continue with google/i,
+    });
+    const appleBtn = screen.getByRole("button", {
+      name: /continue with apple/i,
+    });
 
     // Sequentially: google first, then apple.
     await user.click(googleBtn);
@@ -148,8 +182,12 @@ describe("AuthSocialButtons", () => {
     // `disabled={isLoading}`, so a click on one disables the other.
     // userEvent respects the disabled attribute and won't fire onClick.
     render(<AuthSocialButtons />);
-    const googleBtn = screen.getByRole("button", { name: /continue with google/i });
-    const appleBtn  = screen.getByRole("button", { name: /continue with apple/i });
+    const googleBtn = screen.getByRole("button", {
+      name: /continue with google/i,
+    });
+    const appleBtn = screen.getByRole("button", {
+      name: /continue with apple/i,
+    });
 
     // While in-flight (synchronous), both buttons are disabled.
     // After settlement both are re-enabled.
@@ -165,7 +203,9 @@ describe("AuthSocialButtons", () => {
     // defence after the disabled attribute.  We verify it exists by checking
     // that after a completed flow the buttons are in a clean state.
     render(<AuthSocialButtons />);
-    const googleBtn = screen.getByRole("button", { name: /continue with google/i });
+    const googleBtn = screen.getByRole("button", {
+      name: /continue with google/i,
+    });
 
     await userEvent.click(googleBtn);
 
@@ -179,8 +219,12 @@ describe("AuthSocialButtons", () => {
 
   it("re-enables all buttons after the google flow completes (success path)", async () => {
     render(<AuthSocialButtons />);
-    const googleBtn = screen.getByRole("button", { name: /continue with google/i });
-    const appleBtn  = screen.getByRole("button", { name: /continue with apple/i });
+    const googleBtn = screen.getByRole("button", {
+      name: /continue with google/i,
+    });
+    const appleBtn = screen.getByRole("button", {
+      name: /continue with apple/i,
+    });
 
     await userEvent.click(googleBtn);
 
@@ -190,8 +234,12 @@ describe("AuthSocialButtons", () => {
 
   it("re-enables all buttons after the apple flow completes (success path)", async () => {
     render(<AuthSocialButtons />);
-    const googleBtn = screen.getByRole("button", { name: /continue with google/i });
-    const appleBtn  = screen.getByRole("button", { name: /continue with apple/i });
+    const googleBtn = screen.getByRole("button", {
+      name: /continue with google/i,
+    });
+    const appleBtn = screen.getByRole("button", {
+      name: /continue with apple/i,
+    });
 
     await userEvent.click(appleBtn);
 
@@ -208,8 +256,12 @@ describe("AuthSocialButtons", () => {
     // always idle (not locked).
 
     render(<AuthSocialButtons />);
-    const googleBtn = screen.getByRole("button", { name: /continue with google/i });
-    const appleBtn  = screen.getByRole("button", { name: /continue with apple/i });
+    const googleBtn = screen.getByRole("button", {
+      name: /continue with google/i,
+    });
+    const appleBtn = screen.getByRole("button", {
+      name: /continue with apple/i,
+    });
 
     await userEvent.click(googleBtn);
 
@@ -222,23 +274,27 @@ describe("AuthSocialButtons", () => {
   it("both buttons start with aria-busy=false", () => {
     render(<AuthSocialButtons />);
     expect(
-      screen.getByRole("button", { name: /continue with google/i })
+      screen.getByRole("button", { name: /continue with google/i }),
     ).toHaveAttribute("aria-busy", "false");
     expect(
-      screen.getByRole("button", { name: /continue with apple/i })
+      screen.getByRole("button", { name: /continue with apple/i }),
     ).toHaveAttribute("aria-busy", "false");
   });
 
   it("google button aria-busy resets to false after flow completes", async () => {
     render(<AuthSocialButtons />);
-    const googleBtn = screen.getByRole("button", { name: /continue with google/i });
+    const googleBtn = screen.getByRole("button", {
+      name: /continue with google/i,
+    });
     await userEvent.click(googleBtn);
     expect(googleBtn).toHaveAttribute("aria-busy", "false");
   });
 
   it("apple button aria-busy resets to false after flow completes", async () => {
     render(<AuthSocialButtons />);
-    const appleBtn = screen.getByRole("button", { name: /continue with apple/i });
+    const appleBtn = screen.getByRole("button", {
+      name: /continue with apple/i,
+    });
     await userEvent.click(appleBtn);
     expect(appleBtn).toHaveAttribute("aria-busy", "false");
   });

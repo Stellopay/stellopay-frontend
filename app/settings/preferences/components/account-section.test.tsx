@@ -144,9 +144,7 @@ describe("AccountSection email validation", () => {
 
     await waitFor(
       () =>
-        expect(
-          screen.getByText(/failed to save changes/i),
-        ).toBeInTheDocument(),
+        expect(screen.getByText(/failed to save changes/i)).toBeInTheDocument(),
       { timeout: 3000 },
     );
   });

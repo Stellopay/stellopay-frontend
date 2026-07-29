@@ -57,7 +57,6 @@ export function LoginForm() {
     }
   }
 
-
   return (
     <section className="w-full order-1 lg:order-2">
       {/* Title */}

@@ -55,7 +55,9 @@ describe("VerifyEmail", () => {
     expect(
       screen.getByText("Verification code resent to your email."),
     ).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /resend in 30s/i })).toBeDisabled();
+    expect(
+      screen.getByRole("button", { name: /resend in 30s/i }),
+    ).toBeDisabled();
 
     await act(async () => {
       await vi.advanceTimersByTimeAsync(1000);

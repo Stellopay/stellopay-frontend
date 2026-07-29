@@ -100,8 +100,16 @@ const footerLinks = {
 };
 
 const socialLinks = [
-  { icon: TwitterIcon, href: "https://twitter.com/stellopay", label: "Twitter" },
-  { icon: LinkedInIcon, href: "https://linkedin.com/company/stellopay", label: "LinkedIn" },
+  {
+    icon: TwitterIcon,
+    href: "https://twitter.com/stellopay",
+    label: "Twitter",
+  },
+  {
+    icon: LinkedInIcon,
+    href: "https://linkedin.com/company/stellopay",
+    label: "LinkedIn",
+  },
   { icon: GitHubIcon, href: "https://github.com/stellopay", label: "GitHub" },
   { icon: EmailIcon, href: "mailto:contact@stellopay.com", label: "Email" },
 ];
@@ -147,7 +155,9 @@ export default function Footer() {
                 className="text-[#666666] dark:text-[#a1a1aa] text-sm leading-relaxed mb-6 max-w-[280px]"
                 style={{ fontFamily: "General Sans, sans-serif" }}
               >
-                Simplifying crypto payments for businesses. Built on the Stellar blockchain for instant, secure, and affordable global transactions.
+                Simplifying crypto payments for businesses. Built on the Stellar
+                blockchain for instant, secure, and affordable global
+                transactions.
               </p>
 
               {/* Social Links */}
@@ -206,10 +216,14 @@ export default function Footer() {
                 className="text-[#666666] dark:text-[#a1a1aa] text-sm mb-6"
                 style={{ fontFamily: "General Sans, sans-serif" }}
               >
-                Get the latest news, updates, and tips delivered straight to your inbox.
+                Get the latest news, updates, and tips delivered straight to
+                your inbox.
               </p>
 
-              <form onSubmit={handleSubscribe} className="flex flex-col sm:flex-row items-center justify-center gap-3">
+              <form
+                onSubmit={handleSubscribe}
+                className="flex flex-col sm:flex-row items-center justify-center gap-3"
+              >
                 <input
                   type="email"
                   value={email}

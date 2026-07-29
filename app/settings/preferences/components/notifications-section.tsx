@@ -82,7 +82,7 @@ export default function NotificationsSection({
   /**
    * Persists the notification preferences to storage.
    * Prioritizes a mock API base URL if available, falling back to localStorage.
-   * 
+   *
    * SECURITY NOTE: Only safe boolean preferences are persisted.
    * Do not attach PII or sensitive tokens in this client payload.
    */
@@ -92,16 +92,22 @@ export default function NotificationsSection({
 
     try {
       // Persist to safeStorage (localStorage)
-      localStorage.setItem("notification_preferences", JSON.stringify(settings));
+      localStorage.setItem(
+        "notification_preferences",
+        JSON.stringify(settings),
+      );
 
       // Mock API call
       const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL;
       if (baseUrl) {
-        const res = await fetch(`${baseUrl}/api/user/preferences/notifications`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(settings),
-        });
+        const res = await fetch(
+          `${baseUrl}/api/user/preferences/notifications`,
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(settings),
+          },
+        );
         if (!res.ok) throw new Error("API failed");
       } else {
         // Fallback delay to simulate network UX
@@ -109,7 +115,9 @@ export default function NotificationsSection({
       }
 
       setStatusType("success");
-      setStatusMessage("Notification preferences updated. Critical alerts remain prioritized.");
+      setStatusMessage(
+        "Notification preferences updated. Critical alerts remain prioritized.",
+      );
     } catch (_error) {
       setStatusType("error");
       setStatusMessage("Failed to save preferences. Please try again.");
@@ -225,10 +233,7 @@ export default function NotificationsSection({
               Push, then email, then SMS for urgent account protection notices.
             </p>
           </div>
-          <Button
-            onClick={handleSave}
-            disabled={isSaving}
-          >
+          <Button onClick={handleSave} disabled={isSaving}>
             {isSaving ? "Saving..." : "Save notification settings"}
           </Button>
           <div aria-live="polite" aria-atomic="true">
@@ -242,7 +247,11 @@ export default function NotificationsSection({
               >
                 <FormMessage
                   variant={statusType}
-                  className={statusType === "success" ? "text-success" : "text-destructive"}
+                  className={
+                    statusType === "success"
+                      ? "text-success"
+                      : "text-destructive"
+                  }
                 >
                   {statusMessage}
                 </FormMessage>

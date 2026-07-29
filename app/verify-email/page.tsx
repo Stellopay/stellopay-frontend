@@ -73,10 +73,7 @@ export default function VerifyEmail() {
 
     if (pastedCode.length === 0) return;
 
-    setCode([
-      ...pastedCode,
-      ...Array(OTP_LENGTH - pastedCode.length).fill(""),
-    ]);
+    setCode([...pastedCode, ...Array(OTP_LENGTH - pastedCode.length).fill("")]);
     inputRefs.current[Math.min(pastedCode.length, OTP_LENGTH) - 1]?.focus();
   };
 
@@ -163,7 +160,9 @@ export default function VerifyEmail() {
               </>
             ) : isActive ? (
               `Resend in ${secondsLeft}s`
-            ) : "Resend"}
+            ) : (
+              "Resend"
+            )}
           </button>
         </p>
         <p id="resend-status" aria-live="polite" className="sr-only">

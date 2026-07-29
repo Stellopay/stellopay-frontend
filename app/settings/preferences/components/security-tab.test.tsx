@@ -245,7 +245,9 @@ describe("SecurityTab — weak-password inline errors", () => {
 
     await waitFor(() =>
       expect(
-        screen.getByText("Password must include at least one uppercase letter."),
+        screen.getByText(
+          "Password must include at least one uppercase letter.",
+        ),
       ).toBeInTheDocument(),
     );
   });
@@ -556,9 +558,7 @@ describe("SecurityTab — failed password change", () => {
 
     await waitFor(
       () =>
-        expect(
-          screen.getByText(/failed to save changes/i),
-        ).toBeInTheDocument(),
+        expect(screen.getByText(/failed to save changes/i)).toBeInTheDocument(),
       { timeout: 3000 },
     );
   });
@@ -573,9 +573,7 @@ describe("SecurityTab — failed password change", () => {
 
     await waitFor(
       () =>
-        expect(
-          screen.getByText(/failed to save changes/i),
-        ).toBeInTheDocument(),
+        expect(screen.getByText(/failed to save changes/i)).toBeInTheDocument(),
       { timeout: 3000 },
     );
 
@@ -592,9 +590,7 @@ describe("SecurityTab — failed password change", () => {
 
     await waitFor(
       () =>
-        expect(
-          screen.getByText(/failed to save changes/i),
-        ).toBeInTheDocument(),
+        expect(screen.getByText(/failed to save changes/i)).toBeInTheDocument(),
       { timeout: 3000 },
     );
 
@@ -634,9 +630,7 @@ describe("SecurityTab — status message auto-clear", () => {
       await vi.advanceTimersByTimeAsync(1500);
     });
 
-    expect(
-      screen.getByText(/password policy satisfied/i),
-    ).toBeInTheDocument();
+    expect(screen.getByText(/password policy satisfied/i)).toBeInTheDocument();
 
     // Advance past the 5000ms auto-clear
     await act(async () => {

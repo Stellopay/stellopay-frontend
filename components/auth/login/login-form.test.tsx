@@ -34,7 +34,9 @@ describe("LoginForm", () => {
 
     const emailInput = screen.getByPlaceholderText(/Enter your email/i);
     const passwordInput = screen.getByPlaceholderText(/Enter your password/i);
-    const rememberMeCheckbox = screen.getByRole("checkbox", { name: /Remember me/i });
+    const rememberMeCheckbox = screen.getByRole("checkbox", {
+      name: /Remember me/i,
+    });
     const submitButton = screen.getByRole("button", { name: /Sign In/i });
 
     await userEvent.type(emailInput, "user@example.com");
@@ -80,7 +82,7 @@ describe("LoginForm", () => {
   it("shows an error message when login adapter throws AuthError (failure)", async () => {
     const errorMessage = "Invalid email or password. Please try again.";
     vi.mocked(login).mockRejectedValue(new AuthError(errorMessage));
-    
+
     render(<LoginForm />);
 
     const emailInput = screen.getByPlaceholderText(/Enter your email/i);
@@ -98,7 +100,7 @@ describe("LoginForm", () => {
 
   it("shows a generic error message when an unexpected network error occurs", async () => {
     vi.mocked(login).mockRejectedValue(new Error("Network Error"));
-    
+
     render(<LoginForm />);
 
     const emailInput = screen.getByPlaceholderText(/Enter your email/i);
@@ -110,13 +112,15 @@ describe("LoginForm", () => {
     await userEvent.click(submitButton);
 
     await waitFor(() => {
-      expect(screen.getByRole("alert")).toHaveTextContent("Invalid email or password. Please try again.");
+      expect(screen.getByRole("alert")).toHaveTextContent(
+        "Invalid email or password. Please try again.",
+      );
     });
   });
 
   it("secures credentials by not logging them and retaining autoComplete properties", () => {
     render(<LoginForm />);
-    
+
     const emailInput = screen.getByPlaceholderText(/Enter your email/i);
     const passwordInput = screen.getByPlaceholderText(/Enter your password/i);
 
@@ -170,8 +174,12 @@ describe("LoginForm", () => {
 
     await userEvent.click(toggle);
 
-    expect(screen.getByRole("button", { name: /Hide password/i })).toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: /Show password/i })).not.toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: /Hide password/i }),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: /Show password/i }),
+    ).not.toBeInTheDocument();
   });
 
   it("updates aria-label back to 'Show password' after re-masking", async () => {
@@ -179,9 +187,13 @@ describe("LoginForm", () => {
     const toggle = screen.getByRole("button", { name: /Show password/i });
 
     await userEvent.click(toggle);
-    await userEvent.click(screen.getByRole("button", { name: /Hide password/i }));
+    await userEvent.click(
+      screen.getByRole("button", { name: /Hide password/i }),
+    );
 
-    expect(screen.getByRole("button", { name: /Show password/i })).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: /Show password/i }),
+    ).toBeInTheDocument();
   });
 
   it("toggle button is reachable via keyboard (Tab) and operable via Enter", async () => {
@@ -235,19 +247,27 @@ describe("LoginForm", () => {
     await userEvent.click(toggle);
     expect(passwordInput).toHaveValue("S3cr3tPass!");
 
-    await userEvent.click(screen.getByRole("button", { name: /Hide password/i }));
+    await userEvent.click(
+      screen.getByRole("button", { name: /Hide password/i }),
+    );
     expect(passwordInput).toHaveValue("S3cr3tPass!");
   });
 
   it("toggle is disabled when the form is in a loading state", async () => {
     // Simulate a slow login so isLoading stays true long enough to assert
     vi.mocked(login).mockImplementation(
-      () => new Promise((resolve) => setTimeout(resolve, 500))
+      () => new Promise((resolve) => setTimeout(resolve, 500)),
     );
     render(<LoginForm />);
 
-    await userEvent.type(screen.getByPlaceholderText(/Enter your email/i), "user@example.com");
-    await userEvent.type(screen.getByPlaceholderText(/Enter your password/i), "Password123!");
+    await userEvent.type(
+      screen.getByPlaceholderText(/Enter your email/i),
+      "user@example.com",
+    );
+    await userEvent.type(
+      screen.getByPlaceholderText(/Enter your password/i),
+      "Password123!",
+    );
     await userEvent.click(screen.getByRole("button", { name: /Sign In/i }));
 
     // While loading the toggle must be disabled

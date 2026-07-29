@@ -56,7 +56,8 @@ export default function TransactionsPagination({
   // Guard: clamp currentPage to valid range
   const safePage = Math.min(Math.max(currentPage, 1), Math.max(totalPages, 1));
 
-  const startItem = totalItems === 0 ? 0 : getStartIndex(safePage, itemsPerPage) + 1;
+  const startItem =
+    totalItems === 0 ? 0 : getStartIndex(safePage, itemsPerPage) + 1;
   const endItem = Math.min(getEndIndex(safePage, itemsPerPage), totalItems);
 
   const isFirstPage = safePage === 1;
@@ -74,10 +75,19 @@ export default function TransactionsPagination({
   /** Keyboard handler for the page-button list */
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent<HTMLElement>) => {
-      if (e.key === "ArrowLeft") { e.preventDefault(); go(safePage - 1); }
-      else if (e.key === "ArrowRight") { e.preventDefault(); go(safePage + 1); }
-      else if (e.key === "Home") { e.preventDefault(); go(1); }
-      else if (e.key === "End") { e.preventDefault(); go(totalPages); }
+      if (e.key === "ArrowLeft") {
+        e.preventDefault();
+        go(safePage - 1);
+      } else if (e.key === "ArrowRight") {
+        e.preventDefault();
+        go(safePage + 1);
+      } else if (e.key === "Home") {
+        e.preventDefault();
+        go(1);
+      } else if (e.key === "End") {
+        e.preventDefault();
+        go(totalPages);
+      }
     },
     [go, safePage, totalPages],
   );
@@ -99,7 +109,10 @@ export default function TransactionsPagination({
       </span>
 
       {/* Item summary */}
-      <span className="text-gray-400 text-sm order-2 lg:order-1" aria-live="polite">
+      <span
+        className="text-gray-400 text-sm order-2 lg:order-1"
+        aria-live="polite"
+      >
         Showing {startItem} to {endItem} of {totalItems} items
       </span>
 

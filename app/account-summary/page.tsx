@@ -13,7 +13,11 @@ import { useWallet, formatAddress } from "@/context/wallet-context";
  * WalletProvider context. Shows a "no wallet connected" message when the
  * user is disconnected. Only the truncated public address is ever displayed.
  */
-function AccountSummaryView({ isLoading: _isLoading = false }: { isLoading?: boolean }) {
+function AccountSummaryView({
+  isLoading: _isLoading = false,
+}: {
+  isLoading?: boolean;
+}) {
   const [copied, setCopied] = useState(false);
   const { address, isConnected } = useWallet();
 
@@ -42,8 +46,14 @@ function AccountSummaryView({ isLoading: _isLoading = false }: { isLoading?: boo
             {isConnected ? (
               <>
                 <span>Copy Address:</span>
-                <span className="truncate text-white">{formatAddress(address)}</span>
-                <Copy size={14} className="cursor-pointer" onClick={handleCopy} />
+                <span className="truncate text-white">
+                  {formatAddress(address)}
+                </span>
+                <Copy
+                  size={14}
+                  className="cursor-pointer"
+                  onClick={handleCopy}
+                />
                 {copied && <span className="text-green-400 ml-2">Copied!</span>}
               </>
             ) : (

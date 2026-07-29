@@ -12,7 +12,12 @@ import { ILLUSTRATIVE_STATS } from "@/lib/demo-data";
 
 const HowItWorks = dynamic(() => import("@/components/landing/how-it-works"), {
   loading: () => (
-    <div className="w-full py-20 bg-white dark:bg-[#0D0D0D]" aria-busy="true" aria-live="polite" role="status">
+    <div
+      className="w-full py-20 bg-white dark:bg-[#0D0D0D]"
+      aria-busy="true"
+      aria-live="polite"
+      role="status"
+    >
       <span className="sr-only">Loading how it works section...</span>
       <div className="max-w-6xl mx-auto px-4 space-y-12">
         <div className="flex flex-col items-center space-y-4">
@@ -30,21 +35,34 @@ const HowItWorks = dynamic(() => import("@/components/landing/how-it-works"), {
   ssr: true,
 });
 
-const EnterpriseSolutionSection = dynamic(() => import("@/components/landing/enterprise-section"), {
-  loading: () => (
-    <div className="w-full py-20 bg-white dark:bg-[#0D0D0D]" aria-busy="true" aria-live="polite" role="status">
-      <span className="sr-only">Loading enterprise solution...</span>
-      <div className="max-w-[1095px] mx-auto px-4">
-        <Skeleton className="h-96 rounded-[48px]" shade="dark" />
+const EnterpriseSolutionSection = dynamic(
+  () => import("@/components/landing/enterprise-section"),
+  {
+    loading: () => (
+      <div
+        className="w-full py-20 bg-white dark:bg-[#0D0D0D]"
+        aria-busy="true"
+        aria-live="polite"
+        role="status"
+      >
+        <span className="sr-only">Loading enterprise solution...</span>
+        <div className="max-w-[1095px] mx-auto px-4">
+          <Skeleton className="h-96 rounded-[48px]" shade="dark" />
+        </div>
       </div>
-    </div>
-  ),
-  ssr: true,
-});
+    ),
+    ssr: true,
+  },
+);
 
 const FAQSection = dynamic(() => import("@/components/landing/faq-section"), {
   loading: () => (
-    <div className="w-full py-20 bg-white dark:bg-[#040404]" aria-busy="true" aria-live="polite" role="status">
+    <div
+      className="w-full py-20 bg-white dark:bg-[#040404]"
+      aria-busy="true"
+      aria-live="polite"
+      role="status"
+    >
       <span className="sr-only">Loading frequently asked questions...</span>
       <div className="max-w-4xl mx-auto px-4 space-y-8">
         <div className="flex flex-col items-center space-y-4 mb-12">

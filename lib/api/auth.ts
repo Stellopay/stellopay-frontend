@@ -12,17 +12,18 @@ export class AuthError extends Error {
 
 /**
  * Authenticates a user with their email and password.
- * 
+ *
  * @param credentials - The user's login credentials including email, password, and rememberMe flag.
  * @returns A promise that resolves when login is successful.
  * @throws {AuthError} If authentication fails or a network error occurs.
- * 
+ *
  * @security Credentials are never logged. Error messages are sanitized before being thrown
  * to prevent leaking server detail.
  */
 export async function login(credentials: LoginFormValues): Promise<void> {
-  const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:3000/api";
-  
+  const baseUrl =
+    process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:3000/api";
+
   try {
     const response = await fetch(`${baseUrl}/auth/login`, {
       method: "POST",
@@ -45,6 +46,8 @@ export async function login(credentials: LoginFormValues): Promise<void> {
       throw error;
     }
     // Generic error for network issues, etc.
-    throw new AuthError("An error occurred during login. Please try again later.");
+    throw new AuthError(
+      "An error occurred during login. Please try again later.",
+    );
   }
 }

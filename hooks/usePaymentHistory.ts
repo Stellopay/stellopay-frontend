@@ -45,7 +45,9 @@ export function usePaymentHistory(): UsePaymentHistoryResult {
       .catch((err: unknown) => {
         if (!cancelled && requestId === latestRequestId.current) {
           setError(
-            err instanceof Error ? err.message : "Failed to load payment history"
+            err instanceof Error
+              ? err.message
+              : "Failed to load payment history",
           );
           setIsLoading(false);
         }

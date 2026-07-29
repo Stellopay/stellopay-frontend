@@ -18,10 +18,13 @@ If you need to add or update a dependency, run `npm install <package>` (or `npm 
 We use **Dependabot** to automatically surface stale dependencies and security advisories. The bot is configured to run weekly. Minor and patch updates are grouped to reduce PR noise.
 
 ### Security Audit CI Gate
+
 Every push and pull request runs an `npm audit` check in CI. This is a **blocking** step. If the audit surfaces any `high` or `critical` vulnerabilities, the build will fail.
 
 ### Triage Workflow for Vulnerabilities
+
 If the CI audit gate fails (or Dependabot opens a security PR):
+
 1. **Review the Advisory:** Check the GitHub security advisory or run `npm audit` locally to understand the impact.
 2. **Apply the Fix:** Most vulnerabilities can be fixed by running `npm audit fix`. If that does not work, you may need to manually update the offending transitive dependency (e.g. using `npm overrides` in `package.json` as a last resort) or wait for an upstream patch.
 3. **Commit the Lockfile:** Always commit the updated `package-lock.json` as the single source of truth. Ensure no structural drift occurs.
@@ -52,10 +55,10 @@ Any **serious** or **critical** axe-core violation that is not explicitly triage
 
 ### Routes covered
 
-| Route | Viewports tested |
-|---|---|
-| `/` | Desktop, Mobile (390 × 844), Dark colour scheme |
-| `/help/support` | Desktop, Mobile (390 × 844), Dark colour scheme |
+| Route                   | Viewports tested                                           |
+| ----------------------- | ---------------------------------------------------------- |
+| `/`                     | Desktop, Mobile (390 × 844), Dark colour scheme            |
+| `/help/support`         | Desktop, Mobile (390 × 844), Dark colour scheme            |
 | `/settings/preferences` | Desktop (all tabs), Mobile (390 × 844), Dark colour scheme |
 
 ### Running the gate locally

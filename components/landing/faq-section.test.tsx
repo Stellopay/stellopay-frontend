@@ -60,11 +60,15 @@ describe("FAQSection", () => {
     it("ArrowDown moves focus to the next header, wrapping from last to first", () => {
       render(<FAQSection />);
 
-      const buttons = screen.getAllByRole("button", { name: /\?|wallet|currencies|questions|fees/i });
+      const buttons = screen.getAllByRole("button", {
+        name: /\?|wallet|currencies|questions|fees/i,
+      });
       // get all 4 accordion header buttons by their questions
       const [btn0, btn1, btn2, btn3] = [
         screen.getByRole("button", { name: /Do I need a crypto wallet/i }),
-        screen.getByRole("button", { name: /What are the supported currencies/i }),
+        screen.getByRole("button", {
+          name: /What are the supported currencies/i,
+        }),
         screen.getByRole("button", { name: /Have any questions/i }),
         screen.getByRole("button", { name: /StelloPay charges lower fees/i }),
       ];
@@ -87,9 +91,15 @@ describe("FAQSection", () => {
     it("ArrowUp moves focus to the previous header, wrapping from first to last", () => {
       render(<FAQSection />);
 
-      const btn0 = screen.getByRole("button", { name: /Do I need a crypto wallet/i });
-      const btn1 = screen.getByRole("button", { name: /What are the supported currencies/i });
-      const btn3 = screen.getByRole("button", { name: /StelloPay charges lower fees/i });
+      const btn0 = screen.getByRole("button", {
+        name: /Do I need a crypto wallet/i,
+      });
+      const btn1 = screen.getByRole("button", {
+        name: /What are the supported currencies/i,
+      });
+      const btn3 = screen.getByRole("button", {
+        name: /StelloPay charges lower fees/i,
+      });
 
       btn1.focus();
       fireEvent.keyDown(btn1, { key: "ArrowUp" });
@@ -103,8 +113,12 @@ describe("FAQSection", () => {
     it("Home moves focus to the first header", () => {
       render(<FAQSection />);
 
-      const btn0 = screen.getByRole("button", { name: /Do I need a crypto wallet/i });
-      const btn3 = screen.getByRole("button", { name: /StelloPay charges lower fees/i });
+      const btn0 = screen.getByRole("button", {
+        name: /Do I need a crypto wallet/i,
+      });
+      const btn3 = screen.getByRole("button", {
+        name: /StelloPay charges lower fees/i,
+      });
 
       btn3.focus();
       fireEvent.keyDown(btn3, { key: "Home" });
@@ -114,8 +128,12 @@ describe("FAQSection", () => {
     it("End moves focus to the last header", () => {
       render(<FAQSection />);
 
-      const btn0 = screen.getByRole("button", { name: /Do I need a crypto wallet/i });
-      const btn3 = screen.getByRole("button", { name: /StelloPay charges lower fees/i });
+      const btn0 = screen.getByRole("button", {
+        name: /Do I need a crypto wallet/i,
+      });
+      const btn3 = screen.getByRole("button", {
+        name: /StelloPay charges lower fees/i,
+      });
 
       btn0.focus();
       fireEvent.keyDown(btn0, { key: "End" });
@@ -125,7 +143,9 @@ describe("FAQSection", () => {
     it("arrow keys do not toggle the accordion open/close state", () => {
       render(<FAQSection />);
 
-      const btn0 = screen.getByRole("button", { name: /Do I need a crypto wallet/i });
+      const btn0 = screen.getByRole("button", {
+        name: /Do I need a crypto wallet/i,
+      });
 
       // first item starts open
       expect(btn0).toHaveAttribute("aria-expanded", "true");

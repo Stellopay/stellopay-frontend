@@ -22,7 +22,12 @@ export interface KPICardItem {
   iconBg: string;
 }
 
-const timeRangeOptions = ["Last 7 days", "Last 30 days", "Last 90 days", "This year"];
+const timeRangeOptions = [
+  "Last 7 days",
+  "Last 30 days",
+  "Last 90 days",
+  "This year",
+];
 
 const defaultKPIs: KPICardItem[] = [
   {
@@ -75,7 +80,7 @@ export function AnalyticsInsights({
     <section
       className={cn(
         "rounded-2xl border p-6 transition-all",
-        "bg-white dark:bg-[#111111] border-zinc-200 dark:border-zinc-800 shadow-sm"
+        "bg-white dark:bg-[#111111] border-zinc-200 dark:border-zinc-800 shadow-sm",
       )}
     >
       {/* Header */}
@@ -96,7 +101,7 @@ export function AnalyticsInsights({
               className={cn(
                 "flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold border transition-colors",
                 "bg-zinc-50 dark:bg-zinc-900/50 border-zinc-200 dark:border-zinc-800",
-                "text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800"
+                "text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800",
               )}
               aria-expanded={dropdownOpen}
               aria-haspopup="listbox"
@@ -116,7 +121,7 @@ export function AnalyticsInsights({
                   role="listbox"
                   className={cn(
                     "absolute top-full right-0 mt-2 min-w-[160px] py-1 rounded-xl border shadow-xl z-20 overflow-hidden",
-                    "bg-white dark:bg-[#111111] border-zinc-200 dark:border-zinc-800"
+                    "bg-white dark:bg-[#111111] border-zinc-200 dark:border-zinc-800",
                   )}
                 >
                   {timeRangeOptions.map((option) => (
@@ -132,7 +137,8 @@ export function AnalyticsInsights({
                         "px-4 py-2.5 text-sm font-medium cursor-pointer transition-colors",
                         "text-zinc-600 dark:text-zinc-400",
                         "hover:bg-zinc-50 dark:hover:bg-zinc-900/50",
-                        timeRange === option && "bg-zinc-50 dark:bg-zinc-900/50 text-blue-600 dark:text-blue-400"
+                        timeRange === option &&
+                          "bg-zinc-50 dark:bg-zinc-900/50 text-blue-600 dark:text-blue-400",
                       )}
                     >
                       {option}
@@ -160,7 +166,7 @@ export function AnalyticsInsights({
               key={index}
               className={cn(
                 "rounded-2xl border p-5 flex flex-col group hover:shadow-md transition-all",
-                "bg-zinc-50/50 dark:bg-zinc-900/30 border-zinc-100 dark:border-zinc-800/50"
+                "bg-zinc-50/50 dark:bg-zinc-900/30 border-zinc-100 dark:border-zinc-800/50",
               )}
             >
               <div className="flex items-start justify-between gap-2">
@@ -168,7 +174,7 @@ export function AnalyticsInsights({
                   className={cn(
                     "flex items-center justify-center w-12 h-12 rounded-xl shrink-0 transition-transform group-hover:scale-110",
                     item.iconBg,
-                    item.iconColor
+                    item.iconColor,
                   )}
                 >
                   <Icon className="h-6 w-6" aria-hidden />

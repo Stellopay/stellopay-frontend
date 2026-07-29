@@ -204,7 +204,9 @@ describe("useWallet outside provider", () => {
 
 describe("formatAddress", () => {
   it("truncates long Stellar addresses", () => {
-    expect(formatAddress("GABCDEFGHIJKLMNOPQRSTUVWXYZF123")).toBe("GABC...F123");
+    expect(formatAddress("GABCDEFGHIJKLMNOPQRSTUVWXYZF123")).toBe(
+      "GABC...F123",
+    );
   });
 
   it("returns empty string for null", () => {
@@ -329,9 +331,7 @@ describe("WalletProvider initial props", () => {
       </WalletProvider>,
     );
 
-    expect(screen.getByTestId("probe").textContent).toBe(
-      `connected:${seeded}`,
-    );
+    expect(screen.getByTestId("probe").textContent).toBe(`connected:${seeded}`);
   });
 });
 
@@ -358,9 +358,13 @@ describe("WalletProvider – network-change event handling", () => {
     let _cb: ((networkId: string) => void) | null = null;
     const subscribe = vi.fn((cb: (networkId: string) => void) => {
       _cb = cb;
-      return () => { _cb = null; }; // cleanup
+      return () => {
+        _cb = null;
+      }; // cleanup
     });
-    const emit = (networkId: string) => { _cb?.(networkId); };
+    const emit = (networkId: string) => {
+      _cb?.(networkId);
+    };
     return { subscribe, emit };
   }
 
@@ -400,7 +404,9 @@ describe("WalletProvider – network-change event handling", () => {
       ),
     });
 
-    act(() => { emit("stellar"); });
+    act(() => {
+      emit("stellar");
+    });
 
     expect(result.current.network.id).toBe("stellar");
     expect(result.current.isUnsupportedNetwork).toBe(false);
@@ -416,7 +422,9 @@ describe("WalletProvider – network-change event handling", () => {
       ),
     });
 
-    act(() => { emit("stellar"); });
+    act(() => {
+      emit("stellar");
+    });
 
     expect(window.localStorage.getItem(STORAGE_KEY)).toBe("stellar");
   });
@@ -431,7 +439,9 @@ describe("WalletProvider – network-change event handling", () => {
       ),
     });
 
-    act(() => { emit("ethereum"); });
+    act(() => {
+      emit("ethereum");
+    });
 
     expect(result.current.isUnsupportedNetwork).toBe(true);
   });
@@ -447,7 +457,9 @@ describe("WalletProvider – network-change event handling", () => {
     });
 
     const previousId = result.current.network.id;
-    act(() => { emit("polygon"); });
+    act(() => {
+      emit("polygon");
+    });
 
     // Network id must not change to an unsupported value.
     expect(result.current.network.id).toBe(previousId);
@@ -463,10 +475,14 @@ describe("WalletProvider – network-change event handling", () => {
       ),
     });
 
-    act(() => { emit("ethereum"); });
+    act(() => {
+      emit("ethereum");
+    });
     expect(result.current.isUnsupportedNetwork).toBe(true);
 
-    act(() => { emit("stellar"); });
+    act(() => {
+      emit("stellar");
+    });
     expect(result.current.isUnsupportedNetwork).toBe(false);
     expect(result.current.network.id).toBe("stellar");
   });

@@ -227,10 +227,7 @@ export default function SecurityTab({
                   label="One special character"
                   met={passwordRequirements.specialChar}
                 />
-                <RequirementItem
-                  label="Passwords match"
-                  met={passwordsMatch}
-                />
+                <RequirementItem label="Passwords match" met={passwordsMatch} />
               </div>
 
               <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
@@ -238,10 +235,7 @@ export default function SecurityTab({
                   Recovery methods stay hidden until needed to keep the primary
                   path calm.
                 </p>
-                <Button
-                  type="submit"
-                  disabled={!canSubmit || isSaving}
-                >
+                <Button type="submit" disabled={!canSubmit || isSaving}>
                   {isSaving ? (
                     <>
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -409,7 +403,9 @@ function RequirementItem({ label, met }: { label: string; met: boolean }) {
   return (
     <div className="flex items-center gap-2 rounded-2xl border border-zinc-200 bg-zinc-50 px-4 py-3 text-sm text-zinc-600 dark:border-white/10 dark:bg-white/5 dark:text-zinc-400">
       <CheckCircle2
-        className={`size-4 ${met ? "text-emerald-500" : "text-zinc-300 dark:text-zinc-600"}`}
+        className={`size-4 ${
+          met ? "text-emerald-500" : "text-zinc-300 dark:text-zinc-600"
+        }`}
         aria-hidden="true"
       />
       <span>{label}</span>

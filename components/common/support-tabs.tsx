@@ -62,7 +62,9 @@ export default function SupportTabs({
   const [isButtonDisabled, setIsButtonDisabled] = useState<boolean>(true);
 
   // Form submission and error states
-  const [status, setStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
+  const [status, setStatus] = useState<
+    "idle" | "loading" | "success" | "error"
+  >("idle");
   const [statusMessage, setStatusMessage] = useState<string>("");
   const [errors, setErrors] = useState<{
     firstName?: string;
@@ -72,7 +74,9 @@ export default function SupportTabs({
   }>({});
 
   React.useEffect(() => {
-    setIsButtonDisabled(!(email && firstName && lastName && textarea) || status === "loading");
+    setIsButtonDisabled(
+      !(email && firstName && lastName && textarea) || status === "loading",
+    );
   }, [firstName, email, lastName, textarea, status]);
 
   /**
@@ -193,7 +197,9 @@ export default function SupportTabs({
       setTextarea("");
     } catch (_error) {
       setStatus("error");
-      setStatusMessage("Failed to submit support request. Please try again later.");
+      setStatusMessage(
+        "Failed to submit support request. Please try again later.",
+      );
     }
   };
 
@@ -315,8 +321,8 @@ export default function SupportTabs({
           >
             {/* Hidden live region for status announcements */}
             <div aria-live="polite" className="sr-only" role="status">
-                  {status !== "idle" && statusMessage}
-                </div>
+              {status !== "idle" && statusMessage}
+            </div>
 
             <div className="w-full flex flex-col md:flex-row gap-5">
               <TextInput
