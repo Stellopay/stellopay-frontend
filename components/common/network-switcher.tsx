@@ -230,8 +230,8 @@ export default function NetworkSwitcher({
             className={cn(
               "flex items-center gap-2 px-3 py-2 rounded-md border transition-colors outline-none focus:ring-1 focus:ring-offset-1",
               isDashboard
-                ? "bg-transparent border-[#242428] text-white hover:bg-[#1A1A1A] focus:ring-[#598EFF]"
-                : "bg-transparent border-[#598EFF]/30 text-white hover:bg-[#598EFF]/10 focus:ring-[#598EFF]",
+                ? "bg-transparent border-border text-foreground hover:bg-accent focus:ring-primary"
+                : "bg-transparent border-primary/30 text-foreground hover:bg-primary/10 focus:ring-primary",
               className,
             )}
           >
@@ -248,15 +248,15 @@ export default function NetworkSwitcher({
               {currentNetwork.name}
             </span>
             <ChevronDown
-              className="w-4 h-4 text-[#6e6d6e]"
+              className="w-4 h-4 text-muted-foreground"
               aria-hidden="true"
             />
           </DropdownMenuTrigger>
 
           <DropdownMenuContent
             className={cn(
-              "min-w-[160px] border-[#242428] text-white",
-              isDashboard ? "bg-[#1A1A1A]" : "bg-[#0a0a0a]",
+              "min-w-[160px] border-border text-foreground",
+              isDashboard ? "bg-popover" : "bg-background",
             )}
             align="end"
             sideOffset={8}
@@ -270,11 +270,11 @@ export default function NetworkSwitcher({
                   onClick={() => handleNetworkSelect(network)}
                   aria-current={isActive ? "true" : undefined}
                   className={cn(
-                    "cursor-pointer text-white",
+                    "cursor-pointer text-foreground",
                     isDashboard
-                      ? "focus:bg-[#242428] focus:text-white"
-                      : "focus:bg-[#1A1A1A] focus:text-white",
-                    isActive && (isDashboard ? "bg-[#242428]" : "bg-[#1A1A1A]"),
+                      ? "focus:bg-accent focus:text-foreground"
+                      : "focus:bg-accent focus:text-foreground",
+                    isActive && (isDashboard ? "bg-accent" : "bg-accent"),
                   )}
                 >
                   <div className="flex items-center gap-2 w-full">
@@ -326,7 +326,7 @@ export default function NetworkSwitcher({
         }}
       >
         <DialogContent
-          className="bg-[#1A1A1A] border-[#242428] text-white max-w-sm"
+          className="bg-popover border-border text-foreground max-w-sm"
           showCloseButton={false}
           aria-labelledby="network-switcher-dialog-title"
           aria-describedby="network-switcher-dialog-desc"
@@ -335,20 +335,20 @@ export default function NetworkSwitcher({
           <DialogHeader>
             <DialogTitle
               id="network-switcher-dialog-title"
-              className="text-white"
+              className="text-foreground"
             >
               Switch network?
             </DialogTitle>
             <DialogDescription
               id="network-switcher-dialog-desc"
-              className="text-[#9CA3AF]"
+              className="text-muted-foreground"
             >
               You are switching from{" "}
-              <strong className="font-semibold text-white">
+              <strong className="font-semibold text-foreground">
                 {currentNetwork.name}
               </strong>{" "}
               to{" "}
-              <strong className="font-semibold text-white">
+              <strong className="font-semibold text-foreground">
                 {pendingNetwork?.name}
               </strong>
               .
@@ -362,13 +362,13 @@ export default function NetworkSwitcher({
             <Button
               variant="ghost"
               onClick={cancelSwitch}
-              className="text-[#9CA3AF] hover:text-white hover:bg-[#242428]"
+              className="text-muted-foreground hover:text-foreground hover:bg-accent"
             >
               Cancel
             </Button>
             <Button
               onClick={confirmSwitch}
-              className="bg-[#598EFF] text-white hover:bg-[#4A7CE8]"
+              className="bg-primary text-primary-foreground hover:bg-primary/80"
               data-testid="confirm-network-switch"
             >
               Switch to {pendingNetwork?.name}

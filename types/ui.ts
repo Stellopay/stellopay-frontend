@@ -29,6 +29,8 @@ export interface FaqCardProps {
   title: string;
   subtitle: string;
   link?: string;
+  icon?: React.ReactNode;
+  articleCount?: number;
 }
 
 export interface SupportTabsProps {

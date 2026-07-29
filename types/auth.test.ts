@@ -7,6 +7,7 @@ import {
   passwordSchema,
   signUpSchema,
   changePasswordSchema,
+  forgotPasswordSchema,
 } from "@/types/auth";
 
 const validSignUp = {
@@ -477,5 +478,28 @@ describe("changePasswordSchema", () => {
     expect(result.success).toBe(false);
     const issues = !result.success ? result.error.issues : [];
     expect(issues.some((i) => i.path[0] === "newPassword")).toBe(true);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// forgotPasswordSchema
+// ---------------------------------------------------------------------------
+
+describe("forgotPasswordSchema", () => {
+  it("accepts a valid email", () => {
+    expect(forgotPasswordSchema.safeParse({ email: "user@example.com" }).success).toBe(true);
+  });
+
+  it("rejects an invalid email with the configured message", () => {
+    const result = forgotPasswordSchema.safeParse({ email: "not-an-email" });
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(result.error.issues[0].message).toBe("Please enter a valid email address.");
+    }
+  });
+
+  it("rejects an empty email", () => {
+    const result = forgotPasswordSchema.safeParse({ email: "" });
+    expect(result.success).toBe(false);
   });
 });

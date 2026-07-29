@@ -4,14 +4,21 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { LoginForm } from "./login-form";
 import { login, sendMagicLink, AuthError } from "@/lib/api/auth";
 
+const mockPush = vi.fn();
+vi.mock("next/navigation", () => ({
+  useRouter: () => ({ push: mockPush }),
+}));
+
 // Mock the auth api adapter
 vi.mock("@/lib/api/auth", () => ({
   login: vi.fn(),
   sendMagicLink: vi.fn(),
   AuthError: class AuthError extends Error {
-    constructor(message: string) {
+    kind: string;
+    constructor(message: string, kind: string = "invalid_credentials") {
       super(message);
       this.name = "AuthError";
+      this.kind = kind;
     }
   },
 }));
@@ -301,6 +308,60 @@ describe("LoginForm", () => {
       const toggle = screen.getByRole("button", { name: /Show password/i });
       expect(toggle).toBeDisabled();
     });
+  });
+
+  // ─── Network/server error state ──────────────────────────────────────────
+
+  it("shows a network-error message with a retry action for a network AuthError", async () => {
+    vi.mocked(login).mockRejectedValue(
+      new AuthError("Unable to connect. Please check your internet connection and try again.", "network")
+    );
+    render(<LoginForm />);
+
+    await userEvent.type(screen.getByPlaceholderText(/Enter your email/i), "user@example.com");
+    await userEvent.type(screen.getByPlaceholderText(/Enter your password/i), "Password123!");
+    await userEvent.click(screen.getByRole("button", { name: /Sign In/i }));
+
+    await waitFor(() => {
+      expect(screen.getByRole("alert")).toHaveTextContent(/unable to connect/i);
+    });
+    expect(screen.getByRole("button", { name: /Retry/i })).toBeInTheDocument();
+  });
+
+  it("does not show a retry action for an invalid-credentials AuthError", async () => {
+    vi.mocked(login).mockRejectedValue(
+      new AuthError("Invalid email or password. Please try again.", "invalid_credentials")
+    );
+    render(<LoginForm />);
+
+    await userEvent.type(screen.getByPlaceholderText(/Enter your email/i), "wrong@example.com");
+    await userEvent.type(screen.getByPlaceholderText(/Enter your password/i), "WrongPassword1!");
+    await userEvent.click(screen.getByRole("button", { name: /Sign In/i }));
+
+    await waitFor(() => {
+      expect(screen.getByRole("alert")).toHaveTextContent(/invalid email or password/i);
+    });
+    expect(screen.queryByRole("button", { name: /Retry/i })).not.toBeInTheDocument();
+  });
+
+  it("clicking retry re-submits the form", async () => {
+    const mockLogin = vi
+      .mocked(login)
+      .mockRejectedValueOnce(new AuthError("Unable to connect. Please try again.", "network"))
+      .mockResolvedValueOnce();
+    render(<LoginForm />);
+
+    await userEvent.type(screen.getByPlaceholderText(/Enter your email/i), "user@example.com");
+    await userEvent.type(screen.getByPlaceholderText(/Enter your password/i), "Password123!");
+    await userEvent.click(screen.getByRole("button", { name: /Sign In/i }));
+
+    const retryButton = await screen.findByRole("button", { name: /Retry/i });
+    await userEvent.click(retryButton);
+
+    await waitFor(() => {
+      expect(mockLogin).toHaveBeenCalledTimes(2);
+    });
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
   });
 
   // ─── Remember me persistence ─────────────────────────────────────────────

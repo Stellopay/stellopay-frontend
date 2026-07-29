@@ -79,7 +79,7 @@ const TextInput: React.FC<EnhancedTextInputProps> = ({
         className={cn(
           "flex items-center border rounded-md h-12 overflow-hidden transition-colors",
           error ? "border-destructive ring-destructive/20" : "border-input",
-          disabled && "opacity-50 cursor-not-allowed",
+          disabled && "opacity-disabled cursor-disabled pointer-events-none",
         )}
       >
         {icon && (

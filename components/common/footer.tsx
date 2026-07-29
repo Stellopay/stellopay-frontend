@@ -2,9 +2,6 @@
 
 import Link from "next/link";
 import Image from "next/image";
-import { messages } from "@/messages";
-
-// TODO: Replace direct import of messages with next-intl useTranslations() hook once i18n is enabled.
 import { useState, useEffect } from "react";
 import { safeStorage } from "@/utils/safeStorage";
 import { X } from "lucide-react";

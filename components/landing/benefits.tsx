@@ -1,3 +1,4 @@
+import Image from "next/image";
 import { Shield, CreditCard, HeadphonesIcon } from "lucide-react";
 
 /**
@@ -82,17 +83,7 @@ const benefits = [
 
 export default function BenefitsSection() {
   return (
-    <section
-      className="relative pt-24 pb-10 px-4 text-white min-h-screen"
-      style={{ backgroundColor: "var(--color-surface-deep)" }}
-      aria-labelledby="benefits-heading"
-      data-testid="benefits-section"
-    >
-      {/*
-       * Decorative radial-gradient glow overlay.
-       * Uses --color-brand-glow RGB channels so the brand blue is defined
-       * in one place. pointer-events-none keeps it inert for mouse/touch.
-       */}
+    <section className="relative bg-[#040404] py-16 sm:py-20 lg:py-24 px-4 text-white min-h-screen">
       <div
         className="absolute inset-0 pointer-events-none z-10"
         aria-hidden="true"
@@ -182,6 +173,14 @@ export default function BenefitsSection() {
               style={{ border: "1px solid var(--color-brand-border)" }}
               data-testid={`benefits-card-${benefit.title.toLowerCase().replace(/\s+/g, "-")}`}
             >
+              <Image
+                src={benefit.imageSrc}
+                alt=""
+                width={120}
+                height={120}
+                className="mx-auto mb-4 w-30 h-30"
+                aria-hidden="true"
+              />
               <div className="w-15 h-15 mx-auto mb-6 flex items-center justify-center rounded-full bg-white">
                 {benefit.icon}
               </div>

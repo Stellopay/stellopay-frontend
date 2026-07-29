@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Plus, Minus } from "lucide-react";
 import { useReducedMotion } from "@/hooks/useReducedMotion";
 import { cn } from "@/utils/commonUtils";
+import { duration, easing } from "@/lib/motion";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 
@@ -104,7 +105,7 @@ const AccordionItem = ({
               initial={{ height: 0, opacity: 0 }}
               animate={{ height: "auto", opacity: 1 }}
               exit={{ height: 0, opacity: 0 }}
-              transition={{ duration: 0.3, ease: "easeInOut" }}
+              transition={{ duration: duration.base, ease: easing.easeInOut }}
               className="overflow-hidden"
             >
               <div className="px-6 pb-6 md:px-8 md:pb-8">

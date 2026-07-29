@@ -4,7 +4,16 @@ import FaqCard from "@/components/common/faq-card";
 import SupportTabs from "@/components/common/support-tabs";
 import TicketStatusWidget from "@/components/help-support/ticket-status-widget";
 import CoachMarkOverlay from "@/components/ui/coach-mark-overlay";
-import { CircleHelp, Search, Grid3X3, MessageSquareText } from "lucide-react";
+import {
+  CircleHelp,
+  Search,
+  Grid3X3,
+  MessageSquareText,
+  UserCog,
+  ArrowRightLeft,
+  Shield,
+  CreditCard,
+} from "lucide-react";
 import { useState, useEffect, useRef } from "react";
 import { getDemoSupportTickets } from "@/lib/demo-data-support";
 import { safeStorage } from "@/utils/safeStorage";
@@ -104,36 +113,34 @@ const SupportPage = () => {
             </div>
 
             {/* FAQ Cards */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-4">
               <FaqCard
                 title="Account Management"
                 subtitle="Update your profile, reset your password, and manage your account"
                 link="/help/support/accountManagement"
+                icon={<UserCog size={18} color="#E5E5E5" aria-hidden="true" />}
+                articleCount={6}
               />
               <FaqCard
                 title="Transaction Issues"
                 subtitle="Resolve payment failures, track transactions, and dispute unauthorized charges."
                 link="/help/support/transactionIssues"
+                icon={<ArrowRightLeft size={18} color="#E5E5E5" aria-hidden="true" />}
+                articleCount={6}
               />
               <FaqCard
                 title="Security & Privacy"
                 subtitle="Keep your account safe with 2FA, fraud prevention, and privacy controls."
                 link="/help/support/securityPrivacy"
+                icon={<Shield size={18} color="#E5E5E5" aria-hidden="true" />}
+                articleCount={6}
               />
               <FaqCard
                 title="Payment & Transfers"
                 subtitle="Learn how to send, receive, and manage payments securely and efficiently."
                 link="/help/support/paymentTransfers"
-              />
-              <FaqCard
-                title="Payment & Transfers"
-                subtitle="Learn how to send, receive, and manage payments securely and efficiently."
-                link="/help/support/paymentTransfers"
-              />
-              <FaqCard
-                title="Account Management"
-                subtitle="Update your profile, reset your password, and manage your account."
-                link="/help/support/accountManagement"
+                icon={<CreditCard size={18} color="#E5E5E5" aria-hidden="true" />}
+                articleCount={6}
               />
             </div>
           </div>

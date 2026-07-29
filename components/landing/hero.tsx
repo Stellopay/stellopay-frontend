@@ -12,6 +12,8 @@ import {
 import stellar from "../../public/stellar.png";
 import skartnet from "../../public/StarknetIcon.png";
 import { useReducedMotion } from "@/hooks/useReducedMotion";
+import { motion } from "framer-motion";
+import { resolveVariants } from "@/lib/motion";
 
 interface Info {
   id: number;
@@ -97,7 +99,11 @@ const Hero = () => {
 
       <div className="h-full w-full flex flex-col lg:flex-row items-center justify-center font-[var(--font-sans)] lg:p-5 gap-12 lg:gap-6 my-30">
         {/* first container */}
-        <div className="flex flex-col w-[90%] md:w-[70%] lg:max-w-176 lg:max-h-168.5 h-auto relative gap-5">
+        <motion.div
+          variants={resolveVariants(reducedMotion)}
+          initial="hidden"
+          animate="visible"
+          className="flex flex-col w-[90%] md:w-[70%] lg:max-w-176 lg:max-h-168.5 h-auto relative gap-5">
           {/* Simplifying Crypto Payments for Business card */}
           <a
             href="#"
@@ -110,8 +116,13 @@ const Hero = () => {
             <ArrowRight className="text-[#52525B] dark:text-[#A1A1AA] w-[13.99px] h-[13.99px]" />
           </a>
           {/* header text */}
+
           <h1 className="font-bold text-4xl lg:text-7xl text-display-2xl">
             The Future of{" "}
+
+          <h1 className="text-display-2xl font-bold">
+            The Future of
+
             <span className="bg-gradient-to-r from-[#2563EB] dark:from-[#3B82F6] via-[#7C3AED] dark:via-[#8B5CF6] via-16% lg:via-33% to-[#059669] dark:to-[#10B981] to-33% lg:to-66% bg-clip-text text-transparent block">
               Payroll on
             </span>{" "}
@@ -120,7 +131,11 @@ const Hero = () => {
           {/* paragraph text */}
           <p
             data-testid="hero-subtext"
+
             className="text-base lg:text-lg font-normal text-[#52525B] dark:text-[#A1A1AA] lg:w-[90%] text-body-lg"
+
+            className="text-body-lg font-normal text-[#52525B] dark:text-[#A1A1AA] lg:w-[90%]"
+
           >
             Built for modern businesses. Designed for global payments. Powered
             by blockchain technology.
@@ -156,10 +171,13 @@ const Hero = () => {
               <ArrowRight className="w-4 h-4" aria-hidden="true" />
             </button>
           </div>
-        </div>
+        </motion.div>
 
         {/* main card */}
-        <div
+        <motion.div
+          variants={resolveVariants(reducedMotion, 0.15)}
+          initial="hidden"
+          animate="visible"
           className="flex flex-col lg:border-2 w-[90%] md:w-[70%]  lg:max-w-176 lg:max-h-168.5 h-auto items-center justify-between gap-6 lg:gap-3 rounded-xl border-[1.34px] relative group border-[#e4e4e7] dark:border-[#27272A] min-h-12.5 p-6 bg-[#FFFFFF] dark:bg-[#18181B]"
           style={{
             boxShadow:
@@ -314,7 +332,7 @@ const Hero = () => {
               ))}
             </div>
           </div>
-        </div>
+        </motion.div>
       </div>
     </section>
   );
