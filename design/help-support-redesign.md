@@ -512,3 +512,106 @@ Frontend implementation can reference the Figma file for:
 - **File:** `app/help/support/accountManagement/loading.test.tsx`
 - Validates accessible status region, sr-only label, and axe accessibility violations.
 - Run with `pnpm test`.
+
+---
+
+## Fix: Broken Sub-Page Links (Issue #797)
+
+**Issue:** #797 — Fix broken sub-page links referenced from `components/common/support-tabs.tsx`
+
+**Date:** July 2026
+
+### Problem
+
+The `components/common/support-tabs.tsx` `routeMappings` object referenced three routes that did not exist as pages:
+
+| Route | Referenced From | Status Before |
+|---|---|---|
+| `/help/support/transactionIssues` | `support-tabs.tsx` breadcrumbs, `app/help/support/page.tsx` FAQ cards | 404 |
+| `/help/support/securityPrivacy` | `support-tabs.tsx` breadcrumbs, `app/help/support/page.tsx` FAQ cards | 404 |
+| `/help/support/paymentTransfers` | `support-tabs.tsx` breadcrumbs, `app/help/support/page.tsx` FAQ cards | 404 |
+
+Users clicking FAQ cards or the breadcrumb on these tabs hit the 404 page instead of help content.
+
+### Solution
+
+Created three new sub-routes following the `accountManagement` page pattern, each with:
+- A `page.tsx` with the same `SupportTabs` wrapper, `Back to Help Center` link, vertical `Tabs` sidebar, and category-specific FAQ content
+- A `loading.tsx` with accessible skeleton placeholders (`role="status"`, `aria-busy`, `aria-live`)
+
+#### New Files
+
+| File | Content |
+|------|---------|
+| `app/help/support/transactionIssues/page.tsx` | FAQ: Payment Failures, Tracking Transactions, Disputes & Chargebacks, Refund Policy, Transaction Fees, Pending Transactions |
+| `app/help/support/transactionIssues/loading.tsx` | Skeleton loading state |
+| `app/help/support/securityPrivacy/page.tsx` | FAQ: Two-Factor Auth, Fraud Prevention, Privacy Controls, Account Security, Report Suspicious Activity, Data Protection |
+| `app/help/support/securityPrivacy/loading.tsx` | Skeleton loading state |
+| `app/help/support/paymentTransfers/page.tsx` | FAQ: Sending Payments, Receiving Payments, Wallet Management, Cross-Border Transfers, Payment Methods, Transfer Limits |
+| `app/help/support/paymentTransfers/loading.tsx` | Skeleton loading state |
+
+#### Bug Fixes Found During Testing
+
+| File | Bug | Fix |
+|------|-----|-----|
+| `components/common/support-tabs.tsx` | Missing `useRef` import caused `ReferenceError: useRef is not defined` | Added `useRef` to React import |
+| `components/common/text-area-input.tsx` | `maxLength` used but not destructured from props, causing `ReferenceError: maxLength is not defined` | Added `maxLength` to `EnhancedTextareaInputProps` destructuring and `TextareaInputProps` type |
+
+### Route-Existence Tests
+
+Added 12 new tests across two test files to ensure all mapped routes have corresponding files:
+
+**`components/common/support-tabs.test.tsx` (8 new tests):**
+- `it.each` for each of 4 routes: verifies `page.tsx` and `loading.tsx` exist on disk
+- `every sub-route in app/help/support has both page.tsx and loading.tsx` — reads the filesystem to confirm
+- `does not have unmapped sub-routes that would be inaccessible` — ensures no orphan directories
+
+**`app/help/support/page.test.tsx` (4 new tests):**
+- `it.each` for each of 4 FAQ card links: verifies `page.tsx` exists on disk
+- All FAQ card links match the support-tabs routeMappings
+- No FAQ card links are duplicated
+
+### Accessibility (WCAG 2.1 AA)
+
+All three new pages follow the existing patterns from `accountManagement`:
+
+- **Keyboard Navigation:** Back link is first focusable element; vertical tab sidebar is fully keyboard-operable via `TabsTrigger` components
+- **Screen Readers:** `aria-label="Back to Help Center"` on back links; `aria-current="page"` on breadcrumb current page; loading states have `role="status"`, `aria-busy="true"`, `aria-live="polite"`, and `sr-only` text
+- **Color Contrast:** Text `#A0A0A0` / `#E5E5E5` / `#FFFFFF` on `#0f0711` / `#0D0D0D80` backgrounds provide ≥ 4.5:1 contrast ratios
+- **Focus Management:** Visible focus rings on all interactive elements; natural tab order
+
+### Responsive Behavior
+
+| Breakpoint | Behavior |
+|---|---|
+| sm (640px) | Back link and breadcrumb stack naturally; sidebar stacks above content |
+| md (768px) | Sidebar + content side-by-side layout begins |
+| lg (1024px) | Full two-column layout with max sidebar width |
+| xl (1280px) | Same as lg, wider container |
+
+### Test Results
+
+```
+✓ 33 passed, 2 failed (pre-existing, unrelated)
+
+Failed tests (pre-existing):
+- Support Page - Responsive Layout > should render full width ticket widget
+  (mock issue: TicketStatusWidget class resolution)
+- Support Page - Integration > should render ticket widget before tabs
+  (mock issue: DOM order comparison with mocked components)
+```
+
+All new and modified tests pass. Pre-existing failures are in mocked component integration tests unrelated to this change.
+
+### Commits
+
+| Commit | Message |
+|--------|---------|
+| `292ea41` | `fix: repair broken help/support sub-page links` |
+
+### PR
+
+- **PR:** #1038
+- **Branch:** `fix/support-tabs-broken-sublinks`
+
+Closes #797
