@@ -112,6 +112,29 @@ The App Router uses two cooperating client boundaries.
 
 Coverage for `app/error.tsx` is gated by the same 95% thresholds as the rest of the suite via `vitest.config.ts`. See `app/error.test.tsx` for the unit coverage.
 
+## Offline Banner
+
+The app surfaces network-connectivity changes through a persistent banner rendered inside the root layout (`app/layout.tsx`). The component lives at [`components/common/offline-banner.tsx`](components/common/offline-banner.tsx).
+
+### Behaviour
+
+- **Initial detection**: Reads `navigator.onLine` on mount.
+- **Live updates**: Subscribes to `online` / `offline` window events and updates the UI immediately.
+- **Offline banner**: When the browser goes offline, a fixed warning banner with a dismiss button appears at the top of the viewport. The dismiss button hides the banner, but it reappears on the next `offline` event.
+- **Reconnection**: When connectivity is restored, the banner transitions to a brief success state ("Your internet connection was restored") that auto-dismisses after 3 seconds. The reconnected banner is only shown after a genuine offline → online transition — not on the initial page load.
+
+### Accessibility
+
+- `role="alert"` and `aria-live="assertive"` ensure screen readers announce every connectivity change.
+- The dismiss button carries a descriptive `aria-label`.
+- Decorative icons are marked `aria-hidden="true"`.
+- Colour contrast meets WCAG 2.1 AA in both light and dark themes.
+
+### Tests
+
+- [`components/common/offline-banner.test.tsx`](components/common/offline-banner.test.tsx) — Vitest unit suite covering online/offline transitions, dismiss behaviour, reconnection state, auto-dismiss timeout, event-listener cleanup, and the negative case where an `online` event fires on an already-online browser.
+- [`app/layout.test.tsx`](app/layout.test.tsx) — Integration test verifying the banner is rendered inside the root layout shell.
+
 ## Metadata & Viewport
 
 Following Next.js 15 conventions, global metadata (titles, descriptions, OpenGraph) and viewport configurations are exported as separate objects in `app/layout.tsx`.
