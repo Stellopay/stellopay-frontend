@@ -135,6 +135,102 @@ The app surfaces network-connectivity changes through a persistent banner render
 - [`components/common/offline-banner.test.tsx`](components/common/offline-banner.test.tsx) — Vitest unit suite covering online/offline transitions, dismiss behaviour, reconnection state, auto-dismiss timeout, event-listener cleanup, and the negative case where an `online` event fires on an already-online browser.
 - [`app/layout.test.tsx`](app/layout.test.tsx) — Integration test verifying the banner is rendered inside the root layout shell.
 
+## Service Worker & Offline Support
+
+A minimal PWA service worker caches the app shell so navigation degrades gracefully when the device loses connectivity, instead of surfacing the browser's default "No internet" error page.
+
+### File locations
+
+```
+public/
+├─ sw.js              # Service worker — fetch strategies and cache management
+app/
+└─ offline/
+   └─ page.tsx        # Branded offline fallback page (pre-cached by the SW)
+```
+
+### Fetch strategies
+
+| Request type | Strategy | Rationale |
+|---|---|---|
+| `/_next/static/**` | Cache-first | Filenames are content-hashed by Next.js — safe to cache indefinitely |
+| Navigation (`mode: "navigate"`) | Network-first → offline fallback | Always tries the network; if offline, serves the cached page or `/offline` |
+| Everything else (images, API) | Stale-while-revalidate | Instant response from cache; revalidation happens in the background |
+
+Cross-origin requests and non-GET methods pass through unmodified.
+
+### Cache invalidation strategy
+
+The service worker uses a versioned cache name — `stellopay-shell-v1` — to control stale content after a deploy.
+
+**How invalidation works:**
+
+1. The `CACHE_VERSION` constant in `public/sw.js` is bumped on each deploy (e.g. `"v1"` → `"v2"`).
+2. On activate, the service worker deletes **every cache whose name does not match the current `CACHE_NAME`**. This purges all previous shell caches from the user's browser.
+3. Because `sw.js` is served with `Cache-Control: no-cache` (configure this in your hosting layer — see below), browsers always fetch a fresh copy of the worker on each page load.
+4. Next.js content-hashes all `/_next/static/**` filenames, so a new build produces new URLs; old cached entries become unreachable and are cleaned up by the activate sweep.
+
+**Recommended CI/CD integration:**
+
+Inject the build ID into `CACHE_VERSION` during your pipeline so the cache is automatically busted on every deploy without a manual bump:
+
+```js
+// public/sw.js — replace the static string with your CI build identifier
+const CACHE_VERSION = process.env.BUILD_ID ?? "v1";
+```
+
+Or, for a simpler approach using a deploy timestamp in `next.config.ts`:
+
+```ts
+// next.config.ts
+const nextConfig: NextConfig = {
+  headers: async () => [
+    {
+      source: "/sw.js",
+      headers: [{ key: "Cache-Control", value: "no-cache, no-store, must-revalidate" }],
+    },
+  ],
+};
+```
+
+With a `no-cache` header on `sw.js`, the browser re-fetches the script on every page load. The browser's byte-diff check means only a changed `CACHE_VERSION` string actually triggers a new install-and-activate cycle — there's no unnecessary churn.
+
+### Offline fallback page (`/offline`)
+
+`app/offline/page.tsx` is pre-cached in `SHELL_ASSETS` during the service worker install step. It matches the visual language of the branded 404 page (`app/not-found.tsx`) — same design tokens (`bg-background`, `text-foreground`, `text-muted-foreground`), same Button+Link CTA pattern, responsive layout, and WCAG 2.1 AA accessible.
+
+**Accessibility notes:**
+
+- Single `<h1>` — screen readers announce "You're offline" as the page title.
+- `<main id="main-content">` matches the skip-link target in the root layout.
+- `WifiOff` icon is decorative (`aria-hidden="true"`).
+- CTA buttons are keyboard-focusable `<a>` elements via `Button asChild`.
+- Colour contrast meets WCAG 2.1 AA for text on `bg-background` in both light and dark themes.
+
+### Registration
+
+The service worker is registered from an inline `<script>` tag in `app/layout.tsx` (rendered server-side as static HTML). The registration is deliberately deferred behind the `window load` event so it never competes with first-paint resources:
+
+```html
+<script>
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', function () {
+      navigator.serviceWorker
+        .register('/sw.js', { scope: '/' })
+        .catch(function (err) {
+          console.warn('[SW] Registration failed:', err);
+        });
+    });
+  }
+</script>
+```
+
+Registration failure is non-fatal — a `.catch()` handler logs a warning and the app continues to function normally without the service worker.
+
+### Tests
+
+- [`app/layout.test.tsx`](app/layout.test.tsx) — Vitest unit suite (within the existing layout test file) verifying: script tag presence, correct path and scope, load-event deferral pattern, `serviceWorker` API guard, and graceful `.catch()` error handling.
+
 ## Metadata & Viewport
 
 Following Next.js 15 conventions, global metadata (titles, descriptions, OpenGraph) and viewport configurations are exported as separate objects in `app/layout.tsx`.
