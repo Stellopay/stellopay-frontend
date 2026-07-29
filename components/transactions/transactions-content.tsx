@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, useCallback } from "react";
+import { useState, useMemo, useCallback, useRef } from "react";
 import type {
   SortField,
   SortConfig,
@@ -14,6 +14,7 @@ import TransactionsHeader from "./transactions-header";
 import TransactionsFilters from "./transactions-filters";
 import { TransactionsTable } from "./transactions-table";
 import TransactionsPagination from "./transactions-pagination";
+import { BulkActionBar } from "./bulk-action-bar";
 import { ErrorState } from "@/components/ui/error-state";
 import {
   TRANSACTIONS_PAGE_SIZE,
@@ -36,6 +37,7 @@ const getTokenIcon = (token: string): string => {
 const toTransactionProps = (t: Transaction): TransactionProps => ({
   id: t.id,
   type: t.type,
+  txId: t.txId,
   address: t.address,
   date: t.date,
   time: t.time,
@@ -46,6 +48,7 @@ const toTransactionProps = (t: Transaction): TransactionProps => ({
       : `-$${Math.abs(t.amount).toFixed(2)}`,
   status: t.status as "Completed" | "Pending" | "Failed",
   tokenIcon: getTokenIcon(t.token),
+  memo: t.memo,
 });
 
 export default function TransactionsContent() {
@@ -57,12 +60,68 @@ export default function TransactionsContent() {
     sortConfigs: [{ field: "date", direction: "desc" }],
   }));
   const [currentPage, setCurrentPage] = useState(1);
+  const [statementRange, setStatementRange] = useState<{
+    fromDate: string;
+    toDate: string;
+  } | null>(null);
   const itemsPerPage = TRANSACTIONS_PAGE_SIZE;
 
+  // ── Selection state ─────────────────────────────────────────────────────────
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+
+  const clearSelection = useCallback(() => {
+    setSelectedIds(new Set());
+  }, []);
+
+  const handleSelectRow = useCallback((id: string, checked: boolean) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (checked) {
+        next.add(id);
+      } else {
+        next.delete(id);
+      }
+      return next;
+    });
+  }, []);
+
+  const handleSelectAll = useCallback(
+    (checked: boolean, pageIds: string[]) => {
+      setSelectedIds((prev) => {
+        const next = new Set(prev);
+        if (checked) {
+          pageIds.forEach((id) => next.add(id));
+        } else {
+          pageIds.forEach((id) => next.delete(id));
+        }
+        return next;
+      });
+    },
+    [],
+  );
+
+  // ── Data ─────────────────────────────────────────────────────────────────────
   const { data, isLoading, error, refetch } = useTransactions({
     filters,
     page: currentPage,
     pageSize: itemsPerPage,
+  });
+
+  // A statement needs the ledger before the selected range to calculate its
+  // opening balance. Keep this request independent of table search/filter UI.
+  // The API currently caps a response at 100 records; production APIs should
+  // expose a server-side statement endpoint for ledgers larger than that.
+  const statementLedger = useTransactions({
+    filters: {
+      fromDate: "",
+      toDate: "",
+      searchQuery: "",
+      filterQuery: "",
+      selectedFilter: "All Transactions",
+      sortConfigs: [{ field: "date", direction: "asc" }],
+    },
+    page: 1,
+    pageSize: 100,
   });
 
   const paginatedTransactions: TransactionProps[] = useMemo(
@@ -70,6 +129,19 @@ export default function TransactionsContent() {
     [data],
   );
 
+  // ── Stable select-all that has access to current page ids ────────────────────
+  const paginatedTransactionsRef = useRef(paginatedTransactions);
+  paginatedTransactionsRef.current = paginatedTransactions;
+
+  const handleSelectAllForPage = useCallback(
+    (checked: boolean) => {
+      const pageIds = paginatedTransactionsRef.current.map((t) => t.id);
+      handleSelectAll(checked, pageIds);
+    },
+    [handleSelectAll],
+  );
+
+  // ── Filter helpers (clear selection on any filter/page change) ───────────────
   const updateFilter = useCallback(
     <K extends keyof TransactionFilters>(
       key: K,
@@ -77,8 +149,17 @@ export default function TransactionsContent() {
     ) => {
       setFilters((prev) => ({ ...prev, [key]: value }));
       setCurrentPage(1);
+      clearSelection();
     },
-    [],
+    [clearSelection],
+  );
+
+  const handlePageChange = useCallback(
+    (page: number) => {
+      setCurrentPage(page);
+      clearSelection();
+    },
+    [clearSelection],
   );
 
   const handleSort = useCallback(
@@ -121,12 +202,69 @@ export default function TransactionsContent() {
         };
       });
       setCurrentPage(1);
+      clearSelection();
     },
-    [],
+    [clearSelection],
   );
+
+  // ── Bulk action handlers ─────────────────────────────────────────────────────
+  const handleBulkExport = useCallback(() => {
+    // Stub: collect the selected transactions and trigger a CSV download.
+    // Replace with a real implementation once the export endpoint is available.
+    const selected = paginatedTransactions.filter((t) =>
+      selectedIds.has(t.id),
+    );
+    const csv = [
+      ["ID", "Type", "Address", "Date", "Token", "Amount", "Status"].join(","),
+      ...selected.map((t) =>
+        [t.id, t.type, t.address, t.date, t.token, t.amount, t.status].join(
+          ",",
+        ),
+      ),
+    ].join("\n");
+
+    const blob = new Blob([csv], { type: "text/csv" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `transactions-export-${Date.now()}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+    clearSelection();
+  }, [paginatedTransactions, selectedIds, clearSelection]);
+
+  const handleBulkTag = useCallback(() => {
+    // Stub: open a tag-assignment dialog.
+    // Replace with real implementation once the tag feature is built.
+    console.log("Tag transactions:", Array.from(selectedIds));
+  }, [selectedIds]);
+
+  const handleBulkArchive = useCallback(() => {
+    // Stub: send archive request for all selected ids.
+    // Replace with real implementation once the archive endpoint is available.
+    console.log("Archive transactions:", Array.from(selectedIds));
+    clearSelection();
+  }, [selectedIds, clearSelection]);
 
   return (
     <div className="min-h-screen text-white mt-4">
+      {/*
+        aria-live region announces selection count changes to screen readers
+        without interrupting the user's current focus.
+      */}
+      <div
+        aria-live="polite"
+        aria-atomic="true"
+        className="sr-only"
+        data-testid="selection-announcement"
+      >
+        {selectedIds.size > 0
+          ? selectedIds.size === 1
+            ? "1 transaction selected"
+            : `${selectedIds.size} transactions selected`
+          : ""}
+      </div>
+
       <div className="w-full max-w-7xl mx-auto mb-4">
         <TransactionsHeader
           fromDate={filters.fromDate}
@@ -134,6 +272,38 @@ export default function TransactionsContent() {
           onFromDateChange={(date) => updateFilter("fromDate", date)}
           onToDateChange={(date) => updateFilter("toDate", date)}
         />
+
+        <div className="mb-4 flex justify-end px-4 sm:px-6 lg:px-8">
+          <button
+            type="button"
+            onClick={() =>
+              setStatementRange({ fromDate: filters.fromDate, toDate: filters.toDate })
+            }
+            disabled={statementLedger.isLoading || !!statementLedger.error}
+            className="inline-flex items-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground shadow-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring disabled:cursor-not-allowed disabled:opacity-60"
+            aria-describedby="statement-help"
+          >
+            <FileText aria-hidden="true" size={16} />
+            Generate statement
+          </button>
+          <span id="statement-help" className="sr-only">
+            Creates a printable reconciliation statement for the selected date range.
+          </span>
+          {statementLedger.error && (
+            <p role="status" className="ml-3 self-center text-sm text-red-300">
+              Statement data could not be loaded. Try again later.
+            </p>
+          )}
+        </div>
+
+        {statementRange && (
+          <TransactionsStatement
+            fromDate={statementRange.fromDate}
+            toDate={statementRange.toDate}
+            ledger={statementLedger.data?.data ?? []}
+            onClose={() => setStatementRange(null)}
+          />
+        )}
 
         <div className="px-4 sm:px-6 lg:px-8 bg-[#160f17] pt-3 border-[#2D2D2D] border rounded-xl">
           <TransactionsFilters
@@ -161,18 +331,33 @@ export default function TransactionsContent() {
             {/* Data state */}
             {!isLoading && !error && (
               <>
-                <TransactionsTable transactions={paginatedTransactions} />
+                <TransactionsTable
+                  transactions={paginatedTransactions}
+                  selectedIds={selectedIds}
+                  onSelectRow={handleSelectRow}
+                  onSelectAll={handleSelectAllForPage}
+                />
                 <TransactionsPagination
                   totalItems={data?.total ?? 0}
                   currentPage={currentPage}
                   itemsPerPage={itemsPerPage}
-                  onPageChange={setCurrentPage}
+                  onPageChange={handlePageChange}
                 />
               </>
             )}
           </div>
         </div>
       </div>
+
+      {/* Floating bulk-action bar – rendered outside the scrollable content area
+          so it always stays anchored to the viewport bottom */}
+      <BulkActionBar
+        selectedCount={selectedIds.size}
+        onExport={handleBulkExport}
+        onTag={handleBulkTag}
+        onArchive={handleBulkArchive}
+        onClearSelection={clearSelection}
+      />
     </div>
   );
 }

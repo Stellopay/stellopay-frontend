@@ -83,7 +83,7 @@ export function EmptyState({
       aria-live="polite"
       className="flex flex-col items-center justify-center p-8 text-center border border-[#2D2D2D] bg-[#111111] rounded-xl"
     >
-      <div className="text-zinc-500 mb-4">
+      <div className="text-zinc-400 mb-4">
         {icon || <Inbox className="w-10 h-10" aria-hidden="true" />}
       </div>
       <h3 className="text-lg font-semibold text-white mb-2">{title}</h3>

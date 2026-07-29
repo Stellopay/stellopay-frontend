@@ -14,7 +14,9 @@ import { Badge } from "@/components/ui/badge";
 import Image from "next/image";
 import { Skeleton } from "@/components/ui/skeleton";
 import { getStatusColor } from "@/utils/transactionUtils";
+import { truncateStellarAddress } from "@/utils/stellarAddress";
 import { EmptyState } from "@/components/ui/empty-state";
+import { Checkbox } from "@/components/ui/checkbox";
 import { TRANSACTIONS_PAGE_SIZE } from "./transactions-config";
 import {
   Dialog,
@@ -30,6 +32,18 @@ import Link from "next/link";
 
 interface TransactionsTablePropsExtended extends TransactionsTableProps {
   isLoading?: boolean;
+  /** Set of transaction ids that are currently selected. */
+  selectedIds?: Set<string>;
+  /**
+   * Called when the user toggles a single row checkbox.
+   * `checked` is the new desired state.
+   */
+  onSelectRow?: (id: string, checked: boolean) => void;
+  /**
+   * Called when the user clicks the select-all header checkbox.
+   * `checked` is the new desired state (true = select all visible rows).
+   */
+  onSelectAll?: (checked: boolean) => void;
 }
 
 /**
@@ -221,7 +235,12 @@ function TransactionQuickViewDialog({
 export function TransactionsTable({
   transactions,
   isLoading = false,
+  selectedIds = new Set(),
+  onSelectRow,
+  onSelectAll,
 }: TransactionsTablePropsExtended) {
+  const [selectedTransaction, setSelectedTransaction] = useState<TransactionsTablePropsExtended["transactions"][number] | null>(null);
+
   const isEmpty = !isLoading && transactions.length === 0;
   
   // State for quick-view dialog
@@ -253,15 +272,56 @@ export function TransactionsTable({
     }
   };
 
+  /** Ids on the current page that can actually be selected */
+  const selectableIds = transactions.map((t) => t.id);
+
+  const allSelected =
+    selectableIds.length > 0 &&
+    selectableIds.every((id) => selectedIds.has(id));
+
+  const someSelected =
+    !allSelected && selectableIds.some((id) => selectedIds.has(id));
+
+  /** Indeterminate state for the header checkbox */
+  const headerCheckedState: boolean | "indeterminate" = allSelected
+    ? true
+    : someSelected
+      ? "indeterminate"
+      : false;
+
+  const isSelectable = Boolean(onSelectRow && onSelectAll);
+
   return (
     <>
       {/* Desktop Table */}
-      <div className="hidden md:block w-full rounded-[12px] overflow-auto border border-[#2D2D2D]">
+      <div
+        ref={tableWrapperRef}
+        className="hidden md:block w-full rounded-[12px] overflow-auto border border-[#2D2D2D]"
+      >
         <Table>
           {/* caption is visually hidden but announced by screen readers */}
           <caption className="sr-only">Transaction history. Click a row to view transaction details.</caption>
           <TableHeader>
             <TableRow className="bg-[#191919]">
+              {isSelectable && (
+                <TableHead
+                  scope="col"
+                  className="text-white font-bold border-[#2D2D2D] border-y-2 border-t-0 py-4 px-4 w-12"
+                >
+                  <Checkbox
+                    aria-label={
+                      allSelected
+                        ? "Deselect all transactions on this page"
+                        : "Select all transactions on this page"
+                    }
+                    checked={headerCheckedState}
+                    onCheckedChange={(checked) =>
+                      onSelectAll?.(checked === true)
+                    }
+                    className="border-[#555] data-[state=checked]:border-white data-[state=indeterminate]:border-white"
+                  />
+                </TableHead>
+              )}
               <TableHead
                 scope="col"
                 className="text-white font-bold border-[#2D2D2D] border-y-2 border-t-0 py-4 px-6"
@@ -270,7 +330,7 @@ export function TransactionsTable({
               </TableHead>
               <TableHead
                 scope="col"
-                className="text-white font-bold border-[#2D2D2D] border-y-2 border-t-0 py-4 px-6"
+                className="text-white font-bold border-[#2D2D2D] border-y-2 border-t-0 py-4 px-6 w-[200px]"
               >
                 Address
               </TableHead>
@@ -288,13 +348,13 @@ export function TransactionsTable({
               </TableHead>
               <TableHead
                 scope="col"
-                className="text-white font-bold border-[#2D2D2D] border-y-2 border-t-0 py-4 px-6"
+                className="text-white font-bold border-[#2D2D2D] border-y-2 border-t-0 py-4 px-6 w-[140px]"
               >
                 Amount
               </TableHead>
               <TableHead
                 scope="col"
-                className="text-white font-bold border-[#2D2D2D] border-y-2 border-t-0 py-4 px-6"
+                className="text-white font-bold border-[#2D2D2D] border-y-2 border-t-0 py-4 px-6 w-[120px]"
               >
                 Status
               </TableHead>
@@ -307,6 +367,11 @@ export function TransactionsTable({
                   key={`skeleton-${index}`}
                   className="border border-[#2D2D2D]"
                 >
+                  {isSelectable && (
+                    <TableCell className="border border-[#2D2D2D] py-4 px-4 w-12">
+                      <Skeleton className="size-4 rounded" />
+                    </TableCell>
+                  )}
                   <TableCell className="font-medium border border-[#2D2D2D] py-4 px-6">
                     <Skeleton className="h-4 w-20 mb-1" />
                     <Skeleton className="h-3 w-16" />
@@ -317,7 +382,7 @@ export function TransactionsTable({
                   <TableCell className="border border-[#2D2D2D] py-4 px-6">
                     <Skeleton className="h-4 w-24" />
                   </TableCell>
-                  <TableCell className="flex place-items-center space-x-2 py-8 px-6">
+                  <TableCell className="flex place-items-center gap-2 py-8 px-6">
                     <Skeleton className="w-5 h-5 rounded-full" />
                     <Skeleton className="h-4 w-12" />
                   </TableCell>
@@ -331,7 +396,10 @@ export function TransactionsTable({
               ))
             ) : isEmpty ? (
               <TableRow>
-                <TableCell colSpan={6} className="py-12 text-center">
+                <TableCell
+                  colSpan={isSelectable ? 7 : 6}
+                  className="py-12 text-center"
+                >
                   <EmptyState
                     title="No Transactions Found"
                     description="No transactions found. Try adjusting your filters."
@@ -416,6 +484,16 @@ export function TransactionsTable({
                 </TableRow>
               ))
             )}
+
+            <DownloadReceiptButton
+            transaction={{
+              id: transaction.id,
+              hash: transaction.hash,
+              amount: transaction.amount,
+              counterparty: transaction.counterparty,
+              timestamp: transaction.timestamp,
+            }}
+          />
           </TableBody>
         </Table>
       </div>
@@ -475,8 +553,8 @@ export function TransactionsTable({
                     tabIndex={0}
                     onClick={(e) => e.stopPropagation()}
                   >
-                    {transaction.address}
-                  </p>
+                    {transaction.status}
+                  </Badge>
                 </div>
                 <Badge
                   variant={
