@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import {
@@ -28,11 +28,16 @@ import { Badge } from "@/components/ui/badge";
 import { Form } from "@/components/ui/form";
 import { FormFieldPassword } from "@/components/ui/form-field";
 import { Input } from "@/components/ui/input";
+import { PasswordStrengthIndicator } from "@/components/ui/password-strength-indicator";
 import { changePasswordSchema, ChangePasswordFormValues } from "@/types/auth";
-import { checkPasswordRequirements } from "@/utils/authUtils";
-import { copyToClipboardWithFeedback } from "@/utils/clipboardUtils";
+import {
+  calculatePasswordStrength,
+  checkPasswordRequirements,
+} from "@/utils/authUtils";
 import DestructiveActionDialog from "./destructive-action-dialog";
 import { DEMO_SECURITY } from "@/lib/demo-data";
+import { generateTotpSecret, verifyTotpCode } from "@/lib/totp";
+import QRCode from "qrcode";
 
 const sessions = [
   {
@@ -229,6 +234,33 @@ export default function SecurityTab({
     string | null
   >(null);
   const [twoFactorSubmitting, setTwoFactorSubmitting] = useState(false);
+  const [totpSecret, setTotpSecret] = useState<string | null>(null);
+  const [qrCodeDataUrl, setQrCodeDataUrl] = useState<string | null>(null);
+  const totpSecretRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    if (!isTwoFactorSetupOpen) return;
+    let cancelled = false;
+    (async () => {
+      const { base32, otpauthUrl } = generateTotpSecret(
+        "Stellopay",
+        "user@stellopay.com",
+      );
+      if (cancelled) return;
+      setTotpSecret(base32);
+      totpSecretRef.current = base32;
+      try {
+        const url = await QRCode.toDataURL(otpauthUrl, {
+          width: 200,
+          margin: 2,
+        });
+        if (!cancelled) setQrCodeDataUrl(url);
+      } catch {
+        // QR generation failure is non-critical
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [isTwoFactorSetupOpen]);
 
   useEffect(() => {
     if (controlledTwoFactor !== undefined) {
@@ -260,6 +292,9 @@ export default function SecurityTab({
     setIsTwoFactorSetupOpen(false);
     setTwoFactorCode("");
     setTwoFactorSetupInlineError(null);
+    setTotpSecret(null);
+    setQrCodeDataUrl(null);
+    totpSecretRef.current = null;
   };
 
   /**
@@ -302,15 +337,18 @@ export default function SecurityTab({
     setTwoFactorSetupInlineError(null);
     setTwoFactorSubmitting(true);
     try {
-      await new Promise<void>((resolve, reject) =>
-        setTimeout(() => {
-          if (Math.random() > 0.8) {
-            reject(new Error("Verification failed"));
-          } else {
-            resolve();
-          }
-        }, 1200),
-      );
+      const secret = totpSecretRef.current;
+      if (!secret) {
+        throw new Error("TOTP secret not generated");
+      }
+
+      // Simulate a brief network delay to match the real async flow
+      await new Promise((resolve) => setTimeout(resolve, 600));
+
+      const isValid = verifyTotpCode(secret, twoFactorCode);
+      if (!isValid) {
+        throw new Error("Invalid code");
+      }
 
       setTwoFactorEnabled(true);
       closeTwoFactorSetup();
@@ -340,6 +378,10 @@ export default function SecurityTab({
   const watchedPassword = form.watch("newPassword");
   const watchedConfirm = form.watch("confirmPassword");
   const passwordRequirements = checkPasswordRequirements(watchedPassword);
+  const passwordStrengthResult = useMemo(
+    () => calculatePasswordStrength(watchedPassword),
+    [watchedPassword],
+  );
   const passwordsMatch =
     watchedPassword.length > 0 && watchedPassword === watchedConfirm;
 
@@ -520,14 +562,21 @@ export default function SecurityTab({
                   autoComplete="new-password"
                   disabled={isSaving}
                 />
-                <FormFieldPassword
-                  control={form.control}
-                  name="confirmPassword"
-                  label="Confirm password"
-                  placeholder="Repeat the new password"
-                  autoComplete="new-password"
-                  disabled={isSaving}
-                />
+                <div className="space-y-4">
+                  <FormFieldPassword
+                    control={form.control}
+                    name="confirmPassword"
+                    label="Confirm password"
+                    placeholder="Repeat the new password"
+                    autoComplete="new-password"
+                    disabled={isSaving}
+                  />
+                  {watchedPassword.length > 0 && (
+                    <PasswordStrengthIndicator
+                      strengthResult={passwordStrengthResult}
+                    />
+                  )}
+                </div>
               </div>
 
               <div className="grid gap-3 sm:grid-cols-2">
@@ -634,7 +683,54 @@ export default function SecurityTab({
                 className="rounded-2xl border border-sky-500/20 bg-sky-500/5 p-4"
                 aria-label="Authenticator verification setup"
               >
-                <div className="space-y-3">
+                <div className="space-y-4">
+                  <div className="flex flex-col items-center gap-3 sm:flex-row sm:items-start">
+                    {qrCodeDataUrl && (
+                      <div className="shrink-0">
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img
+                          src={qrCodeDataUrl}
+                          alt="TOTP QR code — scan with your authenticator app"
+                          width={140}
+                          height={140}
+                          className="rounded-lg border border-zinc-200 dark:border-zinc-700"
+                        />
+                      </div>
+                    )}
+                    <div className="flex flex-col gap-2 text-sm text-zinc-600 dark:text-zinc-400">
+                      <p className="font-medium text-zinc-900 dark:text-white">
+                        Scan with your authenticator app
+                      </p>
+                      <p>
+                        Use an authenticator app like Google Authenticator or
+                        Authy to scan the QR code. If you cannot scan the code,
+                        copy the key below.
+                      </p>
+                      {totpSecret && (
+                        <div className="flex items-center gap-2 rounded-lg border border-zinc-200 bg-white px-3 py-2 dark:border-zinc-700 dark:bg-zinc-900">
+                          <code className="select-all font-mono text-xs tracking-wider break-all">
+                            {totpSecret}
+                          </code>
+                          <button
+                            type="button"
+                            onClick={() =>
+                              copyToClipboardWithFeedback(
+                                totpSecret,
+                                "Secret key copied",
+                              )
+                            }
+                            className="shrink-0 rounded-md p-1.5 text-zinc-400 hover:bg-zinc-100 hover:text-zinc-600 dark:hover:bg-zinc-800 dark:hover:text-zinc-300"
+                            aria-label="Copy secret key"
+                          >
+                            <Copy className="h-4 w-4" />
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="border-t border-zinc-200 dark:border-zinc-700" />
+
                   <p className="flex gap-2 text-sm font-medium text-zinc-900 dark:text-white">
                     <AlertCircle className="mt-0.5 h-4 w-4 text-sky-600 dark:text-sky-300" />
                     Enter the code displayed in your authenticator app to finish

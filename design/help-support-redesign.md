@@ -393,475 +393,163 @@ Fixes #915
 **Total Test Code:** ~530 lines
 
 ---
+## Design Approach
 
-**Design Review Status:** ✅ Ready for implementation
+The design approach focused on:
+
+- Search-first support experience to surface answers instantly
+- Clear information hierarchy using cards, tabs, and grouped sections
+- Action-oriented UI that guides users to the right support channel
+- Mobile-first responsiveness, scaled cleanly to tablet and desktop
+- Accessible, calm fintech styling to reduce user anxiety
+
+Where possible, issues can be resolved through FAQs and guides before escalating to support tickets.
 
 ---
 
-# Help & Support Redesign - Real-time Contact Form Validation
+## Figma Design File
 
-**Issue:** #914 - Add real-time Zod validation with inline error messages  
-**Date:** July 2026  
-**Component:** `components/common/support-tabs.tsx`  
-**Related Tests:** `components/common/support-tabs.test.tsx`
-
-## Overview
-
-Enhanced the Contact Support form with real-time field validation using Zod, providing immediate visual feedback as users fill in their request details. Validation triggers on blur (when user leaves a field) and errors clear on change (when user starts typing), balancing responsiveness with UX.
-
-## Problem Statement
-
-**Before:** 
-- Validation only occurred on form submit
-- Users had no immediate feedback on field errors
-- Invalid submissions could only be discovered after clicking submit
-- No aria-describedby linking for screen readers
-- Focus management not implemented
-
-**Result:** Poor user experience, unclear error messages, accessibility issues.
-
-## Solution
-
-Real-time field validation with:
-1. **onBlur validation** - Validates field when user leaves it
-2. **onChange error clearing** - Clears error as soon as user starts typing
-3. **aria-describedby linking** - Error messages linked to inputs for screen readers
-4. **Focus management** - Focus set to first invalid field on submit fail
-5. **WCAG 2.1 AA compliance** - Full accessibility support
-
-## Implementation Details
-
-### Validation Schema (Zod)
-
-```typescript
-const contactSchema = z.object({
-  firstName: z
-    .string()
-    .trim()
-    .min(1, "First name is required")
-    .max(50, "First name cannot exceed 50 characters"),
-  lastName: z
-    .string()
-    .trim()
-    .min(1, "Last name is required")
-    .max(50, "Last name cannot exceed 50 characters"),
-  email: z
-    .string()
-    .trim()
-    .min(1, "Email is required")
-    .email("Please enter a valid email address"),
-  textarea: z
-    .string()
-    .trim()
-    .min(10, "Message must be at least 10 characters")
-    .max(1000, "Message cannot exceed 1000 characters"),
-});
-```
-
-### Validation Flow
-
-#### 1. onBlur Validation
-
-When user leaves a field:
-```javascript
-const validateFieldOnBlur = (fieldName, value) => {
-  try {
-    const fieldSchema = contactSchema.pick({ [fieldName]: true });
-    fieldSchema.parse({ [fieldName]: value });
-    // Clear error if valid
-    setErrors(prev => ({ ...prev, [fieldName]: undefined }));
-  } catch (err) {
-    if (err instanceof z.ZodError) {
-      // Set error if invalid
-      setErrors(prev => ({
-        ...prev,
-        [fieldName]: err.issues[0].message,
-      }));
-    }
-  }
-};
-```
-
-**User Experience:**
-```
-User types "J" in First Name → Leaves field (blur)
-                          ↓
-            Validate against Zod schema
-                          ↓
-         Schema requires min 1 character (✓ valid)
-                          ↓
-         Error cleared / field marked valid (aria-invalid="false")
-```
-
-#### 2. onChange Error Clearing
-
-When user starts typing after seeing an error:
-```javascript
-const handleFirstNameChange = (value) => {
-  setFirstName(value);
-  if (errors.firstName) {
-    // Clear error immediately as user starts fixing
-    setErrors(prev => ({ ...prev, firstName: undefined }));
-  }
-};
-```
-
-**User Experience:**
-```
-User sees error: "First name is required"
-       User starts typing "J"
-                    ↓
-    Error cleared immediately (before blur)
-         User sees field is now valid
-```
-
-#### 3. Form Submit Validation
-
-On submit click:
-1. Validate entire form with Zod
-2. If errors exist:
-   - Set error state for each invalid field
-   - Find first invalid field in order
-   - Focus that field programmatically
-   - Display error messages
-   - Don't submit (fetch not called)
-3. If no errors:
-   - Submit form to API
-   - Clear on success
-
-```javascript
-if (!validationResult.success) {
-  const fieldErrors = {};
-  const fieldOrder = ["firstName", "lastName", "email", "textarea"];
-  const firstInvalidField = fieldOrder.find(field =>
-    validationResult.error.issues.some(issue => issue.path[0] === field)
-  );
-  
-  // Set errors and focus first invalid field
-  setErrors(fieldErrors);
-  if (firstInvalidField === "firstName" && firstNameRef.current) {
-    firstNameRef.current.focus();
-  }
-  // ... focus other fields
-}
-```
-
-### Accessibility Implementation
-
-#### aria-describedby Linking
-
-Each input component receives `aria-describedby` pointing to error message:
-
-```jsx
-<TextInput
-  id="firstName"
-  placeholder="Maya"
-  value={firstName}
-  error={!!errors.firstName}
-  helperText={errors.firstName}
-  aria-describedby={errors.firstName ? "firstName-error" : undefined}
-/>
-
-{errors.firstName && (
-  <p id="firstName-error" role="alert" aria-live="polite">
-    {errors.firstName}
-  </p>
-)}
-```
-
-**Screen Reader Experience:**
-```
-Screen reader: "First Name input text box, First name is required"
-(User knows what field and what error)
-```
-
-#### aria-invalid Management
-
-```jsx
-// Input automatically marked invalid when error exists
-<input
-  aria-invalid={!!errors.firstName}  // "true" or "false"
-/>
-```
-
-#### Live Region for Status
-
-```jsx
-<div aria-live="polite" role="status" className="sr-only">
-  {status !== "idle" && statusMessage}
-</div>
-```
-
-Announces submission results to screen readers.
-
-### Focus Management
-
-Refs for each input field:
-
-```javascript
-const firstNameRef = useRef<HTMLInputElement>(null);
-const lastNameRef = useRef<HTMLInputElement>(null);
-const emailRef = useRef<HTMLInputElement>(null);
-const textareaRef = useRef<HTMLTextAreaElement>(null);
-
-// On submit fail, focus first invalid field
-if (firstInvalidField === "firstName" && firstNameRef.current) {
-  firstNameRef.current.focus();
-}
-```
-
-**Keyboard User Experience:**
-```
-Keyboard user: Tabs through form, hits Submit
-                        ↓
-         Form validation fails (email is first invalid)
-                        ↓
-         Focus moves to email field automatically
-            Keyboard user can now fix that field
-```
-
-## Testing Coverage
-
-### Test File: `components/common/support-tabs.test.tsx`
-
-**25 passing tests covering:**
-
-1. **Real-time Validation - onBlur** (6 tests)
-   - Error shown when blur with empty value
-   - Error shown when blur with invalid format
-   - Error shown when blur with too short message
-   - Error shown when exceeding max length
-   - Error cleared when valid value entered on blur
-   - ✓ All blur handlers working
-
-2. **Error Clearing - onChange** (3 tests)
-   - Error clears when user starts typing in field
-   - Error clears in email field after clearing and retyping
-   - Error clears in textarea field
-   - ✓ All onChange handlers clearing errors
-
-3. **Accessibility - aria-describedby** (4 tests)
-   - Error linked to input via aria-describedby
-   - aria-invalid set to true when error exists
-   - aria-invalid set to false when error cleared
-   - Error messages have role="alert" and aria-live="polite"
-
-4. **Additional Accessibility** (2 tests)
-   - Form has status live region for submission feedback
-   - Form labels associated with inputs
-
-5. **Submit Button State** (2 tests)
-   - Submit disabled when form empty
-   - Submit enabled when all fields filled
-
-6. **Form Submission** (1 test)
-   - Prevents submit when validation fails (fetch not called)
-
-7. **Edge Cases** (2 tests)
-   - Whitespace-only input treated as invalid
-   - Valid email with special characters accepted
-
-8. **Rendering** (3 tests)
-   - Both tabs render (Client FAQ, Contact Support)
-   - Contact Support form displays all fields
-   - Contact info displays on Contact Support tab
-
-## Component Updates
-
-### Modified: `components/common/support-tabs.tsx`
-
-**New features:**
-- `validateFieldOnBlur()` function for single-field validation
-- `handleFirstNameBlur()`, `handleLastNameBlur()`, `handleEmailBlur()`, `handleTextareaBlur()` handlers
-- `firstNameRef`, `lastNameRef`, `emailRef`, `textareaRef` refs for focus management
-- Enhanced `handleSubmit()` with field-order-aware error focus
-
-**Lines added:** ~80 LOC
-
-### Modified: `components/common/text-input.tsx`
-
-**New feature:**
-- `onBlur` parameter in `EnhancedTextInputProps`
-- Forward `onBlur` to input element
-
-**Lines added:** ~2 LOC
-
-### Modified: `components/common/text-area-input.tsx`
-
-**New features:**
-- `onBlur` parameter in `EnhancedTextareaInputProps`
-- Forward `onBlur` to textarea element
-- Added `htmlFor={fieldId}` to Label (accessibility fix)
-
-**Lines added:** ~3 LOC
-
-## WCAG 2.1 AA Compliance
-
-### 1.3.1 Info and Relationships
-✅ Error messages linked to inputs via aria-describedby
-✅ Form labels associated with inputs via htmlFor
-✅ Semantic HTML structure
-
-### 1.4.1 Use of Color
-✅ Error indicated by both color (red border) and icon
-✅ Color not the only means of conveying information
-
-### 1.4.11 Non-text Contrast
-✅ Error text meets 4.5:1 contrast ratio
-✅ Input borders meet 3:1 contrast ratio
-
-### 2.1.1 Keyboard
-✅ All fields accessible via Tab key
-✅ Form submittable via keyboard
-✅ No keyboard trap
-
-### 2.4.3 Focus Order
-✅ Logical tab order (left-to-right, top-to-bottom)
-✅ Focus visible on all interactive elements
-✅ First invalid field receives focus on submit fail
-
-### 2.4.7 Focus Visible
-✅ Focus indicators visible on all form inputs
-✅ Focus indicators have minimum 3:1 contrast
-
-### 3.2.2 On Input
-✅ No automatic form submission on change
-✅ Submit requires explicit user action
-
-### 3.3.1 Error Identification
-✅ Error messages identified by color + icon
-✅ Error messages appear near fields
-
-### 3.3.3 Error Suggestion
-✅ Error messages provide actionable guidance
-✅ Examples: "Email must be valid format", "Message must be at least 10 characters"
-
-### 3.3.4 Error Prevention
-✅ Validation prevents invalid submissions
-✅ Error messages help user correct mistakes
-
-### 4.1.2 Name, Role, Value
-✅ aria-invalid conveys field validity
-✅ aria-describedby links error descriptions
-✅ aria-live="polite" announces status changes
-
-## Responsive Behavior
-
-### Mobile (640px - 768px)
-- Single-column layout
-- Full-width input fields
-- Error messages displayed below field
-- Clear tap targets (48px minimum)
-- Focus ring visible on touch
-
-### Tablet (769px - 1024px)
-- Two-column layout for names
-- Full-width email and textarea
-- Error messages inline
-- Improved spacing
-- Keyboard-friendly
-
-### Desktop (1025px+)
-- Optimized spacing around form
-- Full width with max-width constraint
-- Readable line length
-- Clear visual hierarchy
-
-## Validation Behavior
-
-### Real-time vs. Submit
-
-| Scenario | Real-time (blur) | Submit |
-|----------|-----------------|--------|
-| User types "John" and leaves (blur) | Validates immediately ✓ | - |
-| User types invalid email and leaves | Shows error immediately | - |
-| User starts typing after error | Clears error immediately | - |
-| User clicks Submit with errors | - | Prevents submit, focuses first invalid |
-| User clicks Submit with valid form | - | Submits form to API |
-
-## Error Messages
-
-All error messages are user-friendly and actionable:
-
-| Field | Min | Max | Format | Examples |
-|-------|-----|-----|--------|----------|
-| First Name | 1 | 50 | Text | "First name is required" / "Cannot exceed 50 characters" |
-| Last Name | 1 | 50 | Text | "Last name is required" / "Cannot exceed 50 characters" |
-| Email | 1 | ∞ | Email | "Email is required" / "Please enter a valid email address" |
-| Message | 10 | 1000 | Text | "Message must be at least 10 characters" / "Cannot exceed 1000 characters" |
-
-## Performance Considerations
-
-- **Minimal re-renders:** Zod validation only runs on blur/submit
-- **No debouncing needed:** Validation triggered on specific events (blur/submit)
-- **Efficient error tracking:** Single error object updated selectively
-- **No external API calls during validation:** All validation client-side
-
-## Browser Support
-
-- ✅ Chrome/Edge (latest)
-- ✅ Firefox (latest)
-- ✅ Safari (latest)
-- ✅ Mobile browsers (iOS Safari, Chrome Mobile)
-
-## Future Enhancements
-
-1. **Async Validation**
-   - Check email availability on blur
-   - Verify phone number format
-
-2. **Progressive Enhancement**
-   - Server-side validation echoed back
-   - Re-validation on server responses
-
-3. **Field-specific Help Text**
-   - Context-aware hints below fields
-   - Example: "Include area code for phone"
-
-4. **Validation Debouncing**
-   - Optional debounce for expensive validations
-   - Currently not needed (Zod is fast)
-
-## Commit Message
-
-```
-feat: add real-time zod validation to contact form (#914)
-
-Add real-time field validation with inline error messages to the
-Help/Support contact form. Validation triggers on blur with errors
-clearing on change for responsive UX.
-
-FEATURES:
-- Real-time validation on field blur
-- Error clearing on change (UX optimization)
-- aria-describedby linking for accessibility
-- First invalid field receives focus on submit
-- WCAG 2.1 AA compliant
-- 25 passing tests
-
-IMPLEMENTATION:
-- Updated: components/common/support-tabs.tsx (validation handlers + refs)
-- Updated: components/common/text-input.tsx (onBlur support)
-- Updated: components/common/text-area-input.tsx (onBlur + htmlFor fix)
-- New: components/common/support-tabs.test.tsx (25 tests)
-
-ACCESSIBILITY:
-✅ aria-describedby linkage
-✅ aria-invalid management
-✅ aria-live="polite" announcements
-✅ Focus management for keyboard users
-✅ Full keyboard navigation
-✅ Semantic HTML structure
-
-TESTING:
-✅ 25 unit tests all passing
-✅ Real-time validation verified
-✅ Accessibility compliance verified
-✅ Edge cases covered
-
-Fixes #914
-```
+**Figma:** [View Complete Design on Figma](https://www.figma.com/design/Ntcbc8bESxTjkb0bT4ilLW/Stellopay---Help-Support-Page-Redesign?node-id=26-2352&t=CPUyDeLZZiDXFXJv-1)
 
 ---
 
-**Design Review Status:** ✅ Ready for PR submission
+---
+
+## Component Specifications
+
+### 1. Support Navigation / Tabs
+
+- **Description:** Sticky navigation tabs for quick access to FAQs, account help, tickets, and contact options
+- **States:** Default, Active, Hover
+- **Responsive behavior:** Collapses into icon-based navigation on mobile
+
+---
+
+### 2. FAQ Section
+
+- **Description:** Card-based, expandable FAQ items grouped by category
+- **Expandable items:** Yes
+- **Search integration:** Yes
+- **Categories:**
+  - Getting Started
+  - Payments & Transfers
+  - Account & Verification
+  - Security & Privacy
+
+---
+
+### 3. Support Ticket System
+
+- **Description:** Guided ticket creation with helper tips and confirmation states
+- **Form fields:**
+  - Issue category
+  - Subject
+  - Description
+  - Attachments
+  - Priority level
+- **Priority levels:** Low, Medium, Urgent
+- **Status indicators:** Open, Pending, In Review, Resolved
+
+---
+
+### 4. Account Management Help
+
+- **Description:** Self-service account assistance using action cards
+- **Key sections:**
+  - Verify account
+  - Reset or change password
+  - Enable two-factor authentication (2FA)
+  - Update profile
+  - Security and privacy settings
+  - Close or deactivate account
+
+---
+
+### 5. Contact & Support Options
+
+- **Description:** Clear support channels with response expectations
+- **Contact channels:**
+  - Live chat
+  - Email support
+  - Community support
+  - Emergency support (highlighted)
+- **Response time:** Clearly communicated per channel
+
+---
+
+### 6. Search Functionality
+
+- **Description:** Centralized search for help articles and FAQs
+- **Search scope:** FAQs, guides, and help content
+
+---
+
+## Design Features
+
+### Accessibility
+
+- WCAG-compliant color contrast
+- Readable typography and spacing
+- Large tap targets for mobile
+- Clear focus and error states
+
+### Responsive Design
+
+- **Mobile:** < 430px
+- **Tablet:** 1024px
+- **Desktop:** > 1512px
+
+### Design System
+
+- **Typography:** Geist font and Inter fonts family
+- **Color Palette:** #598EFF, neutral backgrounds - #CDDDFF ,
+- **Spacing:** Consistent 8-48px based scale
+- **Border Radius:** 8–32px for cards and components
+
+---
+
+## Key Design Decisions
+
+1. Search-first layout to reduce time spent browsing help content
+2. Card-based components to improve scannability and mobile usability
+3. Clear separation between self-help and escalation paths to reduce support load
+
+---
+
+## Implementation Notes
+
+- Figma components organized for easy developer handoff
+- Responsive breakpoints clearly defined
+- Interactive states documented
+- Styles aligned with StelloPay’s existing design language
+
+---
+
+## Next Steps
+
+Frontend implementation can reference the Figma file for:
+
+- Component behavior
+- Responsive layouts
+- Interactive states
+- Asset exports
+
+---
+
+## Design Assets
+
+**Figma File:** [\[Link to Figma\]](https://www.figma.com/design/Ntcbc8bESxTjkb0bT4ilLW/Stellopay---Help-Support-Page-Redesign?node-id=0-1&t=CPUyDeLZZiDXFXJv-1)  
+**Last Updated:** January 29, 2026
+
+---
+
+## Technical Enhancements
+
+### Account Management Loading Skeleton
+To prevent layout shift and visible reflows, a loading skeleton was added for the `accountManagement` section (`app/help/support/accountManagement/loading.tsx`).
+- **Structural Parity:** Mirrors the precise flexbox layout, padding, heading styles, and paragraph layouts of the real article content (`page.tsx`).
+- **Accessibility:** 
+  - Integrates ARIA attributes (`aria-busy="true"`, `aria-live="polite"`, `aria-label`) to ensure assistive technologies can parse the loading state seamlessly.
+  - Interactive elements (like the search bar) are appropriately marked as disabled.
+- **Dark/Light Modes:** The skeleton component inherently supports both light and dark variations depending on the current token context (e.g. `shade="light"` for active tabs).
+- **Responsive Validated:** Tested across sm (640), md (768), lg (1024), and xl (1280) breakpoints.
