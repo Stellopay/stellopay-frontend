@@ -328,6 +328,117 @@ form.handleSubmit(onSubmit, onValidationError)
 
 ---
 
+## Landmark Audit — App Shell Layout (Issue #771)
+
+**Branch:** `a11y/landmark-role-audit`  
+**Scope:** `app/layout.tsx`, `components/common/app-layout.tsx`, `components/common/side-bar.tsx`  
+**Standard:** WCAG 2.1 Level AA — 1.3.1, 1.3.6, 2.4.1, 4.1.2  
+**Date:** 2026-07-29
+
+---
+
+### Overview
+
+The app shell layout composes the header, sidebar, and main content areas. A landmark audit was performed to confirm each region uses the correct semantic element or ARIA role so screen reader users relying on landmark navigation can jump directly to each major area of the page.
+
+---
+
+### WCAG Criteria addressed
+
+#### 1. Exactly one `<main>` landmark per page (WCAG 2.4.1, 1.3.1)
+
+`components/common/app-layout.tsx` renders exactly one `<main id="main-content" tabIndex={-1}>` element wrapping `{children}`. This is the only main landmark on the page, and it is the target of the skip-to-content link.
+
+**axe rules satisfied:** `landmark-one-main`, `bypass`
+
+---
+
+#### 2. `<header>` (banner) landmark wraps site-wide navigation chrome (WCAG 1.3.1, 4.1.2)
+
+`app-layout.tsx` wraps the `<Navbar>` component in a `<header aria-label="Site header">` element. This creates an ARIA banner landmark so screen readers announce the top-of-page chrome as a distinct navigation region.
+
+The `aria-label="Site header"` distinguishes this banner from any page-level `<header>` elements that child routes may render inside `<main>`, preventing a "landmark-unique" axe violation.
+
+**axe rules satisfied:** `landmark-banner-is-top-level`, `landmark-unique`
+
+---
+
+#### 3. `<aside>` (complementary) landmark wraps the sidebar (WCAG 1.3.1, 1.3.6)
+
+`components/common/side-bar.tsx` renders an `<aside aria-label="Application sidebar">` element. Screen readers announce this as "Application sidebar, complementary landmark" so users can jump directly to the sidebar via landmark navigation.
+
+**axe rules satisfied:** `landmark-complementary-is-top-level`, `aria-required-attr`
+
+---
+
+#### 4. `<nav>` (navigation) landmark inside the sidebar (WCAG 1.3.1)
+
+`components/common/nav-link.tsx` renders a `<nav>` element wrapping the link list. This creates a navigation landmark inside the `<aside>` sidebar. The sidebar's `aria-label="Application sidebar"` already distinguishes the complementary region; the nested `<nav>` provides the navigation role for the link list.
+
+**axe rules satisfied:** `landmark-navigation-is-top-level` (satisfied by nesting inside the labelled `<aside>`)
+
+---
+
+#### 5. Skip-to-content link targets `#main-content` (WCAG 2.4.1)
+
+`app-layout.tsx` renders a skip-to-content link with `href="#main-content"` that appears on keyboard focus. The `<main>` landmark has `id="main-content"` and `tabIndex={-1}` so the browser can move focus to it when the link is activated.
+
+**axe rule satisfied:** `bypass`
+
+---
+
+#### 6. Landmark uniqueness — multiple instances have unique labels (WCAG 1.3.6)
+
+The app shell layout renders exactly one of each landmark type (banner, main, nav, complementary) at any given time:
+
+| Landmark type       | Element                                     | Accessible name         | Count |
+| ------------------- | ------------------------------------------- | ----------------------- | ----- |
+| Banner (`<header>`) | `<header aria-label="Site header">`         | "Site header"           | 1     |
+| Main (`<main>`)     | `<main id="main-content">`                  | (none required)         | 1     |
+| Navigation (`<nav>`)| `<nav>` inside SideBar                      | (none required)         | 1     |
+| Complementary (`<aside>`) | `<aside aria-label="Application sidebar">` | "Application sidebar" | 1     |
+
+The site header carries `aria-label="Site header"` so if a child route adds its own `<header>` inside `<main>`, both headers will have unique accessible names and screen readers can distinguish them.
+
+**axe rules satisfied:** `landmark-unique`, `aria-required-attr`
+
+---
+
+### Automated landmark-uniqueness checks
+
+A new test suite in `components/common/app-layout.test.tsx` verifies:
+
+- Exactly one `<main>` landmark per page ✅
+- Exactly one `<header>` (banner) landmark per page ✅
+- Exactly one `<nav>` (navigation) landmark per page ✅
+- Exactly one `<aside>` (complementary) landmark per page ✅
+- Each labelled landmark has a unique accessible name ✅
+- Skip-to-content link `href` matches the `<main>` landmark `id` ✅
+
+---
+
+### Screen reader — spot-check results
+
+| Element | Announced |
+|---------|-----------|
+| Skip link (on focus) | "Skip to main content, link" |
+| `<header aria-label="Site header">` | "Site header, banner" |
+| `<main id="main-content">` | "main, main landmark" |
+| `<aside aria-label="Application sidebar">` | "Application sidebar, complementary" |
+| `<nav>` inside sidebar | "navigation" |
+
+---
+
+### Files changed
+
+| File | Changes |
+|------|---------|
+| `components/common/app-layout.tsx` | Wrapped `<Navbar>` in `<header aria-label="Site header">` |
+| `components/common/app-layout.test.tsx` | Added landmark-uniqueness test suite |
+| `design/a11y-checklist.md` | Added this section |
+
+---
+
 ## Files changed
 
 | File                                              | Changes                                                                                  |
