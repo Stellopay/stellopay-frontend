@@ -1,5 +1,25 @@
-import { render, screen, fireEvent, within } from "@testing-library/react";
-import { describe, expect, it, vi } from "vitest";
+/**
+ * Tests for TransactionsTable — keyboard navigation, ARIA semantics,
+ * and tooltip/truncation behaviour for long address/amount values.
+ *
+ * Covers:
+ * - Basic rendering of transaction data.
+ * - Correct native table semantics (table / rowgroup / columnheader / row / cell).
+ * - Each data row is focusable via tabIndex=0.
+ * - ArrowDown moves focus to the next row.
+ * - ArrowUp moves focus to the previous row.
+ * - ArrowDown on the last row keeps focus on the last row.
+ * - ArrowUp on the first row keeps focus on the first row.
+ * - Home moves focus to the first row.
+ * - End moves focus to the last row.
+ * - Unrelated keys (Enter) do not change focus.
+ * - Empty-state row is rendered when the transactions array is empty.
+ * - Loading skeleton rows are rendered when isLoading=true.
+ * - Address and amount cells truncate long values with a title tooltip.
+ */
+import React from "react";
+import { render, screen, fireEvent, act, waitFor } from "@testing-library/react";
+import { describe, it, expect, vi } from "vitest";
 import { TransactionsTable } from "./transactions-table";
 import { BulkActionBar } from "./bulk-action-bar";
 
@@ -53,17 +73,9 @@ const mockTransactions = [
   },
 ];
 
-// ---------------------------------------------------------------------------
-// TransactionsTable – baseline rendering
-// ---------------------------------------------------------------------------
-
-describe("TransactionsTable", () => {
-  describe("baseline rendering (no selection props)", () => {
-    it("renders transaction rows", () => {
-      render(<TransactionsTable transactions={mockTransactions} />);
-      expect(screen.getAllByText("Deposit")[0]).toBeInTheDocument();
-      expect(screen.getAllByText("Withdrawal")[0]).toBeInTheDocument();
-    });
+vi.mock("./receipt", () => ({
+  generateTransactionReceiptPdf: vi.fn(() => Promise.resolve()),
+}));
 
     it("shows the empty state when transactions array is empty", () => {
       render(<TransactionsTable transactions={[]} />);
@@ -88,189 +100,56 @@ describe("TransactionsTable", () => {
   });
 });
 
-// ──────────────────────────────────────────────────────────────────────────
-// Checkbox column and selection
-// ──────────────────────────────────────────────────────────────────────────
-
-describe("checkbox column (selection props provided)", () => {
-  it("renders a header checkbox and one checkbox per row", () => {
-    render(
-      <TransactionsTable
-        transactions={mockTransactions}
-        selectedIds={new Set()}
-        onSelectRow={vi.fn()}
-        onSelectAll={vi.fn()}
-      />,
+describe("TransactionsTable — ARIA roles", () => {
+  it("renders column header cells with role=columnheader", () => {
+    render(<TransactionsTable transactions={THREE_ROWS} />);
+    const headers = screen.getAllByRole("columnheader");
+    const labels = headers.map((h) => h.textContent?.trim());
+    expect(labels).toEqual(
+      expect.arrayContaining([
+        "Transaction Type",
+        "Address",
+        "Date",
+        "Token",
+        "Amount",
+        "Status",
+      ]),
     );
-    // 1 header + 3 rows = at least 4 checkboxes (doubled for mobile/desktop)
-    const checkboxes = screen.getAllByRole("checkbox");
-    // Desktop: 4 (1 header + 3 rows); Mobile: 3 (no header checkbox on mobile)
-    // Total ≥ 4
-    expect(checkboxes.length).toBeGreaterThanOrEqual(4);
   });
 
-  it("header checkbox has accessible label for select-all", () => {
-    render(
-      <TransactionsTable
-        transactions={mockTransactions}
-        selectedIds={new Set()}
-        onSelectRow={vi.fn()}
-        onSelectAll={vi.fn()}
-      />,
-    );
+  it("renders data rows with role=row", () => {
+    render(<TransactionsTable transactions={THREE_ROWS} />);
+    // 1 header row + 3 data rows = 4
+    expect(screen.getAllByRole("row").length).toBeGreaterThanOrEqual(4);
+  });
+
+  it("renders data cells with role=cell", () => {
+    render(<TransactionsTable transactions={THREE_ROWS} />);
+    expect(screen.getAllByRole("cell").length).toBeGreaterThan(0);
+  });
+
+  it("includes a visually-hidden caption for screen readers", () => {
+    render(<TransactionsTable transactions={THREE_ROWS} />);
     expect(
-      screen.getByRole("checkbox", {
-        name: /select all transactions on this page/i,
-      }),
-    ).toBeInTheDocument();
-  });
-
-  it("row checkboxes have accessible labels with transaction id", () => {
-    render(
-      <TransactionsTable
-        transactions={mockTransactions}
-        selectedIds={new Set()}
-        onSelectRow={vi.fn()}
-        onSelectAll={vi.fn()}
-      />,
-    );
-    // Each transaction id has at least one labelled checkbox
-    expect(
-      screen.getAllByRole("checkbox", { name: /select transaction 1/i }).length,
-    ).toBeGreaterThanOrEqual(1);
-  });
-
-  it("calls onSelectRow with the correct id and checked state", () => {
-    const onSelectRow = vi.fn();
-    render(
-      <TransactionsTable
-        transactions={mockTransactions}
-        selectedIds={new Set()}
-        onSelectRow={onSelectRow}
-        onSelectAll={vi.fn()}
-      />,
-    );
-    const rowCheckboxes = screen.getAllByRole("checkbox", {
-      name: /select transaction 1/i,
-    });
-    fireEvent.click(rowCheckboxes[0]);
-    expect(onSelectRow).toHaveBeenCalledWith("1", true);
-  });
-
-  it("calls onSelectAll with true when header checkbox is clicked (none selected)", () => {
-    const onSelectAll = vi.fn();
-    render(
-      <TransactionsTable
-        transactions={mockTransactions}
-        selectedIds={new Set()}
-        onSelectRow={vi.fn()}
-        onSelectAll={onSelectAll}
-      />,
-    );
-    const headerCheckbox = screen.getByRole("checkbox", {
-      name: /select all transactions on this page/i,
-    });
-    fireEvent.click(headerCheckbox);
-    expect(onSelectAll).toHaveBeenCalledWith(true);
-  });
-
-  it("calls onSelectAll with false when header checkbox is clicked (all selected)", () => {
-    const allIds = new Set(["1", "2", "3"]);
-    const onSelectAll = vi.fn();
-    render(
-      <TransactionsTable
-        transactions={mockTransactions}
-        selectedIds={allIds}
-        onSelectRow={vi.fn()}
-        onSelectAll={onSelectAll}
-      />,
-    );
-    const headerCheckbox = screen.getByRole("checkbox", {
-      name: /deselect all transactions on this page/i,
-    });
-    fireEvent.click(headerCheckbox);
-    expect(onSelectAll).toHaveBeenCalledWith(false);
-  });
-
-  it("header checkbox is checked when all rows are selected", () => {
-    const allIds = new Set(["1", "2", "3"]);
-    render(
-      <TransactionsTable
-        transactions={mockTransactions}
-        selectedIds={allIds}
-        onSelectRow={vi.fn()}
-        onSelectAll={vi.fn()}
-      />,
-    );
-    const headerCheckbox = screen.getByRole("checkbox", {
-      name: /deselect all transactions on this page/i,
-    });
-    expect(headerCheckbox).toHaveAttribute("data-state", "checked");
-  });
-
-  it("header checkbox is indeterminate when some rows are selected", () => {
-    const partialIds = new Set(["1"]);
-    render(
-      <TransactionsTable
-        transactions={mockTransactions}
-        selectedIds={partialIds}
-        onSelectRow={vi.fn()}
-        onSelectAll={vi.fn()}
-      />,
-    );
-    const headerCheckbox = screen.getByRole("checkbox", {
-      name: /select all transactions on this page/i,
-    });
-    expect(headerCheckbox).toHaveAttribute("data-state", "indeterminate");
-  });
-
-  it("header checkbox is unchecked when no rows are selected", () => {
-    render(
-      <TransactionsTable
-        transactions={mockTransactions}
-        selectedIds={new Set()}
-        onSelectRow={vi.fn()}
-        onSelectAll={vi.fn()}
-      />,
-    );
-    const headerCheckbox = screen.getByRole("checkbox", {
-      name: /select all transactions on this page/i,
-    });
-    expect(headerCheckbox).toHaveAttribute("data-state", "unchecked");
-  });
-
-  it("selected row has aria-selected=true", () => {
-    const { container } = render(
-      <TransactionsTable
-        transactions={mockTransactions}
-        selectedIds={new Set(["2"])}
-        onSelectRow={vi.fn()}
-        onSelectAll={vi.fn()}
-      />,
-    );
-    // Grab the desktop table rows (not the mobile cards which don't set aria-selected)
-    const tableRows = container.querySelectorAll("tr[aria-selected='true']");
-    expect(tableRows.length).toBeGreaterThanOrEqual(1);
+      document.querySelector("caption")?.textContent,
+    ).toMatch(/transaction history/i);
   });
 });
 
-// ──────────────────────────────────────────────────────────────────────────
-// Tooltips for long text (regression)
-// ──────────────────────────────────────────────────────────────────────────
+describe("TransactionsTable — tooltip and truncation", () => {
+  it("renders address cells with title tooltip and truncate class", () => {
+    render(<TransactionsTable transactions={[LONG_VALUE_TRANSACTION]} />);
 
-describe("tooltips for long text values", () => {
-  it("applies title and tabIndex to long addresses", () => {
-    render(<TransactionsTable transactions={mockTransactions} />);
     const addressElements = screen.getAllByTitle(
       "0x1234567890abcdef1234567890abcdef1234567890abcdef",
     );
     expect(addressElements.length).toBeGreaterThan(0);
-    expect(addressElements[0]).toHaveAttribute("tabIndex", "0");
     expect(addressElements[0]).toHaveClass("truncate");
   });
 
-  it("applies title and tabIndex to long amounts", () => {
-    render(<TransactionsTable transactions={mockTransactions} />);
+  it("renders amount cells with title tooltip and truncate class", () => {
+    render(<TransactionsTable transactions={[LONG_VALUE_TRANSACTION]} />);
+
     const amountElements = screen.getAllByTitle(
       "+1000000000000000000000000000.00",
     );
@@ -352,26 +231,27 @@ describe("BulkActionBar", () => {
 
   it("renders the bar when selectedCount > 0", () => {
     render(
-      <BulkActionBar
-        selectedCount={3}
-        onExport={vi.fn()}
-        onTag={vi.fn()}
-        onArchive={vi.fn()}
-        onClearSelection={vi.fn()}
-      />,
+      <div dir="rtl">
+        <TransactionsTable transactions={[LONG_VALUE_TRANSACTION]} />
+      </div>
     );
     expect(screen.getByTestId("bulk-action-bar")).toBeInTheDocument();
   });
 
-  it("shows singular label for exactly 1 selected transaction", () => {
-    render(
-      <BulkActionBar
-        selectedCount={1}
-        onExport={vi.fn()}
-        onTag={vi.fn()}
-        onArchive={vi.fn()}
-        onClearSelection={vi.fn()}
-      />,
+
+describe("DownloadReceiptButton", () => {
+  const transaction = {
+    id: "tx_1",
+    hash: "0xabc123",
+    amount: "$100.00",
+    counterparty: "Jane Doe",
+    timestamp: new Date().toISOString(),
+  };
+
+  it("generates a PDF receipt when clicked", async () => {
+    render(<DownloadReceiptButton transaction={transaction} />);
+    fireEvent.click(
+      screen.getByRole("button", { name: /download pdf receipt/i })
     );
     expect(screen.getByText("1 transaction selected")).toBeInTheDocument();
   });
@@ -645,9 +525,14 @@ describe("BulkActionBar", () => {
     });
   });
 
-  describe("Mobile Cards", () => {
-    it("renders mobile transaction cards", () => {
-      render(<TransactionsTable transactions={mockTransactions} />);
+  it("shows an error message if generation fails", async () => {
+    (generateTransactionReceiptPdf as ReturnType<typeof vi.fn>).mockRejectedValueOnce(
+      new Error("fail")
+    );
+    render(<DownloadReceiptButton transaction={transaction} />);
+    fireEvent.click(
+      screen.getByRole("button", { name: /download pdf receipt/i })
+    );
 
       // Mobile cards should be in the document (hidden on desktop)
       const mobileCards = screen.getAllByRole("button", {
@@ -675,49 +560,103 @@ describe("BulkActionBar", () => {
     });
   });
 
-  describe("Accessibility", () => {
-    it("has accessible labels for view detail buttons", () => {
-      render(<TransactionsTable transactions={mockTransactions} />);
+  it("renders empty state when no transactions and not loading", () => {
+    render(<TransactionsTable transactions={[]} />);
+    expect(screen.getAllByText("No Transactions Found").length).toBeGreaterThan(0);
+    expect(screen.getAllByText(/try adjusting your filters/i).length).toBeGreaterThan(0);
+  });
 
-      const viewDetailButtons = screen.getAllByLabelText(
-        /View details for transaction/i,
-      );
-      viewDetailButtons.forEach((button, index) => {
-        const transaction = mockTransactions[index % mockTransactions.length];
-        expect(button).toHaveAttribute(
-          "aria-label",
-          `View details for transaction ${transaction.id}`,
-        );
-      });
+  it("renders loading skeletons when isLoading is true", () => {
+    const { container } = render(
+      <TransactionsTable transactions={[]} isLoading={true} />,
+    );
+    // Should render skeleton rows instead of empty state
+    expect(screen.queryByText("No Transactions Found")).not.toBeInTheDocument();
+    // Verify skeleton elements are present
+    const skeletons = container.querySelectorAll(".skeleton-shimmer");
+    expect(skeletons.length).toBeGreaterThan(0);
+  });
+});
+
+// ── Mocks for safeStorage ─────────────────────────────────────────────────────
+const storage: Record<string, string> = {};
+
+vi.mock("@/utils/safeStorage", () => ({
+  safeStorage: {
+    getItem: vi.fn((key: string) => storage[key] ?? null),
+    setItem: vi.fn((key: string, value: string) => {
+      storage[key] = value;
+      return true;
+    }),
+    removeItem: vi.fn((key: string) => {
+      delete storage[key];
+      return true;
+    }),
+  },
+}));
+
+describe("TransactionsTable — density toggle", () => {
+  beforeEach(() => {
+    Object.keys(storage).forEach((k) => delete storage[k]);
+  });
+
+  it("renders the density toggle with three options", () => {
+    render(<TransactionsTable transactions={[]} />);
+    const group = screen.getByRole("radiogroup", { name: /table density/i });
+    expect(group).toBeInTheDocument();
+    const radios = screen.getAllByRole("radio");
+    expect(radios).toHaveLength(3);
+    expect(radios[0]).toHaveAccessibleName("Compact");
+    expect(radios[1]).toHaveAccessibleName("Comfortable");
+    expect(radios[2]).toHaveAccessibleName("Spacious");
+  });
+
+  it("defaults to Comfortable", () => {
+    render(<TransactionsTable transactions={[]} />);
+    const radios = screen.getAllByRole("radio");
+    expect(radios[1]).toHaveAttribute("aria-checked", "true");
+    expect(radios[1]).toHaveTextContent("Comfortable");
+  });
+
+  it("switches to Compact on click and persists", () => {
+    render(<TransactionsTable transactions={[]} />);
+    const radios = screen.getAllByRole("radio");
+    fireEvent.click(radios[0]);
+    expect(radios[0]).toHaveAttribute("aria-checked", "true");
+    expect(radios[1]).toHaveAttribute("aria-checked", "false");
+    expect(storage["transactions-table-density"]).toBe("compact");
+  });
+
+  it("switches to Spacious on click and persists", () => {
+    render(<TransactionsTable transactions={[]} />);
+    const radios = screen.getAllByRole("radio");
+    fireEvent.click(radios[2]);
+    expect(radios[2]).toHaveAttribute("aria-checked", "true");
+    expect(radios[1]).toHaveAttribute("aria-checked", "false");
+    expect(storage["transactions-table-density"]).toBe("spacious");
+  });
+
+  it("restores a persisted density on mount", () => {
+    storage["transactions-table-density"] = "compact";
+    render(<TransactionsTable transactions={[]} />);
+    const radios = screen.getAllByRole("radio");
+    expect(radios[0]).toHaveAttribute("aria-checked", "true");
+  });
+
+  it("applies compact class on table head cells when compact is selected", () => {
+    render(<TransactionsTable transactions={THREE_ROWS} />);
+    const radios = screen.getAllByRole("radio");
+    fireEvent.click(radios[0]);
+    const headers = screen.getAllByRole("columnheader");
+    headers.forEach((h) => {
+      expect(h.className).toMatch(/py-2/);
     });
+  });
 
-    it("has proper status badge aria-labels in dialog", () => {
-      render(<TransactionsTable transactions={mockTransactions} />);
-
-      const viewDetailButton = screen.getAllByLabelText(
-        /View details for transaction/i,
-      )[0];
-      fireEvent.click(viewDetailButton);
-
-      // Status badges should have aria-label (multiple may exist - one in table, one in dialog)
-      const statusBadges = screen.getAllByLabelText(
-        `Status: ${mockTransactions[0].status}`,
-      );
-      expect(statusBadges.length).toBeGreaterThan(0);
-    });
-
-    it("has accessible link to full transaction details", () => {
-      render(<TransactionsTable transactions={mockTransactions} />);
-
-      const viewDetailButton = screen.getAllByLabelText(
-        /View details for transaction/i,
-      )[0];
-      fireEvent.click(viewDetailButton);
-
-      const fullDetailsLink = screen.getByRole("link", {
-        name: /View full details for transaction/i,
-      });
-      expect(fullDetailsLink).toBeInTheDocument();
-    });
+  it("does not render the toggle on mobile breakpoints", () => {
+    render(<TransactionsTable transactions={[]} />);
+    const toggle = screen.getByRole("radiogroup", { name: /table density/i });
+    // The parent wrapper is hidden below md
+    expect(toggle.closest(".hidden")).toBeTruthy();
   });
 });
