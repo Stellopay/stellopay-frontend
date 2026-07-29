@@ -50,6 +50,57 @@ describe("IconBell — SVG structure", () => {
 });
 
 // ---------------------------------------------------------------------------
+// Fill colour
+// NOTE: The current implementation hard-codes fill="#333333". This suite
+// documents that known state and will be updated once the icon is migrated
+// to `currentColor` (tracked in design/icons.md — Migration Strategy).
+// ---------------------------------------------------------------------------
+
+describe("IconBell — fill colour", () => {
+  it("paths use the hardcoded fill value (#333333) in the current implementation", () => {
+    // TODO: update to "currentColor" once the migration in design/icons.md is done.
+    const { container } = renderBell();
+    container.querySelectorAll("path").forEach((path) => {
+      expect(path.getAttribute("fill")).toBe("#333333");
+    });
+  });
+
+  it("applies custom className while fill is still applied to paths", () => {
+    const { container } = renderBell({ className: "custom-icon" });
+    expect(container.querySelector("svg")).toHaveClass("custom-icon");
+    container.querySelectorAll("path").forEach((path) => {
+      expect(path).toHaveAttribute("fill");
+    });
+  });
+
+  it("svg inherits text color from a light-mode parent element", () => {
+    const { container } = render(
+      <div style={{ color: "#1a1a1a" }}>
+        <IconBell />
+      </div>,
+    );
+    const svg = container.querySelector("svg");
+    expect(svg).toBeTruthy();
+    // Verify the SVG is nested inside the coloured parent (colour inheritance
+    // will apply automatically once fill is migrated to currentColor).
+    const computedColor = window.getComputedStyle(svg!).color;
+    expect(computedColor).toBe("rgb(26, 26, 26)");
+  });
+
+  it("svg inherits text color from a dark-mode parent element", () => {
+    const { container } = render(
+      <div style={{ color: "#e5e5e5" }}>
+        <IconBell />
+      </div>,
+    );
+    const svg = container.querySelector("svg");
+    expect(svg).toBeTruthy();
+    const computedColor = window.getComputedStyle(svg!).color;
+    expect(computedColor).toBe("rgb(229, 229, 229)");
+  });
+});
+
+// ---------------------------------------------------------------------------
 // Prop forwarding
 // ---------------------------------------------------------------------------
 
@@ -60,8 +111,12 @@ describe("IconBell — prop forwarding", () => {
   });
 
   it("forwards arbitrary SVG props (data-testid)", () => {
-    const { container } = renderBell({ "data-testid": "bell-icon" } as React.SVGProps<SVGSVGElement>);
-    expect(container.querySelector("[data-testid='bell-icon']")).toBeInTheDocument();
+    const { container } = renderBell({
+      "data-testid": "bell-icon",
+    } as React.SVGProps<SVGSVGElement>);
+    expect(
+      container.querySelector("[data-testid='bell-icon']"),
+    ).toBeInTheDocument();
   });
 
   it("forwards a custom width and height", () => {
@@ -82,6 +137,11 @@ describe("IconBell — prop forwarding", () => {
   it("forwards role when provided", () => {
     const { container } = renderBell({ role: "img" });
     expect(container.querySelector("svg")).toHaveAttribute("role", "img");
+  });
+
+  it("forwards additional SVG props (aria-label via getByLabelText)", () => {
+    render(<IconBell aria-label="Notification bell" />);
+    expect(screen.getByLabelText("Notification bell")).toBeInTheDocument();
   });
 });
 
