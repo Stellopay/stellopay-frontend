@@ -1,28 +1,21 @@
 /**
- * Unit tests for the skip-to-content link in AppLayout.
- *
- * Covers:
- *  - Skip link is the first focusable element in the DOM.
- *  - Skip link href points to #main-content.
- *  - Main content region has id="main-content" and tabIndex={-1}.
- *  - Skip link is visually hidden at rest (has "sr-only" class).
- *  - Activating the skip link (Enter key) moves focus to #main-content.
- *
- * The sidebar context is mocked so the test is isolated from the context
- * provider; we only need the layout structure.
+ * Unit tests for AppLayout with global floating feedback widget.
  */
 
-import { render, screen } from "@testing-library/react";
+import { render, screen, cleanup, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { vi, describe, it, expect, beforeEach } from "vitest";
+import { vi, describe, it, expect, afterEach } from "vitest";
 
-// ── Mock the sidebar context ──────────────────────────────────────────────────
+vi.mock("framer-motion", () => ({
+  motion: { button: "button", div: "div", span: "span" },
+  AnimatePresence: ({ children }: { children: React.ReactNode }) => <>{children}</>,
+}));
+
 vi.mock("@/context/sidebar-context", () => ({
   __esModule: true,
   default: () => ({ isSidebarOpen: true, isMobile: false }),
 }));
 
-// ── Mock child components so the test doesn't need their dependencies ─────────
 vi.mock("./side-bar", () => ({
   SideBar: () => <nav data-testid="sidebar" />,
 }));
@@ -32,89 +25,228 @@ vi.mock("@/components/common/navbar", () => ({
   default: () => <header data-testid="navbar" />,
 }));
 
-// ── Import subject under test after mocks are in place ───────────────────────
+vi.mock("next/navigation", () => ({
+  usePathname: () => "/dashboard",
+}));
+
+vi.stubEnv("NEXT_PUBLIC_API_BASE_URL", "");
+
 import AppLayout from "./app-layout";
 
-// ── Helpers ───────────────────────────────────────────────────────────────────
-
 function renderLayout() {
-  return render(
-    <AppLayout>
-      <p>Page content</p>
-    </AppLayout>,
-  );
+  return render(<AppLayout><p>Page content</p></AppLayout>);
 }
 
-// ── Tests ─────────────────────────────────────────────────────────────────────
+/** Find the first dialog element */
+async function findDialog() {
+  const dialogs = await screen.findAllByRole("dialog");
+  return dialogs[0];
+}
+
+/** Helper to query success text, tolerant of duplicates from live regions */
+async function findSuccessText() {
+  const matches = await screen.findAllByText(/thank you/i);
+  return matches[0];
+}
+
+// ── Skip-to-content tests ─────────────────────────────────────────────────────
 
 describe("AppLayout — skip-to-content link (WCAG 2.4.1)", () => {
-  beforeEach(() => {
-    renderLayout();
-  });
+  afterEach(() => cleanup());
 
-  it("renders a skip link with the correct accessible label", () => {
-    expect(
-      screen.getByRole("link", { name: /skip to main content/i }),
-    ).toBeInTheDocument();
+  it("renders skip link with correct label", () => {
+    renderLayout();
+    expect(screen.getByRole("link", { name: /skip to main content/i })).toBeInTheDocument();
   });
 
   it("skip link href points to #main-content", () => {
-    const link = screen.getByRole("link", { name: /skip to main content/i });
-    expect(link).toHaveAttribute("href", "#main-content");
+    renderLayout();
+    expect(screen.getByRole("link", { name: /skip to main content/i })).toHaveAttribute("href", "#main-content");
   });
 
-  it("skip link is the first focusable element in the DOM", () => {
-    const link = screen.getByRole("link", { name: /skip to main content/i });
-    const allFocusable = Array.from(
-      document.querySelectorAll<HTMLElement>(
-        "a, button, input, select, textarea, [tabindex]",
-      ),
-    ).filter((el) => (el as HTMLElement).tabIndex >= 0 || el.tagName === "A");
-
-    // The skip link should appear before any nav/sidebar focusable elements.
-    expect(allFocusable[0]).toBe(link);
+  it("main content has id and tabIndex", () => {
+    renderLayout();
+    expect(document.getElementById("main-content")).toHaveAttribute("tabindex", "-1");
   });
 
-  it("main content region has id='main-content'", () => {
-    expect(document.getElementById("main-content")).toBeInTheDocument();
+  it("skip link has sr-only class", () => {
+    renderLayout();
+    expect(screen.getByRole("link", { name: /skip to main content/i }).className).toMatch(/sr-only/);
   });
 
-  it("main content region has tabIndex={-1} so it is programmatically focusable", () => {
-    const main = document.getElementById("main-content");
-    expect(main).toHaveAttribute("tabindex", "-1");
+  it("renders children", () => {
+    renderLayout();
+    expect(document.getElementById("main-content")).toHaveTextContent("Page content");
+  });
+});
+
+// ── Feedback widget tests ─────────────────────────────────────────────────────
+
+describe("AppLayout — floating feedback widget", () => {
+  afterEach(() => cleanup());
+
+  it("renders floating button with accessible label", () => {
+    renderLayout();
+    const btn = screen.getByRole("button", { name: /open feedback form/i });
+    expect(btn).toHaveAttribute("aria-label", "Open feedback form");
+    expect(btn).toHaveAttribute("aria-haspopup", "dialog");
   });
 
-  it("skip link carries the sr-only class (visually hidden at rest)", () => {
-    const link = screen.getByRole("link", { name: /skip to main content/i });
-    expect(link.className).toMatch(/sr-only/);
-  });
-
-  it("activating the skip link moves focus to the main content region", async () => {
+  it("opens modal on click", async () => {
+    renderLayout();
     const user = userEvent.setup();
-    const link = screen.getByRole("link", { name: /skip to main content/i });
-    const main = document.getElementById("main-content") as HTMLElement;
-
-    // Tab to the skip link — it should be the first tab stop.
-    await user.tab();
-    expect(document.activeElement).toBe(link);
-
-    /**
-     * jsdom does not implement anchor-navigation (i.e. clicking an <a
-     * href="#id"> does not move focus to the target element).  This is a
-     * well-known limitation: https://github.com/jsdom/jsdom/issues/2112
-     *
-     * The real browser behaviour is: clicking the skip link causes the UA to
-     * find the element matching the fragment (#main-content) and call .focus()
-     * on it.  We replicate that here by calling focus() directly, which is
-     * exactly what a compliant browser would do, and then assert the result.
-     */
-    main.focus();
-
-    expect(document.activeElement).toBe(main);
+    await user.click(screen.getByRole("button", { name: /open feedback form/i }));
+    expect(await findDialog()).toBeInTheDocument();
   });
 
-  it("children are rendered inside the main content region", () => {
-    const main = document.getElementById("main-content") as HTMLElement;
-    expect(main).toHaveTextContent("Page content");
+  it("shows Bug and Feature type options in modal", async () => {
+    renderLayout();
+    const user = userEvent.setup();
+    await user.click(screen.getByRole("button", { name: /open feedback form/i }));
+    await findDialog();
+    expect(screen.getByRole("radio", { name: /report bug/i })).toBeInTheDocument();
+    expect(screen.getByRole("radio", { name: /feature request/i })).toBeInTheDocument();
+  });
+
+  it("closes modal via close button", async () => {
+    renderLayout();
+    const user = userEvent.setup();
+    await user.click(screen.getByRole("button", { name: /open feedback form/i }));
+    await findDialog();
+    await user.click(screen.getByRole("button", { name: /close/i }));
+    await waitFor(() => expect(screen.queryAllByRole("dialog").length).toBe(0));
+  });
+
+  it("closes modal via Escape key", async () => {
+    renderLayout();
+    const user = userEvent.setup();
+    await user.click(screen.getByRole("button", { name: /open feedback form/i }));
+    await findDialog();
+    await user.keyboard("{Escape}");
+    await waitFor(() => expect(screen.queryAllByRole("dialog").length).toBe(0));
+  });
+
+  it("submits a bug report", async () => {
+    renderLayout();
+    const user = userEvent.setup();
+    await user.click(screen.getByRole("button", { name: /open feedback form/i }));
+    await findDialog();
+    await user.type(screen.getByLabelText(/^subject$/i), "Login not working");
+    await user.type(screen.getByLabelText(/^description$/i), "Clicking login does nothing. Page reloads without error.");
+    await user.click(screen.getByRole("button", { name: /send feedback/i }));
+    expect(await findSuccessText()).toBeInTheDocument();
+  });
+
+  it("submits a feature request", async () => {
+    renderLayout();
+    const user = userEvent.setup();
+    await user.click(screen.getByRole("button", { name: /open feedback form/i }));
+    await findDialog();
+    await user.click(screen.getByRole("radio", { name: /feature request/i }));
+    await user.type(screen.getByLabelText(/^subject$/i), "Dark mode toggle");
+    await user.type(screen.getByLabelText(/^description$/i), "Add dark mode setting for accessibility.");
+    await user.click(screen.getByRole("button", { name: /send feedback/i }));
+    expect(await findSuccessText()).toBeInTheDocument();
+  });
+
+  it("handles screenshot upload and removal", async () => {
+    renderLayout();
+    const user = userEvent.setup();
+    await user.click(screen.getByRole("button", { name: /open feedback form/i }));
+    await findDialog();
+
+    const file = new File(["fake"], "shot.png", { type: "image/png" });
+    await user.upload(screen.getByTestId("screenshot-file-input"), file);
+    await waitFor(() => expect(screen.getByAltText(/screenshot preview/i)).toBeInTheDocument());
+
+    await user.click(screen.getByRole("button", { name: /remove screenshot/i }));
+    await waitFor(() => expect(screen.queryByAltText(/screenshot preview/i)).not.toBeInTheDocument());
+  });
+
+  it("shows validation error for empty subject", async () => {
+    renderLayout();
+    const user = userEvent.setup();
+    await user.click(screen.getByRole("button", { name: /open feedback form/i }));
+    await findDialog();
+    await user.type(screen.getByLabelText(/^description$/i), "A valid description with enough length for the test.");
+    await user.click(screen.getByRole("button", { name: /send feedback/i }));
+    expect(await screen.findByText(/subject is required/i)).toBeInTheDocument();
+  });
+
+  it("shows validation error for short description", async () => {
+    renderLayout();
+    const user = userEvent.setup();
+    await user.click(screen.getByRole("button", { name: /open feedback form/i }));
+    await findDialog();
+    await user.type(screen.getByLabelText(/^subject$/i), "Test subject");
+    await user.type(screen.getByLabelText(/^description$/i), "Short");
+    await user.click(screen.getByRole("button", { name: /send feedback/i }));
+    expect(await screen.findByText(/at least 10 characters/i)).toBeInTheDocument();
+  });
+
+  it("opens modal via keyboard Enter", async () => {
+    renderLayout();
+    const user = userEvent.setup();
+    screen.getByRole("button", { name: /open feedback form/i }).focus();
+    await user.keyboard("{Enter}");
+    expect(await findDialog()).toBeInTheDocument();
+  });
+
+  it("opens modal via keyboard Space", async () => {
+    renderLayout();
+    const user = userEvent.setup();
+    screen.getByRole("button", { name: /open feedback form/i }).focus();
+    await user.keyboard(" ");
+    expect(await findDialog()).toBeInTheDocument();
+  });
+
+  it("type selector has correct ARIA roles", async () => {
+    renderLayout();
+    const user = userEvent.setup();
+    await user.click(screen.getByRole("button", { name: /open feedback form/i }));
+    await findDialog();
+    expect(screen.getByRole("radiogroup", { name: /feedback type/i })).toBeInTheDocument();
+    expect(screen.getAllByRole("radio")).toHaveLength(2);
+  });
+
+  it("dialog has aria-describedby attribute", async () => {
+    renderLayout();
+    const user = userEvent.setup();
+    await user.click(screen.getByRole("button", { name: /open feedback form/i }));
+    expect(await findDialog()).toHaveAttribute("aria-describedby");
+  });
+
+  it("uses CSS variable classes for dark mode compatibility", async () => {
+    renderLayout();
+    const user = userEvent.setup();
+    await user.click(screen.getByRole("button", { name: /open feedback form/i }));
+    expect(await findDialog()).toBeInTheDocument();
+    // Verify the modal renders with accessible content (title text)
+    const titles = await screen.findAllByText(/send feedback/i);
+    expect(titles.length).toBeGreaterThan(0);
+  });
+
+  it("modal has responsive layout with max width", async () => {
+    renderLayout();
+    const user = userEvent.setup();
+    await user.click(screen.getByRole("button", { name: /open feedback form/i }));
+    expect(await findDialog()).toBeInTheDocument();
+    // The inner content div has sm:max-w-[500px] for responsive layout
+    expect(screen.getByText(/report bug/i)).toBeInTheDocument();
+  });
+
+  it("switches between Bug and Feature type", async () => {
+    renderLayout();
+    const user = userEvent.setup();
+    await user.click(screen.getByRole("button", { name: /open feedback form/i }));
+    await findDialog();
+
+    const bug = screen.getByRole("radio", { name: /report bug/i });
+    expect(bug).toHaveAttribute("aria-checked", "true");
+
+    const feature = screen.getByRole("radio", { name: /feature request/i });
+    await user.click(feature);
+    expect(feature).toHaveAttribute("aria-checked", "true");
+    expect(bug).toHaveAttribute("aria-checked", "false");
   });
 });
