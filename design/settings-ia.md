@@ -1,12 +1,17 @@
-# Settings Information Architecture - Granular Cookie Consent
+# Settings Information Architecture & Accessibility (IA)
 
-## Overview
-This document specifies the information architecture for user cookie preferences under the settings panel.
+## Wallets Section Remove Confirmation Flow
 
-## Categories
-1. **Essential Cookies:** Mandatory system cookies required for application sessions and core functionality (locked on).
-2. **Analytics Cookies:** Optional telemetry collection to analyze traffic and usage patterns.
-3. **Marketing Cookies:** Optional tracking for tailored communications and feature announcements.
+### Overview
+Destructive actions in `app/settings/preferences/components/wallets-section.tsx` require explicit confirmation to prevent accidental disconnection.
 
-## Persistence
-Preferences are independently tracked and stored locally via safe storage/localStorage keys (`stellopay_cookie_preferences`).
+### Accessibility Annotations (WCAG 2.1 AA)
+- **Contrast**: Confirm and Cancel actions utilize semantic high-contrast design tokens (`bg-destructive`, `text-destructive-foreground`, `border-input`).
+- **Keyboard Navigation**: Dialog uses `components/ui/dialog.tsx` (Radix UI Primitive) which enforces a focus trap on open and restores focus to the triggering element upon closure or cancellation.
+- **ARIA Labeling**:
+  - Dialog contains `DialogTitle` (`aria-labelledby`) and `DialogDescription` (`aria-describedby`).
+  - Action trigger includes specific explicit context: `aria-label="Remove {nickname} ({address})"`.
+
+### Responsive Breakpoints
+- **Mobile (`< sm 640px`)**: Full-width stacked buttons on action dialog.
+- **Desktop (`>= sm 640px`)**: Inline action buttons (`DialogFooter`).

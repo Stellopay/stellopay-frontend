@@ -1,6 +1,7 @@
 import AppLayout from "@/components/common/app-layout";
 import { SidebarProvider } from "@/context/sidebar-context";
 import { Metadata } from "next";
+import { Breadcrumb } from "@/components/common/breadcrumb";
 
 /**
  * Metadata configuration for the private settings preferences route.
@@ -23,7 +24,12 @@ export default function SettingsPreferencesLayout({
 }>) {
   return (
     <SidebarProvider>
-      <AppLayout>{children}</AppLayout>
+      <AppLayout>
+        <div className="px-4 py-4 md:px-6 w-full max-w-screen-xl mx-auto">
+          <Breadcrumb />
+        </div>
+        {children}
+      </AppLayout>
     </SidebarProvider>
   );
 }

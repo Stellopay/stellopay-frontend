@@ -192,4 +192,115 @@ describe("useCountdown", () => {
     act(() => vi.advanceTimersByTime(2000));
     expect(result.current.secondsLeft).toBe(5);
   });
+
+  it("recomputes remaining seconds immediately on visibilitychange when tab regains focus after background drift", () => {
+    vi.useFakeTimers();
+    const { result } = renderHook(() => useCountdown());
+
+    act(() => {
+      result.current.start(10);
+    });
+
+    expect(result.current.secondsLeft).toBe(10);
+
+    // Simulate tab backgrounding: system time jumps forward 6 seconds without interval ticks
+    act(() => {
+      vi.setSystemTime(Date.now() + 6000);
+    });
+
+    expect(result.current.secondsLeft).toBe(10); // Not updated prior to visibilitychange / interval tick
+
+    act(() => {
+      Object.defineProperty(document, "visibilityState", {
+        configurable: true,
+        value: "visible",
+      });
+      document.dispatchEvent(new Event("visibilitychange"));
+    });
+
+    expect(result.current.secondsLeft).toBe(4);
+    expect(result.current.isActive).toBe(true);
+  });
+
+  it("triggers onComplete on visibilitychange if countdown expired while tab was backgrounded", () => {
+    vi.useFakeTimers();
+    const onComplete = vi.fn();
+    const { result } = renderHook(() => useCountdown({ onComplete }));
+
+    act(() => {
+      result.current.start(5);
+    });
+
+    // Advance time past countdown end without firing intervals (simulating background throttling)
+    act(() => {
+      vi.setSystemTime(Date.now() + 10_000);
+    });
+
+    expect(result.current.secondsLeft).toBe(5);
+
+    act(() => {
+      Object.defineProperty(document, "visibilityState", {
+        configurable: true,
+        value: "visible",
+      });
+      document.dispatchEvent(new Event("visibilitychange"));
+    });
+
+    expect(result.current.secondsLeft).toBe(0);
+    expect(result.current.isActive).toBe(false);
+    expect(onComplete).toHaveBeenCalledOnce();
+  });
+
+  it("ignores visibilitychange when document visibilityState is hidden", () => {
+    vi.useFakeTimers();
+    const { result } = renderHook(() => useCountdown());
+
+    act(() => {
+      result.current.start(10);
+    });
+
+    act(() => {
+      vi.setSystemTime(Date.now() + 5000);
+    });
+
+    act(() => {
+      Object.defineProperty(document, "visibilityState", {
+        configurable: true,
+        value: "hidden",
+      });
+      document.dispatchEvent(new Event("visibilitychange"));
+    });
+
+    expect(result.current.secondsLeft).toBe(10);
+  });
+
+  it("does nothing on visibilitychange when no countdown is active", () => {
+    const { result } = renderHook(() => useCountdown());
+
+    act(() => {
+      Object.defineProperty(document, "visibilityState", {
+        configurable: true,
+        value: "visible",
+      });
+      document.dispatchEvent(new Event("visibilitychange"));
+    });
+
+    expect(result.current.secondsLeft).toBe(0);
+    expect(result.current.isActive).toBe(false);
+  });
+
+  it("handles start with duration <= 0 immediately", () => {
+    const onComplete = vi.fn();
+    const { result } = renderHook(() => useCountdown({ onComplete }));
+
+    act(() => {
+      result.current.start(0);
+    });
+
+    expect(result.current.secondsLeft).toBe(0);
+    expect(result.current.isActive).toBe(false);
+    expect(onComplete).toHaveBeenCalledOnce();
+  });
 });
+
+
