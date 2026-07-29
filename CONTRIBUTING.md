@@ -94,6 +94,57 @@ We exclusively use the **Next.js App Router** (no `pages/` directory). Here is o
 - `utils/`: Small utility functions and helpers.
 - `types/`: TypeScript definitions and interfaces.
 
+## Settings Search Feature
+
+The settings preferences page includes a cross-tab search feature that allows users to quickly find controls across all four settings sections (Account, Notifications, Security, Wallets).
+
+### How to add a new searchable control
+
+When adding a new control to any settings section:
+
+1. **Update `SEARCHABLE_CONTROLS`** in `components/settings-search.tsx`:
+   ```tsx
+   {
+     label: "Your control name",
+     section: "account", // or "notifications", "security", "wallets"
+     keywords: ["keyword1", "keyword2", "synonym"],
+   }
+   ```
+
+2. **Keywords should include**:
+   - The primary control name (e.g., "password")
+   - Related synonyms (e.g., "security", "authentication")
+   - The section name (e.g., "account")
+   - Any category words (e.g., "danger" for destructive actions)
+
+3. **Security note**: Only include non-sensitive labels and keywords. Never add email addresses, wallet keys, or PII to the search index.
+
+### Search behavior
+
+- **Query matching**: Searches are case-insensitive substring matches against both label and keywords
+- **Relevance ranking**: Results are ranked by match type (exact > starts-with > contains)
+- **Keyboard navigation**: Users can navigate results with arrow keys (↑/↓) and select with Enter
+- **Tab switching**: Selecting a result automatically switches to the appropriate tab
+- **Keyboard accessible**: Fully operable without a mouse (Tab, Enter, Escape, Arrow keys)
+
+### Testing the search feature
+
+Run Playwright e2e tests to verify search functionality:
+
+```bash
+npm run test:e2e -- tests/settings-search.spec.ts
+```
+
+Key test scenarios covered:
+- Cross-tab navigation and tab switching
+- Keyboard navigation (arrow keys, Enter, Escape)
+- Search ranking by relevance
+- No-results state
+- Accessibility (keyboard-only operation, screen reader support)
+- Responsive behavior across breakpoints (mobile, tablet, desktop)
+- Dark mode rendering
+
+
 ## Data-Layer Rules
 
 We enforce a strict separation of concerns for data access.
@@ -156,6 +207,13 @@ and debugging stay frictionless.
 ## Testing Expectations
 
 We expect all new utility functions and business logic to have **minimum 95% test coverage**.
+
+### Testing Hydration Guards and Dynamic Imports
+
+When writing client-side hydration guards (`isMounted` patterns) or using `next/dynamic` for heavy components, ensure they are fully tested:
+- Use `renderToString` from `react-dom/server` to test the initial `isMounted=false` SSR state.
+- Test loading and skeleton states independently of the mount state (e.g., passing `isLoading=true`).
+- Ensure fallback skeletons use accessible markup (`aria-busy="true"`, `role="status"`).
 
 ### Test Commands
 
