@@ -372,4 +372,85 @@ describe("LoginForm", () => {
     const emailInput = screen.getByPlaceholderText(/Enter your email/i);
     expect(emailInput).toHaveValue("");
   });
+
+  // ─── Accessibility: aria-live, aria-describedby & focus ─────────────────
+
+  it("wraps each field validation error in a polite aria-live region", async () => {
+    render(<LoginForm />);
+
+    // Submit with empty fields to trigger zod validation errors
+    const submitButton = screen.getByRole("button", { name: /Sign In/i });
+    await userEvent.click(submitButton);
+
+    // Wait for validation error messages to appear
+    const emailError = await screen.findByText(/Please enter a valid email address/i);
+    const passwordError = await screen.findByText(/Password must be at least 8 characters/i);
+
+    // Each FormMessage renders with aria-live="polite" and role="alert"
+    expect(emailError).toHaveAttribute("aria-live", "polite");
+    expect(emailError).toHaveAttribute("role", "alert");
+    expect(passwordError).toHaveAttribute("aria-live", "polite");
+    expect(passwordError).toHaveAttribute("role", "alert");
+  });
+
+  it("connects each input to its error via aria-describedby (non-empty) and marks fields as invalid", async () => {
+    render(<LoginForm />);
+
+    const emailInput = screen.getByPlaceholderText(/Enter your email/i);
+    const passwordInput = screen.getByPlaceholderText(/Enter your password/i);
+    const submitButton = screen.getByRole("button", { name: /Sign In/i });
+
+    await userEvent.click(submitButton);
+
+    // Wait for validation error messages to appear
+    await screen.findByText(/Please enter a valid email address/i);
+    await screen.findByText(/Password must be at least 8 characters/i);
+
+    // Each input carries a non-empty aria-describedby so screen readers
+    // can associate it with descriptive text.
+    const emailDescribedBy = emailInput.getAttribute("aria-describedby");
+    const passwordDescribedBy = passwordInput.getAttribute("aria-describedby");
+
+    expect(emailDescribedBy).toBeTruthy();
+    expect(passwordDescribedBy).toBeTruthy();
+
+    // aria-invalid must be set so screen readers know the field is in error
+    expect(emailInput).toHaveAttribute("aria-invalid", "true");
+    expect(passwordInput).toHaveAttribute("aria-invalid", "true");
+  });
+
+  it("moves focus to the first invalid field after a failed submit", async () => {
+    render(<LoginForm />);
+
+    const emailInput = screen.getByPlaceholderText(/Enter your email/i);
+    const submitButton = screen.getByRole("button", { name: /Sign In/i });
+
+    // Focus the submit button first so we know focus moves away from it
+    submitButton.focus();
+    expect(document.activeElement).toBe(submitButton);
+
+    await userEvent.click(submitButton);
+
+    // After zod validation fails, focus should move to the first invalid field (email)
+    await waitFor(() => {
+      expect(document.activeElement).toBe(emailInput);
+    });
+  });
+
+  it("focuses password field when email is valid but password fails validation", async () => {
+    render(<LoginForm />);
+
+    const emailInput = screen.getByPlaceholderText(/Enter your email/i);
+    const passwordInput = screen.getByPlaceholderText(/Enter your password/i);
+    const submitButton = screen.getByRole("button", { name: /Sign In/i });
+
+    // Fill email with a valid value but leave password empty
+    await userEvent.type(emailInput, "user@example.com");
+    await userEvent.click(submitButton);
+
+    // Focus should move to password (the first — and only — invalid field)
+    await waitFor(() => {
+      expect(document.activeElement).toBe(passwordInput);
+    });
+  });
 });

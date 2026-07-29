@@ -9,7 +9,12 @@ import {
 } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import AccountSection from "./account-section";
+import AccountSection, {
+  AVATAR_CROP_OUTPUT_SIZE,
+  AVATAR_PAN_KEYBOARD_STEP,
+  AVATAR_ZOOM_MAX,
+  AVATAR_ZOOM_MIN,
+} from "./account-section";
 
 vi.mock("next/image", () => ({
   default: ({
@@ -35,6 +40,189 @@ vi.mock("@/components/ui/form", () => ({
 const getEmailInput = () => screen.getByLabelText("Email address");
 const getSaveButton = () =>
   screen.getByRole("button", { name: /save account changes/i });
+
+function openAvatarDialog() {
+  render(<AccountSection />);
+  fireEvent.click(screen.getByRole("button", { name: /change photo/i }));
+}
+
+function uploadAvatar(
+  file = new File(["avatar"], "avatar.png", { type: "image/png" }),
+) {
+  fireEvent.change(screen.getByLabelText("Photo"), {
+    target: { files: [file] },
+  });
+}
+
+describe("AccountSection avatar crop controls", () => {
+  beforeEach(() => {
+    vi.stubGlobal("URL", {
+      createObjectURL: vi.fn(() => "blob:avatar-preview"),
+      revokeObjectURL: vi.fn(),
+    });
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it("opens the crop dialog with upload guidance and fixed square output copy", () => {
+    openAvatarDialog();
+
+    expect(screen.getByRole("dialog")).toBeInTheDocument();
+    expect(screen.getByText("Crop profile photo")).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        `Output is saved as a fixed square crop at ${AVATAR_CROP_OUTPUT_SIZE} x ${AVATAR_CROP_OUTPUT_SIZE}.`,
+      ),
+    ).toBeInTheDocument();
+  });
+
+  it("disables crop controls until an image is uploaded", () => {
+    openAvatarDialog();
+
+    expect(screen.getByLabelText("Zoom")).toBeDisabled();
+    expect(screen.getByRole("button", { name: /zoom in/i })).toBeDisabled();
+    expect(screen.getByRole("button", { name: /pan left/i })).toBeDisabled();
+    expect(
+      screen.getByRole("button", { name: /rotate right/i }),
+    ).toBeDisabled();
+    expect(
+      screen.getByRole("button", { name: /save cropped photo/i }),
+    ).toBeDisabled();
+  });
+
+  it("rejects non-image uploads with an accessible error", () => {
+    openAvatarDialog();
+    uploadAvatar(new File(["notes"], "notes.txt", { type: "text/plain" }));
+
+    expect(screen.getByRole("alert")).toHaveTextContent(/choose an image/i);
+    expect(screen.getByLabelText("Photo")).toHaveAttribute(
+      "aria-invalid",
+      "true",
+    );
+  });
+
+  it("uploads an image and enables zoom, pan, rotate, and save controls", () => {
+    openAvatarDialog();
+    uploadAvatar();
+
+    expect(URL.createObjectURL).toHaveBeenCalled();
+    expect(
+      screen.getByAltText(/crop preview for avatar.png/i),
+    ).toBeInTheDocument();
+    expect(screen.getByLabelText("Zoom")).not.toBeDisabled();
+    expect(screen.getByRole("button", { name: /zoom in/i })).not.toBeDisabled();
+    expect(
+      screen.getByRole("button", { name: /pan right/i }),
+    ).not.toBeDisabled();
+    expect(
+      screen.getByRole("button", { name: /rotate right/i }),
+    ).not.toBeDisabled();
+    expect(
+      screen.getByRole("button", { name: /save cropped photo/i }),
+    ).not.toBeDisabled();
+  });
+
+  it("supports zoom with both buttons and the keyboard-operable range input", () => {
+    openAvatarDialog();
+    uploadAvatar();
+
+    const zoom = screen.getByLabelText("Zoom");
+    expect(zoom).toHaveValue(String(AVATAR_ZOOM_MIN));
+
+    fireEvent.click(screen.getByRole("button", { name: /zoom in/i }));
+    expect(zoom).toHaveValue("1.1");
+
+    fireEvent.change(zoom, { target: { value: "2.4" } });
+    expect(screen.getByText("240%")).toBeInTheDocument();
+
+    fireEvent.change(zoom, { target: { value: String(AVATAR_ZOOM_MAX) } });
+    fireEvent.click(screen.getByRole("button", { name: /zoom in/i }));
+    expect(zoom).toHaveValue(String(AVATAR_ZOOM_MAX));
+  });
+
+  it("supports keyboard and button panning while keeping values bounded", () => {
+    openAvatarDialog();
+    uploadAvatar();
+
+    const preview = screen.getByTestId("avatar-crop-preview");
+
+    fireEvent.keyDown(preview, { key: "ArrowRight" });
+    expect(
+      screen.getByText(`${AVATAR_PAN_KEYBOARD_STEP}px`),
+    ).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: /pan down/i }));
+    expect(screen.getAllByText(`${AVATAR_PAN_KEYBOARD_STEP}px`)).toHaveLength(
+      2,
+    );
+
+    fireEvent.keyDown(preview, { key: "ArrowLeft", shiftKey: true });
+    expect(
+      screen.getByText(`-${AVATAR_PAN_KEYBOARD_STEP}px`),
+    ).toBeInTheDocument();
+  });
+
+  it("supports pointer dragging to pan the crop image", () => {
+    openAvatarDialog();
+    uploadAvatar();
+
+    const preview = screen.getByTestId("avatar-crop-preview");
+    preview.setPointerCapture = vi.fn();
+
+    fireEvent.pointerDown(preview, {
+      pointerId: 1,
+      clientX: 100,
+      clientY: 100,
+    });
+    fireEvent.pointerMove(preview, {
+      pointerId: 1,
+      clientX: 124,
+      clientY: 132,
+    });
+    fireEvent.pointerUp(preview, { pointerId: 1 });
+
+    expect(screen.getByText("24px")).toBeInTheDocument();
+    expect(screen.getByText("32px")).toBeInTheDocument();
+  });
+
+  it("rotates in 90-degree increments in both directions", () => {
+    openAvatarDialog();
+    uploadAvatar();
+
+    fireEvent.click(screen.getByRole("button", { name: /rotate right/i }));
+    expect(screen.getByText("90 deg")).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: /rotate left/i }));
+    expect(screen.getByText("0 deg")).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: /rotate left/i }));
+    expect(screen.getByText("270 deg")).toBeInTheDocument();
+  });
+
+  it("saves the cropped avatar and announces the fixed output resolution", async () => {
+    openAvatarDialog();
+    uploadAvatar();
+
+    fireEvent.click(
+      screen.getByRole("button", { name: /save cropped photo/i }),
+    );
+
+    await waitFor(() =>
+      expect(screen.queryByRole("dialog")).not.toBeInTheDocument(),
+    );
+    expect(screen.getByAltText("Profile photo")).toHaveAttribute(
+      "src",
+      "blob:avatar-preview",
+    );
+    expect(
+      screen.getByText(
+        `Profile photo crop saved at ${AVATAR_CROP_OUTPUT_SIZE} x ${AVATAR_CROP_OUTPUT_SIZE}.`,
+      ),
+    ).toBeInTheDocument();
+  });
+});
 
 describe("AccountSection email validation", () => {
   afterEach(() => {
@@ -186,6 +374,64 @@ describe("AccountSection email validation", () => {
     expect(screen.getByLabelText("Display name")).toHaveValue("Ada L.");
     expect(screen.getByLabelText("Timezone")).toHaveValue("UTC");
     expect(screen.getByLabelText("Settlement currency")).toHaveValue("EUR");
+  });
+});
+
+describe("AccountSection locale preview", () => {
+  it("renders a date preview and currency preview with the default profile", () => {
+    render(<AccountSection />);
+
+    const datePreview = screen.getByTestId("locale-date-preview");
+    const currencyPreview = screen.getByTestId("locale-currency-preview");
+
+    expect(datePreview).toBeInTheDocument();
+    expect(datePreview.textContent).toBeTruthy();
+    expect(currencyPreview).toBeInTheDocument();
+    expect(currencyPreview.textContent).toBeTruthy();
+  });
+
+  it("has an accessible region with a polite live region", () => {
+    render(<AccountSection />);
+
+    const region = screen.getByRole("region", {
+      name: "Locale format preview",
+    });
+
+    expect(region).toHaveAttribute("aria-live", "polite");
+  });
+
+  it("updates the date preview when the timezone changes", () => {
+    render(<AccountSection />);
+
+    const datePreview = screen.getByTestId("locale-date-preview");
+    const initial = datePreview.textContent;
+
+    fireEvent.change(screen.getByLabelText("Timezone"), {
+      target: { value: "UTC" },
+    });
+
+    // With a different timezone the displayed text should change
+    expect(datePreview.textContent).not.toBe(initial);
+  });
+
+  it("updates the currency preview when the currency changes", () => {
+    render(<AccountSection />);
+
+    const currencyPreview = screen.getByTestId("locale-currency-preview");
+    const initial = currencyPreview.textContent;
+
+    fireEvent.change(screen.getByLabelText("Settlement currency"), {
+      target: { value: "EUR" },
+    });
+
+    // EUR format should differ from the default USD format
+    expect(currencyPreview.textContent).not.toBe(initial);
+  });
+
+  it("shows the preview heading label", () => {
+    render(<AccountSection />);
+
+    expect(screen.getByText("Preview")).toBeInTheDocument();
   });
 });
 
