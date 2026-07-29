@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
+import { Separator } from "@/components/ui/separator";
 import Image from "next/image";
 import { Loader2 } from "lucide-react";
 
@@ -40,45 +41,64 @@ export function AuthSocialButtons() {
   };
 
   return (
-    <div className="flex md:flex-row flex-col justify-center items-center gap-3 mt-10">
-      <Button
-        variant={"outline"}
-        onClick={() => handleLogin("google")}
-        disabled={isLoading}
-        aria-busy={loadingProvider === "google"}
-        className="border-muted-foreground cursor-pointer w-full md:w-auto"
-      >
-        {loadingProvider === "google" ? (
-          <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
-        ) : (
-          <Image
-            src={"/google-logo.svg"}
-            alt="Google logo"
-            width={20}
-            height={20}
-          />
-        )}
-        Continue With Google
-      </Button>
-      <Button
-        variant={"outline"}
-        onClick={() => handleLogin("apple")}
-        disabled={isLoading}
-        aria-busy={loadingProvider === "apple"}
-        className="border-muted-foreground cursor-pointer w-full md:w-auto"
-      >
-        {loadingProvider === "apple" ? (
-          <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
-        ) : (
-          <Image
-            src={"/apple-logo.svg"}
-            alt="Apple logo"
-            width={20}
-            height={20}
-          />
-        )}
-        Continue With Apple
-      </Button>
-    </div>
+    <>
+      <div className="flex md:flex-row flex-col justify-center items-center gap-3 mt-10">
+        <Button
+          variant={"outline"}
+          onClick={() => handleLogin("google")}
+          disabled={isLoading}
+          aria-busy={loadingProvider === "google"}
+          className="border-muted-foreground cursor-pointer w-full md:w-auto"
+        >
+          {loadingProvider === "google" ? (
+            <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
+          ) : (
+            <Image
+              src={"/google-logo.svg"}
+              alt="Google logo"
+              width={20}
+              height={20}
+            />
+          )}
+          Continue With Google
+        </Button>
+        <Button
+          variant={"outline"}
+          onClick={() => handleLogin("apple")}
+          disabled={isLoading}
+          aria-busy={loadingProvider === "apple"}
+          className="border-muted-foreground cursor-pointer w-full md:w-auto"
+        >
+          {loadingProvider === "apple" ? (
+            <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
+          ) : (
+            <Image
+              src={"/apple-logo.svg"}
+              alt="Apple logo"
+              width={20}
+              height={20}
+            />
+          )}
+          Continue With Apple
+        </Button>
+      </div>
+
+      {/* Divider — separates social provider buttons from the email form.
+          A dedicated sr-only element carries role="separator" so screen-reader
+          users hear the same context that sighted users get from the visual "Or"
+          line, without any ambiguity around child content inside a separator. */}
+      <div className="flex items-center my-6 gap-2">
+        <span
+          role="separator"
+          aria-label="or continue with email"
+          className="sr-only"
+        />
+        <Separator className="flex-1 bg-muted-foreground" />
+        <span className="text-sm text-muted-foreground" aria-hidden="true">
+          Or
+        </span>
+        <Separator className="flex-1 bg-muted-foreground" />
+      </div>
+    </>
   );
 }
