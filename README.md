@@ -135,6 +135,82 @@ The app surfaces network-connectivity changes through a persistent banner render
 - [`components/common/offline-banner.test.tsx`](components/common/offline-banner.test.tsx) — Vitest unit suite covering online/offline transitions, dismiss behaviour, reconnection state, auto-dismiss timeout, event-listener cleanup, and the negative case where an `online` event fires on an already-online browser.
 - [`app/layout.test.tsx`](app/layout.test.tsx) — Integration test verifying the banner is rendered inside the root layout shell.
 
+## Sitemap & Robots
+
+The App Router generates both files automatically using the [Next.js file-convention handlers](https://nextjs.org/docs/app/api-reference/file-conventions/metadata):
+
+| File | Served at | Purpose |
+|------|-----------|---------|
+| `app/sitemap.ts` | `/sitemap.xml` | Enumerates public marketing and help routes for crawler discovery |
+| `app/robots.ts` | `/robots.txt` | Disallows authenticated app routes from being indexed |
+
+### Public routes (sitemap)
+
+| URL | changeFrequency | priority |
+|-----|----------------|----------|
+| `https://stellopay.com` | weekly | 1.0 |
+| `https://stellopay.com/help/support` | monthly | 0.8 |
+| `https://stellopay.com/help/support/accountManagement` | monthly | 0.6 |
+
+Auth flows (`/auth/login`, `/auth/sign-up`, `/verify-email`) are **excluded** from the sitemap. They already carry `robots: { index: false }` in their route metadata and have no organic search value.
+
+### Disallowed routes (robots.txt)
+
+The following path prefixes are disallowed for all crawlers (`*`) and Googlebot:
+
+```
+/dashboard
+/transactions
+/account-summary
+/analytics-view
+/settings
+/auth
+/verify-email
+```
+
+These rules are a belt-and-suspenders defence: the routes also set `robots: { index: false, follow: false }` in their Next.js metadata, so search engines receive two independent signals not to index them.
+
+### Exported constants
+
+Both files export named constants so tests can assert canonical values without duplicating strings:
+
+```ts
+import sitemap, { BASE_URL, PUBLIC_ROUTES } from "@/app/sitemap";
+import robots, { DISALLOWED_PATHS } from "@/app/robots";
+
+BASE_URL         // "https://stellopay.com"
+PUBLIC_ROUTES    // MetadataRoute.Sitemap — array of public route entries
+DISALLOWED_PATHS // string[] — private route prefixes
+```
+
+### Verifying locally
+
+After starting the dev server (`npm run dev`) or after a production build (`npm run build && npm run start`), inspect the generated files directly:
+
+```bash
+# Sitemap
+curl http://localhost:3000/sitemap.xml
+
+# Robots
+curl http://localhost:3000/robots.txt
+```
+
+### Tests
+
+Sitemap and robots behaviour is covered in `app/metadata.test.ts`:
+
+```bash
+npm test app/metadata.test.ts
+```
+
+The suite asserts:
+- `BASE_URL` matches the canonical domain
+- Every sitemap entry URL is absolute and starts with `BASE_URL`
+- Every entry has a valid `lastModified` date, `changeFrequency`, and `priority`
+- Authenticated and auth-flow routes are absent from the sitemap
+- Every disallowed path is present in the robots rules for both `*` and `Googlebot`
+- The sitemap pointer in `robots.txt` is `https://stellopay.com/sitemap.xml`
+
 ## Metadata & Viewport
 
 Following Next.js 15 conventions, global metadata (titles, descriptions, OpenGraph) and viewport configurations are exported as separate objects in `app/layout.tsx`.

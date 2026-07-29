@@ -32,14 +32,23 @@ vi.mock("@/context/sidebar-context", () => ({
   default: () => ({ isSidebarOpen: true, isMobile: false }),
 }));
 
+// ── Mock useGlobalShortcuts to avoid Next.js router dependency ───────────────
+vi.mock("@/hooks/useGlobalShortcuts", () => ({
+  useGlobalShortcuts: vi.fn(),
+}));
+
 // ── Mock child components so the test doesn't need their dependencies ─────────
 vi.mock("./side-bar", () => ({
-  SideBar: () => <nav data-testid="sidebar" />,
+  SideBar: () => (
+    <aside data-testid="sidebar" aria-label="Application sidebar">
+      <nav>Sidebar nav</nav>
+    </aside>
+  ),
 }));
 
 vi.mock("@/components/common/navbar", () => ({
   __esModule: true,
-  default: () => <header data-testid="navbar" />,
+  default: () => <div data-testid="navbar">Navbar</div>,
 }));
 
 // ── Import subject under test after mocks are in place ───────────────────────
@@ -209,5 +218,81 @@ describe("AppLayout — shortcut help modal integration", () => {
     await user.click(closeBtn);
 
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+  });
+});
+
+// ── Landmark Audit (WCAG 1.3.1, 1.3.6, 4.1.2) — issue #771 ───────────────────
+
+describe("AppLayout — landmark roles and uniqueness (WCAG 1.3.1, 1.3.6)", () => {
+  beforeEach(() => {
+    renderLayout();
+  });
+
+  it("renders exactly one <main> landmark per page", () => {
+    const mains = screen.getAllByRole("main");
+    expect(mains).toHaveLength(1);
+  });
+
+  it("<main> has id='main-content' and is programmatically focusable", () => {
+    const main = screen.getByRole("main");
+    expect(main).toHaveAttribute("id", "main-content");
+    expect(main).toHaveAttribute("tabindex", "-1");
+  });
+
+  it("renders exactly one <header> (banner) landmark", () => {
+    const banners = screen.getAllByRole("banner");
+    expect(banners).toHaveLength(1);
+  });
+
+  it("<header> (banner) has aria-label to distinguish it from page-level headers", () => {
+    const banner = screen.getByRole("banner");
+    expect(banner).toHaveAccessibleName("Site header");
+  });
+
+  it("renders exactly one <nav> landmark (inside the sidebar)", () => {
+    // The NavLink component inside SideBar renders a <nav> element.
+    // Our mock renders <aside aria-label="Application sidebar"><nav>...</nav></aside>
+    // which mirrors the real SideBar structure.
+    const navs = screen.getAllByRole("navigation");
+    expect(navs).toHaveLength(1);
+  });
+
+  it("<aside> (complementary) landmark has accessible name", () => {
+    // SideBar renders <aside aria-label="Application sidebar">
+    const complementary = screen.getByRole("complementary");
+    expect(complementary).toHaveAccessibleName("Application sidebar");
+  });
+
+  it("landmarks are unique — no duplicate banner, main, or complementary without unique labels", () => {
+    // WCAG 1.3.6 requires that when multiple instances of the same landmark
+    // exist, each must have a unique accessible name. Our layout has exactly
+    // one of each critical landmark (banner, main, nav, complementary), so
+    // we don't need distinguishing labels within AppLayout itself — but
+    // the site header <header> already has aria-label="Site header" to allow
+    // child pages to safely add their own <header> elements if needed.
+
+    const banners = screen.getAllByRole("banner");
+    const mains = screen.getAllByRole("main");
+    const complementaries = screen.getAllByRole("complementary");
+    const navs = screen.getAllByRole("navigation");
+
+    expect(banners).toHaveLength(1);
+    expect(mains).toHaveLength(1);
+    expect(complementaries).toHaveLength(1);
+    expect(navs).toHaveLength(1);
+
+    // Verify accessible names on labelled landmarks
+    expect(banners[0]).toHaveAccessibleName("Site header");
+    expect(complementaries[0]).toHaveAccessibleName("Application sidebar");
+  });
+
+  it("skip-to-content link target matches main landmark id", () => {
+    const skipLink = screen.getByRole("link", {
+      name: /skip to main content/i,
+    });
+    const main = screen.getByRole("main");
+
+    expect(skipLink).toHaveAttribute("href", "#main-content");
+    expect(main).toHaveAttribute("id", "main-content");
   });
 });
