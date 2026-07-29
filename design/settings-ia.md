@@ -78,6 +78,14 @@ Generated screenshots:
 - `design/screenshots/settings-desktop.png`
 - `design/screenshots/settings-mobile.png`
 
+## Status feedback
+
+A single Sonner `Toaster` is mounted once in `app/layout.tsx` (inside `ThemeProvider`, wrapping `components/ui/toaster.tsx`) so it tracks the app's resolved light/dark theme instead of the OS-only default. It renders bottom-right with `richColors` and a keyboard-dismissible close button.
+
+`wallets-section.tsx` has been migrated off its ad hoc status paragraph onto `toast.success` / `toast.error` calls for both the wallet-safeguards save flow and the wallet-removal confirmation. Sonner's toast region is wrapped in `aria-live="polite"`, so save/remove outcomes are announced to assistive tech without any bespoke status markup.
+
+`account-section.tsx` still uses its own inline status paragraph; migrating it to the shared toast pattern is tracked as follow-up work, not part of this pass.
+
 ## Notes
 
 - The UI remains prototype-safe: save and destructive actions currently update local confirmation states until backend wiring exists.

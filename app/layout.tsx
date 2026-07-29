@@ -5,6 +5,7 @@ import "./globals.css";
 import { SidebarProvider } from "@/context/sidebar-context";
 import { ThemeProvider } from "@/context/theme-context";
 import { WalletProvider } from "@/context/wallet-context";
+import { Toaster } from "@/components/ui/toaster";
 
 const inter = Inter({
   variable: "--font-inter",
@@ -114,6 +115,7 @@ export default function RootLayout({
           <WalletProvider>
             <SidebarProvider>{children}</SidebarProvider>
           </WalletProvider>
+          <Toaster />
         </ThemeProvider>
       </body>
     </html>
