@@ -11,7 +11,6 @@ import {
   FormFieldPassword,
   FormFieldCheckbox,
 } from "@/components/ui/form-field";
-import { Separator } from "@/components/ui/separator";
 import { Check, X } from "lucide-react";
 import { SignUpEmailModal } from "./sign-up-email-modal";
 import { AuthSocialButtons } from "../auth-social-buttons";
@@ -99,14 +98,8 @@ export function SignUpForm() {
           </div>
         </div>
       </div>
-      {/* Social Login */}
+      {/* Social Login (includes accessible divider) */}
       <AuthSocialButtons />
-      {/* Divider */}
-      <div className="flex items-center my-6 gap-2">
-        <Separator className="flex-1 bg-muted-foreground" />
-        <span className="text-sm text-muted-foreground">Or</span>
-        <Separator className="flex-1 bg-muted-foreground" />
-      </div>
       {/* Form */}
       <Form {...form}>
         <form
