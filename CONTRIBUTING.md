@@ -145,6 +145,113 @@ Key test scenarios covered:
 - Dark mode rendering
 
 
+## Shared Components — Transactions
+
+### `DateRangeChip`
+
+`components/transactions/date-range-chip.tsx` is the single date-picker trigger
+chip used throughout the Transactions feature. It renders a button that shows
+either a formatted date (`dd-MM-yyyy`) or a placeholder, and opens a Calendar
+popover on activation.
+
+**Use this component** whenever you need a single-date picker in the
+Transactions feature area. Do **not** write an inline `<Popover>` + `<Button>` +
+`<Calendar>` combination — keep the chip consistent and accessible.
+
+#### Props
+
+| Prop | Type | Required | Description |
+|------|------|----------|-------------|
+| `date` | `Date \| undefined` | ✓ | Selected date, or `undefined` for no selection |
+| `onDateChange` | `(date: Date \| undefined) => void` | ✓ | Called when the user picks a date |
+| `placeholder` | `string` | | Button label when no date is selected. Defaults to `"Pick a date"` |
+| `aria-label` | `string` | | Accessible name for the trigger button. Falls back to `placeholder` |
+| `disabledDate` | `(date: Date) => boolean` | | Predicate to disable specific calendar days |
+| `open` | `boolean` | | Controlled popover open state. Pair with `onOpenChange` |
+| `onOpenChange` | `(open: boolean) => void` | | Called when the popover open state should change |
+
+#### Controlled vs. uncontrolled
+
+The component supports **both** patterns:
+
+```tsx
+// ── Uncontrolled (Popover manages its own open state) ──────────────────
+// Used by components/transactions/date.tsx
+<DateRangeChip
+  date={selectedDate}
+  onDateChange={setSelectedDate}
+  placeholder="Pick a date"
+/>
+
+// ── Controlled (parent manages open state and closes on selection) ─────
+// Used by components/transactions/transactions-header.tsx
+const [open, setOpen] = useState(false);
+
+<DateRangeChip
+  date={fromDate}
+  onDateChange={(date) => { if (date) { onFromDateChange(date); setOpen(false); } }}
+  placeholder="From"
+  aria-label="Filter from date"
+  open={open}
+  onOpenChange={setOpen}
+  disabledDate={(d) => toDate ? d > toDate : false}
+/>
+```
+
+#### Accessibility (WCAG 2.1 AA)
+
+- The trigger button carries an explicit `aria-label` (from the prop, or
+  derived from `placeholder`). Screen readers announce the purpose of the
+  picker without relying on the visual icon.
+- The `<CalendarIcon>` is `aria-hidden="true"` — it is purely decorative.
+- The trigger inherits the project-wide `focus-visible` ring (3 px via
+  `focus-visible:ring-[3px]`), satisfying the 3∶1 non-text contrast requirement
+  for focus indicators.
+- Keyboard navigation inside the calendar grid is handled by the underlying
+  Radix + react-day-picker primitives (Arrow keys, Page Up/Down, Home/End,
+  Enter/Space to select).
+- The `to` separator in the date range (`aria-hidden="true"`) is hidden from
+  the accessibility tree so it is not announced twice.
+
+#### Sizing and overflow
+
+The button uses a fixed `w-[140px]`, which:
+
+- accommodates the widest possible `formatDateForDisplay` output (`dd-MM-yyyy`
+  = 10 characters) plus the calendar icon and padding, and
+- prevents the overflow regression caused by the former `w-[2000px]` typo that
+  was present in `transactions-header.tsx`.
+
+Long placeholder strings and formatted dates are truncated with CSS
+(`truncate` / `overflow-hidden`) and never break the layout.
+
+#### Responsive behaviour
+
+The chip width (`140px`) is intentionally fixed across all breakpoints because
+date strings have a predictable maximum length. The parent layout adjusts
+(e.g. `flex-col` on mobile → `flex-row lg:flex-row` in the header) while the
+chip itself stays the same size.
+
+#### Tests
+
+Unit tests live in `components/transactions/date-range-chip.test.tsx` and
+cover:
+
+- Rendering — placeholder and formatted-date display
+- Accessibility — `aria-label`, `aria-hidden` icon
+- Controlled open state — `open` prop reflected on the popover root
+- `onDateChange` callback — called with the selected `Date`
+- `disabledDate` predicate — passed through to the Calendar stub
+- Edge cases — `undefined` date, long strings, re-renders, prop changes
+- Integration patterns — controlled (TransactionsHeader) and uncontrolled
+  (Date component) usage
+
+Run them with:
+
+```bash
+npm run test -- date-range-chip
+```
+
 ## Data-Layer Rules
 
 We enforce a strict separation of concerns for data access.
