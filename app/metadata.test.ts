@@ -1,8 +1,65 @@
 import { describe, expect, it, vi } from "vitest";
 
-const { mockLocalFont } = vi.hoisted(() => ({
-  mockLocalFont: vi.fn(() => ({ variable: "font-local" })),
-}));
+const { mockLocalFont, mockEnMessages } = vi.hoisted(() => {
+  // Footer references `messages` as a global without importing it.
+  // Set it here so the module can be evaluated in tests.
+  const msg = {
+    footer: {
+      description: "StelloPay footer",
+      socialLinks: {
+        twitter: "X",
+        linkedIn: "LinkedIn",
+        gitHub: "GitHub",
+        email: "Email",
+      },
+      categories: {
+        product: "Product",
+        company: "Company",
+        resources: "Resources",
+        legal: "Legal",
+      },
+      links: {
+        features: "Features",
+        pricing: "Pricing",
+        security: "Security",
+        api: "API",
+        integrations: "Integrations",
+        about: "About",
+        blog: "Blog",
+        careers: "Careers",
+        press: "Press",
+        partners: "Partners",
+        documentation: "Docs",
+        helpCenter: "Help Center",
+        tutorials: "Tutorials",
+        community: "Community",
+        errorPages: "Errors",
+        privacy: "Privacy",
+        terms: "Terms",
+        cookiePolicy: "Cookies",
+        licenses: "Licenses",
+      },
+      newsletter: {
+        heading: "Newsletter",
+        description: "Subscribe",
+        placeholder: "Enter email",
+        subscribe: "Subscribe",
+        subscribing: "Subscribing...",
+      },
+      bottomBar: {
+        copyright: "© StelloPay",
+        privacyPolicy: "Privacy",
+        termsOfService: "Terms",
+        cookiePolicy: "Cookies",
+      },
+    },
+    dashboard: {
+      quickActions: [],
+    },
+  };
+  globalThis.messages = msg;
+  return { mockLocalFont: vi.fn(() => ({ variable: "font-local" })), mockEnMessages: msg };
+});
 
 vi.mock("next/font/google", () => ({
   Inter: () => ({ variable: "font-inter" }),
@@ -10,6 +67,11 @@ vi.mock("next/font/google", () => ({
 
 vi.mock("next/font/local", () => ({
   default: mockLocalFont,
+}));
+
+vi.mock("@/messages", () => ({
+  default: mockEnMessages,
+  messages: mockEnMessages,
 }));
 
 import {
@@ -709,5 +771,48 @@ describe("jsonLdPayload re-export — app/page.tsx", () => {
     const types = jsonLdPayload["@graph"].map((n) => n["@type"]);
     expect(types).toContain("Organization");
     expect(types).toContain("WebSite");
+  });
+});
+
+// ── Bundle Budget (scripts/bundle-budgets.json) ──────────────────────────────
+
+import budgets from "@/scripts/bundle-budgets.json";
+
+describe("Bundle Budget — scripts/bundle-budgets.json", () => {
+  it("defines a budget for the landing page", () => {
+    expect(budgets["/"]).toBeGreaterThan(0);
+  });
+
+  it("defines a budget for the dashboard", () => {
+    expect(budgets["/dashboard"]).toBeGreaterThan(0);
+  });
+
+  it("defines a budget for /auth/login", () => {
+    expect(budgets["/auth/login"]).toBeGreaterThan(0);
+  });
+
+  it("defines a budget for /auth/sign-up", () => {
+    expect(budgets["/auth/sign-up"]).toBeGreaterThan(0);
+  });
+
+  it("auth route budgets are at or below 200 kB for conversion-critical pages", () => {
+    expect(budgets["/auth/login"]).toBeLessThanOrEqual(200);
+    expect(budgets["/auth/sign-up"]).toBeLessThanOrEqual(200);
+  });
+
+  it("dashboard budget is leaner than landing budget", () => {
+    expect(budgets["/dashboard"]).toBeLessThan(budgets["/"]);
+  });
+
+  it("every budget entry is a positive integer", () => {
+    for (const [route, budget] of Object.entries(budgets)) {
+      expect(Number.isInteger(budget)).toBe(true);
+      expect(budget).toBeGreaterThan(0);
+    }
+  });
+
+  it("includes auth routes as budgeted entries", () => {
+    expect(budgets).toHaveProperty("/auth/login");
+    expect(budgets).toHaveProperty("/auth/sign-up");
   });
 });

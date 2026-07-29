@@ -604,6 +604,10 @@ We maintain a CI-enforced bundle budget for key routes to ensure fast first-load
 Route Budget Current First Load JS
 / (Landing) 225 kB 213 kB
 /dashboard 180 kB 165 kB
+/auth/login 200 kB TBD
+/auth/sign-up 200 kB TBD
+These budgets are enforced in CI by `scripts/check-bundle-size.js`. The auth routes are intentionally kept at or below 200 kB first-load JS because they are conversion-critical pages that must load quickly for users arriving from marketing campaigns.
+
 To run the bundle analyzer locally:
 
 Bash
