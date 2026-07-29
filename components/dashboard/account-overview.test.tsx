@@ -62,7 +62,7 @@ describe("AccountOverview", () => {
     window.localStorage.clear();
   });
 
-  it("renders correctly when wallet is disconnected", () => {
+  it("renders correctly when wallet is disconnected", async () => {
     renderWithWallet(null);
 
     expect(
@@ -72,9 +72,13 @@ describe("AccountOverview", () => {
     expect(
       screen.getByText("Connect your Stellar wallet to view balances and send payments."),
     ).toBeInTheDocument();
-    expect(screen.getByText("Total Balance")).toBeInTheDocument();
-    expect(screen.getByText("Paid This Month")).toBeInTheDocument();
-    expect(screen.getByText("To Be Paid")).toBeInTheDocument();
+
+    // Cards load asynchronously — wait for the skeleton to be replaced.
+    await waitFor(() => {
+      expect(screen.getByText("Total Balance")).toBeInTheDocument();
+      expect(screen.getByText("Paid This Month")).toBeInTheDocument();
+      expect(screen.getByText("To Be Paid")).toBeInTheDocument();
+    });
   });
 
   it("renders correctly when wallet is connected", () => {
@@ -396,10 +400,15 @@ describe("AccountOverview – error state", () => {
   });
 
   it("clicking Retry re-triggers the load and shows success on recovery", async () => {
-    // First call throws, second call succeeds.
-    const spy = vi.spyOn(summaryDataModule, 'summaryCardsData', 'get')
+    // Capture the real data BEFORE installing the spy so that accessing
+    // summaryDataModule.summaryCardsData as the mockReturnValue argument does
+    // not accidentally consume the one-time throw.
+    const realData = summaryDataModule.summaryCardsData;
+
+    // First call throws, second call returns the real data.
+    vi.spyOn(summaryDataModule, 'summaryCardsData', 'get')
       .mockImplementationOnce(() => { throw new Error("transient error"); })
-      .mockReturnValue(summaryDataModule.summaryCardsData);
+      .mockReturnValue(realData);
 
     render(
       <WalletProvider initialAddress={null}>
@@ -410,9 +419,6 @@ describe("AccountOverview – error state", () => {
     await waitFor(() => {
       expect(screen.getByTestId("summary-error")).toBeInTheDocument();
     });
-
-    // Restore so the second call succeeds.
-    spy.mockRestore();
 
     await act(async () => {
       fireEvent.click(screen.getByRole("button", { name: /retry/i }));
