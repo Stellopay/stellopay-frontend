@@ -136,6 +136,20 @@ We exclusively use the **Next.js App Router** (no `pages/` directory). Here is o
 - `lib/`: Business logic, third-party service clients, and data access.
 - `utils/`: Small utility functions and helpers.
 - `types/`: TypeScript definitions and interfaces.
+- `messages/`: Centralized i18n JSON copy dictionary (`en.json`) and TypeScript helper module (`index.ts`).
+
+## Internationalization (i18n) Copy Extraction
+
+To prepare for `next-intl` localization, avoid hardcoding inline English string literals directly inside JSX components.
+
+1. **Extract strings to `messages/en.json`**: Store copy structured by domain/component key (e.g. `dashboard.quickActions`, `footer`).
+2. **Reference from `messages`**: Import `messages` from `@/messages` and reference string fields.
+3. **Leave a `next-intl` marker**: Place a comment above component imports:
+   ```tsx
+   import { messages } from "@/messages";
+
+   // TODO: Replace direct import of messages with next-intl useTranslations() hook once i18n is enabled.
+   ```
 
 ## Settings Search Feature
 
@@ -479,6 +493,39 @@ For example, when testing an unsaved changes guard, ensure the test:
 ### Security Notes
 
 Examples must not include real secrets, tokens, or addresses. Always use placeholder domains (e.g., `example.com`) and redacted addresses in your tests and mockups.
-## Local Accessibility Testing Guide
-Before opening a pull request, please ensure your changes comply with our accessibility guidelines (targeting WCAG 2.1 AA compliance).
-Refer to the full manual and automated criteria in [design/a11y-checklist.md](design/a11y-checklist.md).
+
+## Navbar Active Route Management (#785)
+
+The application navbar (`components/common/navbar.tsx`) derives active route styling from `usePathname()` via `next/navigation`.
+
+### Standards & Guidelines
+- **Single Source of Truth**: Never persist active route state in local component state (`useState`).
+- **In-Page Nav Sync**: Dynamic URL updates from inline links automatically re-render active navbar indicators.
+- **Accessibility (WCAG 2.1 AA)**:
+  - Active navigation links receive `aria-current="page"`.
+  - Color contrast (`bg-primary/10 text-primary`) meets minimum requirements across light/dark modes.
+  - Mobile dropdown drawer includes complete `aria-expanded` and `aria-controls` bindings.
+
+## Navbar Active Route Management (#785)
+
+The application navbar (`components/common/navbar.tsx`) derives active route styling from `usePathname()` via `next/navigation`.
+
+### Standards & Guidelines
+- **Single Source of Truth**: Never persist active route state in local component state (`useState`).
+- **In-Page Nav Sync**: Dynamic URL updates from inline links automatically re-render active navbar indicators.
+- **Accessibility (WCAG 2.1 AA)**:
+  - Active navigation links receive `aria-current="page"`.
+  - Color contrast (`bg-primary/10 text-primary`) meets minimum requirements across light/dark modes.
+  - Mobile dropdown drawer includes complete `aria-expanded` and `aria-controls` bindings.
+
+## Navbar Active Route Management (#785)
+
+The application navbar (`components/common/navbar.tsx`) derives active route styling from `usePathname()` via `next/navigation`.
+
+### Standards & Guidelines
+- **Single Source of Truth**: Never persist active route state in local component state (`useState`).
+- **In-Page Nav Sync**: Dynamic URL updates from inline links automatically re-render active navbar indicators.
+- **Accessibility (WCAG 2.1 AA)**:
+  - Active navigation links receive `aria-current="page"`.
+  - Color contrast (`bg-primary/10 text-primary`) meets minimum requirements across light/dark modes.
+  - Mobile dropdown drawer includes complete `aria-expanded` and `aria-controls` bindings.
