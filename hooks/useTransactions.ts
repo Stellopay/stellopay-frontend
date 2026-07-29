@@ -150,6 +150,7 @@ export function useTransactions(
       });
 
     return () => {
+      // Abort in-flight request on unmount or dependency change
       controller.abort();
     };
   }, [
