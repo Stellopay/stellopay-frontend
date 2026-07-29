@@ -14,7 +14,7 @@ import { Badge } from "@/components/ui/badge";
 import Image from "next/image";
 import { Skeleton } from "@/components/ui/skeleton";
 import { TransactionTableSkeleton } from "@/components/ui/table-skeleton";
-import { getStatusColor } from "@/utils/transactionUtils";
+import { getStatusColor, getStatusIcon } from "@/utils/transactionUtils";
 import { truncateStellarAddress } from "@/utils/stellarAddress";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -57,6 +57,8 @@ function TransactionQuickViewDialog({
 }) {
   if (!transaction) return null;
 
+  const StatusIcon = getStatusIcon(transaction.status);
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
@@ -80,6 +82,7 @@ function TransactionQuickViewDialog({
               aria-label={`Status: ${transaction.status}`}
               className={getStatusColor(transaction.status)}
             >
+              <StatusIcon className="size-4" aria-hidden="true" />
               <span className="text-sm">{transaction.status}</span>
             </Badge>
           </DialogTitle>
@@ -479,7 +482,9 @@ export function TransactionsTable({
                 </TableCell>
               </TableRow>
             ) : (
-              transactions.map((transaction, index) => (
+              transactions.map((transaction, index) => {
+                const StatusIcon = getStatusIcon(transaction.status);
+                return (
                 <TableRow
                   key={transaction.id ?? index}
                   className="border border-[#2D2D2D]"
@@ -528,6 +533,7 @@ export function TransactionsTable({
                       aria-label={`Status: ${transaction.status}`}
                       className={getStatusColor(transaction.status)}
                     >
+                      <StatusIcon className="size-4" aria-hidden="true" />
                       <span className="text-sm">{transaction.status}</span>
                     </Badge>
                   </TableCell>
@@ -562,7 +568,9 @@ export function TransactionsTable({
             />
           </div>
         ) : (
-          transactions.map((transaction, index) => (
+          transactions.map((transaction, index) => {
+            const StatusIcon = getStatusIcon(transaction.status);
+            return (
             <button
               key={index}
               type="button"
@@ -586,15 +594,11 @@ export function TransactionsTable({
                   </p>
                 </div>
                 <Badge
-                  variant={
-                    transaction.status === "Completed"
-                      ? "default"
-                      : transaction.status === "Pending"
-                        ? "secondary"
-                        : "destructive"
-                  }
+                  aria-label={`Status: ${transaction.status}`}
+                  className={getStatusColor(transaction.status)}
                 >
-                  {transaction.status}
+                  <StatusIcon className="size-4" aria-hidden="true" />
+                  <span className="text-sm">{transaction.status}</span>
                 </Badge>
               </div>
               <div className="mt-2 grid grid-cols-2 gap-2">
@@ -625,7 +629,8 @@ export function TransactionsTable({
                 </div>
               </div>
             </button>
-          ))
+            );
+          })
         )}
       </div>
 

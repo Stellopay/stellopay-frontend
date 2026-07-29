@@ -7,6 +7,8 @@ import type {
 import { formatCurrency } from "./formatUtils";
 import { formatDate } from "./date-utils";
 import { applyTransactionFilters } from "@/components/transactions/transactions-config";
+import { CheckCircle2, Clock, XCircle, AlertCircle } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 
 type SortComparable = Date | number | string;
 
@@ -222,4 +224,36 @@ export const UNKNOWN_STATUS_COLOR =
 export const getStatusColor = (status: string): string => {
   const normalizedStatus = status.toLowerCase() as KnownTransactionStatus;
   return STATUS_COLOR_PALETTE[normalizedStatus] ?? UNKNOWN_STATUS_COLOR;
+};
+
+/**
+ * Mapping each known transaction status to a distinct lucide-react icon.
+ * These icons are paired with color badges so the status is communicated
+ * through shape + label, not color alone (WCAG 1.4.1 Use of Color).
+ */
+export const STATUS_ICON_MAP: Readonly<
+  Record<KnownTransactionStatus, LucideIcon>
+> = {
+  completed: CheckCircle2,
+  pending: Clock,
+  failed: XCircle,
+};
+
+/**
+ * Icon used for unrecognised status values.
+ */
+export const UNKNOWN_STATUS_ICON: LucideIcon = AlertCircle;
+
+/**
+ * Returns a lucide-react icon component for the given transaction status.
+ *
+ * The returned component should be rendered with `aria-hidden="true"` since
+ * the accompanying text already conveys the status.
+ *
+ * @param status - Transaction status string (case-insensitive)
+ * @returns A lucide-react icon component
+ */
+export const getStatusIcon = (status: string): LucideIcon => {
+  const normalizedStatus = status.toLowerCase() as KnownTransactionStatus;
+  return STATUS_ICON_MAP[normalizedStatus] ?? UNKNOWN_STATUS_ICON;
 };

@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useMemo, useCallback } from "react";
+import { useSearchParams } from "next/navigation";
 import TransactionHeader from "@/components/dashboard/transaction-header";
 import { TransactionsTable } from "@/components/transactions/transactions-table";
 import TransactionsPagination from "@/components/transactions/transactions-pagination";
@@ -24,9 +25,12 @@ const getTokenIcon = (token: string): string => {
 };
 
 const Transactions = () => {
+  const searchParamsFromUrl = useSearchParams();
+  const initialFilter = searchParamsFromUrl.get("filter") ?? "";
+
   const [currentPage, setCurrentPage] = useState(1);
   const [searchParams, setSearchParams] = useState("");
-  const [filterParams, setFilterParams] = useState("");
+  const [filterParams, setFilterParams] = useState(initialFilter);
   const [minAmount, setMinAmount] = useState<number | undefined>(undefined);
   const [maxAmount, setMaxAmount] = useState<number | undefined>(undefined);
   const [startDate, setStartDate] = useState<Date | undefined>(undefined);

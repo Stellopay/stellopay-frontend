@@ -14,8 +14,146 @@ import {
   PieChart,
   AlertCircle,
   RefreshCw,
+  Copy,
+  Check,
+  X,
 } from "lucide-react";
 import { formatAddress, useWallet } from "@/context/wallet-context";
+import { copyToClipboardWithTimeout } from "@/utils/clipboardUtils";
+
+// ─── Copy feedback types ──────────────────────────────────────────────────────
+
+type CopyStatus = "idle" | "copied" | "error";
+
+/**
+ * Inline copy-to-clipboard button for a truncated Stellar address.
+ *
+ * Uses {@link copyToClipboardWithTimeout} to set `copied` state for 2 s.
+ * A separate error path is handled via the Promise result so the caller
+ * can also show a transient error indicator.
+ *
+ * Accessibility:
+ * - `aria-label` updates to describe the current state (idle / success / error).
+ * - An `aria-live="polite"` region outside the button announces the copy result
+ *   to screen readers without interrupting ongoing speech.
+ * - Icons are `aria-hidden` — meaning is conveyed through the label and live region.
+ * - The button is keyboard-operable and carries a visible focus ring via
+ *   `focus-visible:ring-2`.
+ *
+ * @param address   Full (non-truncated) Stellar address to copy.
+ * @param className Extra classes forwarded to the wrapper element.
+ */
+function CopyAddressButton({
+  address,
+  className = "",
+}: {
+  address: string;
+  className?: string;
+}) {
+  const [copyStatus, setCopyStatus] = useState<CopyStatus>("idle");
+
+  // copyToClipboardWithTimeout calls the built-in window.alert() when the copy
+  // fails (both the Clipboard API path and the execCommand fallback failed).
+  // To detect that failure and show a UI error state instead of a blocking
+  // dialog, we temporarily replace window.alert inside the click handler,
+  // capture whether it was invoked, then restore the original immediately after
+  // the Promise settles.  This approach avoids modifying the shared utility and
+  // keeps the spec requirement (use copyToClipboardWithTimeout) intact.
+  const handleCopyWithErrorDetect = useCallback(() => {
+    const originalAlert = window.alert;
+    let failed = false;
+
+    window.alert = (_msg: string) => {
+      failed = true;
+    };
+
+    const setCopied = (value: boolean) => {
+      if (value) {
+        window.alert = originalAlert; // restore early on success
+        setCopyStatus("copied");
+      } else {
+        setCopyStatus("idle");
+      }
+    };
+
+    copyToClipboardWithTimeout(address, setCopied, 2000).then(() => {
+      window.alert = originalAlert;
+      if (failed) {
+        setCopyStatus("error");
+        setTimeout(() => setCopyStatus("idle"), 3000);
+      }
+    });
+  }, [address]);
+
+  const ariaLabel =
+    copyStatus === "copied"
+      ? "Address copied"
+      : copyStatus === "error"
+        ? "Copy failed — try again"
+        : "Copy wallet address";
+
+  const announcement =
+    copyStatus === "copied"
+      ? "Wallet address copied to clipboard."
+      : copyStatus === "error"
+        ? "Failed to copy address. Please try again."
+        : "";
+
+  return (
+    <span className={`inline-flex items-center gap-1.5 ${className}`}>
+      <button
+        type="button"
+        onClick={handleCopyWithErrorDetect}
+        data-testid="copy-address-button"
+        aria-label={ariaLabel}
+        className={[
+          "inline-flex items-center gap-1 px-2 py-1 rounded-md text-sm font-medium",
+          "text-zinc-500 dark:text-zinc-400",
+          "hover:text-zinc-900 dark:hover:text-white",
+          "hover:bg-zinc-100 dark:hover:bg-zinc-800",
+          "focus:outline-none focus-visible:ring-2 focus-visible:ring-zinc-400 dark:focus-visible:ring-zinc-500 focus-visible:ring-offset-1",
+          "transition-colors",
+          copyStatus === "copied"
+            ? "text-emerald-600 dark:text-emerald-400"
+            : copyStatus === "error"
+              ? "text-destructive dark:text-destructive"
+              : "",
+        ]
+          .filter(Boolean)
+          .join(" ")}
+      >
+        {copyStatus === "copied" ? (
+          <>
+            <Check className="w-4 h-4" aria-hidden="true" />
+            <span>Copied</span>
+          </>
+        ) : copyStatus === "error" ? (
+          <>
+            <X className="w-4 h-4" aria-hidden="true" />
+            <span>Failed</span>
+          </>
+        ) : (
+          <>
+            <Copy className="w-4 h-4" aria-hidden="true" />
+            <span>Copy</span>
+          </>
+        )}
+      </button>
+      {/* aria-live region — announces state changes to screen readers without
+          requiring focus to be on the button. Kept outside the button itself
+          so the live announcement fires independently of the button re-render. */}
+      <span
+        role="status"
+        aria-live="polite"
+        aria-atomic="true"
+        data-testid="copy-address-announcement"
+        className="sr-only"
+      >
+        {announcement}
+      </span>
+    </span>
+  );
+}
 
 // ─── Loading / error state types ─────────────────────────────────────────────
 
@@ -110,6 +248,7 @@ export default function AccountOverview() {
               >
                 {formattedAddress}
               </span>
+              <CopyAddressButton address={address ?? ""} />
               <span className="animate-bounce">👋</span>
             </>
           ) : (
