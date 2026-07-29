@@ -1,0 +1,25 @@
+<svg width="200" height="200" viewBox="0 0 200 200" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <circle cx="100" cy="100" r="90" fill="url(#b-ease-bg)" opacity="0.15"/>
+  <rect x="45" y="55" width="110" height="90" rx="12" fill="url(#b-ease-screen)" stroke="white" stroke-width="2"/>
+  <rect x="55" y="70" width="90" height="8" rx="4" fill="white" opacity="0.4"/>
+  <rect x="55" y="85" width="60" height="6" rx="3" fill="white" opacity="0.25"/>
+  <rect x="55" y="97" width="70" height="6" rx="3" fill="white" opacity="0.25"/>
+  <rect x="55" y="109" width="40" height="6" rx="3" fill="white" opacity="0.25"/>
+  <rect x="55" y="125" width="90" height="10" rx="5" fill="white" opacity="0.3"/>
+  <circle cx="155" cy="65" r="12" fill="url(#b-ease-cursor)"/>
+  <path d="M158 61L152 69" stroke="white" stroke-width="2" stroke-linecap="round"/>
+  <defs>
+    <linearGradient id="b-ease-bg" x1="100" y1="10" x2="100" y2="190" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#83A7FF"/>
+      <stop offset="1" stop-color="#8B5CF6"/>
+    </linearGradient>
+    <linearGradient id="b-ease-screen" x1="100" y1="55" x2="100" y2="145" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#83A7FF"/>
+      <stop offset="1" stop-color="#8B5CF6"/>
+    </linearGradient>
+    <linearGradient id="b-ease-cursor" x1="155" y1="53" x2="155" y2="77" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#83A7FF"/>
+      <stop offset="1" stop-color="#8B5CF6"/>
+    </linearGradient>
+  </defs>
+</svg>
