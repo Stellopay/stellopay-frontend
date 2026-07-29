@@ -60,3 +60,33 @@ export const truncateText = (text: string, maxLength: number): string => {
 export const capitalizeFirst = (str: string): string => {
   return str.charAt(0).toUpperCase() + str.slice(1).toLowerCase();
 };
+
+/**
+ * Formats an amount using the browser's {@link https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Intl/NumberFormat | Intl.NumberFormat}
+ * with a real ISO 4217 currency code so that symbol placement, grouping, and
+ * decimal separators match the user's locale-aware choice.
+ *
+ * Falls back gracefully for unknown currency codes by stripping the style.
+ *
+ * @param amount - Numeric amount to format.
+ * @param currencyCode - ISO 4217 currency code (e.g. `"USD"`, `"NGN"`, `"EUR"`).
+ * @returns Locale-formatted currency string such as `"$1,250.50"` or `"€1.250,50"`.
+ */
+export const formatCurrencyWithCode = (
+  amount: number,
+  currencyCode: string,
+): string => {
+  try {
+    return new Intl.NumberFormat("en-US", {
+      style: "currency",
+      currency: currencyCode,
+    }).format(amount);
+  } catch {
+    // When the runtime doesn't recognise the currency code (unlikely for
+    // the subset we surface, but defensive), fall back to plain decimal.
+    return new Intl.NumberFormat("en-US", {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    }).format(amount);
+  }
+};

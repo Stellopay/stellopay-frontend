@@ -17,16 +17,23 @@ export type SortField = Extract<
 >;
 export type SortDirection = "asc" | "desc";
 
+/**
+ * A single sort criterion: which field to sort by and in which direction.
+ */
+export interface SortConfig {
+  field: SortField;
+  direction: SortDirection;
+}
+
 export interface TransactionFilters {
   searchQuery: string;
   filterQuery: string;
   fromDate: string;
   toDate: string;
   selectedFilter: string;
-  sortField: SortField;
-  sortDirection: SortDirection;
-  minAmount?: number;
-  maxAmount?: number;
+  /** Ordered list of sort criteria. The first entry is the primary sort,
+   *  the second (if present) is the secondary (tiebreaker) sort, etc. */
+  sortConfigs: SortConfig[];
 }
 
 export interface TransactionProps {
@@ -60,13 +67,8 @@ export interface TransactionsHeaderProps {
 export interface TransactionsFiltersProps {
   searchQuery: string;
   selectedFilter: string;
-  sortField: SortField;
-  sortDirection: SortDirection;
+  sortConfigs: SortConfig[];
   onSearchChange: (query: string) => void;
   onFilterChange: (filter: string) => void;
-  onSort: (field: SortField) => void;
-  minAmount?: number;
-  maxAmount?: number;
-  onMinAmountChange?: (amount: number | undefined) => void;
-  onMaxAmountChange?: (amount: number | undefined) => void;
+  onSort: (field: SortField, options?: { shiftKey?: boolean }) => void;
 }
