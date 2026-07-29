@@ -13,6 +13,20 @@ import SecurityTab, {
   createApiKeySecret,
   getVerificationCodeError,
 } from "./security-tab";
+import { verifyTotpCode } from "@/lib/totp";
+
+vi.mock("@/lib/totp", () => ({
+  generateTotpSecret: () => ({
+    base32: "JBSWY3DPEHPK3PXP",
+    otpauthUrl: "otpauth://totp/Stellopay:test?secret=JBSWY3DPEHPK3PXP",
+  }),
+  verifyTotpCode: vi.fn(() => true),
+}));
+
+vi.mock("qrcode", () => ({
+  default: { toDataURL: vi.fn(() => Promise.resolve("data:image/png;base64,iVBORw0KGgo=")) },
+  toDataURL: vi.fn(() => Promise.resolve("data:image/png;base64,iVBORw0KGgo=")),
+}));
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -1102,7 +1116,7 @@ describe("SecurityTab — 2FA verification submit", () => {
   });
 
   it("failed submission: clears the verification code input (security) and shows a server error inline", async () => {
-    vi.spyOn(Math, "random").mockReturnValue(0.95);
+    vi.mocked(verifyTotpCode).mockReturnValueOnce(false);
     const onChange = vi.fn();
     const { input, getVerifyButton } = openSetupPanelWith({
       onTwoFactorEnabledChange: onChange,
@@ -1134,7 +1148,7 @@ describe("SecurityTab — 2FA verification submit", () => {
   });
 
   it("failed submission: after the input is cleared, re-typing a valid code re-enables submit", async () => {
-    vi.spyOn(Math, "random").mockReturnValue(0.95);
+    vi.mocked(verifyTotpCode).mockReturnValueOnce(false);
     const { input, getVerifyButton } = openSetupPanelWith();
 
     fireEvent.change(input, { target: { value: "121212" } });
@@ -1156,7 +1170,7 @@ describe("SecurityTab — 2FA verification submit", () => {
 
 describe("SecurityTab — 2FA verification security", () => {
   it("never logs the actual verification code to console during a failed submit", async () => {
-    vi.spyOn(Math, "random").mockReturnValue(0.95);
+    vi.mocked(verifyTotpCode).mockReturnValueOnce(false);
     const consoleSpy = vi
       .spyOn(console, "log")
       .mockImplementation(() => void 0);
