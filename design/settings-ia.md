@@ -59,6 +59,7 @@ This keeps destructive actions deliberate and reduces accidental activation risk
 The intended click depth from `/settings/preferences` is:
 
 - Change profile fields: 1 section tap + 1 save action
+- Change profile photo crop: 1 section tap + photo action + crop/save interaction
 - Adjust notification priorities: 1 section tap + 1 toggle
 - Change password: 1 section tap + form interaction
 - Create, rotate, or revoke an API key: 1 section tap + key action + typed confirmation for rotate/revoke
@@ -104,9 +105,13 @@ Generated screenshots:
 - `design/screenshots/settings-desktop.png`
 - `design/screenshots/settings-mobile.png`
 
-The statements change is a settings-tab addition only. Capture updated
-screenshots when the visual regression pass is run for the broader settings
-surface.
+## Status feedback
+
+A single Sonner `Toaster` is mounted once in `app/layout.tsx` (inside `ThemeProvider`, wrapping `components/ui/toaster.tsx`) so it tracks the app's resolved light/dark theme instead of the OS-only default. It renders bottom-right with `richColors` and a keyboard-dismissible close button.
+
+`wallets-section.tsx` has been migrated off its ad hoc status paragraph onto `toast.success` / `toast.error` calls for both the wallet-safeguards save flow and the wallet-removal confirmation. Sonner's toast region is wrapped in `aria-live="polite"`, so save/remove outcomes are announced to assistive tech without any bespoke status markup.
+
+`account-section.tsx` still uses its own inline status paragraph; migrating it to the shared toast pattern is tracked as follow-up work, not part of this pass.
 
 ## Security API Keys
 

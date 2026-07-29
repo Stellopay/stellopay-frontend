@@ -15,6 +15,10 @@ import TransactionsFilters from "./transactions-filters";
 import { TransactionsTable } from "./transactions-table";
 import TransactionsPagination from "./transactions-pagination";
 import { ErrorState } from "@/components/ui/error-state";
+import AdvancedFilterPanel, {
+  type AdvancedFilterValues,
+} from "./advanced-filter-panel";
+import FilterChips, { type FilterChip } from "./filter-chips";
 import {
   TRANSACTIONS_PAGE_SIZE,
   getDefaultDateRange,
@@ -48,6 +52,41 @@ const toTransactionProps = (t: Transaction): TransactionProps => ({
   tokenIcon: getTokenIcon(t.token),
 });
 
+/** Build active filter chips from current filter state. */
+function buildFilterChips(filters: TransactionFilters): FilterChip[] {
+  const chips: FilterChip[] = [];
+
+  if (filters.selectedFilter !== "All Transactions") {
+    chips.push({
+      key: "status",
+      label: "Status",
+      value: filters.selectedFilter,
+    });
+  }
+  if (filters.minAmount !== undefined) {
+    chips.push({
+      key: "minAmount",
+      label: "Min",
+      value: `$${filters.minAmount}`,
+    });
+  }
+  if (filters.maxAmount !== undefined) {
+    chips.push({
+      key: "maxAmount",
+      label: "Max",
+      value: `$${filters.maxAmount}`,
+    });
+  }
+  if (filters.counterparty) {
+    chips.push({
+      key: "counterparty",
+      label: "Counterparty",
+      value: filters.counterparty,
+    });
+  }
+  return chips;
+}
+
 export default function TransactionsContent() {
   const [filters, setFilters] = useState<TransactionFilters>(() => ({
     searchQuery: "",
@@ -57,6 +96,7 @@ export default function TransactionsContent() {
     sortConfigs: [{ field: "date", direction: "desc" }],
   }));
   const [currentPage, setCurrentPage] = useState(1);
+  const [advancedPanelOpen, setAdvancedPanelOpen] = useState(false);
   const itemsPerPage = TRANSACTIONS_PAGE_SIZE;
 
   const { data, isLoading, error, refetch } = useTransactions({
@@ -125,6 +165,107 @@ export default function TransactionsContent() {
     [],
   );
 
+  // ── Advanced filter panel helpers ──────────────────────────────────────
+
+  /** Draft values for the open panel (pre-apply). */
+  const advancedPanelValues: AdvancedFilterValues = useMemo(
+    () => ({
+      status: filters.selectedFilter,
+      minAmount:
+        filters.minAmount !== undefined ? String(filters.minAmount) : "",
+      maxAmount:
+        filters.maxAmount !== undefined ? String(filters.maxAmount) : "",
+      counterparty: filters.counterparty ?? "",
+      fromDate: filters.fromDate,
+      toDate: filters.toDate,
+    }),
+    [filters],
+  );
+
+  const [draftPanelValues, setDraftPanelValues] =
+    useState<AdvancedFilterValues>(advancedPanelValues);
+
+  const handlePanelOpenChange = useCallback(
+    (open: boolean) => {
+      if (open) {
+        // Reset draft to current committed values when opening
+        setDraftPanelValues(advancedPanelValues);
+      }
+      setAdvancedPanelOpen(open);
+    },
+    [advancedPanelValues],
+  );
+
+  const handlePanelApply = useCallback(() => {
+    setFilters((prev) => ({
+      ...prev,
+      selectedFilter: draftPanelValues.status,
+      fromDate: draftPanelValues.fromDate || prev.fromDate,
+      toDate: draftPanelValues.toDate || prev.toDate,
+      minAmount:
+        draftPanelValues.minAmount !== ""
+          ? parseFloat(draftPanelValues.minAmount)
+          : undefined,
+      maxAmount:
+        draftPanelValues.maxAmount !== ""
+          ? parseFloat(draftPanelValues.maxAmount)
+          : undefined,
+      counterparty:
+        draftPanelValues.counterparty !== ""
+          ? draftPanelValues.counterparty
+          : undefined,
+    }));
+    setCurrentPage(1);
+    setAdvancedPanelOpen(false);
+  }, [draftPanelValues]);
+
+  const handlePanelClearAll = useCallback(() => {
+    const defaults = getDefaultDateRange();
+    setDraftPanelValues({
+      status: "All Transactions",
+      minAmount: "",
+      maxAmount: "",
+      counterparty: "",
+      fromDate: defaults.fromDate,
+      toDate: defaults.toDate,
+    });
+  }, []);
+
+  const activeChips = useMemo(() => buildFilterChips(filters), [filters]);
+
+  /** Remove a single advanced filter by its key. */
+  const handleChipRemove = useCallback((chipKey: string) => {
+    setFilters((prev) => {
+      switch (chipKey) {
+        case "status":
+          return { ...prev, selectedFilter: "All Transactions" };
+        case "minAmount":
+          return { ...prev, minAmount: undefined };
+        case "maxAmount":
+          return { ...prev, maxAmount: undefined };
+        case "counterparty":
+          return { ...prev, counterparty: undefined };
+        default:
+          return prev;
+      }
+    });
+    setCurrentPage(1);
+  }, []);
+
+  /** Clear all advanced filters (amount range + counterparty) via chips. */
+  const handleClearAllChips = useCallback(() => {
+    setFilters((prev) => ({
+      ...prev,
+      selectedFilter: "All Transactions",
+      minAmount: undefined,
+      maxAmount: undefined,
+      counterparty: undefined,
+    }));
+    setCurrentPage(1);
+  }, []);
+
+
+
   return (
     <div className="min-h-screen text-white mt-4">
       <div className="w-full max-w-7xl mx-auto mb-4">
@@ -143,6 +284,21 @@ export default function TransactionsContent() {
             onSearchChange={(q) => updateFilter("searchQuery", q)}
             onFilterChange={(f) => updateFilter("selectedFilter", f)}
             onSort={handleSort}
+            onAdvancedFilterToggle={() => handlePanelOpenChange(true)}
+            hasAdvancedFilters={
+              filters.selectedFilter !== "All Transactions" ||
+              filters.minAmount !== undefined ||
+              filters.maxAmount !== undefined ||
+              !!filters.counterparty
+            }
+          />
+
+          {/* Active filter chips */}
+          <FilterChips
+            chips={activeChips}
+            onRemove={handleChipRemove}
+            onClearAll={handleClearAllChips}
+            className="px-0 pb-3"
           />
 
           <div className="py-4">
@@ -173,6 +329,17 @@ export default function TransactionsContent() {
           </div>
         </div>
       </div>
+
+      {/* Advanced filter panel (drawer) */}
+      <AdvancedFilterPanel
+        open={advancedPanelOpen}
+        onOpenChange={handlePanelOpenChange}
+        currentValues={draftPanelValues}
+        onValuesChange={setDraftPanelValues}
+        onApply={handlePanelApply}
+        onClearAll={handlePanelClearAll}
+        disabled={isLoading}
+      />
     </div>
   );
 }

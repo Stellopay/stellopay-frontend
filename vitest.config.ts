@@ -38,6 +38,7 @@ export default defineConfig({
         "utils/stellarAddress.ts",
         "utils/commonUtils.ts",
         "types/auth.ts",
+        "types/wallet.ts",
         "lib/api/transactions.ts",
         "app/error.tsx",
         "app/global-error.tsx",

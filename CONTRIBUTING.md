@@ -208,12 +208,19 @@ and debugging stay frictionless.
 
 We expect all new utility functions and business logic to have **minimum 95% test coverage**.
 
-### Testing Hydration Guards and Dynamic Imports
+### Runtime Guard Coverage
 
-When writing client-side hydration guards (`isMounted` patterns) or using `next/dynamic` for heavy components, ensure they are fully tested:
-- Use `renderToString` from `react-dom/server` to test the initial `isMounted=false` SSR state.
-- Test loading and skeleton states independently of the mount state (e.g., passing `isLoading=true`).
-- Ensure fallback skeletons use accessible markup (`aria-busy="true"`, `role="status"`).
+Runtime type guards that validate external payloads must have focused unit tests
+near the type they protect. Cover valid payloads, invalid payloads, and at least
+one representative TypeScript narrowing path. When a broader component or
+context suite also needs the same payload shape, put reusable samples in a
+shared fixture module instead of duplicating them across test files.
+
+Guard-only changes have no visual UI state to screenshot, but the PR should
+say so explicitly. If the guarded payload drives rendered UI, include notes for
+WCAG 2.1 AA contrast, keyboard navigation, ARIA semantics, dark mode, RTL,
+long text, and responsive checks at `sm` 640px, `md` 768px, `lg` 1024px, and
+`xl` 1280px.
 
 ### Test Commands
 
@@ -239,6 +246,16 @@ When writing client-side hydration guards (`isMounted` patterns) or using `next/
   ```
   Runs TypeScript compiler (`tsc --noEmit`) to verify types without building.
 
+### Integration Tests & Guards
+
+When building components that combine UI behaviors (like tab-switching coupled with unsaved-changes guards), write **integration tests** that exercise the combined user flow. 
+
+For example, when testing an unsaved changes guard, ensure the test:
+- Dirties the form state
+- Attempts the guarded action (e.g. switching tabs)
+- Asserts that the guard intercepts the action
+- Confirms both paths (Discard / Stay) to verify the state and UI accurately update.
+
 ## Branching, Commits, and PRs
 
 1. **Branch Naming**: Use descriptive branch names like `feat/feature-name`, `fix/bug-name`, or `docs/doc-update`.
@@ -248,3 +265,6 @@ When writing client-side hydration guards (`isMounted` patterns) or using `next/
 ### Security Notes
 
 Examples must not include real secrets, tokens, or addresses. Always use placeholder domains (e.g., `example.com`) and redacted addresses in your tests and mockups.
+## Local Accessibility Testing Guide
+Before opening a pull request, please ensure your changes comply with our accessibility guidelines (targeting WCAG 2.1 AA compliance).
+Refer to the full manual and automated criteria in [design/a11y-checklist.md](design/a11y-checklist.md).
