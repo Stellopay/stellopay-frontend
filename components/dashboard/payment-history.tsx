@@ -1,6 +1,7 @@
 "use client";
 
 import Image from "next/image";
+import { useRouter } from "next/navigation";
 import { usePaymentHistory } from "@/hooks/usePaymentHistory";
 import { CardSkeleton } from "@/components/ui/card-skeleton";
 import { ErrorState } from "@/components/ui/error-state";
@@ -8,6 +9,7 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { downloadCsv } from "@/utils/csvUtils";
 
 export default function PaymentHistory() {
+  const router = useRouter();
   const { data, isLoading, error, refetch } = usePaymentHistory();
 
   const handleExport = () => {
@@ -46,6 +48,10 @@ export default function PaymentHistory() {
       <EmptyState
         title="No History"
         description="You have no payment history yet."
+        action={{
+          label: "View Transactions",
+          onClick: () => router.push("/transactions"),
+        }}
       />
     );
   }

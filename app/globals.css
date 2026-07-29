@@ -2,6 +2,7 @@
 @import "tw-animate-css";
 
 @custom-variant dark (&:is(.dark *));
+@custom-variant contrast-more (@media (prefers-contrast: more));
 
 html {
   scroll-behavior: smooth;

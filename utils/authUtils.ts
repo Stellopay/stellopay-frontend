@@ -308,7 +308,7 @@ export const isTokenExpired = (
   }
 
   // If no exp claim, consider token as non-expiring (valid)
-  if (parseResult.payload.exp === undefined) {
+  if (parseResult.payload.exp === undefined || parseResult.payload.exp === null) {
     return {
       isValid: true,
       reason: "No expiration claim (token does not expire)",
