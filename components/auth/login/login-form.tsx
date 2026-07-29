@@ -1,7 +1,7 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useForm } from "react-hook-form";
+import { useForm, type FieldErrors } from "react-hook-form";
 import { useState } from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
@@ -16,6 +16,9 @@ import { Loader2 } from "lucide-react";
 import { AuthSocialButtons } from "../auth-social-buttons";
 import { login, AuthError } from "@/lib/api/auth";
 import { loginSchema, LoginFormValues } from "@/types/auth";
+import { safeStorage } from "@/utils/safeStorage";
+
+const REMEMBERED_EMAIL_KEY = "stellopay:rememberedEmail";
 
 /**
  * LoginForm – renders the `/auth/login` page form.
@@ -31,20 +34,43 @@ export function LoginForm() {
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
 
+  const rememberedEmail = safeStorage.getItem(REMEMBERED_EMAIL_KEY);
+
   const form = useForm<LoginFormValues>({
     resolver: zodResolver(loginSchema),
     defaultValues: {
-      email: "",
+      email: rememberedEmail ?? "",
       password: "",
-      rememberMe: false,
+      rememberMe: !!rememberedEmail,
     },
   });
+
+  /** Focus the first field that failed validation so screen-reader users
+   *  can correct it without manually navigating back to the top of the form. */
+  function onValidationError(errors: FieldErrors<LoginFormValues>) {
+    const firstErrorField = Object.keys(errors)[0] as keyof LoginFormValues;
+    if (firstErrorField) {
+      // Exclude hidden inputs (e.g. the native checkbox behind Radix) so
+      // focus always lands on a visible, interactive element.
+      const element = document.querySelector<HTMLElement>(
+        `[name="${firstErrorField}"]:not([type="hidden"])`,
+      );
+      element?.focus();
+    }
+  }
 
   async function onSubmit(_data: LoginFormValues) {
     setIsLoading(true);
     setErrorMessage("");
     try {
       await login(_data);
+      // Persist only a non-sensitive identifier (email). The password is
+      // never written to storage in any branch of this logic.
+      if (_data.rememberMe) {
+        safeStorage.setItem(REMEMBERED_EMAIL_KEY, _data.email);
+      } else {
+        safeStorage.removeItem(REMEMBERED_EMAIL_KEY);
+      }
       // Handle successful login redirect or state update here
     } catch (error) {
       if (error instanceof AuthError) {
@@ -56,7 +82,6 @@ export function LoginForm() {
       setIsLoading(false);
     }
   }
-
 
   return (
     <section className="w-full order-1 lg:order-2">
@@ -94,7 +119,7 @@ export function LoginForm() {
       {/* Form */}
       <Form {...form}>
         <form
-          onSubmit={form.handleSubmit(onSubmit)}
+          onSubmit={form.handleSubmit(onSubmit, onValidationError)}
           className="flex flex-col gap-4"
           noValidate
         >

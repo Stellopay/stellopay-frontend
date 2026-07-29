@@ -7,7 +7,8 @@ import { LoginForm } from "@/components/auth/login/login-form";
  */
 export const metadata: Metadata = {
   title: "Login",
-  description: "Log in to your StelloPay account to access secure blockchain payroll and manage your digital workspace.",
+  description:
+    "Log in to your StelloPay account to access secure blockchain payroll and manage your digital workspace.",
 };
 
 export default function LoginPage() {

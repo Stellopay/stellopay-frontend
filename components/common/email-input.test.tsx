@@ -37,7 +37,9 @@ describe("EmailInput validation on blur", () => {
 
     await userEvent.type(input, "invalid-email");
 
-    expect(screen.queryByText("Please enter a valid email address")).not.toBeInTheDocument();
+    expect(
+      screen.queryByText("Please enter a valid email address"),
+    ).not.toBeInTheDocument();
     expect(input).toHaveAttribute("aria-invalid", "false");
   });
 
@@ -66,12 +68,16 @@ describe("EmailInput validation on blur", () => {
     await userEvent.type(input, "invalid-email");
     await userEvent.click(document.body);
 
-    expect(screen.getByText("Please enter a valid email address")).toBeInTheDocument();
+    expect(
+      screen.getByText("Please enter a valid email address"),
+    ).toBeInTheDocument();
     expect(input).toHaveAttribute("aria-invalid", "true");
 
     await userEvent.type(input, "@example.com");
 
-    expect(screen.queryByText("Please enter a valid email address")).not.toBeInTheDocument();
+    expect(
+      screen.queryByText("Please enter a valid email address"),
+    ).not.toBeInTheDocument();
     expect(input).toHaveAttribute("aria-invalid", "false");
   });
 
@@ -82,20 +88,20 @@ describe("EmailInput validation on blur", () => {
     await userEvent.type(input, "invalid-email");
     await userEvent.click(document.body);
 
-    expect(screen.getByText("Please enter a valid email address")).toBeInTheDocument();
+    expect(
+      screen.getByText("Please enter a valid email address"),
+    ).toBeInTheDocument();
 
     await userEvent.clear(input);
 
-    expect(screen.queryByText("Please enter a valid email address")).not.toBeInTheDocument();
+    expect(
+      screen.queryByText("Please enter a valid email address"),
+    ).not.toBeInTheDocument();
     expect(input).toHaveAttribute("aria-invalid", "false");
   });
 
   it("should concatenate the error ID with other description IDs in aria-describedby when helperText is present", async () => {
-    render(
-      <EmailInputWrapper
-        helperText="We will never share your email"
-      />
-    );
+    render(<EmailInputWrapper helperText="We will never share your email" />);
     const input = screen.getByLabelText("Email address");
     const helperMsg = screen.getByText("We will never share your email");
 
@@ -119,7 +125,7 @@ describe("EmailInput validation on blur", () => {
         onChange={() => {}}
         error={true}
         helperText="Custom submit error message"
-      />
+      />,
     );
 
     const input = screen.getByLabelText("Email address");

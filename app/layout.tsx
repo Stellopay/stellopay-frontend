@@ -1,10 +1,11 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Inter } from "next/font/google";
 import localFont from "next/font/local";
 import "./globals.css";
 import { SidebarProvider } from "@/context/sidebar-context";
 import { ThemeProvider } from "@/context/theme-context";
 import { WalletProvider } from "@/context/wallet-context";
+import { Toaster } from "@/components/ui/toaster";
 
 const inter = Inter({
   variable: "--font-inter",
@@ -34,10 +35,12 @@ export const metadata: Metadata = {
     default: "StelloPay",
     template: "%s | StelloPay",
   },
-  description: "StelloPay — fast, secure blockchain payroll and payments powered by Stellar.",
+  description:
+    "StelloPay — fast, secure blockchain payroll and payments powered by Stellar.",
   openGraph: {
     title: "StelloPay",
-    description: "Fast, secure blockchain payroll and payments powered by Stellar.",
+    description:
+      "Fast, secure blockchain payroll and payments powered by Stellar.",
     url: "https://stellopay.com",
     siteName: "StelloPay",
     images: [
@@ -54,10 +57,23 @@ export const metadata: Metadata = {
   twitter: {
     card: "summary_large_image",
     title: "StelloPay",
-    description: "Fast, secure blockchain payroll and payments powered by Stellar.",
+    description:
+      "Fast, secure blockchain payroll and payments powered by Stellar.",
     images: ["/og-image.png"],
     creator: "@stellopay",
   },
+};
+
+/**
+ * Global viewport configuration per Next.js 15 conventions.
+ */
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: "white" },
+    { media: "(prefers-color-scheme: dark)", color: "black" },
+  ],
 };
 
 export default function RootLayout({
@@ -111,6 +127,7 @@ export default function RootLayout({
           <WalletProvider>
             <SidebarProvider>{children}</SidebarProvider>
           </WalletProvider>
+          <Toaster />
         </ThemeProvider>
       </body>
     </html>

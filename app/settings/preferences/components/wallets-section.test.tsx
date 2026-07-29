@@ -1,10 +1,19 @@
-import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import {
+  act,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+  within,
+} from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import React from "react";
 import { describe, expect, it, vi, beforeEach, afterEach } from "vitest";
 
+import { ThemeProvider } from "@/context/theme-context";
 import { WalletProvider } from "@/context/wallet-context";
 import { DEMO_WALLETS } from "@/lib/demo-data";
+import { Toaster } from "@/components/ui/toaster";
 import WalletsSection from "./wallets-section";
 
 // ---------------------------------------------------------------------------
@@ -37,12 +46,19 @@ function mockClipboardFailure() {
 // Render helper
 // ---------------------------------------------------------------------------
 
-/** Render WalletsSection inside a real WalletProvider. */
+/**
+ * Render WalletsSection inside a real WalletProvider, with the app's
+ * Toaster mounted alongside it (as it is in `app/layout.tsx`) so
+ * `toast.success`/`toast.error` calls actually render into the DOM.
+ */
 function renderWithWallet(initialAddress: string | null = null) {
   return render(
-    <WalletProvider initialAddress={initialAddress}>
-      <WalletsSection />
-    </WalletProvider>,
+    <ThemeProvider>
+      <WalletProvider initialAddress={initialAddress}>
+        <WalletsSection />
+      </WalletProvider>
+      <Toaster />
+    </ThemeProvider>,
   );
 }
 
@@ -125,18 +141,56 @@ describe("WalletsSection – disconnect via danger zone", () => {
       target: { value: "REMOVE" },
     });
     await act(async () => {
-      fireEvent.click(
-        screen.getByRole("button", { name: /^remove wallet$/i }),
-      );
+      fireEvent.click(screen.getByRole("button", { name: /^remove wallet$/i }));
     });
   }
 
-  it("shows the success status message after removal", async () => {
+  it("shows a success toast after removal", async () => {
     renderWithWallet(LIVE_ADDRESS);
     await triggerRemove();
+    await waitFor(() =>
+      expect(
+        screen.getByText(/wallet removal request captured/i),
+      ).toBeInTheDocument(),
+    );
+  });
+
+  it("announces the removal toast to assistive tech via an aria-live region", async () => {
+    renderWithWallet(LIVE_ADDRESS);
+    await triggerRemove();
+    await waitFor(() =>
+      expect(
+        screen.getByText(/wallet removal request captured/i),
+      ).toBeInTheDocument(),
+    );
+
+    const liveRegion = document.querySelector('[aria-live="polite"]');
+    expect(liveRegion).not.toBeNull();
     expect(
-      screen.getByText(/wallet removal request captured/i),
-    ).toBeInTheDocument();
+      liveRegion?.textContent?.toLowerCase(),
+    ).toContain("wallet removal request captured");
+  });
+
+  it("lets keyboard users dismiss the removal toast via the close button", async () => {
+    renderWithWallet(LIVE_ADDRESS);
+    await triggerRemove();
+    await waitFor(() =>
+      expect(
+        screen.getByText(/wallet removal request captured/i),
+      ).toBeInTheDocument(),
+    );
+
+    const closeButton = screen.getByRole("button", { name: /close toast/i });
+    closeButton.focus();
+    expect(closeButton).toHaveFocus();
+
+    await userEvent.keyboard("{Enter}");
+
+    await waitFor(() =>
+      expect(
+        screen.queryByText(/wallet removal request captured/i),
+      ).not.toBeInTheDocument(),
+    );
   });
 
   it("switches to demo cards after disconnect", async () => {
@@ -419,7 +473,8 @@ describe("WalletsSection – copy button on live wallet card", () => {
 // Copy-to-clipboard — added wallet rows
 // ---------------------------------------------------------------------------
 describe("WalletsSection – copy button on added wallet rows", () => {
-  const VALID_ADDRESS = "GBZXN7PIRZGNMHGA7MUUUF4GWPY5AYPGZIXUNYL67X5TVLZN7CI6S2W";
+  const VALID_ADDRESS =
+    "GBZXN7PIRZGNMHGA7MUUUF4GWPY5AYPGZIXUNYL67X5TVLZN7CI6S2W";
 
   beforeEach(() => {
     vi.useFakeTimers();
@@ -509,6 +564,66 @@ describe("WalletsSection – copy button on added wallet rows", () => {
 
     await waitFor(() => {
       expect(within(row).getByText("Failed")).toBeInTheDocument();
+    });
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Save wallet settings — Sonner toast feedback
+// ---------------------------------------------------------------------------
+describe("WalletsSection – save wallet settings toasts", () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  // Real timers throughout this block: sonner dispatches toast updates via
+  // requestAnimationFrame, which vi.useFakeTimers() does not advance, so the
+  // handleSave() 1500ms delay is awaited for real via waitFor() instead.
+
+  it("shows a success toast when saving resolves", async () => {
+    vi.spyOn(Math, "random").mockReturnValue(0.1);
+    renderWithWallet(null);
+
+    await userEvent.click(
+      screen.getByRole("button", { name: /save wallet settings/i }),
+    );
+
+    await waitFor(
+      () =>
+        expect(
+          screen.getByText(/wallet safeguards updated/i),
+        ).toBeInTheDocument(),
+      { timeout: 3000 },
+    );
+  });
+
+  it("shows an error toast when saving rejects", async () => {
+    vi.spyOn(Math, "random").mockReturnValue(0.95);
+    renderWithWallet(null);
+
+    await userEvent.click(
+      screen.getByRole("button", { name: /save wallet settings/i }),
+    );
+
+    await waitFor(
+      () =>
+        expect(screen.getByText(/failed to save changes/i)).toBeInTheDocument(),
+      { timeout: 3000 },
+    );
+  });
+
+  it("re-enables the save button once saving resolves", async () => {
+    vi.spyOn(Math, "random").mockReturnValue(0.1);
+    renderWithWallet(null);
+
+    const button = screen.getByRole("button", {
+      name: /save wallet settings/i,
+    });
+    await userEvent.click(button);
+    expect(button).toBeDisabled();
+
+    await waitFor(() => expect(button).not.toBeDisabled(), {
+      timeout: 3000,
     });
   });
 });

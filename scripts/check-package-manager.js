@@ -5,13 +5,14 @@ const path = require("path");
 
 const disallowed = ["pnpm-lock.yaml", "yarn.lock"];
 const found = disallowed.filter((file) =>
-  fs.existsSync(path.join(__dirname, "..", file))
+  fs.existsSync(path.join(__dirname, "..", file)),
 );
 
 if (found.length > 0) {
   console.error(
-    `\nThis project uses npm only. Found disallowed lockfile(s): ${found.join(", ")}.\n` +
-      "Delete them and use `npm install` / `npm ci` instead.\n"
+    `\nThis project uses npm only. Found disallowed lockfile(s): ${found.join(
+      ", ",
+    )}.\n` + "Delete them and use `npm install` / `npm ci` instead.\n",
   );
   process.exit(1);
 }

@@ -8,7 +8,8 @@ import { Metadata } from "next";
  */
 export const metadata: Metadata = {
   title: "Transactions",
-  description: "View and filter your StelloPay payroll payments history and transaction status on the blockchain.",
+  description:
+    "View and filter your StelloPay payroll payments history and transaction status on the blockchain.",
   robots: {
     index: false,
     follow: false,

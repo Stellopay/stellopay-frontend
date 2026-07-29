@@ -8,7 +8,7 @@ vi.mock("next/font/local", () => ({
   default: () => ({ variable: "font-local" }),
 }));
 
-import { metadata as rootMetadata } from "@/app/layout";
+import { metadata as rootMetadata, viewport as rootViewport } from "@/app/layout";
 import { metadata as dashboardMetadata } from "@/app/dashboard/layout";
 import { metadata as transactionsMetadata } from "@/app/transactions/layout";
 import { metadata as settingsMetadata } from "@/app/settings/preferences/layout";
@@ -25,9 +25,17 @@ describe("Route Metadata Exports", () => {
     expect(rootMetadata.twitter).toBeDefined();
   });
 
+  it("exports a dedicated viewport object on the root layout", () => {
+    expect(rootViewport).toBeDefined();
+    expect(rootViewport.themeColor).toBeDefined();
+    expect(rootViewport.width).toBe("device-width");
+  });
+
   it("each route exports unique page titles and descriptions", () => {
     const titles = [
-      typeof rootMetadata.title === "object" && rootMetadata.title !== null && "default" in rootMetadata.title
+      typeof rootMetadata.title === "object" &&
+      rootMetadata.title !== null &&
+      "default" in rootMetadata.title
         ? rootMetadata.title.default
         : rootMetadata.title,
       dashboardMetadata.title,
@@ -95,7 +103,10 @@ describe("Route Metadata Exports", () => {
     ];
 
     allMetadata.forEach((meta) => {
-      const titleStr = typeof meta.title === "string" ? meta.title : JSON.stringify(meta.title);
+      const titleStr =
+        typeof meta.title === "string"
+          ? meta.title
+          : JSON.stringify(meta.title);
       const descStr = meta.description || "";
 
       // Ensure no dynamically interpolated session/user tags exist in static metadata text

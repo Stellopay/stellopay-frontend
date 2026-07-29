@@ -8,7 +8,8 @@ import { Metadata } from "next";
  */
 export const metadata: Metadata = {
   title: "Preferences",
-  description: "Customize your StelloPay dashboard preferences, currency view, theme, and security parameters.",
+  description:
+    "Customize your StelloPay dashboard preferences, currency view, theme, and security parameters.",
   robots: {
     index: false,
     follow: false,

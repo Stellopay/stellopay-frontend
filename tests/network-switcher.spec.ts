@@ -381,6 +381,27 @@ test.describe.skip("NetworkSwitcher — dialog ARIA labels (issue #343)", () => 
   });
 });
 
+// ─── Unsupported-network warning banner ──────────────────────────────────
+//
+// The unsupported-network banner is triggered when
+// WalletContextValue.isUnsupportedNetwork is true.  Since the app currently
+// only has Stellar in SUPPORTED_NETWORKS, there is no UI path to set the
+// wallet to an unsupported network.  The unit tests in
+// components/common/network-switcher.test.tsx verify the banner logic
+// directly by calling setNetwork with an unsupported network id from inside
+// a WalletProvider-wrapped test harness.
+//
+// The supported-network case (no banner) is tested below.  Once a wallet
+// SDK integration (Freighter, WalletConnect) is wired, the banner E2E
+// coverage can be reinstated with real unsupported-network scenarios.
+test.describe("NetworkSwitcher — unsupported-network banner", () => {
+  test("supported-network state shows no banner", async ({ page }) => {
+    await page.goto(LANDING_URL);
+    const banner = page.locator('[role="alert"]');
+    await expect(banner).toHaveCount(0);
+  });
+});
+
 test.describe("Performance & Trace Validation", () => {
   test("main pages load and have no major layout shift or console errors", async ({ page, context }) => {
     // Start tracing before navigating

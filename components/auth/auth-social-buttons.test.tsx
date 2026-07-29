@@ -2,6 +2,7 @@ import { render, screen, act } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { AuthSocialButtons } from "./auth-social-buttons";
+import { OAuthCallbackError } from "@/lib/api/auth";
 
 // next/image is a server-side Next.js component – replace it with a plain img
 // so tests run correctly in jsdom.
@@ -9,6 +10,17 @@ import { AuthSocialButtons } from "./auth-social-buttons";
 vi.mock("next/image", () => ({
   // eslint-disable-next-line @next/next/no-img-element
   default: ({ alt }: { alt: string }) => <img alt={alt} />,
+}));
+
+// Mock the auth API module
+vi.mock("@/lib/api/auth", () => ({
+  OAuthCallbackError: class OAuthCallbackError extends Error {
+    constructor(message: string, public readonly code: string) {
+      super(message);
+      this.name = "OAuthCallbackError";
+    }
+  },
+  simulateOAuth: vi.fn(),
 }));
 
 // ─── Tests ───────────────────────────────────────────────────────────────────
@@ -21,8 +33,12 @@ describe("AuthSocialButtons", () => {
 
   it("renders both provider buttons", () => {
     render(<AuthSocialButtons />);
-    expect(screen.getByRole("button", { name: /continue with google/i })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /continue with apple/i })).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: /continue with google/i }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: /continue with apple/i }),
+    ).toBeInTheDocument();
   });
 
   it("shows provider logos in the idle state", () => {
@@ -33,8 +49,12 @@ describe("AuthSocialButtons", () => {
 
   it("all buttons are enabled and not busy in the default idle state", () => {
     render(<AuthSocialButtons />);
-    const googleBtn = screen.getByRole("button", { name: /continue with google/i });
-    const appleBtn  = screen.getByRole("button", { name: /continue with apple/i });
+    const googleBtn = screen.getByRole("button", {
+      name: /continue with google/i,
+    });
+    const appleBtn = screen.getByRole("button", {
+      name: /continue with apple/i,
+    });
 
     expect(googleBtn).not.toBeDisabled();
     expect(appleBtn).not.toBeDisabled();
@@ -49,7 +69,9 @@ describe("AuthSocialButtons", () => {
 
   it("disables both buttons and marks google button aria-busy while google flow is in-flight", async () => {
     let resolveFlow!: () => void;
-    const flowPromise = new Promise<void>((res) => { resolveFlow = res; });
+    const flowPromise = new Promise<void>((res) => {
+      resolveFlow = res;
+    });
 
     // Temporarily make the google branch async by patching React.useState
     // is too fragile; instead we test the real component's synchronous guard
@@ -63,11 +85,17 @@ describe("AuthSocialButtons", () => {
     // machine through aria/disabled attributes after settlement.
 
     render(<AuthSocialButtons />);
-    const googleBtn = screen.getByRole("button", { name: /continue with google/i });
-    const appleBtn  = screen.getByRole("button", { name: /continue with apple/i });
+    const googleBtn = screen.getByRole("button", {
+      name: /continue with google/i,
+    });
+    const appleBtn = screen.getByRole("button", {
+      name: /continue with apple/i,
+    });
 
     // Start the click – handler is synchronous today so state settles quickly.
-    await act(async () => { await userEvent.click(googleBtn); });
+    await act(async () => {
+      await userEvent.click(googleBtn);
+    });
 
     // After settlement both buttons must be re-enabled.
     expect(googleBtn).not.toBeDisabled();
@@ -79,10 +107,16 @@ describe("AuthSocialButtons", () => {
 
   it("disables both buttons and marks apple button aria-busy while apple flow is in-flight", async () => {
     render(<AuthSocialButtons />);
-    const googleBtn = screen.getByRole("button", { name: /continue with google/i });
-    const appleBtn  = screen.getByRole("button", { name: /continue with apple/i });
+    const googleBtn = screen.getByRole("button", {
+      name: /continue with google/i,
+    });
+    const appleBtn = screen.getByRole("button", {
+      name: /continue with apple/i,
+    });
 
-    await act(async () => { await userEvent.click(appleBtn); });
+    await act(async () => {
+      await userEvent.click(appleBtn);
+    });
 
     expect(googleBtn).not.toBeDisabled();
     expect(appleBtn).not.toBeDisabled();
@@ -95,7 +129,9 @@ describe("AuthSocialButtons", () => {
     // deferred promise injected via a module-level side-effect.
     // For the synchronous-TODO implementation we verify post-click reset.
     render(<AuthSocialButtons />);
-    const googleBtn = screen.getByRole("button", { name: /continue with google/i });
+    const googleBtn = screen.getByRole("button", {
+      name: /continue with google/i,
+    });
 
     await userEvent.click(googleBtn);
 
@@ -107,7 +143,9 @@ describe("AuthSocialButtons", () => {
 
   it("apple button shows spinner (aria-busy=true) while loading, then resets", async () => {
     render(<AuthSocialButtons />);
-    const appleBtn = screen.getByRole("button", { name: /continue with apple/i });
+    const appleBtn = screen.getByRole("button", {
+      name: /continue with apple/i,
+    });
 
     await userEvent.click(appleBtn);
 
@@ -120,8 +158,12 @@ describe("AuthSocialButtons", () => {
   it("a rapid double-click on google does not leave buttons permanently disabled", async () => {
     const user = userEvent.setup();
     render(<AuthSocialButtons />);
-    const googleBtn = screen.getByRole("button", { name: /continue with google/i });
-    const appleBtn  = screen.getByRole("button", { name: /continue with apple/i });
+    const googleBtn = screen.getByRole("button", {
+      name: /continue with google/i,
+    });
+    const appleBtn = screen.getByRole("button", {
+      name: /continue with apple/i,
+    });
 
     await user.dblClick(googleBtn);
 
@@ -132,8 +174,12 @@ describe("AuthSocialButtons", () => {
   it("clicking apple after google completes works independently (no cross-provider lock)", async () => {
     const user = userEvent.setup();
     render(<AuthSocialButtons />);
-    const googleBtn = screen.getByRole("button", { name: /continue with google/i });
-    const appleBtn  = screen.getByRole("button", { name: /continue with apple/i });
+    const googleBtn = screen.getByRole("button", {
+      name: /continue with google/i,
+    });
+    const appleBtn = screen.getByRole("button", {
+      name: /continue with apple/i,
+    });
 
     // Sequentially: google first, then apple.
     await user.click(googleBtn);
@@ -148,8 +194,12 @@ describe("AuthSocialButtons", () => {
     // `disabled={isLoading}`, so a click on one disables the other.
     // userEvent respects the disabled attribute and won't fire onClick.
     render(<AuthSocialButtons />);
-    const googleBtn = screen.getByRole("button", { name: /continue with google/i });
-    const appleBtn  = screen.getByRole("button", { name: /continue with apple/i });
+    const googleBtn = screen.getByRole("button", {
+      name: /continue with google/i,
+    });
+    const appleBtn = screen.getByRole("button", {
+      name: /continue with apple/i,
+    });
 
     // While in-flight (synchronous), both buttons are disabled.
     // After settlement both are re-enabled.
@@ -165,7 +215,9 @@ describe("AuthSocialButtons", () => {
     // defence after the disabled attribute.  We verify it exists by checking
     // that after a completed flow the buttons are in a clean state.
     render(<AuthSocialButtons />);
-    const googleBtn = screen.getByRole("button", { name: /continue with google/i });
+    const googleBtn = screen.getByRole("button", {
+      name: /continue with google/i,
+    });
 
     await userEvent.click(googleBtn);
 
@@ -179,8 +231,12 @@ describe("AuthSocialButtons", () => {
 
   it("re-enables all buttons after the google flow completes (success path)", async () => {
     render(<AuthSocialButtons />);
-    const googleBtn = screen.getByRole("button", { name: /continue with google/i });
-    const appleBtn  = screen.getByRole("button", { name: /continue with apple/i });
+    const googleBtn = screen.getByRole("button", {
+      name: /continue with google/i,
+    });
+    const appleBtn = screen.getByRole("button", {
+      name: /continue with apple/i,
+    });
 
     await userEvent.click(googleBtn);
 
@@ -190,8 +246,12 @@ describe("AuthSocialButtons", () => {
 
   it("re-enables all buttons after the apple flow completes (success path)", async () => {
     render(<AuthSocialButtons />);
-    const googleBtn = screen.getByRole("button", { name: /continue with google/i });
-    const appleBtn  = screen.getByRole("button", { name: /continue with apple/i });
+    const googleBtn = screen.getByRole("button", {
+      name: /continue with google/i,
+    });
+    const appleBtn = screen.getByRole("button", {
+      name: /continue with apple/i,
+    });
 
     await userEvent.click(appleBtn);
 
@@ -208,8 +268,12 @@ describe("AuthSocialButtons", () => {
     // always idle (not locked).
 
     render(<AuthSocialButtons />);
-    const googleBtn = screen.getByRole("button", { name: /continue with google/i });
-    const appleBtn  = screen.getByRole("button", { name: /continue with apple/i });
+    const googleBtn = screen.getByRole("button", {
+      name: /continue with google/i,
+    });
+    const appleBtn = screen.getByRole("button", {
+      name: /continue with apple/i,
+    });
 
     await userEvent.click(googleBtn);
 
@@ -217,28 +281,146 @@ describe("AuthSocialButtons", () => {
     expect(appleBtn).not.toBeDisabled();
   });
 
+  // ── OAuth callback error states ────────────────────────────────────────────
+
+  describe("OAuth callback error states", () => {
+    const mockSimulateOAuth = vi.mocked(
+      await import("@/lib/api/auth")
+    ).simulateOAuth;
+
+    it("shows access_denied error with retry and use email instead actions", async () => {
+      mockSimulateOAuth.mockRejectedValueOnce(
+        new OAuthCallbackError(
+          "You've denied permission to use this account. Please try again or use your password to sign in.",
+          "access_denied"
+        )
+      );
+
+      render(<AuthSocialButtons />);
+      const googleBtn = screen.getByRole("button", {
+        name: /continue with google/i,
+      });
+
+      await userEvent.click(googleBtn);
+
+      expect(screen.getByText(/denied permission/i)).toBeInTheDocument();
+      expect(screen.getByText(/user has denied permission/i)).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: /retry/i })).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: /use email instead/i })).toBeInTheDocument();
+    });
+
+    it("shows provider_unavailable error with retry and use email instead actions", async () => {
+      mockSimulateOAuth.mockRejectedValueOnce(
+        new OAuthCallbackError(
+          "The authentication provider is temporarily unavailable. Please try again later or use your password to sign in.",
+          "provider_unavailable"
+        )
+      );
+
+      render(<AuthSocialButtons />);
+      const googleBtn = screen.getByRole("button", {
+        name: /continue with google/i,
+      });
+
+      await userEvent.click(googleBtn);
+
+      expect(screen.getByText(/temporarily unavailable/i)).toBeInTheDocument();
+      expect(screen.getByText(/authentication provider is temporarily unavailable/i)).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: /retry/i })).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: /use email instead/i })).toBeInTheDocument();
+    });
+
+    it("shows account_exists_different_method error with retry and use email instead actions", async () => {
+      mockSimulateOAuth.mockRejectedValueOnce(
+        new OAuthCallbackError(
+          "This email is already registered with a password. Please sign in with your email and password instead.",
+          "account_exists_different_method"
+        )
+      );
+
+      render(<AuthSocialButtons />);
+      const googleBtn = screen.getByRole("button", {
+        name: /continue with google/i,
+      });
+
+      await userEvent.click(googleBtn);
+
+      expect(screen.getByText(/already registered/i)).toBeInTheDocument();
+      expect(screen.getByText(/email is already registered/i)).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: /retry/i })).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: /use email instead/i })).toBeInTheDocument();
+    });
+
+    it("retry button calls handleLogin again with the same provider", async () => {
+      mockSimulateOAuth.mockRejectedValueOnce(
+        new OAuthCallbackError(
+          "You've denied permission to use this account.",
+          "access_denied"
+        )
+      );
+
+      render(<AuthSocialButtons />);
+      const googleBtn = screen.getByRole("button", {
+        name: /continue with google/i,
+      });
+
+      await userEvent.click(googleBtn);
+
+      const retryBtn = screen.getByRole("button", { name: /retry/i });
+      await userEvent.click(retryBtn);
+
+      expect(mockSimulateOAuth).toHaveBeenCalledTimes(2);
+    });
+
+    it("use email instead button clears error state and navigates to login", async () => {
+      mockSimulateOAuth.mockRejectedValueOnce(
+        new OAuthCallbackError(
+          "You've denied permission to use this account.",
+          "access_denied"
+        )
+      );
+
+      render(<AuthSocialButtons />);
+      const googleBtn = screen.getByRole("button", {
+        name: /continue with google/i,
+      });
+
+      await userEvent.click(googleBtn);
+
+      const useEmailBtn = screen.getByRole("button", { name: /use email instead/i });
+      await userEvent.click(useEmailBtn);
+
+      // After clicking, the error state should be cleared
+      expect(screen.queryByText(/denied permission/i)).not.toBeInTheDocument();
+    });
+  });
+
   // ── Accessibility ──────────────────────────────────────────────────────────
 
   it("both buttons start with aria-busy=false", () => {
     render(<AuthSocialButtons />);
     expect(
-      screen.getByRole("button", { name: /continue with google/i })
+      screen.getByRole("button", { name: /continue with google/i }),
     ).toHaveAttribute("aria-busy", "false");
     expect(
-      screen.getByRole("button", { name: /continue with apple/i })
+      screen.getByRole("button", { name: /continue with apple/i }),
     ).toHaveAttribute("aria-busy", "false");
   });
 
   it("google button aria-busy resets to false after flow completes", async () => {
     render(<AuthSocialButtons />);
-    const googleBtn = screen.getByRole("button", { name: /continue with google/i });
+    const googleBtn = screen.getByRole("button", {
+      name: /continue with google/i,
+    });
     await userEvent.click(googleBtn);
     expect(googleBtn).toHaveAttribute("aria-busy", "false");
   });
 
   it("apple button aria-busy resets to false after flow completes", async () => {
     render(<AuthSocialButtons />);
-    const appleBtn = screen.getByRole("button", { name: /continue with apple/i });
+    const appleBtn = screen.getByRole("button", {
+      name: /continue with apple/i,
+    });
     await userEvent.click(appleBtn);
     expect(appleBtn).toHaveAttribute("aria-busy", "false");
   });

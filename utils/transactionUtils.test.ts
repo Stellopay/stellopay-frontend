@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import type { SortField, Transaction } from "@/types/transaction";
+import type { SortField, SortConfig, Transaction } from "@/types/transaction";
 import { formatDate } from "@/utils/date-utils";
 import { formatCurrency } from "@/utils/formatUtils";
 import {
@@ -9,6 +9,7 @@ import {
   formatTransactionDate,
   getStatusColor,
   sortTransactions,
+  sortTransactionsMulti,
   STATUS_COLOR_PALETTE,
   UNKNOWN_STATUS_COLOR,
 } from "@/utils/transactionUtils";
@@ -1035,6 +1036,154 @@ describe("sortTransactions", () => {
       // Verify original array unchanged
       expect(testTransactions).toEqual(transactions);
     });
+  });
+});
+
+describe("sortTransactionsMulti", () => {
+  it("returns a copy of the array unchanged when sortConfigs is empty", () => {
+    const result = sortTransactionsMulti(transactions, []);
+    expect(result).not.toBe(transactions);
+    expect(result.map((t) => t.id)).toEqual(transactions.map((t) => t.id));
+  });
+
+  it("sorts by a single config identically to sortTransactions", () => {
+    const singleConfig: SortConfig[] = [
+      { field: "amount", direction: "desc" },
+    ];
+    const multiResult = sortTransactionsMulti(transactions, singleConfig);
+    const singleResult = sortTransactions(transactions, "amount", "desc");
+    expect(multiResult.map((t) => t.id)).toEqual(
+      singleResult.map((t) => t.id),
+    );
+  });
+
+  it("applies secondary sort as a tiebreaker when primary values are equal", () => {
+    // Three transactions with same status but different amounts and dates.
+    // Primary sort: status asc. Secondary sort: amount asc (tiebreaker).
+    const tiebreakerTestData: Transaction[] = [
+      {
+        ...transactions[0],
+        id: "completed-1",
+        status: "Completed",
+        amount: -250,
+        date: "2023-04-01",
+      },
+      {
+        ...transactions[1],
+        id: "completed-2",
+        status: "Completed",
+        amount: -100,
+        date: "2023-03-01",
+      },
+      {
+        ...transactions[2],
+        id: "pending-1",
+        status: "Pending",
+        amount: -500,
+        date: "2023-05-01",
+      },
+    ];
+
+    const configs: SortConfig[] = [
+      { field: "status", direction: "asc" },
+      { field: "amount", direction: "asc" },
+    ];
+
+    const sorted = sortTransactionsMulti(tiebreakerTestData, configs);
+    const ids = sorted.map((t) => t.id);
+
+    // Within "Completed" group: completed-1 (-250) comes before completed-2 (-100) by amount asc
+    // Then "Pending" group
+    expect(ids).toEqual(["completed-1", "completed-2", "pending-1"]);
+  });
+
+  it("uses secondary sort descending correctly", () => {
+    const tiebreakerTestData: Transaction[] = [
+      {
+        ...transactions[0],
+        id: "completed-1",
+        status: "Completed",
+        amount: 100,
+        date: "2023-04-01",
+      },
+      {
+        ...transactions[1],
+        id: "completed-2",
+        status: "Completed",
+        amount: 200,
+        date: "2023-03-01",
+      },
+    ];
+
+    // Primary: status asc, Secondary: amount desc (larger amounts first)
+    const configs: SortConfig[] = [
+      { field: "status", direction: "asc" },
+      { field: "amount", direction: "desc" },
+    ];
+
+    const sorted = sortTransactionsMulti(tiebreakerTestData, configs);
+    expect(sorted[0]!.id).toBe("completed-2");
+    expect(sorted[1]!.id).toBe("completed-1");
+  });
+
+  it("handles three-level sort gracefully", () => {
+    const multiLevelData: Transaction[] = [
+      {
+        ...transactions[0],
+        id: "a",
+        status: "Completed",
+        amount: 100,
+        date: "2023-01-01",
+      },
+      {
+        ...transactions[1],
+        id: "b",
+        status: "Completed",
+        amount: 100,
+        date: "2023-02-01",
+      },
+      {
+        ...transactions[2],
+        id: "c",
+        status: "Completed",
+        amount: 200,
+        date: "2023-03-01",
+      },
+    ];
+
+    // status asc → amount asc → date asc
+    const configs: SortConfig[] = [
+      { field: "status", direction: "asc" },
+      { field: "amount", direction: "asc" },
+      { field: "date", direction: "asc" },
+    ];
+
+    const sorted = sortTransactionsMulti(multiLevelData, configs);
+    // Both "a" and "b" have amount=100, so date asc: a (Jan 1) before b (Feb 1)
+    expect(sorted.map((t) => t.id)).toEqual(["a", "b", "c"]);
+  });
+
+  it("does not mutate the original array", () => {
+    const originalOrder = transactions.map((t) => t.id);
+    const configs: SortConfig[] = [
+      { field: "date", direction: "asc" },
+      { field: "amount", direction: "desc" },
+    ];
+    const result = sortTransactionsMulti(transactions, configs);
+    expect(result).not.toBe(transactions);
+    expect(transactions.map((t) => t.id)).toEqual(originalOrder);
+  });
+
+  it("handles invalid date gracefully in multi-column sort", () => {
+    const malformed: Transaction[] = [
+      { ...transactions[0], id: "a", date: "not-a-date" },
+      { ...transactions[1], id: "b", date: "2023-06-01" },
+    ];
+    const configs: SortConfig[] = [
+      { field: "date", direction: "asc" },
+      { field: "type", direction: "asc" },
+    ];
+    expect(() => sortTransactionsMulti(malformed, configs)).not.toThrow();
   });
 });
 

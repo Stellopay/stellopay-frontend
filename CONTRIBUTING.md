@@ -18,10 +18,13 @@ If you need to add or update a dependency, run `npm install <package>` (or `npm 
 We use **Dependabot** to automatically surface stale dependencies and security advisories. The bot is configured to run weekly. Minor and patch updates are grouped to reduce PR noise.
 
 ### Security Audit CI Gate
+
 Every push and pull request runs an `npm audit` check in CI. This is a **blocking** step. If the audit surfaces any `high` or `critical` vulnerabilities, the build will fail.
 
 ### Triage Workflow for Vulnerabilities
+
 If the CI audit gate fails (or Dependabot opens a security PR):
+
 1. **Review the Advisory:** Check the GitHub security advisory or run `npm audit` locally to understand the impact.
 2. **Apply the Fix:** Most vulnerabilities can be fixed by running `npm audit fix`. If that does not work, you may need to manually update the offending transitive dependency (e.g. using `npm overrides` in `package.json` as a last resort) or wait for an upstream patch.
 3. **Commit the Lockfile:** Always commit the updated `package-lock.json` as the single source of truth. Ensure no structural drift occurs.
@@ -52,10 +55,10 @@ Any **serious** or **critical** axe-core violation that is not explicitly triage
 
 ### Routes covered
 
-| Route | Viewports tested |
-|---|---|
-| `/` | Desktop, Mobile (390 × 844), Dark colour scheme |
-| `/help/support` | Desktop, Mobile (390 × 844), Dark colour scheme |
+| Route                   | Viewports tested                                           |
+| ----------------------- | ---------------------------------------------------------- |
+| `/`                     | Desktop, Mobile (390 × 844), Dark colour scheme            |
+| `/help/support`         | Desktop, Mobile (390 × 844), Dark colour scheme            |
 | `/settings/preferences` | Desktop (all tabs), Mobile (390 × 844), Dark colour scheme |
 
 ### Running the gate locally
@@ -90,6 +93,57 @@ We exclusively use the **Next.js App Router** (no `pages/` directory). Here is o
 - `lib/`: Business logic, third-party service clients, and data access.
 - `utils/`: Small utility functions and helpers.
 - `types/`: TypeScript definitions and interfaces.
+
+## Settings Search Feature
+
+The settings preferences page includes a cross-tab search feature that allows users to quickly find controls across all four settings sections (Account, Notifications, Security, Wallets).
+
+### How to add a new searchable control
+
+When adding a new control to any settings section:
+
+1. **Update `SEARCHABLE_CONTROLS`** in `components/settings-search.tsx`:
+   ```tsx
+   {
+     label: "Your control name",
+     section: "account", // or "notifications", "security", "wallets"
+     keywords: ["keyword1", "keyword2", "synonym"],
+   }
+   ```
+
+2. **Keywords should include**:
+   - The primary control name (e.g., "password")
+   - Related synonyms (e.g., "security", "authentication")
+   - The section name (e.g., "account")
+   - Any category words (e.g., "danger" for destructive actions)
+
+3. **Security note**: Only include non-sensitive labels and keywords. Never add email addresses, wallet keys, or PII to the search index.
+
+### Search behavior
+
+- **Query matching**: Searches are case-insensitive substring matches against both label and keywords
+- **Relevance ranking**: Results are ranked by match type (exact > starts-with > contains)
+- **Keyboard navigation**: Users can navigate results with arrow keys (↑/↓) and select with Enter
+- **Tab switching**: Selecting a result automatically switches to the appropriate tab
+- **Keyboard accessible**: Fully operable without a mouse (Tab, Enter, Escape, Arrow keys)
+
+### Testing the search feature
+
+Run Playwright e2e tests to verify search functionality:
+
+```bash
+npm run test:e2e -- tests/settings-search.spec.ts
+```
+
+Key test scenarios covered:
+- Cross-tab navigation and tab switching
+- Keyboard navigation (arrow keys, Enter, Escape)
+- Search ranking by relevance
+- No-results state
+- Accessibility (keyboard-only operation, screen reader support)
+- Responsive behavior across breakpoints (mobile, tablet, desktop)
+- Dark mode rendering
+
 
 ## Data-Layer Rules
 
@@ -154,6 +208,20 @@ and debugging stay frictionless.
 
 We expect all new utility functions and business logic to have **minimum 95% test coverage**.
 
+### Runtime Guard Coverage
+
+Runtime type guards that validate external payloads must have focused unit tests
+near the type they protect. Cover valid payloads, invalid payloads, and at least
+one representative TypeScript narrowing path. When a broader component or
+context suite also needs the same payload shape, put reusable samples in a
+shared fixture module instead of duplicating them across test files.
+
+Guard-only changes have no visual UI state to screenshot, but the PR should
+say so explicitly. If the guarded payload drives rendered UI, include notes for
+WCAG 2.1 AA contrast, keyboard navigation, ARIA semantics, dark mode, RTL,
+long text, and responsive checks at `sm` 640px, `md` 768px, `lg` 1024px, and
+`xl` 1280px.
+
 ### Test Commands
 
 - **Unit Tests (Vitest):**
@@ -178,6 +246,16 @@ We expect all new utility functions and business logic to have **minimum 95% tes
   ```
   Runs TypeScript compiler (`tsc --noEmit`) to verify types without building.
 
+### Integration Tests & Guards
+
+When building components that combine UI behaviors (like tab-switching coupled with unsaved-changes guards), write **integration tests** that exercise the combined user flow. 
+
+For example, when testing an unsaved changes guard, ensure the test:
+- Dirties the form state
+- Attempts the guarded action (e.g. switching tabs)
+- Asserts that the guard intercepts the action
+- Confirms both paths (Discard / Stay) to verify the state and UI accurately update.
+
 ## Branching, Commits, and PRs
 
 1. **Branch Naming**: Use descriptive branch names like `feat/feature-name`, `fix/bug-name`, or `docs/doc-update`.
@@ -187,3 +265,6 @@ We expect all new utility functions and business logic to have **minimum 95% tes
 ### Security Notes
 
 Examples must not include real secrets, tokens, or addresses. Always use placeholder domains (e.g., `example.com`) and redacted addresses in your tests and mockups.
+## Local Accessibility Testing Guide
+Before opening a pull request, please ensure your changes comply with our accessibility guidelines (targeting WCAG 2.1 AA compliance).
+Refer to the full manual and automated criteria in [design/a11y-checklist.md](design/a11y-checklist.md).

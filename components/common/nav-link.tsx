@@ -1,5 +1,6 @@
 "use client";
 import {
+  AccountSummaryIcon,
   DashBoardIcon,
   HelpCircleIcon,
   SettinIcon,
@@ -31,6 +32,11 @@ export const NavLink = () => {
       route: "/dashboard",
     },
     {
+      link: "Account Summary",
+      icon: (color: string) => <AccountSummaryIcon color={color} />,
+      route: "/account-summary",
+    },
+    {
       link: "Transactions",
       icon: (color: string) => <TransactionIcon color={color} />,
       route: "/transactions",
@@ -54,12 +60,12 @@ export const NavLink = () => {
       <ul className="space-y-1 flex items-center flex-col w-full px-2">
         {links.map((link, index) => {
           const isActive = isLinkActive(link.route, pathname);
-          
+
           let iconColor = "";
           if (isActive) {
             iconColor = theme === "dark" ? "#0D0D0D" : "#FFFFFF";
           } else {
-            iconColor = theme === "dark" ? "#E5E5E5" : "#71717A"; 
+            iconColor = theme === "dark" ? "#E5E5E5" : "#71717A";
           }
 
           if (isExpanded) {
@@ -67,9 +73,10 @@ export const NavLink = () => {
               <li key={index} className="w-full">
                 <Link
                   href={link.route}
+                  aria-current={isActive ? "page" : undefined}
                   className={`cursor-pointer py-3.5 px-4 w-full relative rounded-xl flex justify-between items-center transition-all duration-200 group ${
-                    isActive 
-                      ? "text-white dark:text-[#0D0D0D]" 
+                    isActive
+                      ? "text-white dark:text-[#0D0D0D]"
                       : "text-zinc-500 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800/50 hover:text-zinc-900 dark:hover:text-white"
                   }`}
                 >
@@ -77,17 +84,17 @@ export const NavLink = () => {
                     <div className="flex items-center justify-center transition-colors">
                       {link.icon(iconColor)}
                     </div>
-                    <span className="font-medium text-sm">
-                      {link.link}
-                    </span>
+                    <span className="font-medium text-sm">{link.link}</span>
                   </div>
 
                   {link.link.toLowerCase() === "transactions" && (
-                    <div className={`px-2 py-0.5 rounded-full relative z-20 transition-colors ${
-                      isActive 
-                        ? "bg-zinc-800 dark:bg-zinc-100 text-white dark:text-zinc-900" 
-                        : "bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 group-hover:bg-zinc-200 dark:group-hover:bg-zinc-700"
-                    }`}>
+                    <div
+                      className={`px-2 py-0.5 rounded-full relative z-20 transition-colors ${
+                        isActive
+                          ? "bg-zinc-800 dark:bg-zinc-100 text-white dark:text-zinc-900"
+                          : "bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 group-hover:bg-zinc-200 dark:group-hover:bg-zinc-700"
+                      }`}
+                    >
                       <p className="text-[10px] font-bold">
                         {transactionNotification}
                       </p>
@@ -98,7 +105,11 @@ export const NavLink = () => {
                     <motion.div
                       className="absolute left-0 top-0 w-full h-full bg-zinc-900 dark:bg-white rounded-xl z-10 shadow-sm"
                       layoutId={getActiveLinkLayoutId(isMobile, isExpanded)}
-                      transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
+                      transition={{
+                        type: "spring",
+                        bounce: 0.2,
+                        duration: 0.6,
+                      }}
                     />
                   )}
                 </Link>
@@ -116,9 +127,10 @@ export const NavLink = () => {
               <li className="w-fit self-center relative w-full flex justify-center">
                 <Link
                   href={link.route}
+                  aria-current={isActive ? "page" : undefined}
                   className={`cursor-pointer my-1.5 p-3 relative rounded-xl flex items-center justify-center transition-all duration-200 ${
-                    isActive 
-                      ? "" 
+                    isActive
+                      ? ""
                       : "hover:bg-zinc-100 dark:hover:bg-zinc-800/50 text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white"
                   }`}
                 >
@@ -133,9 +145,13 @@ export const NavLink = () => {
                   {isActive && (
                     <motion.div
                       className="absolute left-0 top-0 w-8 h-8 self-center bg-zinc-900 dark:bg-white rounded-xl z-10 shadow-sm"
-                      style={{ left: '50%', transform: 'translateX(-50%)' }}
+                      style={{ left: "50%", transform: "translateX(-50%)" }}
                       layoutId="activeLink-collapsed"
-                      transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
+                      transition={{
+                        type: "spring",
+                        bounce: 0.2,
+                        duration: 0.6,
+                      }}
                     />
                   )}
                 </Link>

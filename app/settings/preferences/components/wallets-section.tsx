@@ -21,6 +21,7 @@ import { useWallet, formatAddress } from "@/context/wallet-context";
 import { stellarAddressSchema } from "@/utils/stellarAddress";
 import { copyToClipboardWithFeedback } from "@/utils/clipboardUtils";
 import { Check, Copy, Loader2, Plus, X } from "lucide-react";
+import { toast } from "sonner";
 
 /**
  * Add-wallet form schema. The address is validated and normalized (trimmed,
@@ -37,11 +38,6 @@ interface WalletSettingsState {
   transferApprovals: boolean;
   addressBookLock: boolean;
   travelRuleChecks: boolean;
-}
-
-interface StatusState {
-  message: string;
-  type: "success" | "error" | null;
 }
 
 /**
@@ -66,7 +62,6 @@ export default function WalletsSection() {
     addressBookLock: true,
     travelRuleChecks: true,
   });
-  const [status, setStatus] = useState<StatusState>({ message: "", type: null });
   const [isSaving, setIsSaving] = useState(false);
   const [addedWallets, setAddedWallets] = useState<string[]>([]);
 
@@ -103,7 +98,6 @@ export default function WalletsSection() {
 
   const handleSave = async () => {
     setIsSaving(true);
-    setStatus({ message: "", type: null });
     try {
       await new Promise((resolve, reject) =>
         setTimeout(() => {
@@ -111,30 +105,22 @@ export default function WalletsSection() {
           else resolve(null);
         }, 1500),
       );
-      setStatus({
-        message:
-          "Wallet safeguards updated. Transfer review controls remain enabled by default.",
-        type: "success",
-      });
+      toast.success(
+        "Wallet safeguards updated. Transfer review controls remain enabled by default.",
+      );
     } catch {
-      setStatus({
-        message: "Failed to save changes. Please try again.",
-        type: "error",
-      });
+      toast.error("Failed to save changes. Please try again.");
     } finally {
       setIsSaving(false);
-      setTimeout(() => setStatus({ message: "", type: null }), 5000);
     }
   };
 
   /** Route the destructive remove action through the context. */
   const handleRemoveWallet = () => {
     disconnect();
-    setStatus({
-      message:
-        "Wallet removal request captured. A replacement wallet should be selected before execution.",
-      type: "success",
-    });
+    toast.success(
+      "Wallet removal request captured. A replacement wallet should be selected before execution.",
+    );
   };
 
   return (
@@ -317,27 +303,6 @@ export default function WalletsSection() {
                 "Save wallet settings"
               )}
             </Button>
-            {status.message && (
-              <div
-                role="status"
-                aria-live="polite"
-                className={`rounded-2xl border px-4 py-3 ${
-                  status.type === "success"
-                    ? "border-emerald-500/20 bg-emerald-500/10"
-                    : "border-destructive/20 bg-destructive/10"
-                }`}
-              >
-                <p
-                  className={`text-sm ${
-                    status.type === "success"
-                      ? "text-emerald-700 dark:text-emerald-300"
-                      : "text-destructive"
-                  }`}
-                >
-                  {status.message}
-                </p>
-              </div>
-            )}
           </CardContent>
         </Card>
 

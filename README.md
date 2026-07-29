@@ -46,17 +46,17 @@ Open [http://localhost:3000](http://localhost:3000) to see the app. The page aut
 
 ## Available Scripts
 
-| Script | Command | Purpose |
-|--------|---------|---------|
-| Dev server | `npm run dev` | Starts Next.js with Turbopack |
-| Build | `npm run build` | Production build |
-| Start | `npm run start` | Serves the production build |
-| Lint | `npm run lint` | ESLint via `next lint` |
-| Type-check | `npm run type-check` | `tsc --noEmit` |
-| Unit tests | `npm run test` | Vitest with coverage |
-| Unit tests (watch) | `npm run test:watch` | Vitest in watch mode |
-| E2E tests | `npm run test:e2e` | Playwright (`npx playwright test`) |
-| Format | `npm run prettier` | Prettier write |
+| Script             | Command              | Purpose                            |
+| ------------------ | -------------------- | ---------------------------------- |
+| Dev server         | `npm run dev`        | Starts Next.js with Turbopack      |
+| Build              | `npm run build`      | Production build                   |
+| Start              | `npm run start`      | Serves the production build        |
+| Lint               | `npm run lint`       | ESLint via `next lint`             |
+| Type-check         | `npm run type-check` | `tsc --noEmit`                     |
+| Unit tests         | `npm run test`       | Vitest with coverage               |
+| Unit tests (watch) | `npm run test:watch` | Vitest in watch mode               |
+| E2E tests          | `npm run test:e2e`   | Playwright (`npx playwright test`) |
+| Format             | `npm run prettier`   | Prettier write                     |
 
 ## Wallet and network state
 
@@ -112,6 +112,13 @@ The App Router uses two cooperating client boundaries.
 
 Coverage for `app/error.tsx` is gated by the same 95% thresholds as the rest of the suite via `vitest.config.ts`. See `app/error.test.tsx` for the unit coverage.
 
+## Metadata & Viewport
+
+Following Next.js 15 conventions, global metadata (titles, descriptions, OpenGraph) and viewport configurations are exported as separate objects in `app/layout.tsx`.
+
+- **`metadata`**: Contains SEO tags, OpenGraph data, and Twitter cards.
+- **`viewport`**: Contains responsive design parameters (e.g., `width`, `initialScale`) and theme colors for dark/light modes.
+
 ## Project Structure
 
 ```
@@ -157,6 +164,7 @@ stellopay-frontend
 The application uses a context-based theme system with Tailwind CSS and local storage persistence.
 
 ### Architecture & Usage
+
 The context provider is configured in `context/theme-context.tsx` and wraps the root layout in `app/layout.tsx`.
 
 You can access and toggle the theme programmatically in components using the custom hook:
@@ -166,10 +174,10 @@ import { useTheme } from "@/context/theme-context";
 
 export default function MyComponent() {
   const { theme, toggleTheme, setTheme } = useTheme();
-  
+
   // Access current theme ("light" or "dark")
   console.log(theme);
-  
+
   // Toggle between light and dark themes
   return <button onClick={toggleTheme}>Toggle Theme</button>;
 }
@@ -208,7 +216,10 @@ Automated accessibility scanning runs as part of the Playwright suite using [`@a
   ```ts
   await expectNoSeriousA11yViolations(page, {
     allowlist: [
-      { id: "color-contrast", reason: "Tracked in #999 — pending design token update" },
+      {
+        id: "color-contrast",
+        reason: "Tracked in #999 — pending design token update",
+      },
     ],
   });
   ```
@@ -230,11 +241,13 @@ npx playwright show-report                          # inspect the last HTML repo
 To keep the application's bundle light and ensure visual consistency, the project consolidates all UI icons onto **Lucide React** (`lucide-react`) as the single primary icon set.
 
 ### Guidelines
+
 - **Primary Set**: Use `lucide-react` for all UI icons.
 - **Custom / Brand Icons**: For brand logos or unique custom shapes (e.g., `StellOpayLogo`, `StellarIcon`), use raw SVG components located in [`public/svg/svg.tsx`](public/svg/svg.tsx) or local custom components.
 - **Restricted Libraries**: Do NOT import from `react-icons`, `@hugeicons/react`, or `@hugeicons/core-free-icons`.
 
 ### Guardrails
+
 - **ESLint Rule**: The `no-restricted-imports` rule in [`.eslintrc.json`](.eslintrc.json) blocks imports from restricted packages.
 - **CI Guard Test**: [`utils/import-guard.test.ts`](utils/import-guard.test.ts) scans all source files in `app/` and `components/` to verify no prohibited icon libraries are referenced.
 
@@ -242,15 +255,15 @@ To keep the application's bundle light and ensure visual consistency, the projec
 
 Every pull request and push to `main` runs two jobs via `.github/workflows/ci.yml`:
 
-| Job | Step | Command | Purpose |
-|-----|------|---------|---------|
-| `lint-typecheck-build` | Install dependencies | `npm ci` | Reproducible install from lockfile |
-| | Unit Tests | `npm run test` | Vitest utility/schema tests for auth, transaction, pagination, and date utils, plus auth schemas |
-| | Lint | `npm run lint` | ESLint via `next lint` |
-| | Type-check | `npm run type-check` | `tsc --noEmit` — catches type errors |
-| | Build | `npm run build` | Full Next.js production build |
-| `playwright` | Install Playwright browsers | `npx playwright install --with-deps chromium` | Provision the Chromium runtime used by the suite |
-| | E2E + accessibility | `npx playwright test` | Full Playwright suite, including the axe-core a11y scans described in [Accessibility testing](#accessibility-testing) — a serious/critical violation fails this job |
+| Job                    | Step                        | Command                                       | Purpose                                                                                                                                                             |
+| ---------------------- | --------------------------- | --------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `lint-typecheck-build` | Install dependencies        | `npm ci`                                      | Reproducible install from lockfile                                                                                                                                  |
+|                        | Unit Tests                  | `npm run test`                                | Vitest utility/schema tests for auth, transaction, pagination, and date utils, plus auth schemas                                                                    |
+|                        | Lint                        | `npm run lint`                                | ESLint via `next lint`                                                                                                                                              |
+|                        | Type-check                  | `npm run type-check`                          | `tsc --noEmit` — catches type errors                                                                                                                                |
+|                        | Build                       | `npm run build`                               | Full Next.js production build                                                                                                                                       |
+| `playwright`           | Install Playwright browsers | `npx playwright install --with-deps chromium` | Provision the Chromium runtime used by the suite                                                                                                                    |
+|                        | E2E + accessibility         | `npx playwright test`                         | Full Playwright suite, including the axe-core a11y scans described in [Accessibility testing](#accessibility-testing) — a serious/critical violation fails this job |
 
 On failure, the `playwright` job uploads the HTML report as a build artifact (`playwright-report`, retained 7 days) so violations and traces can be inspected without re-running locally.
 
@@ -279,6 +292,7 @@ Tests run with **0 retries** locally. In CI (`CI=true`) each test is retried up 
 Target performance optimizations were applied across the landing page and dashboard to improve First Paint, LCP (Largest Contentful Paint), and TBT (Total Blocking Time).
 
 ### Key Changes
+
 1. **Below-the-Fold Dynamic Imports**: Code-split `HowItWorks`, `EnterpriseSolutionSection`, and `FAQSection` on the landing page ([`components/landing/landing-page.tsx`](components/landing/landing-page.tsx)) using `next/dynamic` to keep the initial HTML payload lightweight.
 2. **Chart & Insights Code-Splitting**: Dynamically loaded the recharts-heavy component ([`AnalyticsViews`](components/analytics/client-analytics-view.tsx)) and KPI metrics ([`AnalyticsInsights`](components/dashboard/dashboard-page.tsx)) with structural skeleton fallbacks equipped with accessibility attributes (`aria-busy="true"` and `aria-live="polite"`).
 3. **Optimized Layout Animations**: Replaced `framer-motion` JS-driven layout width transitions on the sidebar container ([`components/common/side-bar.tsx`](components/common/side-bar.tsx)) with pure CSS grid animations to prevent layout thrashing and lower Total Blocking Time (TBT).
@@ -286,26 +300,28 @@ Target performance optimizations were applied across the landing page and dashbo
 
 ### Bundle Size Impact (`next build` Route JS)
 
-| Route | Metric | Before | After | Change |
-|-------|--------|--------|-------|--------|
-| `/landing` (Pages Router) | Route Size | 64.1 kB | 26.1 kB | **-38.0 kB (-59.3%)** |
-| `/landing` (Pages Router) | First Load JS | 165 kB | 127 kB | **-38.0 kB (-23.0%)** |
+| Route                     | Metric        | Before  | After   | Change                |
+| ------------------------- | ------------- | ------- | ------- | --------------------- |
+| `/landing` (Pages Router) | Route Size    | 64.1 kB | 26.1 kB | **-38.0 kB (-59.3%)** |
+| `/landing` (Pages Router) | First Load JS | 165 kB  | 127 kB  | **-38.0 kB (-23.0%)** |
 
 ### Bundle Budget
 
 We maintain a CI-enforced bundle budget for key routes to ensure fast first-load performance.
 
-| Route | Budget | Current First Load JS |
-|-------|--------|-----------------------|
-| `/` (Landing) | 225 kB | 213 kB |
-| `/dashboard` | 180 kB | 165 kB |
+| Route         | Budget | Current First Load JS |
+| ------------- | ------ | --------------------- |
+| `/` (Landing) | 225 kB | 213 kB                |
+| `/dashboard`  | 180 kB | 165 kB                |
 
 To run the bundle analyzer locally:
+
 ```bash
 npm run analyze
 ```
 
 #### Candidate Wins for Optimization
+
 - **Icon deduplication**: We currently have multiple icon libraries (`lucide-react`, `hugeicons`, `react-icons`). Consolidating all icons to `lucide-react` will significantly reduce the shared bundle size.
 - **Dynamic imports for Recharts**: Use `next/dynamic` for chart components in `AnalyticsViews` and `AnalyticsInsights` to move heavy visualization logic out of the critical path.
 
