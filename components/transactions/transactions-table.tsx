@@ -336,7 +336,7 @@ export function TransactionsTable({
   return (
     <>
       {/* Density Toggle */}
-      <div className="hidden md:flex items-center gap-2 mb-3">
+      <div className="hidden md:flex items-center gap-2 mb-3 print:hidden">
         <span className="text-xs text-zinc-400">Density:</span>
         <div
           role="radiogroup"
@@ -365,7 +365,7 @@ export function TransactionsTable({
       {/* Desktop Table */}
       <div
         ref={tableWrapperRef}
-        className="hidden md:block w-full rounded-[12px] overflow-auto border border-[#2D2D2D]"
+        className="hidden md:block print:block w-full rounded-[12px] overflow-auto border border-[#2D2D2D]"
       >
         <Table>
           {/* caption is visually hidden but announced by screen readers */}
@@ -377,7 +377,7 @@ export function TransactionsTable({
               {isSelectable && (
                 <TableHead
                   scope="col"
-                  className="text-white font-bold border-[#2D2D2D] border-y-2 border-t-0 py-4 px-4 w-12"
+                  className="text-white font-bold border-[#2D2D2D] border-y-2 border-t-0 py-4 px-4 w-12 print:hidden"
                 >
                   <Checkbox
                     aria-label={
@@ -389,7 +389,7 @@ export function TransactionsTable({
                     onCheckedChange={(checked) =>
                       onSelectAll?.(checked === true)
                     }
-                    className="border-[#555] data-[state=checked]:border-white data-[state=indeterminate]:border-white"
+                    className="border-[#555] data-[state=checked]:border-white data-[state=indeterminate]:border-white print:hidden"
                   />
                 </TableHead>
               )}
@@ -431,7 +431,7 @@ export function TransactionsTable({
               </TableHead>
               <TableHead
                 scope="col"
-                className={`text-white font-bold border-[#2D2D2D] border-y-2 border-t-0 ${s.head} w-[140px]`}
+                className={`text-white font-bold border-[#2D2D2D] border-y-2 border-t-0 ${s.head} w-[140px] print:hidden`}
               >
                 Receipt
               </TableHead>
@@ -531,7 +531,7 @@ export function TransactionsTable({
                       <span className="text-sm">{transaction.status}</span>
                     </Badge>
                   </TableCell>
-                  <TableCell className={s.cell}>
+                  <TableCell className={`${s.cell} print:hidden`}>
                     <DownloadReceiptButton
                       transaction={{
                         id: transaction.id,
@@ -543,13 +543,13 @@ export function TransactionsTable({
                     />
                   </TableCell>
                 </TableRow>
-              )            ))}
+              )))}
           </TableBody>
         </Table>
       </div>
 
       {/* Mobile Cards */}
-      <div className="md:hidden space-y-4">
+      <div className="md:hidden space-y-4 print:hidden">
         {isLoading ? (
           <div className="p-4 border rounded-lg border-[#2D2D2D]">
             <TransactionTableSkeleton rows={TRANSACTIONS_PAGE_SIZE} />
