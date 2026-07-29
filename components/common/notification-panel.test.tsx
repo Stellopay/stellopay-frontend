@@ -110,7 +110,7 @@ describe("NotificationPanel", () => {
       <NotificationPanel notifications={notifications} />,
     );
 
-    const unreadDots = container.querySelectorAll(".bg-\\[\\#EB6945\\]");
+    const unreadDots = container.querySelectorAll(".w-1.h-1.bg-\\[\\#EB6945\\]");
     expect(unreadDots).toHaveLength(1);
   });
 
