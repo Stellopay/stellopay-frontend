@@ -1,15 +1,21 @@
-Here is the figma link to the Dashboard Redesign
 
-https://www.figma.com/design/TzFU3lyfPfsM4Jzh6rXGzl/Stellopay-Dashboard-Redesign?node-id=2067-1817&t=PZ6D5lwLGX9gwnOJ-1
 
-## Error States vs Empty States
 
-The Transactions list component distinguishes between an empty result (e.g. no transactions matching the selected filters) and a network or server error.
+## Transactions sort — localStorage default
 
-- **Empty State**: Rendered via the `TransactionsTable` empty message (`No transactions found. Try adjusting your filters.`).
-- **Error State**: Rendered using the `<ErrorState />` UI component which displays the actual error message or a generic "Failed to load transactions." It also provides a "Try Again" button.
+### Overview
+`components/transactions/sort.tsx` now falls back to a saved sort preference
+(`localStorage` key: `transactions-sort-preference`) whenever the `/transactions`
+URL has no `sort` param — e.g. from a bookmark or nav link. Deep links that
+already include a `sort` param are never overridden.
 
-### Accessibility Notes (WCAG 2.1 AA)
+### Behavior
+- On first load, if no `sort` param exists in the URL, the saved preference
+  (if any) is applied via `router.replace` (no new history entry, no scroll jump).
+- The saved preference updates only on an explicit user selection — never on
+  render or hydration.
+- If `localStorage` is unavailable (e.g. private browsing), the control falls
+  back to the existing default sort with no errors.
 
 - **Contrast**: The ErrorState uses a `text-red-500` icon and `text-white` text on a `bg-red-900/10` background which exceeds minimum contrast requirements.
 - **Keyboard Nav**: The "Try Again" button is fully keyboard navigable. Focus order is maintained.
