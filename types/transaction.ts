@@ -31,6 +31,10 @@ export interface TransactionFilters {
   fromDate: string;
   toDate: string;
   selectedFilter: string;
+  /** Optional minimum absolute transaction amount filter. */
+  minAmount?: number;
+  /** Optional maximum absolute transaction amount filter. */
+  maxAmount?: number;
   /** Ordered list of sort criteria. The first entry is the primary sort,
    *  the second (if present) is the secondary (tiebreaker) sort, etc. */
   sortConfigs: SortConfig[];
