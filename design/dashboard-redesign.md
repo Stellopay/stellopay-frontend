@@ -39,8 +39,19 @@ A 5-step spotlight overlay (`DashboardTour`) highlights one dashboard widget per
 
 ### Accessibility (WCAG 2.1 AA)
 
-- **ARIA**: `role="dialog"`, `aria-modal="true"`, `aria-label`, `aria-describedby` linking to step description
-- **Focus management**: Focus trapped within the tour tooltip on open and during navigation
-- **Contrast**: White tooltip on dark overlay (`bg-black/70`); blue focus rings on interactive elements
-- **Reduced motion**: Respects `prefers-reduced-motion`; disables spotlight highlight transitions
-- **Screen reader**: Step announcements via live-region description, current step indicated on indicator dots
+- **ARIA**: `role="dialog"`, `aria-modal="true"`, `aria-labelledby` linking to step title (`tour-title-${step.id}`), `aria-describedby` linking to step description (`tour-description-${step.id}`).
+- **Focus management**: Focus is automatically placed inside the tour tooltip upon opening and step change; Tab/Shift+Tab cycle focus strictly within the dialog controls.
+- **Keyboard navigation**: Tab/Shift+Tab for focus trap navigation, Enter/Space for button activation, Escape key to dismiss and mark complete.
+- **Contrast**: Complies with 4.5:1 ratio requirement (high-contrast dark text on light tooltip in light mode, bright white/zinc text on dark background `#111111` in dark mode). Blue focus rings (`ring-blue-500`) provide visible focus indicators.
+- **Reduced motion**: Respects `prefers-reduced-motion` settings, bypassing smooth scrolling and highlight transitions when enabled.
+- **Screen readers**: Icons set to `aria-hidden="true"`, step indicators announce current step via `aria-current="step"` and descriptive `aria-label`.
+
+### Responsive Behavior Across Breakpoints
+
+| Viewport Breakpoint | Target Width | Tour Overlay & Spotlight Behavior |
+|---------------------|--------------|-----------------------------------|
+| **sm** (640px) | 640px | Highlighting bounding box dynamically tracks target elements; overlay tooltip spans `w-[calc(100%-2rem)]` centered horizontally with touch-friendly targets (min 44px height). |
+| **md** (768px) | 768px | Tooltip positions dynamically below highlighted widget with safe margin padding (`top: Math.min(...)`, `left: calc(50%)`). |
+| **lg** (1024px) | 1024px | Multi-column widget layout supported; target element spotlight dynamically recalculates on resize/scroll events. |
+| **xl** (1280px+) | 1280px+ | Full desktop layout (`max-w-[1600px]`); smooth scroll-into-view centers active target before spotlight calculation. |
+

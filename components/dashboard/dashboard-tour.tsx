@@ -13,11 +13,9 @@ import {
   TrendingUp,
   CheckCircle2,
 } from "lucide-react";
-import { safeStorage } from "@/utils/safeStorage";
+import { safeStorage, STORAGE_KEYS } from "@/utils/safeStorage";
 import { useReducedMotion } from "@/hooks/useReducedMotion";
 import { cn } from "@/utils/commonUtils";
-
-const TOUR_STORAGE_KEY = "stellopay_dashboard_tour_completed";
 
 interface TourStep {
   id: string;
@@ -52,62 +50,67 @@ export function DashboardTour({
   const tooltipRef = useRef<HTMLDivElement>(null);
   const prefersReducedMotion = useReducedMotion();
 
-  const steps: TourStep[] = [
-    {
-      id: "welcome",
-      targetRef: { current: null },
-      title: "Welcome to Stellopay",
-      description:
-        "Your dashboard gives you a quick overview of your finances. Let's walk through the key sections.",
-      icon: <Sparkles className="w-5 h-5" aria-hidden />,
-    },
-    {
-      id: "account-summary",
-      targetRef: accountSummaryRef ?? { current: null },
-      title: "Account Summary",
-      description:
-        "View your balance, paid this month, and upcoming payments at a glance.",
-      icon: <Wallet className="w-5 h-5" aria-hidden />,
-    },
-    {
-      id: "quick-actions",
-      targetRef: quickActionsRef ?? { current: null },
-      title: "Quick Actions",
-      description:
-        "Send and request payments, or explore analytics — all from one place.",
-      icon: <Zap className="w-5 h-5" aria-hidden />,
-    },
-    {
-      id: "analytics-insights",
-      targetRef: analyticsInsightsRef ?? { current: null },
-      title: "Analytics & Insights",
-      description:
-        "Track your transaction volume, success rates, and wallet activity over time.",
-      icon: <BarChart3 className="w-5 h-5" aria-hidden />,
-    },
-    {
-      id: "client-analytics",
-      targetRef: clientAnalyticsRef ?? { current: null },
-      title: "Detailed Analytics",
-      description:
-        "Dive deeper into charts and trends to understand your payment patterns.",
-      icon: <TrendingUp className="w-5 h-5" aria-hidden />,
-    },
-  ];
+  const steps: TourStep[] = React.useMemo(
+    () => [
+      {
+        id: "welcome",
+        targetRef: { current: null },
+        title: "Welcome to Stellopay",
+        description:
+          "Your dashboard gives you a quick overview of your finances. Let's walk through the key sections.",
+        icon: <Sparkles className="w-5 h-5" aria-hidden="true" />,
+      },
+      {
+        id: "account-summary",
+        targetRef: accountSummaryRef ?? { current: null },
+        title: "Account Summary",
+        description:
+          "View your balance, paid this month, and upcoming payments at a glance.",
+        icon: <Wallet className="w-5 h-5" aria-hidden="true" />,
+      },
+      {
+        id: "quick-actions",
+        targetRef: quickActionsRef ?? { current: null },
+        title: "Quick Actions",
+        description:
+          "Send and request payments, or explore analytics — all from one place.",
+        icon: <Zap className="w-5 h-5" aria-hidden="true" />,
+      },
+      {
+        id: "analytics-insights",
+        targetRef: analyticsInsightsRef ?? { current: null },
+        title: "Analytics & Insights",
+        description:
+          "Track your transaction volume, success rates, and wallet activity over time.",
+        icon: <BarChart3 className="w-5 h-5" aria-hidden="true" />,
+      },
+      {
+        id: "client-analytics",
+        targetRef: clientAnalyticsRef ?? { current: null },
+        title: "Detailed Analytics",
+        description:
+          "Dive deeper into charts and trends to understand your payment patterns.",
+        icon: <TrendingUp className="w-5 h-5" aria-hidden="true" />,
+      },
+    ],
+    [accountSummaryRef, quickActionsRef, analyticsInsightsRef, clientAnalyticsRef],
+  );
+
 
   const totalSteps = steps.length;
   const isLastStep = currentStep === totalSteps - 1;
   const isFirstStep = currentStep === 0;
 
-  const isTourCompleted = safeStorage.getItem(TOUR_STORAGE_KEY) === "true";
+  const isTourCompleted = safeStorage.getItem(STORAGE_KEYS.DASHBOARD_TOUR_COMPLETED) === "true";
 
   const finishTour = useCallback(() => {
     setIsOpen(false);
-    safeStorage.setItem(TOUR_STORAGE_KEY, "true");
+    safeStorage.setItem(STORAGE_KEYS.DASHBOARD_TOUR_COMPLETED, "true");
   }, []);
 
   const dismissTour = useCallback(() => {
     setIsOpen(false);
+    safeStorage.setItem(STORAGE_KEYS.DASHBOARD_TOUR_COMPLETED, "true");
   }, []);
 
   const goToStep = useCallback(
@@ -184,14 +187,21 @@ export function DashboardTour({
   useEffect(() => {
     if (!isOpen) return;
 
+    const step = steps[currentStep];
+    const el = step.targetRef.current;
+    if (el && typeof el.scrollIntoView === "function") {
+      el.scrollIntoView({
+        behavior: prefersReducedMotion ? "auto" : "smooth",
+        block: "center",
+      });
+    }
+
     const updatePosition = (): void => {
-      const step = steps[currentStep];
-      const el = step.targetRef.current;
       if (el) {
         const rect = el.getBoundingClientRect();
         setTargetRect(rect);
         setTooltipPosition({
-          top: rect.bottom + 12,
+          top: Math.min(rect.bottom + 12, window.innerHeight - 340),
           left: rect.left + rect.width / 2,
         });
       } else {
@@ -210,19 +220,23 @@ export function DashboardTour({
       window.removeEventListener("resize", updatePosition);
       window.removeEventListener("scroll", updatePosition, true);
     };
-  }, [isOpen, currentStep, steps]);
+  }, [isOpen, currentStep, steps, prefersReducedMotion]);
 
   useEffect(() => {
     if (typeof document === "undefined") return;
 
-    const stored = safeStorage.getItem(TOUR_STORAGE_KEY);
+    const stored = safeStorage.getItem(STORAGE_KEYS.DASHBOARD_TOUR_COMPLETED);
     if (stored !== "true") {
-      const timer = setTimeout(() => {
-        setIsOpen(true);
-      }, 800);
+      const timer = setTimeout(
+        () => {
+          setIsOpen(true);
+        },
+        process.env.NODE_ENV === "test" ? 10 : 800,
+      );
       return () => clearTimeout(timer);
     }
   }, []);
+
 
   if (typeof document === "undefined" || isTourCompleted || !isOpen) {
     return null;
@@ -235,7 +249,7 @@ export function DashboardTour({
       className="fixed inset-0 z-[100]"
       role="dialog"
       aria-modal="true"
-      aria-label={`Dashboard tour, step ${currentStep + 1} of ${totalSteps}`}
+      aria-labelledby={`tour-title-${step.id}`}
       aria-describedby={`tour-description-${step.id}`}
     >
       <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" />
@@ -252,7 +266,7 @@ export function DashboardTour({
 
       {targetRect && (
         <div
-          className="absolute rounded-2xl border-2 pointer-events-none"
+          className="absolute rounded-2xl border-2 border-blue-500 pointer-events-none"
           style={{
             top: targetRect.top - 4,
             left: targetRect.left - 4,
@@ -276,10 +290,7 @@ export function DashboardTour({
         style={
           tooltipPosition
             ? {
-                top: Math.min(
-                  tooltipPosition.top,
-                  window.innerHeight - 320,
-                ),
+                top: Math.max(16, Math.min(tooltipPosition.top, window.innerHeight - 320)),
                 left: `calc(${tooltipPosition.left}px - 50%)`,
               }
             : { top: "40%", left: "50%", transform: "translate(-50%, -50%)" }
@@ -292,7 +303,7 @@ export function DashboardTour({
           className="absolute top-3 right-3 p-1.5 rounded-lg text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-zinc-900"
           aria-label="Skip tour"
         >
-          <X className="w-4 h-4" aria-hidden />
+          <X className="w-4 h-4" aria-hidden="true" />
         </button>
 
         <div className="flex items-center gap-3 mb-4">
@@ -306,7 +317,7 @@ export function DashboardTour({
             >
               {step.title}
             </h2>
-            <p className="text-xs font-medium text-zinc-400 dark:text-zinc-500">
+            <p className="text-xs font-medium text-zinc-500 dark:text-zinc-400">
               Step {currentStep + 1} of {totalSteps}
             </p>
           </div>
@@ -322,9 +333,10 @@ export function DashboardTour({
         <div className="flex items-center justify-between">
           <div
             className="flex gap-1.5"
+            role="group"
             aria-label={`Step ${currentStep + 1} of ${totalSteps}`}
           >
-            {steps.map((_, i) => (
+            {steps.map((s, i) => (
               <button
                 key={i}
                 type="button"
@@ -337,7 +349,7 @@ export function DashboardTour({
                       ? "w-2 bg-blue-300 dark:bg-blue-700"
                       : "w-2 bg-zinc-200 dark:bg-zinc-700",
                 )}
-                aria-label={`Go to step ${i + 1}: ${steps[i].title}`}
+                aria-label={`Go to step ${i + 1}: ${s.title}`}
                 aria-current={i === currentStep ? "step" : undefined}
               />
             ))}
@@ -350,7 +362,7 @@ export function DashboardTour({
                 onClick={goPrev}
                 className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-sm font-medium text-zinc-600 dark:text-zinc-300 bg-zinc-100 dark:bg-zinc-800 hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-zinc-900"
               >
-                <ArrowLeft className="w-4 h-4" aria-hidden />
+                <ArrowLeft className="w-4 h-4" aria-hidden="true" />
                 Back
               </button>
             )}
@@ -361,13 +373,13 @@ export function DashboardTour({
             >
               {isLastStep ? (
                 <>
-                  <CheckCircle2 className="w-4 h-4" aria-hidden />
+                  <CheckCircle2 className="w-4 h-4" aria-hidden="true" />
                   Get Started
                 </>
               ) : (
                 <>
                   Next
-                  <ArrowRight className="w-4 h-4" aria-hidden />
+                  <ArrowRight className="w-4 h-4" aria-hidden="true" />
                 </>
               )}
             </button>

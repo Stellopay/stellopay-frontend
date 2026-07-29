@@ -1,5 +1,5 @@
 import React from "react";
-import { render, screen, fireEvent, waitFor, act } from "@testing-library/react";
+import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { vi, describe, it, expect, beforeEach } from "vitest";
 
 const mockSetItem = vi.fn();
@@ -9,6 +9,11 @@ vi.mock("@/utils/safeStorage", () => ({
     getItem: (...args: unknown[]) => mockGetItem(...args),
     setItem: (...args: unknown[]) => mockSetItem(...args),
     removeItem: vi.fn(),
+    isDashboardTourCompleted: () => mockGetItem("stellopay_dashboard_tour_completed") === "true",
+    setDashboardTourCompleted: () => mockSetItem("stellopay_dashboard_tour_completed", "true"),
+  },
+  STORAGE_KEYS: {
+    DASHBOARD_TOUR_COMPLETED: "stellopay_dashboard_tour_completed",
   },
 }));
 
@@ -18,21 +23,24 @@ vi.mock("@/hooks/useReducedMotion", () => ({
 
 import { DashboardTour } from "@/components/dashboard/dashboard-tour";
 
-function makeRef() {
-  return { current: null };
-}
-
-function setupEl(ref: ReturnType<typeof makeRef>, w = 400, h = 100) {
+function makeRefWithElement(w = 400, h = 100) {
   const el = document.createElement("div");
   el.getBoundingClientRect = vi.fn(
     () =>
       ({
-        top: 100, left: 200, right: 200 + w, bottom: 100 + h,
-        width: w, height: h, x: 200, y: 100, toJSON: () => {},
+        top: 100,
+        left: 200,
+        right: 200 + w,
+        bottom: 100 + h,
+        width: w,
+        height: h,
+        x: 200,
+        y: 100,
+        toJSON: () => {},
       }) as DOMRect,
   );
-  ref.current = el;
-  return el;
+  el.scrollIntoView = vi.fn();
+  return { current: el };
 }
 
 describe("DashboardTour", () => {
@@ -45,22 +53,23 @@ describe("DashboardTour", () => {
     mockGetItem.mockReturnValue("true");
     const { container } = render(
       <DashboardTour
-        accountSummaryRef={makeRef()}
-        quickActionsRef={makeRef()}
-        analyticsInsightsRef={makeRef()}
-        clientAnalyticsRef={makeRef()}
+        accountSummaryRef={makeRefWithElement()}
+        quickActionsRef={makeRefWithElement()}
+        analyticsInsightsRef={makeRefWithElement()}
+        clientAnalyticsRef={makeRefWithElement()}
       />,
     );
     expect(container.firstChild).toBeNull();
   });
 
-  it("is not rendered when tour is not yet open and has not been auto-triggered", () => {
+  it("is not rendered immediately before auto-trigger delay", () => {
+    mockGetItem.mockReturnValue(null);
     const { container } = render(
       <DashboardTour
-        accountSummaryRef={makeRef()}
-        quickActionsRef={makeRef()}
-        analyticsInsightsRef={makeRef()}
-        clientAnalyticsRef={makeRef()}
+        accountSummaryRef={makeRefWithElement()}
+        quickActionsRef={makeRefWithElement()}
+        analyticsInsightsRef={makeRefWithElement()}
+        clientAnalyticsRef={makeRefWithElement()}
       />,
     );
     expect(container.firstChild).toBeNull();
@@ -70,272 +79,273 @@ describe("DashboardTour", () => {
     mockGetItem.mockReturnValue(null);
     render(
       <DashboardTour
-        accountSummaryRef={makeRef()}
-        quickActionsRef={makeRef()}
-        analyticsInsightsRef={makeRef()}
-        clientAnalyticsRef={makeRef()}
+        accountSummaryRef={makeRefWithElement()}
+        quickActionsRef={makeRefWithElement()}
+        analyticsInsightsRef={makeRefWithElement()}
+        clientAnalyticsRef={makeRefWithElement()}
       />,
     );
 
-    await waitFor(
-      () => expect(screen.getByRole("dialog")).toBeInTheDocument(),
-      { timeout: 2000 },
-    );
+    await waitFor(() => {
+      expect(screen.getByRole("dialog")).toBeInTheDocument();
+    });
   });
 
-  it("shows welcome step on open", async () => {
+  it("shows welcome step on open with step counter 1 of 5", async () => {
     mockGetItem.mockReturnValue(null);
     render(
       <DashboardTour
-        accountSummaryRef={makeRef()}
-        quickActionsRef={makeRef()}
-        analyticsInsightsRef={makeRef()}
-        clientAnalyticsRef={makeRef()}
+        accountSummaryRef={makeRefWithElement()}
+        quickActionsRef={makeRefWithElement()}
+        analyticsInsightsRef={makeRefWithElement()}
+        clientAnalyticsRef={makeRefWithElement()}
       />,
     );
 
-    await waitFor(
-      () => expect(screen.getByText("Welcome to Stellopay")).toBeInTheDocument(),
-      { timeout: 2000 },
-    );
+    await waitFor(() => {
+      expect(screen.getByText("Welcome to Stellopay")).toBeInTheDocument();
+      expect(screen.getByText("Step 1 of 5")).toBeInTheDocument();
+    });
   });
 
-  it("shows correct step count", async () => {
-    mockGetItem.mockReturnValue(null);
-    render(
-      <DashboardTour
-        accountSummaryRef={makeRef()}
-        quickActionsRef={makeRef()}
-        analyticsInsightsRef={makeRef()}
-        clientAnalyticsRef={makeRef()}
-      />,
-    );
-
-    await waitFor(
-      () => expect(screen.getByText("Step 1 of 5")).toBeInTheDocument(),
-      { timeout: 2000 },
-    );
-  });
-
-  it("navigates forward on Next click", async () => {
-    setupEl(makeRef());
-    setupEl(makeRef());
+  it("navigates forward through all 5 steps on Next click and completes on Get Started", async () => {
+    const accountRef = makeRefWithElement();
+    const quickRef = makeRefWithElement();
+    const analyticsRef = makeRefWithElement();
+    const clientRef = makeRefWithElement();
 
     render(
       <DashboardTour
-        accountSummaryRef={makeRef()}
-        quickActionsRef={makeRef()}
-        analyticsInsightsRef={makeRef()}
-        clientAnalyticsRef={makeRef()}
+        accountSummaryRef={accountRef}
+        quickActionsRef={quickRef}
+        analyticsInsightsRef={analyticsRef}
+        clientAnalyticsRef={clientRef}
       />,
     );
 
-    await waitFor(
-      () => expect(screen.getByText("Welcome to Stellopay")).toBeInTheDocument(),
-      { timeout: 2000 },
+    await waitFor(() => {
+      expect(screen.getByText("Welcome to Stellopay")).toBeInTheDocument();
+    });
+
+    // Step 1 -> Step 2
+    fireEvent.click(screen.getByRole("button", { name: /next/i }));
+    await waitFor(() => {
+      expect(screen.getByText("Account Summary")).toBeInTheDocument();
+    });
+    expect(accountRef.current.scrollIntoView).toHaveBeenCalled();
+
+    // Step 2 -> Step 3
+    fireEvent.click(screen.getByRole("button", { name: /next/i }));
+    await waitFor(() => {
+      expect(screen.getByText("Quick Actions")).toBeInTheDocument();
+    });
+    expect(quickRef.current.scrollIntoView).toHaveBeenCalled();
+
+    // Step 3 -> Step 4
+    fireEvent.click(screen.getByRole("button", { name: /next/i }));
+    await waitFor(() => {
+      expect(screen.getByText("Analytics & Insights")).toBeInTheDocument();
+    });
+    expect(analyticsRef.current.scrollIntoView).toHaveBeenCalled();
+
+    // Step 4 -> Step 5
+    fireEvent.click(screen.getByRole("button", { name: /next/i }));
+    await waitFor(() => {
+      expect(screen.getByText("Detailed Analytics")).toBeInTheDocument();
+    });
+    expect(clientRef.current.scrollIntoView).toHaveBeenCalled();
+
+    // Step 5 -> Finish
+    fireEvent.click(screen.getByRole("button", { name: /get started/i }));
+    expect(mockSetItem).toHaveBeenCalledWith("stellopay_dashboard_tour_completed", "true");
+    await waitFor(() => {
+      expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    });
+  });
+
+  it("navigates backward on Back click and hides Back button on step 1", async () => {
+    render(
+      <DashboardTour
+        accountSummaryRef={makeRefWithElement()}
+        quickActionsRef={makeRefWithElement()}
+        analyticsInsightsRef={makeRefWithElement()}
+        clientAnalyticsRef={makeRefWithElement()}
+      />,
     );
+
+    await waitFor(() => {
+      expect(screen.getByText("Welcome to Stellopay")).toBeInTheDocument();
+    });
+
+    expect(screen.queryByRole("button", { name: /back/i })).not.toBeInTheDocument();
 
     fireEvent.click(screen.getByRole("button", { name: /next/i }));
-
-    await waitFor(
-      () => expect(screen.getByText("Account Summary")).toBeInTheDocument(),
-      { timeout: 2000 },
-    );
-  });
-
-  it("navigates backward on Back click", async () => {
-    setupEl(makeRef());
-    setupEl(makeRef());
-
-    render(
-      <DashboardTour
-        accountSummaryRef={makeRef()}
-        quickActionsRef={makeRef()}
-        analyticsInsightsRef={makeRef()}
-        clientAnalyticsRef={makeRef()}
-      />,
-    );
-
-    await waitFor(
-      () => expect(screen.getByText("Welcome to Stellopay")).toBeInTheDocument(),
-      { timeout: 2000 },
-    );
-
-    fireEvent.click(screen.getByRole("button", { name: /next/i }));
-
-    await waitFor(
-      () => expect(screen.getByText("Account Summary")).toBeInTheDocument(),
-      { timeout: 2000 },
-    );
+    await waitFor(() => {
+      expect(screen.getByText("Account Summary")).toBeInTheDocument();
+    });
+    expect(screen.getByRole("button", { name: /back/i })).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole("button", { name: /back/i }));
-
-    await waitFor(
-      () => expect(screen.getByText("Welcome to Stellopay")).toBeInTheDocument(),
-      { timeout: 2000 },
-    );
-  });
-
-  it("hides Back button on first step", async () => {
-    mockGetItem.mockReturnValue(null);
-    render(
-      <DashboardTour
-        accountSummaryRef={makeRef()}
-        quickActionsRef={makeRef()}
-        analyticsInsightsRef={makeRef()}
-        clientAnalyticsRef={makeRef()}
-      />,
-    );
-
-    await waitFor(
-      () => expect(screen.getByText("Welcome to Stellopay")).toBeInTheDocument(),
-      { timeout: 2000 },
-    );
-
+    await waitFor(() => {
+      expect(screen.getByText("Welcome to Stellopay")).toBeInTheDocument();
+    });
     expect(screen.queryByRole("button", { name: /back/i })).not.toBeInTheDocument();
   });
 
-  it("dismisses on skip button click", async () => {
-    mockGetItem.mockReturnValue(null);
+  it("dismisses on skip button click and marks completed in safeStorage", async () => {
     render(
       <DashboardTour
-        accountSummaryRef={makeRef()}
-        quickActionsRef={makeRef()}
-        analyticsInsightsRef={makeRef()}
-        clientAnalyticsRef={makeRef()}
+        accountSummaryRef={makeRefWithElement()}
+        quickActionsRef={makeRefWithElement()}
+        analyticsInsightsRef={makeRefWithElement()}
+        clientAnalyticsRef={makeRefWithElement()}
       />,
     );
 
-    await waitFor(
-      () => expect(screen.getByRole("dialog")).toBeInTheDocument(),
-      { timeout: 2000 },
-    );
+    await waitFor(() => {
+      expect(screen.getByRole("dialog")).toBeInTheDocument();
+    });
 
     fireEvent.click(screen.getByRole("button", { name: /skip tour/i }));
 
-    await act(async () => {
-      await new Promise((r) => setTimeout(r, 100));
+    expect(mockSetItem).toHaveBeenCalledWith("stellopay_dashboard_tour_completed", "true");
+    await waitFor(() => {
+      expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
     });
-
-    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
   });
 
-  it("dismisses on Escape key", async () => {
-    mockGetItem.mockReturnValue(null);
+  it("dismisses on Escape key and marks completed in safeStorage", async () => {
     render(
       <DashboardTour
-        accountSummaryRef={makeRef()}
-        quickActionsRef={makeRef()}
-        analyticsInsightsRef={makeRef()}
-        clientAnalyticsRef={makeRef()}
+        accountSummaryRef={makeRefWithElement()}
+        quickActionsRef={makeRefWithElement()}
+        analyticsInsightsRef={makeRefWithElement()}
+        clientAnalyticsRef={makeRefWithElement()}
       />,
     );
 
-    await waitFor(
-      () => expect(screen.getByRole("dialog")).toBeInTheDocument(),
-      { timeout: 2000 },
-    );
+    await waitFor(() => {
+      expect(screen.getByRole("dialog")).toBeInTheDocument();
+    });
 
     fireEvent.keyDown(document, { key: "Escape" });
 
-    await act(async () => {
-      await new Promise((r) => setTimeout(r, 100));
+    expect(mockSetItem).toHaveBeenCalledWith("stellopay_dashboard_tour_completed", "true");
+    await waitFor(() => {
+      expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    });
+  });
+
+  it("has correct ARIA attributes linking dialog to step title and description", async () => {
+    render(
+      <DashboardTour
+        accountSummaryRef={makeRefWithElement()}
+        quickActionsRef={makeRefWithElement()}
+        analyticsInsightsRef={makeRefWithElement()}
+        clientAnalyticsRef={makeRefWithElement()}
+      />,
+    );
+
+    await waitFor(() => {
+      const dialog = screen.getByRole("dialog");
+      expect(dialog).toHaveAttribute("aria-modal", "true");
+      expect(dialog).toHaveAttribute("aria-labelledby", "tour-title-welcome");
+      expect(dialog).toHaveAttribute("aria-describedby", "tour-description-welcome");
+    });
+  });
+
+  it("renders 5 step indicator dots with correct aria-labels and aria-current", async () => {
+    render(
+      <DashboardTour
+        accountSummaryRef={makeRefWithElement()}
+        quickActionsRef={makeRefWithElement()}
+        analyticsInsightsRef={makeRefWithElement()}
+        clientAnalyticsRef={makeRefWithElement()}
+      />,
+    );
+
+    await waitFor(() => {
+      const dots = document.querySelectorAll("[aria-label^='Go to step']");
+      expect(dots.length).toBe(5);
+      expect(dots[0]).toHaveAttribute("aria-current", "step");
+      expect(dots[1]).not.toHaveAttribute("aria-current");
+    });
+  });
+
+  it("navigates directly via step indicator dots", async () => {
+    render(
+      <DashboardTour
+        accountSummaryRef={makeRefWithElement()}
+        quickActionsRef={makeRefWithElement()}
+        analyticsInsightsRef={makeRefWithElement()}
+        clientAnalyticsRef={makeRefWithElement()}
+      />,
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText("Welcome to Stellopay")).toBeInTheDocument();
     });
 
-    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    const dot4 = screen.getByLabelText("Go to step 4: Analytics & Insights");
+    fireEvent.click(dot4);
+
+    await waitFor(() => {
+      expect(screen.getByText("Analytics & Insights")).toBeInTheDocument();
+      expect(screen.getByText("Step 4 of 5")).toBeInTheDocument();
+    });
   });
 
-  it("has correct ARIA modal and label", async () => {
-    mockGetItem.mockReturnValue(null);
+  it("highlights target element when target ref is present", async () => {
+    const accountRef = makeRefWithElement();
     render(
       <DashboardTour
-        accountSummaryRef={makeRef()}
-        quickActionsRef={makeRef()}
-        analyticsInsightsRef={makeRef()}
-        clientAnalyticsRef={makeRef()}
+        accountSummaryRef={accountRef}
+        quickActionsRef={makeRefWithElement()}
+        analyticsInsightsRef={makeRefWithElement()}
+        clientAnalyticsRef={makeRefWithElement()}
       />,
     );
 
-    await waitFor(
-      () => {
-        const dialog = screen.getByRole("dialog");
-        expect(dialog).toHaveAttribute("aria-modal", "true");
-        expect(dialog).toHaveAttribute(
-          "aria-label",
-          expect.stringContaining("step 1 of 5"),
-        );
-      },
-      { timeout: 2000 },
-    );
+    await waitFor(() => {
+      expect(screen.getByText("Welcome to Stellopay")).toBeInTheDocument();
+    });
+
+    // Go to step 2 (account summary)
+    fireEvent.click(screen.getByRole("button", { name: /next/i }));
+
+    await waitFor(() => {
+      const highlightBox = document.querySelector(".rounded-2xl.border-2");
+      expect(highlightBox).toBeInTheDocument();
+    });
   });
 
-  it("renders 5 step indicator dots", async () => {
-    mockGetItem.mockReturnValue(null);
+  it("traps focus inside the dialog when Tab is pressed", async () => {
     render(
       <DashboardTour
-        accountSummaryRef={makeRef()}
-        quickActionsRef={makeRef()}
-        analyticsInsightsRef={makeRef()}
-        clientAnalyticsRef={makeRef()}
+        accountSummaryRef={makeRefWithElement()}
+        quickActionsRef={makeRefWithElement()}
+        analyticsInsightsRef={makeRefWithElement()}
+        clientAnalyticsRef={makeRefWithElement()}
       />,
     );
 
-    await waitFor(
-      () => {
-        const dots = document.querySelectorAll("[aria-label^='Go to step']");
-        expect(dots.length).toBe(5);
-      },
-      { timeout: 2000 },
-    );
-  });
+    await waitFor(() => {
+      expect(screen.getByRole("dialog")).toBeInTheDocument();
+    });
 
-  it("navigates via step indicator dots", async () => {
-    setupEl(makeRef());
-    setupEl(makeRef());
-    setupEl(makeRef());
-    setupEl(makeRef());
+    const nextBtn = screen.getByRole("button", { name: /next/i });
+    const skipBtn = screen.getByRole("button", { name: /skip tour/i });
 
-    render(
-      <DashboardTour
-        accountSummaryRef={makeRef()}
-        quickActionsRef={makeRef()}
-        analyticsInsightsRef={makeRef()}
-        clientAnalyticsRef={makeRef()}
-      />,
-    );
+    // Focus last element (nextBtn)
+    nextBtn.focus();
+    expect(document.activeElement).toBe(nextBtn);
 
-    await waitFor(
-      () => expect(screen.getByText("Welcome to Stellopay")).toBeInTheDocument(),
-      { timeout: 2000 },
-    );
+    // Tab from last element loops to first element (skipBtn)
+    fireEvent.keyDown(document, { key: "Tab", shiftKey: false });
+    expect(document.activeElement).toBe(skipBtn);
 
-    const dot3 = screen.getByLabelText("Go to step 3: Analytics & Insights");
-    fireEvent.click(dot3);
-
-    await waitFor(
-      () => expect(screen.getByText("Analytics & Insights")).toBeInTheDocument(),
-      { timeout: 2000 },
-    );
-  });
-
-  it("highlights target element with blue ring when target exists", async () => {
-    setupEl(makeRef());
-
-    render(
-      <DashboardTour
-        accountSummaryRef={makeRef()}
-        quickActionsRef={makeRef()}
-        analyticsInsightsRef={makeRef()}
-        clientAnalyticsRef={makeRef()}
-      />,
-    );
-
-    await waitFor(
-      () => expect(screen.getByRole("dialog")).toBeInTheDocument(),
-      { timeout: 2000 },
-    );
-
-    const highlight = document.querySelector(".rounded-2xl.border-2");
-    expect(highlight).toBeInTheDocument();
+    // Shift+Tab from first element loops to last element (nextBtn)
+    fireEvent.keyDown(document, { key: "Tab", shiftKey: true });
+    expect(document.activeElement).toBe(nextBtn);
   });
 });
