@@ -48,7 +48,7 @@ function BasicDropdown({
   onInteractOutside?: (e: Event) => void;
 }) {
   return (
-    <DropdownMenu>
+    <DropdownMenu modal={false}>
       <DropdownMenuTrigger data-testid="trigger">Open Menu</DropdownMenuTrigger>
       <DropdownMenuContent
         onEscapeKeyDown={onEscapeKeyDown}

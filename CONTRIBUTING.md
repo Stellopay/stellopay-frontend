@@ -136,6 +136,20 @@ We exclusively use the **Next.js App Router** (no `pages/` directory). Here is o
 - `lib/`: Business logic, third-party service clients, and data access.
 - `utils/`: Small utility functions and helpers.
 - `types/`: TypeScript definitions and interfaces.
+- `messages/`: Centralized i18n JSON copy dictionary (`en.json`) and TypeScript helper module (`index.ts`).
+
+## Internationalization (i18n) Copy Extraction
+
+To prepare for `next-intl` localization, avoid hardcoding inline English string literals directly inside JSX components.
+
+1. **Extract strings to `messages/en.json`**: Store copy structured by domain/component key (e.g. `dashboard.quickActions`, `footer`).
+2. **Reference from `messages`**: Import `messages` from `@/messages` and reference string fields.
+3. **Leave a `next-intl` marker**: Place a comment above component imports:
+   ```tsx
+   import { messages } from "@/messages";
+
+   // TODO: Replace direct import of messages with next-intl useTranslations() hook once i18n is enabled.
+   ```
 
 ## Settings Search Feature
 
@@ -294,6 +308,84 @@ Run them with:
 ```bash
 npm run test -- date-range-chip
 ```
+
+## Transaction Filter Predicates (`transactions-config.ts`)
+
+`components/transactions/transactions-config.ts` is the single source of truth
+for the Transactions feature's filter/sort/pagination defaults **and** the
+individual filter predicate builders. It is consumed by
+`hooks/useTransactions.ts` (via `lib/api/transactions.ts` →
+`utils/transactionUtils.ts › filterTransactions`).
+
+### Why centralized predicates?
+
+Previously, the logic that combines multiple simultaneous filters
+(date range AND status AND amount) lived only inside
+`utils/transactionUtils.ts › filterTransactions` as a sequence of
+`.filter()` calls. That logic had **no direct unit test** — only indirect
+coverage through component tests — so regressions in the AND composition
+could ship unnoticed.
+
+The refactor extracts each filter rule into a standalone, pure predicate
+builder:
+
+| Builder | Matches | Inactive behavior |
+|---------|---------|-------------------|
+| `createSearchQueryPredicate(query)` | type, txId, address, token, status (case-insensitive) | empty → pass-all |
+| `createSelectedFilterPredicate(filter)` | exact `type` (case-sensitive) | `DEFAULT_SELECTED_FILTER` → pass-all |
+| `createFilterQueryPredicate(query)` | type, status, address (trimmed, case-insensitive) | empty/whitespace → pass-all |
+| `createDateRangePredicate(from, to)` | inclusive date range | invalid dates → exclude all |
+| `createMinAmountPredicate(min)` | `abs(amount) >= min` | `undefined` → pass-all |
+| `createMaxAmountPredicate(max)` | `abs(amount) <= max` | `undefined` → pass-all |
+| `createCounterpartyPredicate(c)` | address substring (trimmed, case-insensitive) | empty/whitespace → pass-all |
+
+`applyTransactionFilters(transactions, options)` composes every active
+predicate with **AND semantics**: a transaction is included only when it
+satisfies **all** active predicates. The date-range predicate is applied only
+when **both** `fromDate` and `toDate` are provided, so other predicates can be
+tested in isolation without a date constraint.
+
+### Adding a new filter
+
+1. **Add a `createXxxPredicate` builder** in `transactions-config.ts` that
+   returns a pure `(transaction) => boolean`. Handle the inactive case
+   (empty/undefined) by returning a pass-all predicate.
+2. **Add the option** to `TransactionFilterOptions` and compose the new
+   predicate inside `applyTransactionFilters`.
+3. **Delegate** from `filterTransactions` (positional adapter) if the new
+   filter should flow through the existing API layer.
+4. **Add unit tests** in `transactions-config.test.ts` covering:
+   - The predicate in isolation (match, no-match, inactive pass-all, boundary).
+   - Combined AND behavior with at least one other predicate.
+   - A zero-results edge case for the new filter.
+
+### Testing the predicates
+
+```bash
+npm run test -- transactions-config
+```
+
+The suite covers:
+
+- **Individual predicates in isolation** — each builder's match/no-match,
+  case sensitivity, trimming, inactive pass-all, and boundary conditions.
+- **Combined-filter AND semantics** — overlapping and non-overlapping result
+  sets across two, three, and four simultaneous filters.
+- **Zero-results edge case** — filter combinations that match no transaction
+  return `[]`, including an empty input array.
+- **Immutability** — the input array is never mutated.
+- **Defaults** — `applyTransactionFilters()` with no options returns all
+  transactions; `getDefaultDateRange()` returns a 30-day window ending today.
+
+### Accessibility & responsive notes
+
+The predicates are pure data functions with no rendered UI, so there is no
+direct WCAG/contrast/keyboard surface. The filter UI components that consume
+them (`filter.tsx`, `advanced-filter-panel.tsx`, `date-range-chip.tsx`) carry
+their own axe-core and keyboard tests. The status color palette in
+`transactionUtils.ts` uses AA-compliant contrast ratios (documented inline in
+`STATUS_COLOR_PALETTE`). Responsive behavior is validated at the component
+level across `sm` 640 / `md` 768 / `lg` 1024 / `xl` 1280 breakpoints.
 
 ## Data-Layer Rules
 
@@ -546,6 +638,137 @@ When the `playwright` CI job fails because of a visual diff:
 4. Open a PR — CI will compare future runs against the committed baselines automatically.
 
 ---
+
+## Dark-Mode Screenshot Audit
+
+`tests/dark-mode-screenshots.spec.ts` walks every top-level route in dark mode
+and captures a full-page screenshot artefact for manual diffing. It also runs
+an axe-core accessibility scan in the dark-mode render so contrast regressions
+specific to dark tokens surface here rather than relying on a separate
+light-mode pass.
+
+### How dark mode is forced
+
+The spec uses the same injection mechanism proven in `tests/theme.spec.ts`:
+
+```ts
+// Registers an init script that runs before any page scripts.
+await page.emulateMedia({ colorScheme: "dark" });
+await page.addInitScript(() => {
+  window.localStorage.setItem("theme", "dark");
+});
+await page.goto(route);
+```
+
+`emulateMedia` makes the pre-hydration inline script in `app/layout.tsx` apply
+the `dark` class to `<html>` before React hydrates. `addInitScript` ensures
+`ThemeProvider`'s `useEffect` reads `"dark"` from `getStoredTheme()` on mount
+and does not override the class. No changes to `context/theme-context.tsx` are
+needed — the existing `localStorage` contract is the stable injection point.
+
+### Routes covered
+
+| Route                   | Label                 |
+| ----------------------- | --------------------- |
+| `/`                     | `landing`             |
+| `/dashboard`            | `dashboard`           |
+| `/transactions`         | `transactions`        |
+| `/settings/preferences` | `settings-preferences`|
+| `/help/support`         | `help-support`        |
+| `/account-summary`      | `account-summary`     |
+| `/analytics-view`       | `analytics-view`      |
+| `/auth/login`           | `auth-login`          |
+| `/auth/sign-up`         | `auth-sign-up`        |
+
+### Test suites
+
+| Suite | Tests |
+|---|---|
+| **Desktop (1280 × 800)** | 9 routes × 1 viewport. Each test asserts the `dark` class, runs an axe-core WCAG 2.1 AA scan, and captures `dark-<label>-desktop.png`. |
+| **Responsive breakpoints** | 9 routes × 4 viewports (`sm` 640px, `md` 768px, `lg` 1024px, `xl` 1280px). Captures `dark-<label>-<breakpoint>.png`. |
+| **Dark / light parity** | Landing and dashboard. Asserts that `body` `background-color` differs between dark and light renders, which proves the theme class was actually applied. |
+
+### Screenshot artefacts
+
+Screenshots are written to Playwright's default `test-results/` directory and
+named `dark-<label>-<viewport>.png`. The first run writes baseline images.
+Subsequent runs diff against them and fail if the diff exceeds
+`maxDiffPixelRatio: 0.02` (2%).
+
+To adopt new baselines after an intentional visual change, run:
+
+```bash
+npx playwright test tests/dark-mode-screenshots.spec.ts --update-snapshots
+```
+
+To inspect the PNG artefacts interactively after a run:
+
+```bash
+npx playwright show-report
+```
+
+### Running the audit
+
+```bash
+# Chromium only (matches npm run test:e2e)
+npm run test:e2e -- tests/dark-mode-screenshots.spec.ts
+
+# All three browsers (chromium, firefox, webkit)
+npx playwright test tests/dark-mode-screenshots.spec.ts
+
+# Single browser
+npx playwright test tests/dark-mode-screenshots.spec.ts --project=firefox
+
+# Headed mode for visual debugging
+npx playwright test tests/dark-mode-screenshots.spec.ts --headed --project=chromium
+```
+
+### Accessibility in dark mode
+
+Each desktop route test calls `expectNoSeriousA11yViolations(page)` from
+`tests/axe-helper.ts` immediately after dark mode is confirmed. This catches:
+
+- **Color contrast** failures in dark-mode token pairs.
+- **ARIA** regressions introduced by conditional dark-mode markup.
+- **Role / label** issues that only appear when certain components render
+  differently under the `dark` class.
+
+Use the standard `allowlist` option for known issues that cannot be fixed
+immediately:
+
+```ts
+await expectNoSeriousA11yViolations(page, {
+  allowlist: [
+    { id: "color-contrast", reason: "Dark gradient badge — tracked in #999" },
+  ],
+});
+```
+
+### Responsive coverage
+
+The responsive suite validates at the four Tailwind breakpoints used across the
+codebase:
+
+| Breakpoint | Width | Height |
+|---|---|---|
+| `sm` | 640 px | 900 px |
+| `md` | 768 px | 1 024 px |
+| `lg` | 1 024 px | 768 px |
+| `xl` | 1 280 px | 800 px |
+
+### CI integration
+
+The spec lives in `tests/dark-mode-screenshots.spec.ts` and is automatically
+picked up by `playwright.config.ts`'s `testMatch: ["tests/**/*.spec.ts", ...]`
+glob. It runs as part of:
+
+- `npm run test:e2e` (chromium only, local default)
+- The full Playwright matrix in the `playwright` CI job
+  (`npx playwright test` — all browsers)
+
+On failure the `playwright` CI job uploads the HTML report as the
+`playwright-report` artefact (retained 7 days) so screenshot diffs and axe
+violation details can be inspected without re-running locally.
 
 ## Branching, Commits, and PRs
 

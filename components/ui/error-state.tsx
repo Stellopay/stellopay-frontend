@@ -34,6 +34,16 @@ export interface ErrorStateProps {
    * Defaults to `false`.
    */
   retrying?: boolean;
+  /**
+   * A Sentry-style event reference (e.g. `digest`) to display as a
+   * user-facing placeholder. When omitted, a dash placeholder is shown
+   * so the UI contract remains consistent.
+   */
+  eventId?: string;
+  /**
+   * URL for the "Report issue" link. Defaults to `/help/support`.
+   */
+  reportLink?: string;
 }
 
 /**
@@ -52,6 +62,8 @@ export function ErrorState({
   description,
   onRetry,
   retrying = false,
+  eventId,
+  reportLink = "/help/support",
 }: ErrorStateProps) {
   return (
     <div
@@ -78,6 +90,29 @@ export function ErrorState({
           {retrying ? "Retrying…" : "Try Again"}
         </button>
       )}
+
+      {/* Sentry-ready event ID placeholder */}
+      <div
+        className="mt-5 text-xs text-zinc-500"
+        aria-label="Event reference ID"
+      >
+        <span className="font-medium">Reference ID:</span>{" "}
+        <code
+          className="bg-black/20 px-1.5 py-0.5 rounded text-zinc-300 font-mono"
+          aria-label={`Event reference ${eventId ?? "not available"}`}
+        >
+          {eventId ?? "—"}
+        </code>
+      </div>
+
+      {/* Report-issue link */}
+      <a
+        href={reportLink}
+        className="mt-3 text-xs text-zinc-400 hover:text-white underline underline-offset-2 transition-colors"
+        aria-label="Report this issue"
+      >
+        Report issue
+      </a>
     </div>
   );
 }

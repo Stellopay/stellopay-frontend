@@ -1,4 +1,4 @@
-import type { NextConfig } from "next";import type { NextConfig } from "next";
+import type { NextConfig } from "next";
 import bundleAnalyzer from "@next/bundle-analyzer";
 
 const nextConfig: NextConfig = {

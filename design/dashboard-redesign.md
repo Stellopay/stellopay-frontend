@@ -228,210 +228,27 @@ The Transactions list component distinguishes between an empty result (e.g. no t
 - **Empty State**: Rendered via the `TransactionsTable` empty message (`No transactions found. Try adjusting your filters.`).
 - **Error State**: Rendered using the `<ErrorState />` UI component which displays the actual error message or a generic "Failed to load transactions." It also provides a "Try Again" button.
 
+### Route-Scoped Error Boundaries (`app/transactions/error.tsx`, `app/settings/preferences/error.tsx`)
+
+Both routes now have dedicated App Router error segments that catch render errors locally, preventing them from bubbling to the generic `app/error.tsx`. Each boundary uses the shared `components/ui/error-state.tsx` component and provides:
+
+- **Event ID placeholder** (`digest` mapped through `eventId` prop) — visible reference for support debugging.
+- **Retry action** (`reset()` wired to the retry button) — allows users to recover without leaving the route.
+- **Report-issue link** (`/help/support` by default) — accessible link for escalation.
+
+These boundaries mirror the existing `app/dashboard/error.tsx` pattern (console logging of digest, dev-only message rendering, accessible `main` wrapper with `role="alert"` and `aria-live="assertive"`).
+
+### Responsive Behavior
+
+- **sm (640px)**: Container uses full width with `px-6`; content stays centered.
+- **md (768px)**: `max-w-md` keeps the error card readable without excessive line length.
+- **lg (1024px)** and **xl (1280px)**: The `min-h-[60vh]` wrapper ensures vertical centering across larger viewports.
+
+The design tokens (`bg-background`, `text-foreground`, `text-red-500`, rounded-xl, `max-w-md`) remain consistent across breakpoints.
+
 ### Accessibility Notes (WCAG 2.1 AA)
 
 - **Contrast**: The ErrorState uses a `text-red-500` icon and `text-white` text on a `bg-red-900/10` background which exceeds minimum contrast requirements.
 - **Keyboard Nav**: The "Try Again" button is fully keyboard navigable. Focus order is maintained.
 - **ARIA**: The `ErrorState` component utilizes `role="alert"` and `aria-live="assertive"` so screen readers can proactively announce network failures. Loading/Retrying indicators use `aria-hidden="true"` on non-text elements and `aria-label` or `aria-disabled` where appropriate to ensure status is accurately conveyed.
-
-## Advanced Filter Panel (Added: feature/transactions-advanced-filter-panel)
-
-The Advanced Filter Panel is a togglable drawer that combines all transaction filter dimensions (status, amount range, counterparty address) into a single, auditable interface. It slides in from the right on desktop and takes full width on mobile (< 640px). Active filters are represented as removable chips below the filter bar.
-
-### Components
-
-| File | Purpose |
-|------|---------|
-| `components/transactions/advanced-filter-panel.tsx` | Togglable drawer with status radio, min/max amount inputs, counterparty text input, Apply/Clear All buttons |
-| `components/transactions/filter-chips.tsx` | Removable chips showing active filter state with individual remove and bulk clear |
-| `components/transactions/transactions-filters.tsx` | Updated with Advanced filter toggle button (indicator dot when active) |
-| `components/transactions/transactions-content.tsx` | Orchestrates panel open/close, draft state, apply/commit, chip removal, and passes values to API |
-
-### State Model
-
-- Draft state lives in `transactions-content.tsx` — panel inputs modify draft values; committed filters flow through `TransactionFilters` (which gained `minAmount`, `maxAmount`, and `counterparty` fields).
-- The API layer (`lib/api/transactions.ts` → `utils/transactionUtils.ts`) applies `counterparty` filtering as a case-insensitive partial match on the transaction address field.
-
-### Accessibility Notes (WCAG 2.1 AA)
-
-#### Advanced Filter Panel (`advanced-filter-panel.tsx`)
-
-- **Role & Label**: Panel uses `role="dialog"` with `aria-modal="true"` and `aria-label="Advanced transaction filters"`.
-- **Focus Trap**: When the panel opens, focus is moved to the first focusable element after a 150ms animation delay. Tab/Shift+Tab cycles within the panel. Focus is restored to the triggering element on close.
-- **Escape to Close**: Pressing Escape closes the panel and returns focus.
-- **Backdrop Click**: Clicking the backdrop overlay closes the panel.
-- **Body Scroll Lock**: `document.body.style.overflow = "hidden"` is set while the panel is open; restored on close/unmount.
-- **Validation Errors**: Amount range validation uses `role="alert"` with `aria-live="polite"` for non-intrusive screen reader announcement.
-- **Contrast**: 
-  - Status radio labels: white text on dark background (#160f17) — passes AA.
-  - Selected status: `border-[#04842E]` (green) on `bg-[#04842E]/10` background.
-  - Inputs: white text on `bg-[#1A1A1A]` with `border-[#2D2D2D]`.
-  - Apply button: white text on `bg-[#04842E]` (green) background.
-  - Clear All button: gray-400 text on transparent, darkens on hover.
-- **Keyboard Navigation**: All buttons, inputs, and radio controls are fully keyboard-accessible with visible `focus-visible:ring-2` focus indicators.
-- **Disabled State**: When `disabled={true}`, all inputs and buttons receive `disabled` attribute, preventing interaction during loading states.
-
-#### Filter Chips (`filter-chips.tsx`)
-
-- **Region Role**: Chips container uses `role="region"` with `aria-label="Active filters"` (customizable).
-- **Remove Buttons**: Each chip's remove button has a descriptive `aria-label` (e.g., "Remove Status filter: Payment Sent").
-- **Clear All**: When multiple chips are present, a "Clear all" button with `aria-label="Clear all active filters"` is shown.
-- **Focus Indicators**: Remove buttons and Clear all link use `focus-visible:ring-2` outlines.
-
-#### Responsive Behavior
-
-- **Panel Width**: Full width on mobile, `sm:w-[420px]` on small screens, `lg:w-[480px]` on large screens.
-- **Amount Range**: Two-column grid (`grid-cols-2`) adapts well at all breakpoints.
-- **Advanced Toggle Button**: Label text is hidden on mobile (`hidden sm:inline`) to conserve space; the sliders icon remains visible.
-- **Chips**: Use `flex-wrap` for natural wrapping on narrow viewports.
-
-## Enterprise Solution Card (components/ui/enterprise-solution-card.tsx)
-
-Migrated hardcoded hex colors to semantic tokens for better theme consistency and maintenance.
-
-### Accessibility Notes (WCAG 2.1 AA)
-
-- **Contrast**: `text-muted-foreground` ensures sufficient contrast against the card's background in both light and dark modes. The `font-bold text-4xl` value text uses the default foreground color, guaranteeing readability.
-- **Keyboard Nav**: The card itself is non-interactive. No custom focus management is necessary for its current static state.
-- **ARIA**: The component utilizes semantic HTML allowing screen readers to interpret the layout natively.
-
-### Responsive Behavior
-
-- **Flex Layout**: Uses `flex flex-col gap-2` to stack the value and label vertically, adapting to varying text lengths gracefully.
-- **Dimensions**: Retains a fixed height (`h-[118px]`) with `w-full`, allowing the card to stretch fluidly across CSS grid or flex layouts across breakpoints (`sm`, `md`, `lg`, `xl`).
-- **Text Wrapping**: The text is centered (`text-center`) and breaks naturally, preserving readability on smaller screens.
-
-## Cookie Consent Banner (Issue #810)
-
-The Cookie Consent Banner ensures compliance with cookie-consent regulations by prompting first-time visitors to accept or decline non-essential cookies before the site sets them.
-
-### Feature Overview
-
-- **First-Visit Detection**: Uses `utils/safeStorage.ts` with storage key `"stellopay.cookie-consent"` to show the banner only once per browser.
-- **Explicit Actions**: Provides **Accept** and **Decline** buttons — not just an acknowledge-and-dismiss.
-- **Policy Link**: Includes a "Learn more" link that navigates to the `/cookies` policy page.
-- **Bottom Fixed Position**: Rendered as a fixed bottom bar that does NOT block page content or trap keyboard focus.
-- **No Focus Trap**: Keyboard users can freely Tab past the banner; focus is not confined.
-
-### Component
-
-| File | Purpose |
-|------|---------|
-| `components/common/cookie-consent-banner.tsx` | Fixed bottom banner with Accept / Decline actions and `/cookies` link |
-| `components/common/cookie-consent-banner.test.tsx` | Unit tests covering happy path, edge cases, a11y, and negative scenarios |
-| `app/layout.tsx` | Renders `<CookieConsentBanner />` in the root layout alongside `<OfflineBanner />` |
-
-### State Model
-
-- **Storage Key**: `"stellopay.cookie-consent"` (follows dot-namespace convention).
-- **Storage Values**: `"accepted"` | `"declined"` — `null` means first visit.
-- **Hydration Pattern**:
-  1. Component mounts with `consent = null` and `hydrated = false`.
-  2. `useEffect` reads from `safeStorage.getItem(STORAGE_KEY)` (SSR-safe, returns `null` on error).
-  3. Sets `consent` and `hydrated = true`.
-  4. Banner renders only when hydrated AND consent is `null` (first visit).
-- **Persistence**: Clicking Accept or Decline calls `safeStorage.setItem(STORAGE_KEY, value)` and sets component state to hide the banner immediately.
-
-### Accessibility (WCAG 2.1 AA)
-
-**ARIA Attributes**
-- Banner container: `role="dialog"` with `aria-label="Cookie consent"`.
-- Accept button: `aria-label="Accept cookies"`.
-- Decline button: `aria-label="Decline cookies"`.
-- Cookie icon: `aria-hidden="true"` (decorative).
-- "Learn more" link: navigates to `/cookies`.
-
-**Keyboard Navigation**
-- All interactive elements (Accept, Decline, Learn more) are fully keyboard-operable.
-- `Tab` moves between buttons and the link naturally — no focus trapping.
-- All elements display visible `focus-visible:ring-2` focus indicators.
-
-**Color Contrast (WCAG AA)**
-- Light mode: `#666666` text on `#FAFAFA` background — meets AA for normal text.
-- Dark mode: `#a1a1aa` text on `#09090B` background — meets AA for normal text.
-- Accept button: white text (`#FFFFFF`) on gradient `#83A7FF → #8B5CF6` — meets AA (4.5:1+ against the darker purple endpoint).
-- Link color: `#7C3AED` on `#FAFAFA` — meets AA for large text.
-
-**Visual Indicators**
-- Hover state on Decline button: border and text change to accent color.
-- Hover state on Accept button: gradient shift.
-- Hover state on "Learn more" link: underline + color shift.
-- Focus indicators: `ring-2` with `ring-offset-2` on all interactive elements.
-
-### Responsive Behavior
-
-- **Mobile (< 640px)**: Stacked layout — message on top, buttons below. Full-width.
-- **Tablet/Desktop (≥ 640px)**: Side-by-side — message left, buttons right.
-- **Max width**: `1200px` to match the footer and main content width.
-- **Padding**: `px-4` on mobile, `px-6` on `sm+`.
-- **Text**: Constrained to a readable measure; wraps naturally on long content.
-
-### Design Tokens & Styling Consistency
-
-**Color System (Light Mode)**
-- Banner background: `bg-[#FAFAFA]` (matches footer background).
-- Border: `border-gray-200`.
-- Text: `text-[#666666]`.
-- Accent link: `text-[#7C3AED]`.
-- Accept button: gradient `from-[#83A7FF] to-[#8B5CF6]` (matches newsletter subscribe button in footer).
-- Decline button: transparent background with `border-gray-200`.
-
-**Color System (Dark Mode)**
-- Banner background: `dark:bg-[#09090B]` (matches footer background).
-- Border: `dark:border-[#1a1a1a]`.
-- Text: `dark:text-[#a1a1aa]`.
-- Accent link: `dark:text-[#a78bfa]`.
-- Accept button: same gradient (white text ensures contrast).
-- Decline button: `dark:border-[#27272a]`, `dark:text-[#a1a1aa]`.
-
-**Spacing & Typography**
-- Font family: `General Sans, sans-serif` (matches footer).
-- Text size: `text-sm`.
-- Button height: `h-9` (36px).
-- Button padding: `px-4` (Decline), `px-5` (Accept).
-- Border radius: `rounded-lg` for buttons.
-
-**Transitions**
-- All interactive elements use `transition-all duration-200`.
-- Hover: border/text color shifts.
-- Banner shadow: subtle upward shadow to separate from content.
-
-### Testing Coverage
-
-**Unit Tests** (`cookie-consent-banner.test.tsx`)
-
-*Default Rendering*
-- ✓ Renders banner when no consent is stored (first visit).
-- ✓ Shows cookie icon, message text, Accept button, Decline button, and Learn more link.
-- ✓ "Learn more" link points to `/cookies`.
-
-*Accept & Decline Actions*
-- ✓ Accept dismisses banner and persists `"accepted"` to safeStorage.
-- ✓ Decline dismisses banner and persists `"declined"` to safeStorage.
-
-*Persistence*
-- ✓ Does NOT render when consent was previously accepted.
-- ✓ Does NOT render when consent was previously declined.
-
-*SSR / Error Handling*
-- ✓ Handles safeStorage.setItem failure gracefully (does not throw).
-- ✓ Banner still dismisses even if persistence write fails.
-
-*Accessibility*
-- ✓ Uses `role="dialog"` with `aria-label="Cookie consent"`.
-- ✓ Cookie icon is decorative (`aria-hidden="true"`).
-- ✓ Action buttons have descriptive `aria-label`s.
-- ✓ Does NOT trap keyboard focus.
-
-*Negative Test*
-- ✓ Does NOT render when hydrated and consent is already decided.
-
-*Responsive & Dark Mode*
-- ✓ Applies dark mode classes on the banner container.
-- ✓ "Learn more" link has dark-mode styling classes.
-
-### Known Limitations
-
-- **No granular category preferences**: The banner is a binary Accept/Decline. Granular cookie category preferences (e.g., analytics vs. marketing) are out of scope for this iteration.
-- **No third-party script blocking**: The banner sets a consent flag but does not actively block third-party scripts. Integration with a tag manager would be needed for production enforcement.
-- **No auto-dismiss**: The banner remains until the user takes explicit action, which is intentional for compliance.
+- **New props**: `eventId` is rendered in a `<code>` block with `aria-label` describing the reference; the report link uses `aria-label="Report this issue"` so screen readers announce purpose clearly.
