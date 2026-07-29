@@ -102,11 +102,13 @@ export async function getTransactions(
   const {
     searchQuery = "",
     filterQuery = "",
-
     selectedFilter = "All Transactions",
     fromDate = MOCK_FROM_DATE,
     toDate = MOCK_TO_DATE,
     sortConfigs = [{ field: "date" as const, direction: "desc" as const }],
+    minAmount,
+    maxAmount,
+    counterparty,
   } = filters;
 
   const safePageSize = normalizePositiveInteger(
@@ -169,6 +171,7 @@ export async function getTransactions(
     filterQuery,
     minAmount,
     maxAmount,
+    counterparty,
   );
 
   const sorted = sortTransactionsMulti(filtered, sortConfigs);

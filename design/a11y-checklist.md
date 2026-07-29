@@ -1,4 +1,4 @@
-# Accessibility Checklist — WCAG 2.1 AA Baseline
+# Accessibility (A11y) Checklist - Stellopay Frontend
 
 **Branch:** `design/a11y-baseline`  
 **Scope:** Sign-in, Sign-up, Landing page, Transactions view, Modal dialogs  
@@ -251,6 +251,29 @@ form.handleSubmit(onSubmit, onValidationError)
 | P1-02 | Color contrast: `text-[#52525B]` on white in hero section                                    | 1.4.3 | Same as above                                                             |
 | P1-03 | Focus order in mobile nav drawer — links should be trapped while open                        | 2.4.3 | Requires `focus-trap-react` or Radix Dialog; deferred to follow-up        |
 | P1-04 | `<AuthSocialButtons>` — social login buttons need `aria-label` with provider name            | 4.1.2 | Component not in scope of this pass; tracked                              |
+
+---
+
+## Auth Social Divider — Accessible Separator
+
+**File:** `components/auth/auth-social-buttons.tsx`
+**Fix:** The "Or" divider between social provider buttons and the email form was previously a plain `<div>` with decorative `<Separator>` lines and an `<span>Or</span>`. Screen readers heard the word "or" out of context with no indication it separates sign-in methods. Now:
+- The divider wrapper has `role="separator"` with `aria-label="or continue with email"`, so screen readers understand it separates social login from email login
+- The visual "Or" text has `aria-hidden="true"` to prevent double-reading (the accessible name is in `aria-label`)
+- The `<Separator>` lines remain decorative (default `decorative={true}`, which adds `aria-hidden="true"`)
+- The divider was also extracted from the duplicate instances in `login-form.tsx` and `sign-up/sign-up-form.tsx` into `AuthSocialButtons` as a single source of truth
+
+**WCAG:** 1.3.1 Info and Relationships, 4.1.2 Name/Role/Value
+**axe rule:** `aria-allowed-attr`, `aria-required-attr`
+
+**Files changed:**
+
+| File                                         | Changes                                                                 |
+| -------------------------------------------- | ----------------------------------------------------------------------- |
+| `components/auth/auth-social-buttons.tsx`    | Added accessible divider with `role="separator"` and `aria-label`       |
+| `components/auth/auth-social-buttons.test.tsx` | Added tests for separator role, aria-label, aria-hidden on visual text  |
+| `components/auth/login/login-form.tsx`       | Removed duplicate divider (now handled by `AuthSocialButtons`)          |
+| `components/auth/sign-up/sign-up-form.tsx`   | Removed duplicate divider (now handled by `AuthSocialButtons`)          |
 | P1-05 | `react-day-picker` calendar in date filter — keyboard navigation needs audit                 | 2.1.1 | Third-party component; needs dedicated testing session                    |
 | P1-06 | `<Filter>` and `<Sort>` dropdown triggers — need `aria-haspopup` and `aria-expanded`         | 4.1.2 | Radix DropdownMenu handles this automatically; verify in integration test |
 | P1-07 | `<TableSearchbar>` — input needs visible `<label>` (not just placeholder)                    | 1.3.1 | Placeholder is not a label substitute; tracked                            |
