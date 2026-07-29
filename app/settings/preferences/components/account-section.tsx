@@ -17,6 +17,8 @@ import { Label } from "@/components/ui/label";
 import DestructiveActionDialog from "./destructive-action-dialog";
 import { DEMO_PROFILE } from "@/lib/demo-data";
 import { isValidEmail } from "@/utils/authUtils";
+import { formatDateTimeWithTimezone } from "@/utils/date-utils";
+import { formatCurrencyWithCode } from "@/utils/formatUtils";
 
 export interface ProfileState {
   firstName: string;
@@ -40,6 +42,12 @@ export const DEFAULT_PROFILE: ProfileState = {
   timezone: DEMO_PROFILE.timezone,
   currency: DEMO_PROFILE.currency,
 };
+
+/** Fixed reference date used for the timezone preview so the output is stable across renders. */
+const SAMPLE_DATE = new Date("2026-07-29T14:30:00Z");
+
+/** Fixed reference amount used for the currency preview. */
+const SAMPLE_AMOUNT = 1250.5;
 
 /** Number of profile fields that have a non-empty value. */
 export function countCompletedProfileFields(profile: ProfileState): number {
@@ -319,6 +327,36 @@ export default function AccountSection({
             />
           </div>
 
+          {/* Live locale preview — updates on every field change */}
+          <div
+            role="region"
+            aria-label="Locale format preview"
+            aria-live="polite"
+            className="rounded-2xl border border-zinc-200 bg-zinc-50 px-4 py-3 dark:border-white/10 dark:bg-white/5"
+          >
+            <p className="mb-2 text-xs font-medium uppercase tracking-wide text-zinc-500 dark:text-zinc-400">
+              Preview
+            </p>
+            <div className="flex flex-wrap items-center gap-x-6 gap-y-2 text-sm text-zinc-800 dark:text-zinc-200">
+              <span className="inline-flex items-center gap-2">
+                <CalendarPreviewIcon aria-hidden="true" />
+                <span data-testid="locale-date-preview">
+                  {formatDateTimeWithTimezone(SAMPLE_DATE, profile.timezone)}
+                </span>
+              </span>
+              <span
+                className="hidden h-4 w-px bg-zinc-300 dark:bg-white/20 sm:block"
+                aria-hidden="true"
+              />
+              <span className="inline-flex items-center gap-2">
+                <CurrencyPreviewIcon aria-hidden="true" />
+                <span data-testid="locale-currency-preview">
+                  {formatCurrencyWithCode(SAMPLE_AMOUNT, profile.currency)}
+                </span>
+              </span>
+            </div>
+          </div>
+
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <p className="text-sm text-zinc-500 dark:text-zinc-400">
               Core account edits stay on one card so users do not bounce between
@@ -558,5 +596,49 @@ function SelectField({
         ))}
       </select>
     </div>
+  );
+}
+
+function CalendarPreviewIcon(props: React.SVGProps<SVGSVGElement>) {
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      width="16"
+      height="16"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className="shrink-0 text-zinc-400 dark:text-zinc-500"
+      {...props}
+    >
+      <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
+      <line x1="16" y1="2" x2="16" y2="6" />
+      <line x1="8" y1="2" x2="8" y2="6" />
+      <line x1="3" y1="10" x2="21" y2="10" />
+    </svg>
+  );
+}
+
+function CurrencyPreviewIcon(props: React.SVGProps<SVGSVGElement>) {
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      width="16"
+      height="16"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className="shrink-0 text-zinc-400 dark:text-zinc-500"
+      {...props}
+    >
+      <line x1="12" y1="1" x2="12" y2="23" />
+      <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
+    </svg>
   );
 }

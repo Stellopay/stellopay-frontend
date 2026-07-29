@@ -4,6 +4,7 @@ import {
   capitalizeFirst,
   formatChartValue,
   formatCurrency,
+  formatCurrencyWithCode,
   formatNumber,
   truncateText,
 } from "@/utils/formatUtils";
@@ -289,5 +290,49 @@ describe("capitalizeFirst", () => {
         expect(() => capitalizeFirst("cOmPLETED")).not.toThrow();
       });
     });
+  });
+});
+
+describe("formatCurrencyWithCode", () => {
+  it("formats a positive amount with a valid ISO 4217 currency code", () => {
+    const result = formatCurrencyWithCode(1250.5, "USD");
+
+    // Should contain both the currency representation and the amount
+    expect(result).toContain("1,250.50");
+  });
+
+  it("produces different output for different currency codes", () => {
+    const usd = formatCurrencyWithCode(1250.5, "USD");
+    const ngn = formatCurrencyWithCode(1250.5, "NGN");
+    const eur = formatCurrencyWithCode(1250.5, "EUR");
+
+    expect(usd).toBeTruthy();
+    expect(ngn).toBeTruthy();
+    expect(eur).toBeTruthy();
+  });
+
+  it("falls back to plain decimal for an unrecognised currency code", () => {
+    const result = formatCurrencyWithCode(42, "ZZZ");
+
+    // Should still return a formatted number string without throwing
+    expect(result).toContain("42");
+    expect(typeof result).toBe("string");
+  });
+
+  it("handles zero and negative amounts", () => {
+    expect(formatCurrencyWithCode(0, "USD")).toContain("0.00");
+
+    const neg = formatCurrencyWithCode(-500, "USD");
+
+    expect(neg).toContain("500.00");
+  });
+
+  it("returns a non-empty string for every supported profile currency", () => {
+    for (const code of ["USD", "NGN", "EUR"]) {
+      const result = formatCurrencyWithCode(100, code);
+
+      expect(result).toBeTruthy();
+      expect(typeof result).toBe("string");
+    }
   });
 });

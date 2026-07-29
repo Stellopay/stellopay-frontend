@@ -14,17 +14,27 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import type { TransactionsFiltersProps } from "@/types/transaction";
+import type { SortField, TransactionsFiltersProps } from "@/types/transaction";
 
 export default function TransactionsFilters({
   searchQuery,
   selectedFilter,
-  sortField,
-  sortDirection,
+  sortConfigs,
   onSearchChange,
   onFilterChange,
   onSort,
 }: TransactionsFiltersProps) {
+  const renderSortIndicator = (field: SortField) => {
+    const indicators: string[] = [];
+    for (const [idx, config] of sortConfigs.entries()) {
+      if (config.field === field) {
+        const arrow = config.direction === "asc" ? "↑" : "↓";
+        const label = idx === 0 ? arrow : `${arrow} #${idx + 1}`;
+        indicators.push(label);
+      }
+    }
+    return indicators.length > 0 ? indicators.join(" ") : "";
+  };
   return (
     <div className="flex flex-col lg:flex-row lg:items-center justify-between px-6 py-4  rounded-lg  bg-[#160f17]">
       {/* Transaction Type Filter */}
@@ -156,31 +166,55 @@ export default function TransactionsFilters({
           <DropdownMenuContent className="bg-[#160f17] border-[#2D2D2D]">
             <DropdownMenuItem
               className="text-white hover:bg-gray-800"
-              onClick={() => onSort("date")}
+              onClick={(e) => onSort("date", { shiftKey: e.shiftKey })}
             >
-              Sort by Date{" "}
-              {sortField === "date" && (sortDirection === "asc" ? "↑" : "↓")}
+              <span className="flex items-center gap-2">
+                Sort by Date
+                {renderSortIndicator("date") && (
+                  <span className="text-xs text-gray-400">
+                    {renderSortIndicator("date")}
+                  </span>
+                )}
+              </span>
             </DropdownMenuItem>
             <DropdownMenuItem
               className="text-white hover:bg-gray-800"
-              onClick={() => onSort("amount")}
+              onClick={(e) => onSort("amount", { shiftKey: e.shiftKey })}
             >
-              Sort by Amount{" "}
-              {sortField === "amount" && (sortDirection === "asc" ? "↑" : "↓")}
+              <span className="flex items-center gap-2">
+                Sort by Amount
+                {renderSortIndicator("amount") && (
+                  <span className="text-xs text-gray-400">
+                    {renderSortIndicator("amount")}
+                  </span>
+                )}
+              </span>
             </DropdownMenuItem>
             <DropdownMenuItem
               className="text-white hover:bg-gray-800"
-              onClick={() => onSort("type")}
+              onClick={(e) => onSort("type", { shiftKey: e.shiftKey })}
             >
-              Sort by Type{" "}
-              {sortField === "type" && (sortDirection === "asc" ? "↑" : "↓")}
+              <span className="flex items-center gap-2">
+                Sort by Type
+                {renderSortIndicator("type") && (
+                  <span className="text-xs text-gray-400">
+                    {renderSortIndicator("type")}
+                  </span>
+                )}
+              </span>
             </DropdownMenuItem>
             <DropdownMenuItem
               className="text-white hover:bg-gray-800"
-              onClick={() => onSort("status")}
+              onClick={(e) => onSort("status", { shiftKey: e.shiftKey })}
             >
-              Sort by Status{" "}
-              {sortField === "status" && (sortDirection === "asc" ? "↑" : "↓")}
+              <span className="flex items-center gap-2">
+                Sort by Status
+                {renderSortIndicator("status") && (
+                  <span className="text-xs text-gray-400">
+                    {renderSortIndicator("status")}
+                  </span>
+                )}
+              </span>
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
