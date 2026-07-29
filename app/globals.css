@@ -61,6 +61,24 @@
     --font-caption-sm: 0.875rem;
     --leading-caption-sm: 1.43;
     --tracking-caption-sm: 0.01em;
+
+    /* Chart colors — light mode
+     * Used by RechartsMiniBarChart and other chart components.
+     * Each token maps to a semantic chart color that adapts in dark mode.
+     */
+    --chart-blue: #3B82F6;
+    --chart-green: #10B981;
+    --chart-amber: #F59E0B;
+    --chart-tooltip-bg: #ffffff;
+    --chart-tooltip-border: #e4e4e7;
+  }
+
+  .dark {
+    --chart-blue: #60A5FA;
+    --chart-green: #34D399;
+    --chart-amber: #FBBF24;
+    --chart-tooltip-bg: #1f2937;
+    --chart-tooltip-border: #374151;
   }
 
   .dark {
