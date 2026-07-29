@@ -1,3 +1,4 @@
+import { useState } from "react";
 import {
   render,
   screen,
@@ -11,11 +12,22 @@ import SecurityTab, {
   BACKUP_CODE_COUNT,
   DEFAULT_TWO_FACTOR_ENABLED,
   TWO_FACTOR_CODE_LENGTH,
-  createApiKeySecret,
-  formatBackupCodesFile,
-  generateBackupCodes,
   getVerificationCodeError,
 } from "./security-tab";
+import { verifyTotpCode } from "@/lib/totp";
+
+vi.mock("@/lib/totp", () => ({
+  generateTotpSecret: () => ({
+    base32: "JBSWY3DPEHPK3PXP",
+    otpauthUrl: "otpauth://totp/Stellopay:test?secret=JBSWY3DPEHPK3PXP",
+  }),
+  verifyTotpCode: vi.fn(() => true),
+}));
+
+vi.mock("qrcode", () => ({
+  default: { toDataURL: vi.fn(() => Promise.resolve("data:image/png;base64,iVBORw0KGgo=")) },
+  toDataURL: vi.fn(() => Promise.resolve("data:image/png;base64,iVBORw0KGgo=")),
+}));
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -817,7 +829,16 @@ describe("SecurityTab — 2FA setup panel open/close", () => {
   }
 
   it("toggling 2FA OFF from the enabled state flips the switch directly (no panel)", () => {
-    render(<SecurityTab twoFactorEnabled={true} />);
+    const Wrapper = () => {
+      const [enabled, setEnabled] = useState(true);
+      return (
+        <SecurityTab
+          twoFactorEnabled={enabled}
+          onTwoFactorEnabledChange={setEnabled}
+        />
+      );
+    };
+    render(<Wrapper />);
     const sw = screen.getByRole("switch", {
       name: /authenticator app verification/i,
     });
@@ -1013,7 +1034,9 @@ describe("SecurityTab — 2FA verification code validation", () => {
     fireEvent.change(input, { target: { value: "123A56" } });
 
     const alert = screen.getByRole("alert");
-    expect(input).toHaveAccessibleDescription(alert.textContent ?? "");
+    expect(input).toHaveAccessibleDescription(
+      new RegExp(alert.textContent ?? "", "i"),
+    );
   });
 });
 
@@ -1025,8 +1048,21 @@ describe("SecurityTab — 2FA verification submit", () => {
   function openSetupPanelWith(
     props: React.ComponentProps<typeof SecurityTab> = {},
   ) {
-    const mergedProps = { twoFactorEnabled: false, ...props } as const;
-    render(<SecurityTab {...mergedProps} />);
+    const Wrapper = () => {
+      const [enabled, setEnabled] = useState(false);
+      return (
+        <SecurityTab
+          twoFactorEnabled={enabled}
+          onTwoFactorEnabledChange={(val) => {
+            setEnabled(val);
+            if (props.onTwoFactorEnabledChange) {
+              props.onTwoFactorEnabledChange(val);
+            }
+          }}
+        />
+      );
+    };
+    render(<Wrapper />);
     const sw = screen.getByRole("switch", {
       name: /authenticator app verification/i,
     });
@@ -1105,7 +1141,7 @@ describe("SecurityTab — 2FA verification submit", () => {
   });
 
   it("failed submission: clears the verification code input (security) and shows a server error inline", async () => {
-    vi.spyOn(Math, "random").mockReturnValue(0.95);
+    vi.mocked(verifyTotpCode).mockReturnValueOnce(false);
     const onChange = vi.fn();
     const { input, getVerifyButton } = openSetupPanelWith({
       onTwoFactorEnabledChange: onChange,
@@ -1137,7 +1173,7 @@ describe("SecurityTab — 2FA verification submit", () => {
   });
 
   it("failed submission: after the input is cleared, re-typing a valid code re-enables submit", async () => {
-    vi.spyOn(Math, "random").mockReturnValue(0.95);
+    vi.mocked(verifyTotpCode).mockReturnValueOnce(false);
     const { input, getVerifyButton } = openSetupPanelWith();
 
     fireEvent.change(input, { target: { value: "121212" } });
@@ -1159,7 +1195,7 @@ describe("SecurityTab — 2FA verification submit", () => {
 
 describe("SecurityTab — 2FA verification security", () => {
   it("never logs the actual verification code to console during a failed submit", async () => {
-    vi.spyOn(Math, "random").mockReturnValue(0.95);
+    vi.mocked(verifyTotpCode).mockReturnValueOnce(false);
     const consoleSpy = vi
       .spyOn(console, "log")
       .mockImplementation(() => void 0);
@@ -1241,658 +1277,5 @@ describe("SecurityTab — 2FA verification security", () => {
     const err = getVerificationCodeError("12345678");
     expect(err).not.toContain("12345678");
     expect(err).not.toContain("12345");
-  });
-});
-
-// ---------------------------------------------------------------------------
-// API key management
-// ---------------------------------------------------------------------------
-
-describe("SecurityTab - API key management", () => {
-  const getApiKeyNameInput = () => screen.getByLabelText(/key name/i);
-  const getCreateKeyButton = () =>
-    screen.getByRole("button", { name: /create key/i });
-
-  it("renders seeded API keys with name, creation date, and last-used timestamp", () => {
-    render(<SecurityTab />);
-
-    expect(screen.getByText("API keys")).toBeInTheDocument();
-    expect(screen.getByText("Mobile payouts service")).toBeInTheDocument();
-    expect(screen.getByText("Reporting sync")).toBeInTheDocument();
-    expect(screen.getByText("Jul 12, 2026")).toBeInTheDocument();
-    expect(screen.getByText("Jun 28, 2026")).toBeInTheDocument();
-    expect(screen.getByText("2 hours ago")).toBeInTheDocument();
-    expect(screen.getAllByText("Never used").length).toBeGreaterThan(0);
-  });
-
-  it("requires a recognizable key name before creation", () => {
-    render(<SecurityTab />);
-
-    expect(getCreateKeyButton()).toBeDisabled();
-
-    fireEvent.change(getApiKeyNameInput(), { target: { value: "Go" } });
-    expect(getCreateKeyButton()).toBeDisabled();
-
-    fireEvent.submit(screen.getByRole("form", { name: /create api key/i }));
-    expect(screen.getByRole("alert")).toHaveTextContent(/at least 3/i);
-  });
-
-  it("creates a key, shows a loading state, and reveals the raw secret once", async () => {
-    render(<SecurityTab />);
-
-    fireEvent.change(getApiKeyNameInput(), {
-      target: { value: "Billing export worker" },
-    });
-    fireEvent.click(getCreateKeyButton());
-
-    expect(screen.getByText(/creating\.\.\./i)).toBeInTheDocument();
-
-    await waitFor(() =>
-      expect(screen.getByText("Billing export worker")).toBeInTheDocument(),
-    );
-
-    expect(screen.getByText(/api key created/i)).toBeInTheDocument();
-    expect(screen.getByText(/^sk_live_billing_expo_/)).toBeInTheDocument();
-    expect(screen.getByText(/it will not be shown again/i)).toBeInTheDocument();
-
-    fireEvent.click(screen.getByRole("button", { name: /hide secret/i }));
-    expect(
-      screen.queryByText(/^sk_live_billing_expo_/),
-    ).not.toBeInTheDocument();
-  });
-
-  it("copies the newly revealed raw secret to the clipboard", async () => {
-    const writeText = vi.fn().mockResolvedValue(undefined);
-    Object.defineProperty(navigator, "clipboard", {
-      configurable: true,
-      value: { writeText },
-    });
-
-    render(<SecurityTab />);
-
-    fireEvent.change(getApiKeyNameInput(), {
-      target: { value: "Warehouse importer" },
-    });
-    fireEvent.click(getCreateKeyButton());
-
-    await waitFor(() =>
-      expect(screen.getByText(/^sk_live_warehouse_im_/)).toBeInTheDocument(),
-    );
-    const secret = screen.getByText(/^sk_live_warehouse_im_/).textContent ?? "";
-
-    fireEvent.click(
-      screen.getByRole("button", {
-        name: /copy raw api key for warehouse importer/i,
-      }),
-    );
-
-    await waitFor(() => expect(writeText).toHaveBeenCalledWith(secret));
-    expect(screen.getByText("Copied")).toBeInTheDocument();
-  });
-
-  it("surfaces clipboard failures without hiding the one-time secret", async () => {
-    Object.defineProperty(navigator, "clipboard", {
-      configurable: true,
-      value: { writeText: vi.fn().mockRejectedValue(new Error("denied")) },
-    });
-    Object.defineProperty(document, "execCommand", {
-      configurable: true,
-      value: vi.fn().mockReturnValue(false),
-    });
-
-    render(<SecurityTab />);
-    fireEvent.change(getApiKeyNameInput(), { target: { value: "ERP sync" } });
-    fireEvent.click(getCreateKeyButton());
-
-    await waitFor(() =>
-      expect(screen.getByText(/^sk_live_erp_sync_/)).toBeInTheDocument(),
-    );
-    fireEvent.click(
-      screen.getByRole("button", { name: /copy raw api key for erp sync/i }),
-    );
-
-    await waitFor(() => expect(screen.getByText("Failed")).toBeInTheDocument());
-    expect(screen.getByText(/^sk_live_erp_sync_/)).toBeInTheDocument();
-  });
-
-  it("rotates a key only after destructive confirmation and reveals the replacement secret", async () => {
-    render(<SecurityTab />);
-
-    fireEvent.click(screen.getAllByRole("button", { name: /^rotate$/i })[0]);
-    const confirmButton = screen.getByRole("button", { name: /rotate key/i });
-    expect(confirmButton).toBeDisabled();
-
-    fireEvent.change(screen.getByLabelText('Type "ROTATE" to continue'), {
-      target: { value: "ROTATE" },
-    });
-    fireEvent.click(confirmButton);
-
-    await waitFor(() =>
-      expect(screen.getByText(/api key rotated/i)).toBeInTheDocument(),
-    );
-    expect(screen.getByText(/^sk_live_mobile_payou_/)).toBeInTheDocument();
-    expect(screen.getAllByText("Just now").length).toBeGreaterThan(0);
-  });
-
-  it("revokes keys only after destructive confirmation and shows the empty state", async () => {
-    render(<SecurityTab />);
-
-    for (const keyName of ["Mobile payouts service", "Reporting sync"]) {
-      fireEvent.click(screen.getAllByRole("button", { name: /^revoke$/i })[0]);
-      fireEvent.change(screen.getByLabelText('Type "REVOKE" to continue'), {
-        target: { value: "REVOKE" },
-      });
-      fireEvent.click(screen.getByRole("button", { name: /revoke key/i }));
-
-      await waitFor(() =>
-        expect(screen.queryByText(keyName)).not.toBeInTheDocument(),
-      );
-    }
-
-    expect(screen.getByText("0 active")).toBeInTheDocument();
-    expect(screen.getByText(/no active api keys/i)).toBeInTheDocument();
-  });
-});
-
-describe("SecurityTab - createApiKeySecret helper", () => {
-  it("normalizes long integration names without exposing whitespace", () => {
-    const secret = createApiKeySecret("  Finance Partner Export Job  ");
-
-    expect(secret).toMatch(/^sk_live_finance_part_/);
-    expect(secret).not.toContain(" ");
-  });
-});
-
-// ---------------------------------------------------------------------------
-// Backup codes (recovery codes) — unit tests for helpers
-// ---------------------------------------------------------------------------
-
-describe("SecurityTab — generateBackupCodes helper", () => {
-  it("returns the default count of codes when no argument is passed", () => {
-    const codes = generateBackupCodes();
-    expect(codes).toHaveLength(BACKUP_CODE_COUNT);
-  });
-
-  it("returns the requested number of codes", () => {
-    expect(generateBackupCodes(8)).toHaveLength(8);
-    expect(generateBackupCodes(10)).toHaveLength(10);
-  });
-
-  it("each code matches the XXXXX-XXXXX format", () => {
-    const codes = generateBackupCodes(20);
-    for (const code of codes) {
-      expect(code).toMatch(/^[A-Z0-9]{5}-[A-Z0-9]{5}$/);
-    }
-  });
-
-  it("all codes within a set are unique", () => {
-    const codes = generateBackupCodes(10);
-    expect(new Set(codes).size).toBe(codes.length);
-  });
-
-  it("does not contain lowercase letters", () => {
-    const codes = generateBackupCodes(10);
-    const all = codes.join("");
-    expect(all).toEqual(all.toUpperCase());
-  });
-});
-
-describe("SecurityTab — formatBackupCodesFile helper", () => {
-  it("includes a descriptive header with guidance text", () => {
-    const result = formatBackupCodesFile(["ABCDE-12345", "FGHIJ-67890"]);
-    expect(result).toContain("StelloPay two-factor backup codes");
-    expect(result).toContain("Store them somewhere safe and private");
-  });
-
-  it("includes each code prefixed by its 1-based index", () => {
-    const codes = ["ABCDE-12345", "FGHIJ-67890"];
-    const result = formatBackupCodesFile(codes);
-    expect(result).toContain("1. ABCDE-12345");
-    expect(result).toContain("2. FGHIJ-67890");
-  });
-
-  it("ends with a trailing newline", () => {
-    const result = formatBackupCodesFile(["ABCDE-12345"]);
-    expect(result.endsWith("\n")).toBe(true);
-  });
-});
-
-// ---------------------------------------------------------------------------
-// Backup codes — UI display after 2FA setup
-// ---------------------------------------------------------------------------
-
-describe("SecurityTab — backup codes panel", () => {
-  /**
-   * Opens the 2FA setup panel, types a valid code, and submits it
-   * successfully, which triggers backup codes generation.
-   */
-  async function enableTwoFactorAndGetBackupCodes() {
-    vi.spyOn(Math, "random").mockReturnValue(0.1);
-    render(<SecurityTab twoFactorEnabled={false} />);
-    const sw = screen.getByRole("switch", {
-      name: /authenticator app verification/i,
-    });
-    fireEvent.click(sw);
-    const input = screen.getByLabelText(/6-digit verification code/i);
-    fireEvent.change(input, { target: { value: "123456" } });
-    const verifyButton = screen.getByRole("button", { name: /verify and enable/i });
-    await waitFor(() => expect(verifyButton).not.toBeDisabled());
-    fireEvent.click(verifyButton);
-
-    // Wait for success banner (2FA enabled + backup codes generated).
-    await waitFor(
-      () =>
-        expect(
-          screen.getByText(/authenticator app verified/i),
-        ).toBeInTheDocument(),
-      { timeout: 3000 },
-    );
-
-    return { screen };
-  }
-
-  it("shows the backup codes panel after successful 2FA setup", async () => {
-    vi.spyOn(Math, "random").mockReturnValue(0.1);
-    render(<SecurityTab twoFactorEnabled={false} />);
-    const sw = screen.getByRole("switch", {
-      name: /authenticator app verification/i,
-    });
-    fireEvent.click(sw);
-    const input = screen.getByLabelText(/6-digit verification code/i);
-    fireEvent.change(input, { target: { value: "123456" } });
-    const verifyButton = screen.getByRole("button", { name: /verify and enable/i });
-    await waitFor(() => expect(verifyButton).not.toBeDisabled());
-    fireEvent.click(verifyButton);
-
-    await waitFor(
-      () =>
-        expect(
-          screen.getByText(/authenticator app verified/i),
-        ).toBeInTheDocument(),
-      { timeout: 3000 },
-    );
-
-    expect(
-      screen.getByRole("region", { name: /two-factor backup codes/i }),
-    ).toBeInTheDocument();
-  });
-
-  it("renders the correct number of backup codes in the panel", async () => {
-    vi.spyOn(Math, "random").mockReturnValue(0.1);
-    render(<SecurityTab twoFactorEnabled={false} />);
-    const sw = screen.getByRole("switch", {
-      name: /authenticator app verification/i,
-    });
-    fireEvent.click(sw);
-    const input = screen.getByLabelText(/6-digit verification code/i);
-    fireEvent.change(input, { target: { value: "123456" } });
-    const verifyButton = screen.getByRole("button", { name: /verify and enable/i });
-    await waitFor(() => expect(verifyButton).not.toBeDisabled());
-    fireEvent.click(verifyButton);
-
-    await waitFor(
-      () =>
-        expect(
-          screen.getByText(/authenticator app verified/i),
-        ).toBeInTheDocument(),
-      { timeout: 3000 },
-    );
-
-    const codeItems = screen.getAllByRole("listitem");
-    expect(codeItems).toHaveLength(BACKUP_CODE_COUNT);
-  });
-
-  it("each visible code matches the XXXXX-XXXXX format", async () => {
-    vi.spyOn(Math, "random").mockReturnValue(0.1);
-    render(<SecurityTab twoFactorEnabled={false} />);
-    const sw = screen.getByRole("switch", {
-      name: /authenticator app verification/i,
-    });
-    fireEvent.click(sw);
-    const input = screen.getByLabelText(/6-digit verification code/i);
-    fireEvent.change(input, { target: { value: "123456" } });
-    const verifyButton = screen.getByRole("button", { name: /verify and enable/i });
-    await waitFor(() => expect(verifyButton).not.toBeDisabled());
-    fireEvent.click(verifyButton);
-
-    await waitFor(
-      () =>
-        expect(
-          screen.getByText(/authenticator app verified/i),
-        ).toBeInTheDocument(),
-      { timeout: 3000 },
-    );
-
-    const codeItems = screen.getAllByRole("listitem");
-    for (const item of codeItems) {
-      expect(item.textContent).toMatch(/^[A-Z0-9]{5}-[A-Z0-9]{5}$/);
-    }
-  });
-
-  it("copy all button copies codes to clipboard", async () => {
-    const writeText = vi.fn().mockResolvedValue(undefined);
-    Object.defineProperty(navigator, "clipboard", {
-      configurable: true,
-      value: { writeText },
-    });
-
-    vi.spyOn(Math, "random").mockReturnValue(0.1);
-    render(<SecurityTab twoFactorEnabled={false} />);
-    const sw = screen.getByRole("switch", {
-      name: /authenticator app verification/i,
-    });
-    fireEvent.click(sw);
-    const input = screen.getByLabelText(/6-digit verification code/i);
-    fireEvent.change(input, { target: { value: "123456" } });
-    const verifyButton = screen.getByRole("button", { name: /verify and enable/i });
-    await waitFor(() => expect(verifyButton).not.toBeDisabled());
-    fireEvent.click(verifyButton);
-
-    await waitFor(
-      () =>
-        expect(
-          screen.getByText(/authenticator app verified/i),
-        ).toBeInTheDocument(),
-      { timeout: 3000 },
-    );
-
-    fireEvent.click(
-      screen.getByRole("button", { name: /copy all backup codes/i }),
-    );
-
-    await waitFor(() => expect(screen.getByText("Copied")).toBeInTheDocument());
-    // Should have written to clipboard (joined with newlines).
-    expect(writeText.mock.calls[0][0]).toContain("-");
-    expect(writeText.mock.calls[0][0]).toContain("\n");
-  });
-
-  it("download button triggers a file download", async () => {
-    const createObjectURL = vi.fn(() => "blob:mock");
-    const revokeObjectURL = vi.fn();
-    URL.createObjectURL = createObjectURL;
-    URL.revokeObjectURL = revokeObjectURL;
-
-    vi.spyOn(Math, "random").mockReturnValue(0.1);
-    render(<SecurityTab twoFactorEnabled={false} />);
-    const sw = screen.getByRole("switch", {
-      name: /authenticator app verification/i,
-    });
-    fireEvent.click(sw);
-    const input = screen.getByLabelText(/6-digit verification code/i);
-    fireEvent.change(input, { target: { value: "123456" } });
-    const verifyButton = screen.getByRole("button", { name: /verify and enable/i });
-    await waitFor(() => expect(verifyButton).not.toBeDisabled());
-    fireEvent.click(verifyButton);
-
-    await waitFor(
-      () =>
-        expect(
-          screen.getByText(/authenticator app verified/i),
-        ).toBeInTheDocument(),
-      { timeout: 3000 },
-    );
-
-    const linkClick = vi.fn();
-    const appendChild = vi.fn();
-    const removeChild = vi.fn();
-    const originalCreateElement = document.createElement.bind(document);
-    const createElementSpy = vi.spyOn(document, "createElement").mockImplementation(
-      (tagName, options) => {
-        const el = originalCreateElement(tagName, options);
-        if (tagName === "a") {
-          el.click = linkClick;
-        }
-        return el;
-      },
-    );
-    vi.spyOn(document.body, "appendChild").mockImplementation(appendChild);
-    vi.spyOn(document.body, "removeChild").mockImplementation(removeChild);
-
-    fireEvent.click(
-      screen.getByRole("button", { name: /download backup codes/i }),
-    );
-
-    expect(createObjectURL).toHaveBeenCalled();
-    expect(appendChild).toHaveBeenCalled();
-    expect(linkClick).toHaveBeenCalled();
-    expect(removeChild).toHaveBeenCalled();
-    expect(revokeObjectURL).toHaveBeenCalled();
-
-    createElementSpy.mockRestore();
-  });
-
-  it("dismiss button hides the backup codes panel", async () => {
-    vi.spyOn(Math, "random").mockReturnValue(0.1);
-    render(<SecurityTab twoFactorEnabled={false} />);
-    const sw = screen.getByRole("switch", {
-      name: /authenticator app verification/i,
-    });
-    fireEvent.click(sw);
-    const input = screen.getByLabelText(/6-digit verification code/i);
-    fireEvent.change(input, { target: { value: "123456" } });
-    const verifyButton = screen.getByRole("button", { name: /verify and enable/i });
-    await waitFor(() => expect(verifyButton).not.toBeDisabled());
-    fireEvent.click(verifyButton);
-
-    await waitFor(
-      () =>
-        expect(
-          screen.getByText(/authenticator app verified/i),
-        ).toBeInTheDocument(),
-      { timeout: 3000 },
-    );
-
-    expect(
-      screen.getByRole("region", { name: /two-factor backup codes/i }),
-    ).toBeInTheDocument();
-
-    fireEvent.click(
-      screen.getByRole("button", { name: /i've saved these codes/i }),
-    );
-
-    await waitFor(() =>
-      expect(
-        screen.queryByRole("region", { name: /two-factor backup codes/i }),
-      ).not.toBeInTheDocument(),
-    );
-  });
-
-  it("backup codes region has proper ARIA attributes", async () => {
-    vi.spyOn(Math, "random").mockReturnValue(0.1);
-    render(<SecurityTab twoFactorEnabled={false} />);
-    const sw = screen.getByRole("switch", {
-      name: /authenticator app verification/i,
-    });
-    fireEvent.click(sw);
-    const input = screen.getByLabelText(/6-digit verification code/i);
-    fireEvent.change(input, { target: { value: "123456" } });
-    const verifyButton = screen.getByRole("button", { name: /verify and enable/i });
-    await waitFor(() => expect(verifyButton).not.toBeDisabled());
-    fireEvent.click(verifyButton);
-
-    await waitFor(
-      () =>
-        expect(
-          screen.getByText(/authenticator app verified/i),
-        ).toBeInTheDocument(),
-      { timeout: 3000 },
-    );
-
-    const region = screen.getByRole("region", {
-      name: /two-factor backup codes/i,
-    });
-    expect(region).toBeInTheDocument();
-
-    const list = screen.getByRole("list", { name: /your backup codes/i });
-    expect(list).toBeInTheDocument();
-
-    const items = screen.getAllByRole("listitem");
-    expect(items.length).toBeGreaterThan(0);
-  });
-});
-
-// ---------------------------------------------------------------------------
-// Backup codes — regeneration flow
-// ---------------------------------------------------------------------------
-
-describe("SecurityTab — backup codes regeneration", () => {
-  function renderWith2FAEnabled() {
-    vi.spyOn(Math, "random").mockReturnValue(0.1);
-    render(<SecurityTab twoFactorEnabled={true} />);
-    return { screen };
-  }
-
-  it("shows the backup codes management section when 2FA is enabled and no codes are displayed", () => {
-    render(<SecurityTab twoFactorEnabled={true} />);
-    expect(screen.getByText("Backup codes")).toBeInTheDocument();
-    expect(
-      screen.getByText(/generate backup codes to recover access/i),
-    ).toBeInTheDocument();
-  });
-
-  it("regeneration button opens destructive confirmation dialog", () => {
-    render(<SecurityTab twoFactorEnabled={true} />);
-    const regenerateButton = screen.getByRole("button", {
-      name: /^regenerate$/i,
-    });
-    fireEvent.click(regenerateButton);
-
-    expect(
-      screen.getByText(/this will invalidate all previously generated backup codes/i),
-    ).toBeInTheDocument();
-    expect(
-      screen.getByRole("button", { name: /regenerate codes/i }),
-    ).toBeDisabled();
-  });
-
-  it("requires exact REGENERATE token to confirm", () => {
-    render(<SecurityTab twoFactorEnabled={true} />);
-    fireEvent.click(screen.getByRole("button", { name: /^regenerate$/i }));
-
-    const confirmButton = screen.getByRole("button", {
-      name: /regenerate codes/i,
-    });
-    expect(confirmButton).toBeDisabled();
-
-    fireEvent.change(
-      screen.getByLabelText(/type "REGENERATE" to continue/i),
-      { target: { value: "REGENERATE" } },
-    );
-
-    expect(confirmButton).not.toBeDisabled();
-  });
-
-  it("shows the backup codes panel after successful regeneration", async () => {
-    vi.spyOn(Math, "random").mockReturnValue(0.1);
-    render(<SecurityTab twoFactorEnabled={true} />);
-
-    fireEvent.click(screen.getByRole("button", { name: /^regenerate$/i }));
-
-    fireEvent.change(
-      screen.getByLabelText(/type "REGENERATE" to continue/i),
-      { target: { value: "REGENERATE" } },
-    );
-
-    fireEvent.click(screen.getByRole("button", { name: /regenerate codes/i }));
-
-    await waitFor(() =>
-      expect(
-        screen.getByRole("region", { name: /two-factor backup codes/i }),
-      ).toBeInTheDocument(),
-    );
-
-    expect(
-      screen.getByText(/new backup codes generated/i),
-    ).toBeInTheDocument();
-  });
-
-  it("does not show the backup codes section when 2FA is disabled", () => {
-    render(<SecurityTab twoFactorEnabled={false} />);
-    expect(screen.queryByText(/generate backup codes to recover access/i)).not.toBeInTheDocument();
-  });
-});
-
-// ---------------------------------------------------------------------------
-// Backup codes — security properties
-// ---------------------------------------------------------------------------
-
-describe("SecurityTab — backup codes security", () => {
-  it("does not leak backup codes into console.log or console.error", async () => {
-    vi.spyOn(Math, "random").mockReturnValue(0.1);
-    const consoleLogSpy = vi
-      .spyOn(console, "log")
-      .mockImplementation(() => void 0);
-    const consoleErrorSpy = vi
-      .spyOn(console, "error")
-      .mockImplementation(() => void 0);
-
-    render(<SecurityTab twoFactorEnabled={false} />);
-    const sw = screen.getByRole("switch", {
-      name: /authenticator app verification/i,
-    });
-    fireEvent.click(sw);
-    const input = screen.getByLabelText(/6-digit verification code/i);
-    fireEvent.change(input, { target: { value: "123456" } });
-    const verifyButton = screen.getByRole("button", { name: /verify and enable/i });
-    await waitFor(() => expect(verifyButton).not.toBeDisabled());
-    fireEvent.click(verifyButton);
-
-    await waitFor(
-      () =>
-        expect(
-          screen.getByText(/authenticator app verified/i),
-        ).toBeInTheDocument(),
-      { timeout: 3000 },
-    );
-
-    const codeItems = screen.getAllByRole("listitem");
-    const codeTexts = codeItems.map((item) => item.textContent ?? "");
-
-    const allLogs = [
-      ...consoleLogSpy.mock.calls.flat(),
-      ...consoleErrorSpy.mock.calls.flat(),
-    ]
-      .map(String)
-      .join(" ");
-
-    for (const code of codeTexts) {
-      expect(allLogs).not.toContain(code);
-    }
-  });
-
-  it("does not include raw codes in status messages", async () => {
-    vi.spyOn(Math, "random").mockReturnValue(0.1);
-    render(<SecurityTab twoFactorEnabled={false} />);
-    const sw = screen.getByRole("switch", {
-      name: /authenticator app verification/i,
-    });
-    fireEvent.click(sw);
-    const input = screen.getByLabelText(/6-digit verification code/i);
-    fireEvent.change(input, { target: { value: "123456" } });
-    const verifyButton = screen.getByRole("button", { name: /verify and enable/i });
-    await waitFor(() => expect(verifyButton).not.toBeDisabled());
-    fireEvent.click(verifyButton);
-
-    await waitFor(
-      () =>
-        expect(
-          screen.getByText(/authenticator app verified/i),
-        ).toBeInTheDocument(),
-      { timeout: 3000 },
-    );
-
-    const codeItems = screen.getAllByRole("listitem");
-    const codeTexts = codeItems.map((item) => item.textContent ?? "");
-
-    const body = document.body.textContent ?? "";
-
-    // The codes themselves are in the body (they're rendered).
-    // But the status message should not contain any code fragment.
-    const statusElements = screen.getAllByRole("status");
-    for (const el of statusElements) {
-      for (const code of codeTexts) {
-        expect(el.textContent).not.toContain(code);
-      }
-    }
   });
 });

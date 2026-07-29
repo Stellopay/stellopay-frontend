@@ -1,6 +1,7 @@
 import React from "react";
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { render, screen, within } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 
 import {
   TRANSACTIONS_PAGE_SIZE,
@@ -101,6 +102,7 @@ describe("TransactionsTable skeleton count parity", () => {
       (_, i) => ({
         id: `tx-${i}`,
         type: "Payment",
+        txId: `#TXN${i}`,
         address: `GAddress${i}`,
         date: "2024-01-01",
         time: "12:00",
