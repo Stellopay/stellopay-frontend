@@ -16,7 +16,9 @@ export const SideBar = () => {
   return (
     <aside
       aria-label="Application sidebar"
-      className={`bg-white dark:bg-[#101010] h-full border-r border-zinc-200 dark:border-[#1A1A1A] transition-colors duration-200 overflow-y-auto overflow-x-hidden scrollbar-hide w-full ${isMobile ? "relative z-50" : ""}`}
+      className={`bg-white dark:bg-[#101010] h-full border-r border-zinc-200 dark:border-[#1A1A1A] transition-colors duration-200 overflow-y-auto overflow-x-hidden scrollbar-hide w-full ${
+        isMobile ? "relative z-50" : ""
+      }`}
     >
       <div className="space-y-6 my-9 h-full">
         <div className="px-8 py-6 flex justify-between items-center">

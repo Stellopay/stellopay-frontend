@@ -202,7 +202,7 @@ export function QuickActions({
     <section
       className={cn(
         "rounded-2xl border p-6 transition-all",
-        "bg-white dark:bg-[#111111] border-zinc-200 dark:border-zinc-800 shadow-sm"
+        "bg-white dark:bg-[#111111] border-zinc-200 dark:border-zinc-800 shadow-sm",
       )}
     >
       {/* Header */}
@@ -240,7 +240,7 @@ export function QuickActions({
               className={cn(
                 "flex items-center justify-center w-12 h-12 rounded-xl shrink-0 transition-transform group-hover:scale-110",
                 action.bgColor,
-                action.iconColor
+                action.iconColor,
               )}
             >
               <Icon className="h-6 w-6" aria-hidden />
@@ -252,7 +252,10 @@ export function QuickActions({
               <div
                 key={index}
                 aria-label={`${action.title}, coming soon`}
-                className={cn(cardBase, "opacity-50 cursor-not-allowed select-none")}
+                className={cn(
+                  cardBase,
+                  "opacity-50 cursor-not-allowed select-none",
+                )}
               >
                 <div className="flex items-center gap-4">
                   {iconNode}

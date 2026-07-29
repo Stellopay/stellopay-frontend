@@ -34,10 +34,12 @@ export const metadata: Metadata = {
     default: "StelloPay",
     template: "%s | StelloPay",
   },
-  description: "StelloPay — fast, secure blockchain payroll and payments powered by Stellar.",
+  description:
+    "StelloPay — fast, secure blockchain payroll and payments powered by Stellar.",
   openGraph: {
     title: "StelloPay",
-    description: "Fast, secure blockchain payroll and payments powered by Stellar.",
+    description:
+      "Fast, secure blockchain payroll and payments powered by Stellar.",
     url: "https://stellopay.com",
     siteName: "StelloPay",
     images: [
@@ -54,7 +56,8 @@ export const metadata: Metadata = {
   twitter: {
     card: "summary_large_image",
     title: "StelloPay",
-    description: "Fast, secure blockchain payroll and payments powered by Stellar.",
+    description:
+      "Fast, secure blockchain payroll and payments powered by Stellar.",
     images: ["/og-image.png"],
     creator: "@stellopay",
   },

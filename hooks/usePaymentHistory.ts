@@ -41,34 +41,23 @@ export function usePaymentHistory(): UsePaymentHistoryResult {
     setIsLoading(true);
     setError(null);
 
-    const attempt = () => {
-      getPaymentHistory()
-        .then((result) => {
-          if (!cancelled && requestId === latestRequestId.current) {
-            setData(result);
-            setIsLoading(false);
-          }
-        })
-        .catch((err: unknown) => {
-          if (cancelled || requestId !== latestRequestId.current) return;
-
-          if (retryCountRef.current < MAX_RETRIES) {
-            retryCountRef.current += 1;
-            const delay = BASE_DELAY_MS * Math.pow(2, retryCountRef.current - 1);
-            retryTimerRef.current = setTimeout(() => {
-              retryTimerRef.current = null;
-              attempt();
-            }, delay);
-          } else {
-            setError(
-              err instanceof Error ? err.message : "Failed to load payment history"
-            );
-            setIsLoading(false);
-          }
-        });
-    };
-
-    attempt();
+    getPaymentHistory()
+      .then((result) => {
+        if (!cancelled && requestId === latestRequestId.current) {
+          setData(result);
+          setIsLoading(false);
+        }
+      })
+      .catch((err: unknown) => {
+        if (!cancelled && requestId === latestRequestId.current) {
+          setError(
+            err instanceof Error
+              ? err.message
+              : "Failed to load payment history",
+          );
+          setIsLoading(false);
+        }
+      });
 
     return () => {
       cancelled = true;

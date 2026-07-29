@@ -1,6 +1,6 @@
-import { ReactNode } from 'react';
-import { Skeleton } from '@/components/ui/skeleton';
-import { cn } from '@/utils/commonUtils';
+import { ReactNode } from "react";
+import { Skeleton } from "@/components/ui/skeleton";
+import { cn } from "@/utils/commonUtils";
 
 export interface ChartData {
   value: number;
@@ -29,9 +29,17 @@ export const summaryCardsData: AccountSummaryCardProps[] = [
     chartColor: "bg-blue-500",
     icon: null, // Will be replaced with actual icon component
     chartData: [
-      { value: 40 }, { value: 70 }, { value: 45 }, { value: 90 }, { value: 65 },
-      { value: 50 }, { value: 80 }, { value: 35 }, { value: 100 }, { value: 75 }
-    ]
+      { value: 40 },
+      { value: 70 },
+      { value: 45 },
+      { value: 90 },
+      { value: 65 },
+      { value: 50 },
+      { value: 80 },
+      { value: 35 },
+      { value: 100 },
+      { value: 75 },
+    ],
   },
   {
     title: "Paid This Month",
@@ -43,9 +51,17 @@ export const summaryCardsData: AccountSummaryCardProps[] = [
     chartColor: "bg-emerald-500",
     icon: null,
     chartData: [
-      { value: 30 }, { value: 50 }, { value: 40 }, { value: 70 }, { value: 55 },
-      { value: 45 }, { value: 85 }, { value: 35 }, { value: 60 }, { value: 75 }
-    ]
+      { value: 30 },
+      { value: 50 },
+      { value: 40 },
+      { value: 70 },
+      { value: 55 },
+      { value: 45 },
+      { value: 85 },
+      { value: 35 },
+      { value: 60 },
+      { value: 75 },
+    ],
   },
   {
     title: "To Be Paid",
@@ -57,10 +73,18 @@ export const summaryCardsData: AccountSummaryCardProps[] = [
     chartColor: "bg-amber-500",
     icon: null,
     chartData: [
-      { value: 60 }, { value: 40 }, { value: 80 }, { value: 50 }, { value: 90 },
-      { value: 45 }, { value: 70 }, { value: 35 }, { value: 85 }, { value: 65 }
-    ]
-  }
+      { value: 60 },
+      { value: 40 },
+      { value: 80 },
+      { value: 50 },
+      { value: 90 },
+      { value: 45 },
+      { value: 70 },
+      { value: 35 },
+      { value: 85 },
+      { value: 65 },
+    ],
+  },
 ];
 
 // ─── Skeleton ────────────────────────────────────────────────────────────────
@@ -89,17 +113,17 @@ export const summaryCardsData: AccountSummaryCardProps[] = [
  */
 export function SummaryCardSkeleton({
   className,
-  shade = 'dark',
+  shade = "dark",
 }: {
   className?: string;
-  shade?: 'light' | 'dark';
+  shade?: "light" | "dark";
 }) {
   return (
     <div
       aria-hidden="true"
       className={cn(
-        'bg-white dark:bg-[#111111] border border-zinc-200 dark:border-zinc-800',
-        'rounded-2xl p-6 flex flex-col gap-4 shadow-sm',
+        "bg-white dark:bg-[#111111] border border-zinc-200 dark:border-zinc-800",
+        "rounded-2xl p-6 flex flex-col gap-4 shadow-sm",
         className,
       )}
     >
@@ -151,9 +175,9 @@ export function SummaryCardSkeleton({
  * @param shade - Forwarded to every {@link SummaryCardSkeleton}.
  */
 export function SummaryCardsSkeleton({
-  shade = 'dark',
+  shade = "dark",
 }: {
-  shade?: 'light' | 'dark';
+  shade?: "light" | "dark";
 }) {
   return (
     <div

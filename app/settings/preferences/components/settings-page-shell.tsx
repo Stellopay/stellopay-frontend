@@ -92,7 +92,9 @@ export default function SettingsPageShell({
   // Summary card values, derived from live state rather than hardcoded copy.
   const profileReadiness = isProfileComplete(profile)
     ? "Complete"
-    : `${countCompletedProfileFields(profile)}/${totalProfileFields(profile)} done`;
+    : `${countCompletedProfileFields(profile)}/${totalProfileFields(
+        profile,
+      )} done`;
   const activeAlerts = countActiveNotifications(notificationSettings);
   const securityPosture = twoFactorEnabled ? "2-step on" : "2-step off";
   const walletCoverage = `${linkedWalletCount} linked`;

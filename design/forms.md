@@ -14,14 +14,18 @@ We use semantic tokens for form states to ensure brand consistency:
 ## Components
 
 ### 1. Input
+
 The base `Input` component handles all semantic states:
+
 - `error`: Red border and ring.
 - `success`: Green border and ring.
 - `warning`: Amber border and ring.
 - `loading`: Shows a spinner on the right.
 
 ### 2. FormField (Abstractions)
+
 Use high-level abstractions for common patterns:
+
 - `FormFieldInput`: Standard text/email inputs.
 - `FormFieldPassword`: Password input with show/hide toggle.
 - `FormFieldCheckbox`: Checkbox with label alignment.
@@ -30,6 +34,7 @@ Use high-level abstractions for common patterns:
 ## Usage Patterns
 
 ### Standard Text Input
+
 ```tsx
 <FormFieldInput
   control={form.control}
@@ -41,6 +46,7 @@ Use high-level abstractions for common patterns:
 ```
 
 ### Password Input
+
 ```tsx
 <FormFieldPassword
   control={form.control}
@@ -52,6 +58,7 @@ Use high-level abstractions for common patterns:
 ```
 
 ### Loading State
+
 ```tsx
 <FormFieldInput
   control={form.control}
@@ -63,6 +70,7 @@ Use high-level abstractions for common patterns:
 ```
 
 ### Feedback Messages
+
 ```tsx
 // Success message
 <FormFieldInput
@@ -86,6 +94,7 @@ Use high-level abstractions for common patterns:
 ## Do's and Don'ts
 
 ### Do
+
 - ✅ Always use `FormField` abstractions for consistent layout.
 - ✅ Provide clear, actionable error messages.
 - ✅ Use the `loading` state for async validation or submission.
@@ -93,6 +102,7 @@ Use high-level abstractions for common patterns:
 - ✅ Ensure all required fields are marked with `required`.
 
 ### Don't
+
 - ❌ Don't log sensitive form data to the console.
 - ❌ Don't use manual `Input` and `label` unless absolutely necessary.
 - ❌ Don't use hardcoded colors for states; use semantic tokens.

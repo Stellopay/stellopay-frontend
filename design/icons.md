@@ -15,7 +15,7 @@
 import { Home } from "lucide-react";
 
 ❌ Bad:
-import * as Icons from "lucide-react";
+import \* as Icons from "lucide-react";
 
 ---
 
@@ -36,11 +36,11 @@ import * as Icons from "lucide-react";
 
 ## Usage Rules
 
-| Case | Library |
-|------|--------|
-| UI icons | lucide-react |
-| Missing icons | hugeicons |
-| Brand/custom | SVG |
+| Case          | Library      |
+| ------------- | ------------ |
+| UI icons      | lucide-react |
+| Missing icons | hugeicons    |
+| Brand/custom  | SVG          |
 
 ---
 

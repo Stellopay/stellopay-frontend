@@ -2,10 +2,8 @@ import * as React from "react";
 
 import { cn } from "@/utils/commonUtils";
 
-interface InputProps extends Omit<
-  React.ComponentProps<"input">,
-  "className" | "type"
-> {
+interface InputProps
+  extends Omit<React.ComponentProps<"input">, "className" | "type"> {
   className?: string;
   type?: React.ComponentProps<"input">["type"];
   error?: boolean;

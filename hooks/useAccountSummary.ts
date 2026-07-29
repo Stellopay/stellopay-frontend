@@ -45,7 +45,9 @@ export function useAccountSummary(): UseAccountSummaryResult {
       .catch((err: unknown) => {
         if (!cancelled && requestId === latestRequestId.current) {
           setError(
-            err instanceof Error ? err.message : "Failed to load account summary"
+            err instanceof Error
+              ? err.message
+              : "Failed to load account summary",
           );
           setIsLoading(false);
         }

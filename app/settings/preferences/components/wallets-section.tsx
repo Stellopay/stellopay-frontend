@@ -66,7 +66,10 @@ export default function WalletsSection() {
     addressBookLock: true,
     travelRuleChecks: true,
   });
-  const [status, setStatus] = useState<StatusState>({ message: "", type: null });
+  const [status, setStatus] = useState<StatusState>({
+    message: "",
+    type: null,
+  });
   const [isSaving, setIsSaving] = useState(false);
   const [addedWallets, setAddedWallets] = useState<string[]>([]);
 

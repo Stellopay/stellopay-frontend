@@ -27,9 +27,7 @@ test.describe("Login form – password visibility toggle", () => {
 
     await page.goto("/auth/login");
     // The page must render the Sign In button without blowing up
-    await expect(
-      page.getByRole("button", { name: /sign in/i }),
-    ).toBeVisible();
+    await expect(page.getByRole("button", { name: /sign in/i })).toBeVisible();
 
     expect(errors).toHaveLength(0);
   });
@@ -119,9 +117,9 @@ test.describe("Sign-up form – password visibility toggles", () => {
     // field. Match both "Show"/"Hide password" so re-querying the locator
     // after a click still resolves to the same button.
     const toggles = page.getByRole("button", { name: /(show|hide) password/i });
-    const passwordInput = page.locator(
-      'input[autocomplete="new-password"]',
-    ).first();
+    const passwordInput = page
+      .locator('input[autocomplete="new-password"]')
+      .first();
 
     // Default state
     await expect(passwordInput).toHaveAttribute("type", "password");
@@ -148,9 +146,9 @@ test.describe("Sign-up form – password visibility toggles", () => {
     // password. Match both "Show"/"Hide password" so re-querying the locator
     // after a click still resolves to the same button.
     const toggles = page.getByRole("button", { name: /(show|hide) password/i });
-    const confirmInput = page.locator(
-      'input[autocomplete="new-password"]',
-    ).last();
+    const confirmInput = page
+      .locator('input[autocomplete="new-password"]')
+      .last();
 
     // Default state
     await expect(confirmInput).toHaveAttribute("type", "password");

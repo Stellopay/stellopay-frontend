@@ -208,10 +208,12 @@ describe("usePaymentHistory", () => {
     (getPaymentHistory as Mock).mockReturnValue(
       new Promise<PaymentHistoryItem[]>((resolve) => {
         resolveHistory = resolve;
-      })
+      }),
     );
 
-    const consoleError = vi.spyOn(console, "error").mockImplementation(() => {});
+    const consoleError = vi
+      .spyOn(console, "error")
+      .mockImplementation(() => {});
 
     const { unmount } = renderHook(() => usePaymentHistory());
     unmount();

@@ -23,30 +23,27 @@ describe("NotFound", () => {
       "href",
       "/",
     );
-    expect(screen.getByRole("link", { name: "Open dashboard" })).toHaveAttribute(
-      "href",
-      "/dashboard",
-    );
+    expect(
+      screen.getByRole("link", { name: "Open dashboard" }),
+    ).toHaveAttribute("href", "/dashboard");
   });
 
   it("has proper semantic structure and main landmark for accessibility", () => {
-  render(<NotFound />);
+    render(<NotFound />);
 
-  // main landmark exists and is correctly labeled
-  const main = screen.getByRole("main");
-  expect(main).toBeInTheDocument();
-  expect(main).toHaveAttribute("id", "main-content");
+    // main landmark exists and is correctly labeled
+    const main = screen.getByRole("main");
+    expect(main).toBeInTheDocument();
+    expect(main).toHaveAttribute("id", "main-content");
 
-  // section content is rendered inside the page
-  expect(
-    screen.getByText(/Page not found/i),
-  ).toBeInTheDocument();
+    // section content is rendered inside the page
+    expect(screen.getByText(/Page not found/i)).toBeInTheDocument();
 
-  // ensures CTA section exists via links grouping
-  const homeLink = screen.getByRole("link", { name: "Go home" });
-  const dashboardLink = screen.getByRole("link", { name: "Open dashboard" });
+    // ensures CTA section exists via links grouping
+    const homeLink = screen.getByRole("link", { name: "Go home" });
+    const dashboardLink = screen.getByRole("link", { name: "Open dashboard" });
 
-  expect(homeLink).toBeVisible();
-  expect(dashboardLink).toBeVisible();
-});
+    expect(homeLink).toBeVisible();
+    expect(dashboardLink).toBeVisible();
+  });
 });
