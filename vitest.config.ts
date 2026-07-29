@@ -48,6 +48,7 @@ export default defineConfig({
         "components/ui/empty-state.tsx",
         "components/analytics/analytics-view.tsx",
         "components/analytics/client-analytics-view.tsx",
+        "components/analytics/analytics-chart.tsx",
         "components/common/notification-panel.tsx",
         "components/common/app-layout.tsx",
         "components/common/network-switcher.tsx",
