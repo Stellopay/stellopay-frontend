@@ -1,4 +1,6 @@
+import { useState } from "react";
 import { TabsList, TabsTrigger } from "@/components/ui/tabs";
+import SettingsSearch from "@/components/settings-search";
 import { cn } from "@/utils/commonUtils";
 
 export interface SettingsHeaderSection {
@@ -13,6 +15,7 @@ interface SettingsHeaderProps {
   pageDescription: string;
   sections: SettingsHeaderSection[];
   activeSection: string;
+  onSectionChange?: (section: string) => void;
 }
 
 export default function SettingsHeader({
@@ -20,9 +23,20 @@ export default function SettingsHeader({
   pageDescription,
   sections,
   activeSection,
+  onSectionChange,
 }: SettingsHeaderProps) {
+  const [highlightedControl, setHighlightedControl] = useState<string | null>(
+    null,
+  );
   const currentSection =
     sections.find((section) => section.value === activeSection) ?? sections[0];
+
+  const handleSearchResultSelect = (section: string) => {
+    onSectionChange?.(section);
+    setHighlightedControl(section);
+    // Clear highlight after a brief delay
+    setTimeout(() => setHighlightedControl(null), 2000);
+  };
 
   return (
     <div className="w-full border-b border-zinc-200/80 bg-white/85 px-4 pt-4 backdrop-blur md:px-6 dark:border-white/10 dark:bg-[#09090B]/85">
@@ -42,11 +56,14 @@ export default function SettingsHeader({
             </div>
           </div>
 
-          <div className="rounded-2xl border border-zinc-200 bg-zinc-50 px-4 py-3 text-sm text-zinc-600 shadow-sm dark:border-white/10 dark:bg-white/5 dark:text-zinc-300">
-            <p className="font-medium text-zinc-900 dark:text-white">
-              {currentSection?.label}
-            </p>
-            <p>{currentSection?.description}</p>
+          <div className="flex flex-col gap-3 md:flex-row md:items-start md:gap-4">
+            <SettingsSearch onResultSelect={handleSearchResultSelect} />
+            <div className="rounded-2xl border border-zinc-200 bg-zinc-50 px-4 py-3 text-sm text-zinc-600 shadow-sm dark:border-white/10 dark:bg-white/5 dark:text-zinc-300 md:whitespace-nowrap">
+              <p className="font-medium text-zinc-900 dark:text-white">
+                {currentSection?.label}
+              </p>
+              <p>{currentSection?.description}</p>
+            </div>
           </div>
         </div>
 
