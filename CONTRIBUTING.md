@@ -204,6 +204,29 @@ and debugging stay frictionless.
 `react-icons` and `@hugeicons/*` are restricted — always import icons from
 `lucide-react`.
 
+## RTL / Logical Property Conventions
+
+The application supports right-to-left (RTL) locales. To ensure UI elements render correctly in both LTR and RTL directions:
+
+- **Use logical margin/padding utilities** (`ms-`, `me-`, `ps-`, `pe-`) instead of physical ones (`ml-`, `mr-`, `pl-`, `pr-`). Logical properties automatically flip when the document direction is `rtl`.
+- **Use `gap-*` on flex containers** instead of `space-x-*` / `space-y-*` where possible. `gap-*` is direction-agnostic and works identically in LTR and RTL.
+- **`px-*` and `py-*` are safe** — in Tailwind v4 they map to `padding-inline` and `padding-block` respectively.
+- Test RTL rendering by wrapping the component in `<div dir="rtl">` and verifying icon/text alignment.
+
+Example — prefer:
+```tsx
+<div className="flex gap-2">
+  <span className="ms-1">content</span>
+</div>
+```
+
+Instead of:
+```tsx
+<div className="flex space-x-2">
+  <span className="ml-1">content</span>
+</div>
+```
+
 ## Testing Expectations
 
 We expect all new utility functions and business logic to have **minimum 95% test coverage**.
