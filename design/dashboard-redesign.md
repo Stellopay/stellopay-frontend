@@ -17,3 +17,17 @@ This document specifies the tokenized typographic scale mapping for the **Clash 
 ## Accessibility & Guidelines
 - **WCAG 2.1 AA Compliance:** Minimum relative line-height threshold of `1.4` enforced across all body and caption copy to ensure reading legibility.
 - **Responsive Behavior:** Scale scales down proportionally at `< sm` (`640px`) breakpoints using responsive utility overrides.
+
+## Notification Panel Clear-All & Undo Window (#792)
+
+The notification panel (`components/common/notification-panel.tsx`) includes a clear-all bulk operation with an integrated undo toast.
+
+### Key Technical & UX Details
+- **Clear-All vs. Mark-All-Read**: "Clear all" empties the current active list, while "Mark all read" updates read status while preserving items.
+- **Undo Window**: Upon clearing, items are backed up in state and an accessible toast (`role="status"`, `aria-live="assertive"`) appears for 5 seconds (configurable via `undoDurationMs`).
+- **Exact State Restoration**: Clicking "Undo" restores all cleared items, complete with their exact title, message, timestamp, and read status.
+- **Accessibility (WCAG 2.1 AA)**:
+  - Header actions and undo controls feature visible focus outlines (`focus-visible:ring-2`).
+  - Screen reader regions announce empty/populated states via `aria-live="polite"` and status toasts via `aria-live="assertive"`.
+  - Icon buttons include descriptive `aria-label` attributes.
+  - Color choices maintain high contrast standards in light and dark modes.
