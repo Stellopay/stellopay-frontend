@@ -41,19 +41,35 @@ Accessibility notes:
 
 ### Notifications (`notifications`)
 
-Per-channel, per-category alert preferences.
+Notification-type × delivery-channel matrix. Each of the four notification
+types can be independently enabled for email, push, and SMS delivery.
 
-- Transaction alerts (sends, receives, failed payments)
-- Security alerts (login from new device, password change)
-- Marketing / product updates (opt-in only)
-- Delivery channel toggles: email, push, SMS
+- **Transaction alerts** — sends, receives, failed payments
+- **Security notifications** — login from new device, password change
+- **Product updates** — new features and policy changes (opt-in)
+- **Marketing and announcements** — campaigns and educational content (opt-in)
+- Channels: **Email**, **Push**, **SMS**
 
-The **Alerts enabled** summary card reflects the count of active switches in
-real time; the count is derived from live state, not a hardcoded string.
+The **Alerts enabled** summary card reflects the total count of enabled
+channel–type pairs (max 12). The count is derived from live state, not a
+hardcoded string.
 
 Accessibility notes:
-- Every toggle is a `<Switch>` with an `aria-label` that includes the state
-  (e.g. _"Transaction alerts, enabled"_) so screen readers announce the change.
+- **Desktop (≥768 px):** Rendered as a semantic `role="table"` grid with
+  `role="columnheader"` cells for channel headings and `role="row"` /
+  `role="cell"` for each type row. Every checkbox carries an explicit
+  `aria-label` of the form `"Transaction alerts, email channel"` so the
+  notification type and channel are announced together, independent of grid
+  position.
+- **Mobile (<768 px):** The matrix collapses to a stacked layout. Each
+  notification type is wrapped in a bordered card with labelled checkboxes
+  (`<label htmlFor="…">`) so the channel name appears adjacent to each
+  checkbox.
+- **Keyboard navigation:** All checkboxes are Radix `Checkbox` primitives
+  and are natively focusable via Tab. Focus indicators use the project's
+  `focus-visible:ring-ring/50` ring token.
+- **Status messages** use `aria-live="polite"` and `aria-atomic="true"` to
+  announce save outcomes without moving focus.
 
 ### Security (`security`)
 
