@@ -209,7 +209,12 @@ describe("TransactionsContent aria-live announcements", () => {
 
     render(<TransactionsContent />);
 
-    const liveRegion = screen.getByRole("status", { hidden: true });
+    // EmptyState also has role="status", so we filter for the aria-live region.
+    const statusElements = screen.getAllByRole("status", { hidden: true });
+    const liveRegion = statusElements.find(
+      (el) => el.getAttribute("aria-live") === "polite" && el.className.includes("sr-only"),
+    )!;
+    expect(liveRegion).toBeDefined();
     expect(liveRegion).toHaveAttribute("aria-live", "polite");
     expect(liveRegion).toHaveAttribute("aria-atomic", "true");
     expect(liveRegion.className).toMatch(/sr-only/);
@@ -341,7 +346,12 @@ describe("TransactionsContent aria-live announcements", () => {
     rerender(<TransactionsContent />);
     act(() => vi.advanceTimersByTime(600));
 
-    const liveRegion = screen.getByRole("status", { hidden: true });
+    // EmptyState also has role="status", so filter for the live region.
+    const statusElements = screen.getAllByRole("status", { hidden: true });
+    const liveRegion = statusElements.find(
+      (el) => el.getAttribute("aria-live") === "polite" && el.className.includes("sr-only"),
+    )!;
+    expect(liveRegion).toBeDefined();
     expect(liveRegion.textContent).toBe("No transactions found.");
   });
 

@@ -19,6 +19,7 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { TRANSACTIONS_PAGE_SIZE } from "./transactions-config";
 import { useRef, type KeyboardEvent } from "react";
 import { DownloadReceiptButton } from "./download-receipt-button";
+import { Dialog, DialogContent } from "@/components/ui/dialog";
 
 interface TransactionsTablePropsExtended extends TransactionsTableProps {
   isLoading?: boolean;
@@ -43,6 +44,17 @@ export function TransactionsTable({
   isLoading = false,
 }: TransactionsTablePropsExtended) {
   const [selectedTransaction, setSelectedTransaction] = useState<TransactionsTablePropsExtended["transactions"][number] | null>(null);
+
+  const openReceipt = useCallback(
+    (transaction: TransactionsTablePropsExtended["transactions"][number]) => {
+      setSelectedTransaction(transaction);
+    },
+    [],
+  );
+
+  const closeReceipt = useCallback(() => {
+    setSelectedTransaction(null);
+  }, []);
 
   const isEmpty = !isLoading && transactions.length === 0;
 
@@ -244,18 +256,7 @@ export function TransactionsTable({
                     </Badge>
                   </TableCell>
                 </TableRow>
-              ))
-            )}
-
-            <DownloadReceiptButton
-            transaction={{
-              id: transaction.id,
-              hash: transaction.hash,
-              amount: transaction.amount,
-              counterparty: transaction.counterparty,
-              timestamp: transaction.timestamp,
-            }}
-          />
+              )            ))}
           </TableBody>
         </Table>
       </div>
@@ -363,10 +364,20 @@ export function TransactionsTable({
 
       <Dialog open={!!selectedTransaction} onOpenChange={(open) => { if (!open) closeReceipt(); }}>
         {selectedTransaction && (
-          <TransactionReceipt
-            transaction={selectedTransaction}
-            onClose={closeReceipt}
-          />
+          <DialogContent>
+            <div className="p-6">
+              <h2 className="text-lg font-bold mb-4">Transaction Receipt</h2>
+              <DownloadReceiptButton
+                transaction={{
+                  id: selectedTransaction.id,
+                  hash: (selectedTransaction as any).hash ?? "",
+                  amount: selectedTransaction.amount,
+                  counterparty: selectedTransaction.address,
+                  timestamp: `${selectedTransaction.date} ${selectedTransaction.time}`,
+                }}
+              />
+            </div>
+          </DialogContent>
         )}
       </Dialog>
     </>

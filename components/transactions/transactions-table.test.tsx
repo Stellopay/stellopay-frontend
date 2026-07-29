@@ -18,12 +18,11 @@
  * - Address and amount cells truncate long values with a title tooltip.
  */
 import React from "react";
-import { render, screen, fireEvent, act } from "@testing-library/react";
+import { render, screen, fireEvent, act, waitFor } from "@testing-library/react";
 import { describe, it, expect, vi } from "vitest";
 import { TransactionsTable } from "./transactions-table";
 import { TransactionProps } from "@/types/transaction";
 import { DownloadReceiptButton } from "./download-receipt-button";
-import { generateTransactionReceiptPdf } from "./receipt";
 
 const LONG_ADDRESS = "GA4GYKB4JP2K7UABH4GJ6Y5K7UABH4GJ6Y5K7UABH4GJ6Y5K7UABH4GJ6Y";
 const TRUNCATED_ADDRESS = "GA4GYK...BH4GJ6";
@@ -43,6 +42,7 @@ const mockTransactions = [
     statusColor: "success" as const,
   },
 ];
+
 
 
 import { generateTransactionReceiptPdf } from "./receipt";
@@ -309,9 +309,8 @@ describe("TransactionsTable — empty and loading states", () => {
 });
 
 
-
-jest.mock("./receipt", () => ({
-  generateTransactionReceiptPdf: jest.fn().mockResolvedValue(undefined),
+vi.mock("./receipt", () => ({
+  generateTransactionReceiptPdf: vi.fn().mockResolvedValue(undefined),
 }));
 
 
@@ -336,7 +335,7 @@ describe("DownloadReceiptButton", () => {
   });
 
   it("shows an error message if generation fails", async () => {
-    (generateTransactionReceiptPdf as jest.Mock).mockRejectedValueOnce(
+    (generateTransactionReceiptPdf as ReturnType<typeof vi.fn>).mockRejectedValueOnce(
       new Error("fail")
     );
     render(<DownloadReceiptButton transaction={transaction} />);
