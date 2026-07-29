@@ -281,6 +281,29 @@ The Advanced Filter Panel is a togglable drawer that combines all transaction fi
 
 Migrated hardcoded hex colors to semantic tokens for better theme consistency and maintenance.
 
+### Props
+- `value` (string): The primary large metric value to display.
+- `label` (string): The secondary description label below the value.
+- `className` (string): Additional CSS classes applied to the value text.
+
+### Usage Example
+```tsx
+import EnterpriseSolutionCard from "@/components/ui/enterprise-solution-card";
+
+export default function MetricView() {
+  return (
+    <EnterpriseSolutionCard 
+      value="$1.2M" 
+      label="Total Processed Volume" 
+      className="text-green-500" 
+    />
+  );
+}
+```
+
+### Near-Duplicate Notice
+> **Note**: This component serves a similar purpose to a standard `MetricCard` or `StatCard` but has a fixed layout (`h-[118px]`) and centered alignment. It should not be reused blindly if a generic, flexible card is needed.
+
 ### Accessibility Notes (WCAG 2.1 AA)
 
 - **Contrast**: `text-muted-foreground` ensures sufficient contrast against the card's background in both light and dark modes. The `font-bold text-4xl` value text uses the default foreground color, guaranteeing readability.
@@ -292,3 +315,40 @@ Migrated hardcoded hex colors to semantic tokens for better theme consistency an
 - **Flex Layout**: Uses `flex flex-col gap-2` to stack the value and label vertically, adapting to varying text lengths gracefully.
 - **Dimensions**: Retains a fixed height (`h-[118px]`) with `w-full`, allowing the card to stretch fluidly across CSS grid or flex layouts across breakpoints (`sm`, `md`, `lg`, `xl`).
 - **Text Wrapping**: The text is centered (`text-center`) and breaks naturally, preserving readability on smaller screens.
+
+---
+
+## Card Skeleton (components/ui/card-skeleton.tsx)
+
+Provides loading placeholder states for various card layouts.
+
+### Props (CardSkeleton)
+- `showHeader` (boolean, optional): Whether to display a header block. Defaults to `true`.
+- `lines` (number, optional): Number of content lines to display. Defaults to `3`.
+- `className` (string, optional): Additional classes to apply to the root element.
+
+### Usage Example
+```tsx
+import { CardSkeleton, AccountSummaryCardSkeleton } from "@/components/ui/card-skeleton";
+
+export default function LoadingState() {
+  return (
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <CardSkeleton showHeader={true} lines={4} />
+      <AccountSummaryCardSkeleton />
+    </div>
+  );
+}
+```
+
+### Near-Duplicate Notice
+> **Note**: `CardSkeleton` is a lightweight wrapper around `SkeletonCard` from `./skeleton.tsx`. When building new skeletons, consider if `SkeletonCard` is more appropriate or if a new specific component like `AccountSummaryCardSkeleton` should be added here instead of duplicating.
+
+### Accessibility Notes (WCAG 2.1 AA)
+- **ARIA**: These components represent loading states. They should be wrapped in an `aria-busy="true"` container or use `aria-hidden="true"` to prevent screen readers from announcing meaningless content while loading.
+- **Contrast**: The skeleton background colors use subdued, low-contrast tokens by design to indicate a placeholder, but they adapt correctly to light and dark modes.
+
+### Responsive Behavior
+- **Fluid Width**: Components use `w-full` to fit within their parent containers.
+- **Heights**: `AccountSummaryCardSkeleton` uses a fixed height `h-[7.5rem]` while `CardSkeleton` grows based on the `lines` prop. Both respect fluid layout breakpoints (`sm` to `xl`).
+
