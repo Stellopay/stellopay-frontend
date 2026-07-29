@@ -1,18 +1,36 @@
 import React from "react";
-import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import { render, screen, within, act } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 
 import {
   TRANSACTIONS_PAGE_SIZE,
   getDefaultDateRange,
 } from "./transactions-config";
 import { TransactionsTable } from "./transactions-table";
+import type { TransactionFilters } from "@/types/transaction";
+
+const navigationMock = vi.hoisted(() => ({
+  router: {
+    replace: vi.fn(),
+  },
+  pathname: "/transactions",
+  searchParams: new URLSearchParams(),
+}));
 
 // next/image is not available in jsdom — swap it for a plain <img>.
 vi.mock("next/image", () => ({
   default: ({ src, alt }: { src: string; alt: string }) => (
     <img src={src} alt={alt} />
   ),
+}));
+
+// Mock sidebar context so nested components (e.g. SearchBar) can render
+// without a full provider tree.
+const sidebarState = { isSidebarOpen: true, isMobile: false };
+vi.mock("@/context/sidebar-context", () => ({
+  __esModule: true,
+  default: () => sidebarState,
 }));
 
 // ---------------------------------------------------------------------------
@@ -70,6 +88,118 @@ describe("getDefaultDateRange", () => {
 });
 
 // ---------------------------------------------------------------------------
+// TransactionsContent URL-state helpers
+// ---------------------------------------------------------------------------
+
+import {
+  buildTransactionsQueryString,
+  createDefaultTransactionFilters,
+  parseSortConfigs,
+  parseTransactionsUrlState,
+  serializeSortConfigs,
+} from "./transactions-content";
+
+function makeDeterministicDefaults(): TransactionFilters {
+  return {
+    ...createDefaultTransactionFilters(),
+    fromDate: "2024-01-01",
+    toDate: "2024-01-31",
+    sortConfigs: [{ field: "date", direction: "desc" }],
+  };
+}
+
+describe("TransactionsContent URL query-string helpers", () => {
+  it("parses filter, sort, and page state from URL parameters", () => {
+    const defaults = makeDeterministicDefaults();
+    const params = new URLSearchParams(
+      "q=stellar&filter=sent&from=2024-02-01&to=2024-02-29&sort=amount.asc,status.desc&page=3",
+    );
+
+    const result = parseTransactionsUrlState(params, defaults);
+
+    expect(result.page).toBe(3);
+    expect(result.filters).toMatchObject({
+      searchQuery: "stellar",
+      selectedFilter: "Payment Sent",
+      fromDate: "2024-02-01",
+      toDate: "2024-02-29",
+    });
+    expect(result.filters.sortConfigs).toEqual([
+      { field: "amount", direction: "asc" },
+      { field: "status", direction: "desc" },
+    ]);
+  });
+
+  it("falls back to safe defaults for invalid URL values", () => {
+    const defaults = makeDeterministicDefaults();
+    const params = new URLSearchParams(
+      "filter=unknown&from=2024-99-99&to=not-a-date&sort=hacked.up&page=-2",
+    );
+
+    const result = parseTransactionsUrlState(params, defaults);
+
+    expect(result.page).toBe(1);
+    expect(result.filters.selectedFilter).toBe("All Transactions");
+    expect(result.filters.fromDate).toBe(defaults.fromDate);
+    expect(result.filters.toDate).toBe(defaults.toDate);
+    expect(result.filters.sortConfigs).toEqual(defaults.sortConfigs);
+  });
+
+  it("serializes non-default state while preserving unrelated query parameters", () => {
+    const defaults = makeDeterministicDefaults();
+    const filters: TransactionFilters = {
+      ...defaults,
+      searchQuery: "USDC payroll",
+      selectedFilter: "Payment Received",
+      fromDate: "2024-02-01",
+      toDate: "2024-02-29",
+      sortConfigs: [
+        { field: "amount", direction: "asc" },
+        { field: "date", direction: "desc" },
+      ],
+    };
+
+    const queryString = buildTransactionsQueryString(
+      new URLSearchParams("tab=ledger&page=7&q=old"),
+      { filters, page: 3 },
+      defaults,
+    );
+    const nextParams = new URLSearchParams(queryString);
+
+    expect(nextParams.get("tab")).toBe("ledger");
+    expect(nextParams.get("q")).toBe("USDC payroll");
+    expect(nextParams.get("filter")).toBe("received");
+    expect(nextParams.get("from")).toBe("2024-02-01");
+    expect(nextParams.get("to")).toBe("2024-02-29");
+    expect(nextParams.get("sort")).toBe("amount.asc,date.desc");
+    expect(nextParams.get("page")).toBe("3");
+  });
+
+  it("omits controlled URL parameters when state equals the defaults", () => {
+    const defaults = makeDeterministicDefaults();
+    const queryString = buildTransactionsQueryString(
+      new URLSearchParams("tab=ledger&q=old&page=5"),
+      { filters: defaults, page: 1 },
+      defaults,
+    );
+
+    expect(queryString).toBe("tab=ledger");
+  });
+
+  it("normalizes sort configs to the supported fields and directions", () => {
+    expect(
+      parseSortConfigs("date:asc,amount.desc,amount.asc,bad.desc"),
+    ).toEqual([
+      { field: "date", direction: "asc" },
+      { field: "amount", direction: "desc" },
+    ]);
+    expect(serializeSortConfigs([{ field: "status", direction: "desc" }])).toBe(
+      "status.desc",
+    );
+  });
+});
+
+// ---------------------------------------------------------------------------
 // skeleton count parity: TRANSACTIONS_PAGE_SIZE ↔ TransactionsTable rows
 // ---------------------------------------------------------------------------
 
@@ -101,6 +231,7 @@ describe("TransactionsTable skeleton count parity", () => {
       (_, i) => ({
         id: `tx-${i}`,
         type: "Payment",
+        txId: `#TXN${i}`,
         address: `GAddress${i}`,
         date: "2024-01-01",
         time: "12:00",
@@ -119,17 +250,27 @@ describe("TransactionsTable skeleton count parity", () => {
 });
 
 // ---------------------------------------------------------------------------
-// TransactionsContent: error vs empty state
+// TransactionsContent: error, empty, and URL state
 // ---------------------------------------------------------------------------
 
 import { useTransactions } from "@/hooks/useTransactions";
 import { WalletProvider } from "@/context/wallet-context";
 import TransactionsContent from "./transactions-content";
 
-// Mock the hook
-vi.mock("@/hooks/useTransactions", () => ({
-  useTransactions: vi.fn(),
-}));
+function mockTransactionsSuccess(total = 0) {
+  vi.mocked(useTransactions).mockReturnValue({
+    data: {
+      data: [],
+      total,
+      page: 1,
+      pageSize: TRANSACTIONS_PAGE_SIZE,
+      totalPages: Math.max(1, Math.ceil(total / TRANSACTIONS_PAGE_SIZE)),
+    },
+    isLoading: false,
+    error: null,
+    refetch: vi.fn(),
+  });
+}
 
 /** Helper: render TransactionsContent inside a WalletProvider. */
 function renderTransactionsContent() {
@@ -143,6 +284,13 @@ function renderTransactionsContent() {
 describe("TransactionsContent states", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    navigationMock.router.replace.mockClear();
+    navigationMock.pathname = "/transactions";
+    navigationMock.searchParams = new URLSearchParams();
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
   });
 
   it("renders ErrorState with retry when fetch fails", () => {
@@ -159,14 +307,107 @@ describe("TransactionsContent states", () => {
     // Should see error state
     expect(screen.getByRole("alert")).toBeInTheDocument();
     expect(screen.getByText("Network timeout")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Try Again" })).toBeInTheDocument();
-    
+    expect(
+      screen.getByRole("button", { name: "Try Again" }),
+    ).toBeInTheDocument();
+
     // Retry action is wired
     screen.getByRole("button", { name: "Try Again" }).click();
     expect(mockRefetch).toHaveBeenCalled();
   });
 
   it("renders empty state table when fetch succeeds but returns empty array", () => {
+    mockTransactionsSuccess();
+
+    render(<TransactionsContent />);
+
+    // No error state
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+    // Table empty state
+    expect(
+      screen.getAllByText(
+        "No transactions found. Try adjusting your filters.",
+      )[0],
+    ).toBeInTheDocument();
+  });
+
+  it("initializes filter, sort, and pagination state from the URL", () => {
+    navigationMock.searchParams = new URLSearchParams(
+      "q=stellar&filter=sent&from=2024-02-01&to=2024-02-29&sort=amount.asc,status.desc&page=3",
+    );
+    mockTransactionsSuccess(42);
+
+    render(<TransactionsContent />);
+
+    const firstHookOptions = vi.mocked(useTransactions).mock.calls[0][0];
+
+    expect(firstHookOptions.page).toBe(3);
+    expect(firstHookOptions.pageSize).toBe(TRANSACTIONS_PAGE_SIZE);
+    expect(firstHookOptions.filters).toMatchObject({
+      searchQuery: "stellar",
+      selectedFilter: "Payment Sent",
+      fromDate: "2024-02-01",
+      toDate: "2024-02-29",
+    });
+    expect(firstHookOptions.filters?.sortConfigs).toEqual([
+      { field: "amount", direction: "asc" },
+      { field: "status", direction: "desc" },
+    ]);
+    expect(screen.getByLabelText("Search transactions")).toHaveValue("stellar");
+  });
+
+  it("replaces the current history entry when search state changes", async () => {
+    navigationMock.searchParams = new URLSearchParams("page=4");
+    mockTransactionsSuccess(42);
+
+    render(<TransactionsContent />);
+    navigationMock.router.replace.mockClear();
+
+    fireEvent.change(screen.getByLabelText("Search transactions"), {
+      target: { value: "USDC" },
+    });
+
+    await waitFor(() => {
+      expect(navigationMock.router.replace).toHaveBeenCalledWith(
+        "/transactions?q=USDC",
+        { scroll: false },
+      );
+    });
+  });
+
+  it("replaces the current history entry when pagination changes", async () => {
+    navigationMock.searchParams = new URLSearchParams("q=USDC");
+    mockTransactionsSuccess(42);
+
+    render(<TransactionsContent />);
+    navigationMock.router.replace.mockClear();
+
+    fireEvent.click(screen.getByRole("button", { name: "Page 2" }));
+
+    await waitFor(() => {
+      expect(navigationMock.router.replace).toHaveBeenCalledWith(
+        "/transactions?q=USDC&page=2",
+        { scroll: false },
+      );
+    });
+  });
+});
+
+// ---------------------------------------------------------------------------
+// TransactionsContent: aria-live filter result count announcements
+// ---------------------------------------------------------------------------
+
+describe("TransactionsContent aria-live announcements", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    vi.useFakeTimers();
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it("renders a visually hidden live region with role=status and aria-live=polite", () => {
     vi.mocked(useTransactions).mockReturnValue({
       data: { data: [], total: 0 },
       isLoading: false,

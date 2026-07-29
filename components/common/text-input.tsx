@@ -9,6 +9,7 @@ interface EnhancedTextInputProps extends TextInputProps {
   required?: boolean;
   disabled?: boolean;
   className?: string;
+  onBlur?: (event: React.FocusEvent<HTMLInputElement>) => void;
 }
 
 const TextInput: React.FC<EnhancedTextInputProps> = ({
@@ -23,6 +24,7 @@ const TextInput: React.FC<EnhancedTextInputProps> = ({
   required = false,
   disabled = false,
   className,
+  onBlur,
 }) => {
   const fieldId = React.useId();
   const descriptionId = helperText ? `${fieldId}-description` : undefined;
@@ -77,7 +79,7 @@ const TextInput: React.FC<EnhancedTextInputProps> = ({
         className={cn(
           "flex items-center border rounded-md h-12 overflow-hidden transition-colors",
           error ? "border-destructive ring-destructive/20" : "border-input",
-          disabled && "opacity-50 cursor-not-allowed",
+          disabled && "opacity-disabled cursor-disabled pointer-events-none",
         )}
       >
         {icon && (
@@ -92,6 +94,7 @@ const TextInput: React.FC<EnhancedTextInputProps> = ({
           placeholder={placeholder}
           value={value}
           onChange={handleChange}
+          onBlur={onBlur}
           disabled={disabled}
           className={cn(
             "px-3 w-full bg-transparent focus:outline-none text-foreground",

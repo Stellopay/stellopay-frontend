@@ -4,6 +4,7 @@ import { useState, useMemo, useCallback, useEffect, useRef } from "react";
 import type {
   SortField,
   SortConfig,
+  SortDirection,
   TransactionFilters,
   Transaction,
   TransactionProps,
@@ -15,17 +16,240 @@ import TransactionsHeader from "./transactions-header";
 import TransactionsFilters from "./transactions-filters";
 import { TransactionsTable } from "./transactions-table";
 import TransactionsPagination from "./transactions-pagination";
+import { BulkActionBar } from "./bulk-action-bar";
+import { TransactionsStatement } from "./transactions-statement";
 import { ErrorState } from "@/components/ui/error-state";
-import AdvancedFilterPanel, {
-  type AdvancedFilterValues,
-} from "./advanced-filter-panel";
-import FilterChips, { type FilterChip } from "./filter-chips";
 import {
   TRANSACTIONS_PAGE_SIZE,
   getDefaultDateRange,
 } from "./transactions-config";
 import { safeStorage } from "@/utils/safeStorage";
 import { useWallet } from "@/context/wallet-context";
+
+const DEFAULT_SELECTED_FILTER = "All Transactions";
+const DEFAULT_SORT_CONFIGS: readonly SortConfig[] = [
+  { field: "date", direction: "desc" },
+];
+
+const FILTER_QUERY_VALUE_TO_LABEL: Readonly<Record<string, string>> = {
+  all: DEFAULT_SELECTED_FILTER,
+  sent: "Payment Sent",
+  received: "Payment Received",
+};
+
+const FILTER_LABEL_TO_QUERY_VALUE: Readonly<Record<string, string>> = {
+  [DEFAULT_SELECTED_FILTER]: "all",
+  "Payment Sent": "sent",
+  "Payment Received": "received",
+};
+
+const SORT_FIELDS = [
+  "date",
+  "amount",
+  "type",
+  "status",
+] as const satisfies readonly SortField[];
+const SORT_DIRECTIONS = [
+  "asc",
+  "desc",
+] as const satisfies readonly SortDirection[];
+const ISO_DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
+
+export const TRANSACTIONS_QUERY_KEYS = {
+  search: "q",
+  filter: "filter",
+  fromDate: "from",
+  toDate: "to",
+  sort: "sort",
+  page: "page",
+} as const;
+
+type SearchParamsLike = Pick<URLSearchParams, "get" | "toString">;
+
+export interface TransactionsUrlState {
+  filters: TransactionFilters;
+  page: number;
+}
+
+function cloneSortConfigs(configs: readonly SortConfig[]): SortConfig[] {
+  return configs.map(({ field, direction }) => ({ field, direction }));
+}
+
+export function createDefaultTransactionFilters(): TransactionFilters {
+  return {
+    searchQuery: "",
+    filterQuery: "",
+    ...getDefaultDateRange(),
+    selectedFilter: DEFAULT_SELECTED_FILTER,
+    sortConfigs: cloneSortConfigs(DEFAULT_SORT_CONFIGS),
+  };
+}
+
+function isValidIsoDate(value: string | null): value is string {
+  if (!value || !ISO_DATE_PATTERN.test(value)) return false;
+
+  const parsedDate = new Date(`${value}T00:00:00.000Z`);
+  return (
+    !Number.isNaN(parsedDate.getTime()) &&
+    parsedDate.toISOString().slice(0, 10) === value
+  );
+}
+
+function isSortField(value: string): value is SortField {
+  return (SORT_FIELDS as readonly string[]).includes(value);
+}
+
+function isSortDirection(value: string): value is SortDirection {
+  return (SORT_DIRECTIONS as readonly string[]).includes(value);
+}
+
+function parsePage(value: string | null): number {
+  if (!value) return 1;
+  const numericValue = Number(value);
+  return Number.isInteger(numericValue) && numericValue > 0 ? numericValue : 1;
+}
+
+function parseSelectedFilter(value: string | null): string {
+  if (!value) return DEFAULT_SELECTED_FILTER;
+
+  const normalizedValue = value.trim().toLowerCase();
+  if (normalizedValue in FILTER_QUERY_VALUE_TO_LABEL) {
+    return FILTER_QUERY_VALUE_TO_LABEL[normalizedValue];
+  }
+
+  const matchingLabel = Object.values(FILTER_QUERY_VALUE_TO_LABEL).find(
+    (label) => label.toLowerCase() === normalizedValue,
+  );
+
+  return matchingLabel ?? DEFAULT_SELECTED_FILTER;
+}
+
+function serializeSelectedFilter(label: string): string {
+  return FILTER_LABEL_TO_QUERY_VALUE[label] ?? "all";
+}
+
+export function parseSortConfigs(value: string | null): SortConfig[] {
+  if (!value) return cloneSortConfigs(DEFAULT_SORT_CONFIGS);
+
+  const seenFields = new Set<SortField>();
+  const sortConfigs: SortConfig[] = [];
+
+  for (const rawToken of value.split(",")) {
+    if (sortConfigs.length >= 2) break;
+
+    const token = rawToken.trim();
+    if (!token) continue;
+
+    // Support both `date.desc` and `date:desc` for hand-written links while
+    // always writing the compact dot format back into the address bar.
+    const [field, direction] = token.split(/[.:]/);
+    if (!field || !direction) continue;
+    if (!isSortField(field) || !isSortDirection(direction)) continue;
+    if (seenFields.has(field)) continue;
+
+    seenFields.add(field);
+    sortConfigs.push({ field, direction });
+  }
+
+  return sortConfigs.length > 0
+    ? sortConfigs
+    : cloneSortConfigs(DEFAULT_SORT_CONFIGS);
+}
+
+export function serializeSortConfigs(configs: readonly SortConfig[]): string {
+  const seenFields = new Set<SortField>();
+  const safeConfigs = configs.filter(({ field, direction }) => {
+    if (!isSortField(field) || !isSortDirection(direction)) return false;
+    if (seenFields.has(field)) return false;
+    seenFields.add(field);
+    return true;
+  });
+
+  const configsToSerialize =
+    safeConfigs.length > 0
+      ? safeConfigs
+      : cloneSortConfigs(DEFAULT_SORT_CONFIGS);
+
+  return configsToSerialize
+    .slice(0, 2)
+    .map(({ field, direction }) => `${field}.${direction}`)
+    .join(",");
+}
+
+export function parseTransactionsUrlState(
+  searchParams: SearchParamsLike,
+  defaults: TransactionFilters = createDefaultTransactionFilters(),
+): TransactionsUrlState {
+  const fromDateParam = searchParams.get(TRANSACTIONS_QUERY_KEYS.fromDate);
+  const toDateParam = searchParams.get(TRANSACTIONS_QUERY_KEYS.toDate);
+
+  let fromDate = isValidIsoDate(fromDateParam)
+    ? fromDateParam
+    : defaults.fromDate;
+  let toDate = isValidIsoDate(toDateParam) ? toDateParam : defaults.toDate;
+
+  if (new Date(fromDate) > new Date(toDate)) {
+    fromDate = defaults.fromDate;
+    toDate = defaults.toDate;
+  }
+
+  return {
+    filters: {
+      ...defaults,
+      searchQuery: searchParams.get(TRANSACTIONS_QUERY_KEYS.search) ?? "",
+      selectedFilter: parseSelectedFilter(
+        searchParams.get(TRANSACTIONS_QUERY_KEYS.filter),
+      ),
+      fromDate,
+      toDate,
+      sortConfigs: parseSortConfigs(
+        searchParams.get(TRANSACTIONS_QUERY_KEYS.sort),
+      ),
+    },
+    page: parsePage(searchParams.get(TRANSACTIONS_QUERY_KEYS.page)),
+  };
+}
+
+export function buildTransactionsQueryString(
+  currentSearchParams: SearchParamsLike,
+  state: TransactionsUrlState,
+  defaults: TransactionFilters = createDefaultTransactionFilters(),
+): string {
+  const nextParams = new URLSearchParams(currentSearchParams.toString());
+
+  Object.values(TRANSACTIONS_QUERY_KEYS).forEach((key) => {
+    nextParams.delete(key);
+  });
+
+  const searchQuery = state.filters.searchQuery;
+  if (searchQuery.trim().length > 0) {
+    nextParams.set(TRANSACTIONS_QUERY_KEYS.search, searchQuery);
+  }
+
+  const selectedFilter = serializeSelectedFilter(state.filters.selectedFilter);
+  if (selectedFilter !== "all") {
+    nextParams.set(TRANSACTIONS_QUERY_KEYS.filter, selectedFilter);
+  }
+
+  if (state.filters.fromDate !== defaults.fromDate) {
+    nextParams.set(TRANSACTIONS_QUERY_KEYS.fromDate, state.filters.fromDate);
+  }
+
+  if (state.filters.toDate !== defaults.toDate) {
+    nextParams.set(TRANSACTIONS_QUERY_KEYS.toDate, state.filters.toDate);
+  }
+
+  const serializedSort = serializeSortConfigs(state.filters.sortConfigs);
+  if (serializedSort !== serializeSortConfigs(defaults.sortConfigs)) {
+    nextParams.set(TRANSACTIONS_QUERY_KEYS.sort, serializedSort);
+  }
+
+  if (state.page > 1) {
+    nextParams.set(TRANSACTIONS_QUERY_KEYS.page, String(state.page));
+  }
+
+  return nextParams.toString();
+}
 
 /** Map token symbol → icon path */
 const getTokenIcon = (token: string): string => {
@@ -84,6 +308,7 @@ function persistSavedViews(address: string | null, views: SavedView[]): void {
 const toTransactionProps = (t: Transaction): TransactionProps => ({
   id: t.id,
   type: t.type,
+  txId: t.txId,
   address: t.address,
   date: t.date,
   time: t.time,
@@ -94,52 +319,33 @@ const toTransactionProps = (t: Transaction): TransactionProps => ({
       : `-$${Math.abs(t.amount).toFixed(2)}`,
   status: t.status as "Completed" | "Pending" | "Failed",
   tokenIcon: getTokenIcon(t.token),
+  memo: t.memo,
 });
 
-/** Build active filter chips from current filter state. */
-function buildFilterChips(filters: TransactionFilters): FilterChip[] {
-  const chips: FilterChip[] = [];
+export default function TransactionsContent() {
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
 
-  if (filters.selectedFilter !== "All Transactions") {
-    chips.push({
-      key: "status",
-      label: "Status",
-      value: filters.selectedFilter,
-    });
+  const defaultFiltersRef = useRef<TransactionFilters | null>(null);
+  if (defaultFiltersRef.current === null) {
+    defaultFiltersRef.current = createDefaultTransactionFilters();
   }
-  if (filters.minAmount !== undefined) {
-    chips.push({
-      key: "minAmount",
-      label: "Min",
-      value: `$${filters.minAmount}`,
-    });
+
+  const initialUrlStateRef = useRef<TransactionsUrlState | null>(null);
+  if (initialUrlStateRef.current === null) {
+    initialUrlStateRef.current = parseTransactionsUrlState(
+      searchParams,
+      defaultFiltersRef.current,
+    );
   }
-  if (filters.maxAmount !== undefined) {
-    chips.push({
-      key: "maxAmount",
-      label: "Max",
-      value: `$${filters.maxAmount}`,
-    });
-  }
-  if (filters.counterparty) {
-    chips.push({
-      key: "counterparty",
-      label: "Counterparty",
-      value: filters.counterparty,
-    });
-  }
-  return chips;
-}
 
 export default function TransactionsContent() {
   const { address } = useWallet();
 
   const [filters, setFilters] = useState<TransactionFilters>(() => ({
-    searchQuery: "",
-    filterQuery: "",
-    ...getDefaultDateRange(),
-    selectedFilter: "All Transactions",
-    sortConfigs: [{ field: "date", direction: "desc" }],
+    ...initialUrlState.filters,
+    sortConfigs: cloneSortConfigs(initialUrlState.filters.sortConfigs),
   }));
   const [currentPage, setCurrentPage] = useState(1);
   const [savedViews, setSavedViews] = useState<SavedView[]>([]);
@@ -165,17 +371,145 @@ export default function TransactionsContent() {
   const [advancedPanelOpen, setAdvancedPanelOpen] = useState(false);
   const itemsPerPage = TRANSACTIONS_PAGE_SIZE;
 
+  // ── Selection state ─────────────────────────────────────────────────────────
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+
+  const clearSelection = useCallback(() => {
+    setSelectedIds(new Set());
+  }, []);
+
+  const handleSelectRow = useCallback((id: string, checked: boolean) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (checked) {
+        next.add(id);
+      } else {
+        next.delete(id);
+      }
+      return next;
+    });
+  }, []);
+
+  const handleSelectAll = useCallback((checked: boolean, pageIds: string[]) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (checked) {
+        pageIds.forEach((id) => next.add(id));
+      } else {
+        pageIds.forEach((id) => next.delete(id));
+      }
+      return next;
+    });
+  }, []);
+
+  useEffect(() => {
+    const nextQueryString = buildTransactionsQueryString(
+      new URLSearchParams(currentQueryString),
+      { filters, page: currentPage },
+      defaultFilters,
+    );
+
+    if (nextQueryString === currentQueryString) return;
+
+    router.replace(
+      nextQueryString ? `${pathname}?${nextQueryString}` : pathname,
+      { scroll: false },
+    );
+  }, [
+    currentPage,
+    currentQueryString,
+    defaultFilters,
+    filters,
+    pathname,
+    router,
+  ]);
+
+  // ── Data ─────────────────────────────────────────────────────────────────────
   const { data, isLoading, error, refetch } = useTransactions({
     filters,
     page: currentPage,
     pageSize: itemsPerPage,
   });
 
+  // A statement needs the ledger before the selected range to calculate its
+  // opening balance. Keep this request independent of table search/filter UI.
+  // The API currently caps a response at 100 records; production APIs should
+  // expose a server-side statement endpoint for ledgers larger than that.
+  const statementLedger = useTransactions({
+    filters: {
+      fromDate: "",
+      toDate: "",
+      searchQuery: "",
+      filterQuery: "",
+      selectedFilter: "All Transactions",
+      sortConfigs: [{ field: "date", direction: "asc" }],
+    },
+    page: 1,
+    pageSize: 100,
+  });
+
+  // ── aria-live announcement for filter result count ──────────────────
+  const prevTotalRef = useRef<number | undefined>(undefined);
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [liveMessage, setLiveMessage] = useState("");
+
+  useEffect(() => {
+    // Only announce when data is present and not in a loading / error state.
+    if (isLoading || error || !data) return;
+
+    const total = data.total ?? 0;
+    const prev = prevTotalRef.current;
+
+    // Suppress announcement on the initial render.
+    if (prev === undefined) {
+      prevTotalRef.current = total;
+      return;
+    }
+
+    // Suppress when the count hasn't actually changed (e.g. re-render).
+    if (prev === total) return;
+
+    // Debounce so rapid filter changes only produce one announcement.
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+
+    debounceRef.current = setTimeout(() => {
+      setLiveMessage(
+        total === 0
+          ? "No transactions found."
+          : `${total} transaction${total === 1 ? "" : "s"} found.`,
+      );
+    }, 500);
+
+    prevTotalRef.current = total;
+
+    // Cancel pending timer on re-run (e.g. when transitioning to
+    // loading / error) or on unmount.
+    return () => {
+      if (debounceRef.current) {
+        clearTimeout(debounceRef.current);
+        debounceRef.current = null;
+      }
+    };
+  }, [data, isLoading, error]);
+
   const paginatedTransactions: TransactionProps[] = useMemo(
     () => (data?.data ?? []).map(toTransactionProps),
     [data],
   );
 
+  // ── Stable select-all that has access to current page ids ────────────────────
+  const paginatedTransactionsRef = useRef(paginatedTransactions);
+  paginatedTransactionsRef.current = paginatedTransactions;
+
+  const handleSelectAllForPage = useCallback(
+    (checked: boolean) => {
+      const pageIds = paginatedTransactionsRef.current.map((t) => t.id);
+      handleSelectAll(checked, pageIds);
+    },
+    [handleSelectAll],
+  );
+
+  // ── Filter helpers (clear selection on any filter/page change) ───────────────
   const updateFilter = useCallback(
     <K extends keyof TransactionFilters>(
       key: K,
@@ -183,8 +517,17 @@ export default function TransactionsContent() {
     ) => {
       setFilters((prev) => ({ ...prev, [key]: value }));
       setCurrentPage(1);
+      clearSelection();
     },
-    [],
+    [clearSelection],
+  );
+
+  const handlePageChange = useCallback(
+    (page: number) => {
+      setCurrentPage(page);
+      clearSelection();
+    },
+    [clearSelection],
   );
 
   const handleSort = useCallback(
@@ -202,8 +545,7 @@ export default function TransactionsContent() {
               { field: primary.field, direction: primary.direction },
               {
                 field,
-                direction:
-                  secondary.direction === "asc" ? "desc" : "asc",
+                direction: secondary.direction === "asc" ? "desc" : "asc",
               },
             ];
             return { ...prev, sortConfigs: newConfigs };
@@ -227,6 +569,7 @@ export default function TransactionsContent() {
         };
       });
       setCurrentPage(1);
+      clearSelection();
     },
     [],
   );
@@ -291,93 +634,63 @@ export default function TransactionsContent() {
     [filters],
   );
 
-  const [draftPanelValues, setDraftPanelValues] =
-    useState<AdvancedFilterValues>(advancedPanelValues);
+  // ── Bulk action handlers ─────────────────────────────────────────────────────
+  const handleBulkExport = useCallback(() => {
+    // Stub: collect the selected transactions and trigger a CSV download.
+    // Replace with a real implementation once the export endpoint is available.
+    const selected = paginatedTransactions.filter((t) => selectedIds.has(t.id));
+    const csv = [
+      ["ID", "Type", "Address", "Date", "Token", "Amount", "Status"].join(","),
+      ...selected.map((t) =>
+        [t.id, t.type, t.address, t.date, t.token, t.amount, t.status].join(
+          ",",
+        ),
+      ),
+    ].join("\n");
 
-  const handlePanelOpenChange = useCallback(
-    (open: boolean) => {
-      if (open) {
-        // Reset draft to current committed values when opening
-        setDraftPanelValues(advancedPanelValues);
-      }
-      setAdvancedPanelOpen(open);
-    },
-    [advancedPanelValues],
-  );
+    const blob = new Blob([csv], { type: "text/csv" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `transactions-export-${Date.now()}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+    clearSelection();
+  }, [paginatedTransactions, selectedIds, clearSelection]);
 
-  const handlePanelApply = useCallback(() => {
-    setFilters((prev) => ({
-      ...prev,
-      selectedFilter: draftPanelValues.status,
-      fromDate: draftPanelValues.fromDate || prev.fromDate,
-      toDate: draftPanelValues.toDate || prev.toDate,
-      minAmount:
-        draftPanelValues.minAmount !== ""
-          ? parseFloat(draftPanelValues.minAmount)
-          : undefined,
-      maxAmount:
-        draftPanelValues.maxAmount !== ""
-          ? parseFloat(draftPanelValues.maxAmount)
-          : undefined,
-      counterparty:
-        draftPanelValues.counterparty !== ""
-          ? draftPanelValues.counterparty
-          : undefined,
-    }));
-    setCurrentPage(1);
-    setAdvancedPanelOpen(false);
-  }, [draftPanelValues]);
+  const handleBulkTag = useCallback(() => {
+    // Stub: open a tag-assignment dialog.
+    // Replace with real implementation once the tag feature is built.
+    console.log("Tag transactions:", Array.from(selectedIds));
+  }, [selectedIds]);
 
-  const handlePanelClearAll = useCallback(() => {
-    const defaults = getDefaultDateRange();
-    setDraftPanelValues({
-      status: "All Transactions",
-      minAmount: "",
-      maxAmount: "",
-      counterparty: "",
-      fromDate: defaults.fromDate,
-      toDate: defaults.toDate,
-    });
-  }, []);
-
-  const activeChips = useMemo(() => buildFilterChips(filters), [filters]);
-
-  /** Remove a single advanced filter by its key. */
-  const handleChipRemove = useCallback((chipKey: string) => {
-    setFilters((prev) => {
-      switch (chipKey) {
-        case "status":
-          return { ...prev, selectedFilter: "All Transactions" };
-        case "minAmount":
-          return { ...prev, minAmount: undefined };
-        case "maxAmount":
-          return { ...prev, maxAmount: undefined };
-        case "counterparty":
-          return { ...prev, counterparty: undefined };
-        default:
-          return prev;
-      }
-    });
-    setCurrentPage(1);
-  }, []);
-
-  /** Clear all advanced filters (amount range + counterparty) via chips. */
-  const handleClearAllChips = useCallback(() => {
-    setFilters((prev) => ({
-      ...prev,
-      selectedFilter: "All Transactions",
-      minAmount: undefined,
-      maxAmount: undefined,
-      counterparty: undefined,
-    }));
-    setCurrentPage(1);
-  }, []);
-
-
+  const handleBulkArchive = useCallback(() => {
+    // Stub: send archive request for all selected ids.
+    // Replace with real implementation once the archive endpoint is available.
+    console.log("Archive transactions:", Array.from(selectedIds));
+    clearSelection();
+  }, [selectedIds, clearSelection]);
 
   return (
     <div className="min-h-screen text-white mt-4">
-      <div className="w-full max-w-7xl mx-auto mb-4">
+      {/*
+        aria-live region announces selection count changes to screen readers
+        without interrupting the user's current focus.
+      */}
+      <div
+        aria-live="polite"
+        aria-atomic="true"
+        className="sr-only"
+        data-testid="selection-announcement"
+      >
+        {selectedIds.size > 0
+          ? selectedIds.size === 1
+            ? "1 transaction selected"
+            : `${selectedIds.size} transactions selected`
+          : ""}
+      </div>
+
+      <div className="w-full max-w-7xl mx-auto mb-4 transactions-print-root">
         <TransactionsHeader
           fromDate={filters.fromDate}
           toDate={filters.toDate}
@@ -385,20 +698,14 @@ export default function TransactionsContent() {
           onToDateChange={(date) => updateFilter("toDate", date)}
         />
 
-        <div className="px-4 sm:px-6 lg:px-8 bg-[#160f17] pt-3 border-[#2D2D2D] border rounded-xl">
-          <TransactionsFilters
-            searchQuery={filters.searchQuery}
-            selectedFilter={filters.selectedFilter}
-            sortConfigs={filters.sortConfigs}
-            onSearchChange={(q) => updateFilter("searchQuery", q)}
-            onFilterChange={(f) => updateFilter("selectedFilter", f)}
-            onSort={handleSort}
-            onAdvancedFilterToggle={() => handlePanelOpenChange(true)}
-            hasAdvancedFilters={
-              filters.selectedFilter !== "All Transactions" ||
-              filters.minAmount !== undefined ||
-              filters.maxAmount !== undefined ||
-              !!filters.counterparty
+        <div className="mb-4 flex justify-end px-4 sm:px-6 lg:px-8 print:hidden">
+          <button
+            type="button"
+            onClick={() =>
+              setStatementRange({
+                fromDate: filters.fromDate,
+                toDate: filters.toDate,
+              })
             }
             savedViews={hasHydratedViews ? savedViews : undefined}
             onSaveView={handleSaveView}
@@ -407,13 +714,38 @@ export default function TransactionsContent() {
             onDeleteView={handleDeleteView}
           />
 
-          {/* Active filter chips */}
-          <FilterChips
-            chips={activeChips}
-            onRemove={handleChipRemove}
-            onClearAll={handleClearAllChips}
-            className="px-0 pb-3"
+        {statementRange && (
+          <TransactionsStatement
+            fromDate={statementRange.fromDate}
+            toDate={statementRange.toDate}
+            ledger={statementLedger.data?.data ?? []}
+            onClose={() => setStatementRange(null)}
           />
+        )}
+
+        {/* Visually-hidden live region that announces filter result counts to
+             screen readers. Uses aria-live="polite" so announcements do not
+             interrupt the user's current task. */}
+        <div
+          role="status"
+          aria-live="polite"
+          aria-atomic="true"
+          className="sr-only"
+        >
+          {liveMessage}
+        </div>
+
+        <div className="px-4 sm:px-6 lg:px-8 bg-[#160f17] pt-3 border-[#2D2D2D] border rounded-xl">
+          <div className="print:hidden">
+            <TransactionsFilters
+              searchQuery={filters.searchQuery}
+              selectedFilter={filters.selectedFilter}
+              sortConfigs={filters.sortConfigs}
+              onSearchChange={(q) => updateFilter("searchQuery", q)}
+              onFilterChange={(f) => updateFilter("selectedFilter", f)}
+              onSort={handleSort}
+            />
+          </div>
 
           <div className="py-4">
             {/* Loading state */}
@@ -431,29 +763,37 @@ export default function TransactionsContent() {
             {/* Data state */}
             {!isLoading && !error && (
               <>
-                <TransactionsTable transactions={paginatedTransactions} />
-                <TransactionsPagination
-                  totalItems={data?.total ?? 0}
-                  currentPage={currentPage}
-                  itemsPerPage={itemsPerPage}
-                  onPageChange={setCurrentPage}
+                <TransactionsTable
+                  transactions={paginatedTransactions}
+                  selectedIds={selectedIds}
+                  onSelectRow={handleSelectRow}
+                  onSelectAll={handleSelectAllForPage}
                 />
+                <div className="print:hidden">
+                  <TransactionsPagination
+                    totalItems={data?.total ?? 0}
+                    currentPage={currentPage}
+                    itemsPerPage={itemsPerPage}
+                    onPageChange={handlePageChange}
+                  />
+                </div>
               </>
             )}
           </div>
         </div>
       </div>
 
-      {/* Advanced filter panel (drawer) */}
-      <AdvancedFilterPanel
-        open={advancedPanelOpen}
-        onOpenChange={handlePanelOpenChange}
-        currentValues={draftPanelValues}
-        onValuesChange={setDraftPanelValues}
-        onApply={handlePanelApply}
-        onClearAll={handlePanelClearAll}
-        disabled={isLoading}
-      />
+      {/* Floating bulk-action bar – rendered outside the scrollable content area
+          so it always stays anchored to the viewport bottom */}
+      <div className="print:hidden">
+        <BulkActionBar
+          selectedCount={selectedIds.size}
+          onExport={handleBulkExport}
+          onTag={handleBulkTag}
+          onArchive={handleBulkArchive}
+          onClearSelection={clearSelection}
+        />
+      </div>
     </div>
   );
 }

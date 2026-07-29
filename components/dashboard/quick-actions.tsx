@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useRef, useState, useCallback } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
@@ -13,6 +13,9 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { cn } from "@/utils/commonUtils";
+import { messages } from "@/messages";
+
+// TODO: Replace direct import of messages with next-intl useTranslations() hook once i18n is enabled.
 
 /**
  * Configuration for a single quick-action card.
@@ -49,8 +52,8 @@ export interface QuickActionItem {
 const defaultActions: QuickActionItem[] = [
   {
     icon: Send,
-    title: "Send Payment",
-    subtitle: "Transfer funds instantly",
+    title: messages.dashboard.quickActions.actions.sendPayment.title,
+    subtitle: messages.dashboard.quickActions.actions.sendPayment.subtitle,
     href: "/transactions",
     shortcut: "s",
     borderColor: "border-[#3B82F6] dark:border-[#2563EB]",
@@ -59,8 +62,8 @@ const defaultActions: QuickActionItem[] = [
   },
   {
     icon: ArrowDownToLine,
-    title: "Request Payment",
-    subtitle: "Create payment request",
+    title: messages.dashboard.quickActions.actions.requestPayment.title,
+    subtitle: messages.dashboard.quickActions.actions.requestPayment.subtitle,
     disabled: true,
     shortcut: "p",
     borderColor: "border-[#E5E5E5] dark:border-[#2E2E2E]",
@@ -69,8 +72,8 @@ const defaultActions: QuickActionItem[] = [
   },
   {
     icon: Plus,
-    title: "New Contract",
-    subtitle: "Setup escrow contract",
+    title: messages.dashboard.quickActions.actions.newContract.title,
+    subtitle: messages.dashboard.quickActions.actions.newContract.subtitle,
     disabled: true,
     shortcut: "c",
     borderColor: "border-[#E5E5E5] dark:border-[#2E2E2E]",
@@ -79,8 +82,8 @@ const defaultActions: QuickActionItem[] = [
   },
   {
     icon: FileText,
-    title: "Create Invoice",
-    subtitle: "Generate invoice",
+    title: messages.dashboard.quickActions.actions.createInvoice.title,
+    subtitle: messages.dashboard.quickActions.actions.createInvoice.subtitle,
     disabled: true,
     shortcut: "i",
     borderColor: "border-[#E5E5E5] dark:border-[#2E2E2E]",
@@ -89,8 +92,8 @@ const defaultActions: QuickActionItem[] = [
   },
   {
     icon: Users,
-    title: "Add Recipient",
-    subtitle: "Save new contact",
+    title: messages.dashboard.quickActions.actions.addRecipient.title,
+    subtitle: messages.dashboard.quickActions.actions.addRecipient.subtitle,
     disabled: true,
     shortcut: "a",
     borderColor: "border-[#E5E5E5] dark:border-[#2E2E2E]",
@@ -99,8 +102,8 @@ const defaultActions: QuickActionItem[] = [
   },
   {
     icon: BarChart3,
-    title: "View Reports",
-    subtitle: "Analytics & insights",
+    title: messages.dashboard.quickActions.actions.viewReports.title,
+    subtitle: messages.dashboard.quickActions.actions.viewReports.subtitle,
     href: "/analytics-view",
     shortcut: "r",
     borderColor: "border-[#E5E5E5] dark:border-[#2E2E2E]",
@@ -121,7 +124,7 @@ const cardBase =
 
 /** Additional styles applied only to interactive (enabled) cards. */
 const cardInteractive =
-  "group cursor-pointer hover:bg-zinc-100 dark:hover:bg-zinc-800/50 hover:shadow-md active:scale-[0.98]";
+  "group cursor-pointer hover:bg-zinc-100 dark:hover:bg-zinc-800/50 hover:shadow-elevation-2 active:scale-[0.98]";
 
 /**
  * Checks whether an element is an active text input field, textarea, select,
@@ -154,6 +157,66 @@ export function QuickActions({
   onCustomize,
 }: QuickActionsProps) {
   const router = useRouter();
+  const [activeIndex, setActiveIndex] = useState(0);
+  const gridRef = useRef<HTMLDivElement>(null);
+
+  const getEnabledCards = useCallback(() => {
+    if (!gridRef.current) return [];
+    return Array.from(
+      gridRef.current.querySelectorAll<HTMLElement>("[data-quick-action]"),
+    );
+  }, []);
+
+  const handleGridKeyDown = useCallback(
+    (e: React.KeyboardEvent) => {
+      const cards = getEnabledCards();
+      if (cards.length === 0) return;
+
+      const currentActive = cards.findIndex(
+        (card) => card === document.activeElement,
+      );
+      const currentIndex = currentActive >= 0 ? currentActive : activeIndex;
+
+      let nextIndex = currentIndex;
+      const cols =
+        gridRef.current
+          ? window.getComputedStyle(gridRef.current).gridTemplateColumns.split(" ")
+              .length
+          : 1;
+
+      switch (e.key) {
+        case "ArrowRight":
+          if (currentIndex < cards.length - 1) nextIndex = currentIndex + 1;
+          break;
+        case "ArrowLeft":
+          if (currentIndex > 0) nextIndex = currentIndex - 1;
+          break;
+        case "ArrowDown":
+          if (currentIndex + cols < cards.length)
+            nextIndex = currentIndex + cols;
+          break;
+        case "ArrowUp":
+          if (currentIndex - cols >= 0)
+            nextIndex = currentIndex - cols;
+          break;
+        case "Home":
+          nextIndex = 0;
+          break;
+        case "End":
+          nextIndex = cards.length - 1;
+          break;
+        default:
+          return;
+      }
+
+      if (nextIndex !== currentIndex) {
+        e.preventDefault();
+        setActiveIndex(nextIndex);
+        cards[nextIndex]?.focus();
+      }
+    },
+    [activeIndex, getEnabledCards],
+  );
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
@@ -202,13 +265,13 @@ export function QuickActions({
     <section
       className={cn(
         "rounded-2xl border p-6 transition-all",
-        "bg-white dark:bg-[#111111] border-zinc-200 dark:border-zinc-800 shadow-sm",
+        "bg-white dark:bg-[#111111] border-zinc-200 dark:border-zinc-800 shadow-elevation-1",
       )}
     >
       {/* Header */}
       <div className="flex items-center justify-between mb-8">
         <h2 className="text-xl font-bold text-zinc-900 dark:text-white">
-          Quick Actions
+          {messages.dashboard.quickActions.headerTitle}
         </h2>
         <div className="flex items-center gap-4">
           {customizeHref ? (
@@ -216,7 +279,7 @@ export function QuickActions({
               href={customizeHref}
               className="text-sm font-bold text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white transition-colors"
             >
-              Customize
+              {messages.dashboard.quickActions.customize}
             </Link>
           ) : (
             <button
@@ -224,14 +287,20 @@ export function QuickActions({
               onClick={onCustomize}
               className="text-sm font-bold text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white transition-colors"
             >
-              Customize
+              {messages.dashboard.quickActions.customize}
             </button>
           )}
         </div>
       </div>
 
       {/* Action cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-6">
+      <div
+        ref={gridRef}
+        role="group"
+        aria-label="Quick actions"
+        className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-6"
+        onKeyDown={handleGridKeyDown}
+      >
         {actions.map((action, index) => {
           const Icon = action.icon;
 
@@ -251,7 +320,7 @@ export function QuickActions({
             return (
               <div
                 key={index}
-                aria-label={`${action.title}, coming soon`}
+                aria-label={`${action.title}, ${messages.dashboard.quickActions.comingSoon.toLowerCase()}`}
                 className={cn(
                   cardBase,
                   "opacity-50 cursor-not-allowed select-none",
@@ -269,7 +338,7 @@ export function QuickActions({
                       {action.subtitle}
                     </p>
                     <span className="inline-block mt-1 text-[10px] font-semibold uppercase tracking-wide text-zinc-400 dark:text-zinc-500">
-                      Coming soon
+                      {messages.dashboard.quickActions.comingSoon}
                     </span>
                   </div>
                 </div>
@@ -311,9 +380,12 @@ export function QuickActions({
               <Link
                 key={index}
                 href={action.href}
+                data-quick-action
+                tabIndex={index === activeIndex ? 0 : -1}
                 className={cn(cardBase, cardInteractive)}
                 aria-label={action.title}
                 title={titleHint}
+                onFocus={() => setActiveIndex(index)}
               >
                 {content}
               </Link>
@@ -324,9 +396,12 @@ export function QuickActions({
             <button
               key={index}
               type="button"
+              data-quick-action
+              tabIndex={index === activeIndex ? 0 : -1}
               onClick={action.onClick}
               aria-label={action.title}
               title={titleHint}
+              onFocus={() => setActiveIndex(index)}
               className={cn(cardBase, cardInteractive, "text-left w-full")}
             >
               {content}

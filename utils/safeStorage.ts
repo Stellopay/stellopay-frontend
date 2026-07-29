@@ -3,6 +3,11 @@
  * Never stores secrets in localStorage.
  * Reads remain safe even if a write fails because the browser refuses the update.
  */
+export const STORAGE_KEYS = {
+  DASHBOARD_TOUR_COMPLETED: "stellopay_dashboard_tour_completed",
+  DASHBOARD_WIDGET_ORDER: "stellopay_dashboard_widget_order",
+} as const;
+
 export const safeStorage = {
   /**
    * Safely retrieves an item from localStorage.
@@ -17,7 +22,7 @@ export const safeStorage = {
       return null; // Swallow errors (e.g. privacy mode)
     }
   },
-  
+
   /**
    * Safely sets an item in localStorage.
    * Returns true when the write succeeds and false when the browser refuses it.
@@ -35,7 +40,7 @@ export const safeStorage = {
       return false;
     }
   },
-  
+
   /**
    * Safely removes an item from localStorage.
    * @param key - The key of the item to remove.
@@ -48,5 +53,45 @@ export const safeStorage = {
     } catch (e) {
       return false;
     }
-  }
+  },
+
+  /**
+   * Helper to check if the dashboard first-login tour has been completed.
+   */
+  isDashboardTourCompleted: (): boolean => {
+    return safeStorage.getItem(STORAGE_KEYS.DASHBOARD_TOUR_COMPLETED) === "true";
+  },
+
+  /**
+   * Helper to mark the dashboard first-login tour as completed.
+   */
+  setDashboardTourCompleted: (): boolean => {
+    return safeStorage.setItem(STORAGE_KEYS.DASHBOARD_TOUR_COMPLETED, "true");
+  },
+
+  /**
+   * Retrieves the persisted dashboard widget order from localStorage.
+   * Returns null when no order is saved or the stored value is invalid.
+   */
+  getWidgetOrder: (): string[] | null => {
+    const raw = safeStorage.getItem(STORAGE_KEYS.DASHBOARD_WIDGET_ORDER);
+    if (!raw) return null;
+    try {
+      const parsed = JSON.parse(raw);
+      return Array.isArray(parsed) ? parsed : null;
+    } catch {
+      return null;
+    }
+  },
+
+  /**
+   * Persists the dashboard widget order to localStorage.
+   */
+  setWidgetOrder: (order: string[]): boolean => {
+    return safeStorage.setItem(
+      STORAGE_KEYS.DASHBOARD_WIDGET_ORDER,
+      JSON.stringify(order),
+    );
+  },
 };
+
