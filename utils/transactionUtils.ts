@@ -6,6 +6,7 @@ import type {
 } from "@/types/transaction";
 import { formatCurrency } from "./formatUtils";
 import { formatDate } from "./date-utils";
+import { applyTransactionFilters } from "@/components/transactions/transactions-config";
 
 type SortComparable = Date | number | string;
 
@@ -28,12 +29,26 @@ export const formatTransactionDate = (dateStr: string): string => {
 };
 
 /**
- * Filters transactions based on search query, filter type, and date range
+ * Filters transactions based on search query, filter type, and date range.
+ *
+ * This function is a thin adapter that delegates to the centralized
+ * {@link applyTransactionFilters} predicate composition in
+ * `components/transactions/transactions-config.ts`. Keeping a single source of
+ * truth for filter logic ensures the unit-tested AND semantics are reused
+ * everywhere — the API layer, the UI, and any future callers.
+ *
+ * The positional signature is preserved for backward compatibility with
+ * existing call sites (`lib/api/transactions.ts`).
+ *
  * @param transactions - Array of transactions to filter
  * @param searchQuery - Search query string
  * @param selectedFilter - Filter type (e.g., "All Transactions", "Payment Sent")
- * @param fromDate - Start date for filtering
- * @param toDate - End date for filtering
+ * @param fromDate - Start date for filtering (inclusive)
+ * @param toDate - End date for filtering (inclusive)
+ * @param filterQuery - Quick-filter query across type, status, and address
+ * @param minAmount - Optional minimum absolute amount
+ * @param maxAmount - Optional maximum absolute amount
+ * @param counterparty - Optional counterparty address substring
  * @returns Filtered array of transactions
  */
 export const filterTransactions = (
@@ -45,55 +60,18 @@ export const filterTransactions = (
   filterQuery = "",
   minAmount?: number,
   maxAmount?: number,
+  counterparty?: string,
 ): Transaction[] => {
-  let filtered = transactions;
-
-  // Filter by search query
-  if (searchQuery) {
-    filtered = filtered.filter(
-      (transaction) =>
-        transaction.type.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        transaction.txId.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        transaction.address.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        transaction.token.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        transaction.status.toLowerCase().includes(searchQuery.toLowerCase()),
-    );
-  }
-
-  // Filter by transaction type
-  if (selectedFilter !== "All Transactions") {
-    filtered = filtered.filter(
-      (transaction) => transaction.type === selectedFilter,
-    );
-  }
-
-  const normalizedFilterQuery = filterQuery.trim().toLowerCase();
-  if (normalizedFilterQuery) {
-    filtered = filtered.filter(
-      (transaction) =>
-        transaction.type.toLowerCase().includes(normalizedFilterQuery) ||
-        transaction.status.toLowerCase().includes(normalizedFilterQuery) ||
-        transaction.address.toLowerCase().includes(normalizedFilterQuery),
-    );
-  }
-
-  // Filter by date range
-  filtered = filtered.filter((transaction) => {
-    const transactionDate = new Date(transaction.date);
-    const from = new Date(fromDate);
-    const to = new Date(toDate);
-    return transactionDate >= from && transactionDate <= to;
+  return applyTransactionFilters(transactions, {
+    searchQuery,
+    selectedFilter,
+    fromDate,
+    toDate,
+    filterQuery,
+    minAmount,
+    maxAmount,
+    counterparty,
   });
-
-  if (minAmount !== undefined) {
-    filtered = filtered.filter((transaction) => Math.abs(transaction.amount) >= minAmount);
-  }
-
-  if (maxAmount !== undefined) {
-    filtered = filtered.filter((transaction) => Math.abs(transaction.amount) <= maxAmount);
-  }
-
-  return filtered;
 };
 
 const invalidDate = new Date(0);

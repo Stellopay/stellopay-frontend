@@ -1,26 +1,31 @@
 import React from "react";
-import { render, screen, fireEvent } from "@testing-library/react";
+import { render, screen, fireEvent, waitFor, act } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { Send, BarChart3 } from "lucide-react";
 
 // next/link is only available inside the Next.js runtime; render it as a plain
 // anchor so jsdom can assert href values without a router context.
 vi.mock("next/link", () => ({
-  default: ({
-    href,
-    children,
-    className,
-    "aria-label": ariaLabel,
-    title,
-  }: {
+  default: (props: {
     href: string;
     children: React.ReactNode;
     className?: string;
     "aria-label"?: string;
     title?: string;
+    tabIndex?: number;
+    onFocus?: () => void;
+    "data-quick-action"?: boolean;
   }) => (
-    <a href={href} className={className} aria-label={ariaLabel} title={title}>
-      {children}
+    <a
+      href={props.href}
+      className={props.className}
+      aria-label={props["aria-label"]}
+      title={props.title}
+      tabIndex={props.tabIndex}
+      onFocus={props.onFocus}
+      data-quick-action={props["data-quick-action"] || undefined}
+    >
+      {props.children}
     </a>
   ),
 }));
@@ -215,6 +220,136 @@ describe("QuickActions – accessibility", () => {
       const card = screen.getByLabelText(`${title}, coming soon`);
       expect(card.getAttribute("aria-label")).toMatch(/coming soon/i);
     }
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Roving tabindex arrow-key navigation
+// ---------------------------------------------------------------------------
+
+describe("QuickActions – roving tabindex", () => {
+  beforeEach(() => {
+    mockPush.mockClear();
+  });
+
+  function getEnabledCards() {
+    return document.querySelectorAll<HTMLElement>("[data-quick-action]");
+  }
+
+  it("only one enabled card has tabIndex 0 at a time", () => {
+    renderDefault();
+
+    const cards = getEnabledCards();
+    const withTabIndex0 = Array.from(cards).filter(
+      (card) => card.getAttribute("tabindex") === "0",
+    );
+    expect(withTabIndex0).toHaveLength(1);
+    expect(cards[0]).toHaveAttribute("tabindex", "0");
+    expect(cards[1]).toHaveAttribute("tabindex", "-1");
+  });
+
+  it("does not set data-quick-action on disabled (coming soon) cards", () => {
+    renderDefault();
+
+    const cards = getEnabledCards();
+    expect(cards.length).toBe(2);
+    expect(cards[0]).toHaveAttribute("aria-label", "Send Payment");
+    expect(cards[1]).toHaveAttribute("aria-label", "View Reports");
+  });
+
+  it("moves focus on ArrowRight", () => {
+    renderDefault();
+
+    const cards = getEnabledCards();
+    act(() => { cards[0].focus(); });
+
+    const grid = document.querySelector('[role="group"]')!;
+    fireEvent.keyDown(grid, { key: "ArrowRight" });
+    expect(document.activeElement).toBe(cards[1]);
+  });
+
+  it("moves focus on ArrowLeft", () => {
+    renderDefault();
+
+    const cards = getEnabledCards();
+    act(() => { cards[1].focus(); });
+
+    const grid = document.querySelector('[role="group"]')!;
+    fireEvent.keyDown(grid, { key: "ArrowLeft" });
+    expect(document.activeElement).toBe(cards[0]);
+  });
+
+  it("does not wrap around past the first or last card", () => {
+    renderDefault();
+
+    const cards = getEnabledCards();
+
+    const grid = document.querySelector('[role="group"]')!;
+    act(() => { cards[0].focus(); });
+    fireEvent.keyDown(grid, { key: "ArrowLeft" });
+    expect(document.activeElement).toBe(cards[0]);
+
+    act(() => { cards[1].focus(); });
+    fireEvent.keyDown(grid, { key: "ArrowRight" });
+    expect(document.activeElement).toBe(cards[1]);
+  });
+
+  it("moves focus on ArrowDown to the next row", () => {
+    renderDefault();
+
+    const cards = getEnabledCards();
+    act(() => { cards[0].focus(); });
+
+    const grid = document.querySelector('[role="group"]')!;
+    fireEvent.keyDown(grid, { key: "ArrowDown" });
+    expect(document.activeElement).toBe(cards[1]);
+  });
+
+  it("does not move focus on ArrowUp past the first card", () => {
+    renderDefault();
+
+    const cards = getEnabledCards();
+    act(() => { cards[0].focus(); });
+
+    const grid = document.querySelector('[role="group"]')!;
+    fireEvent.keyDown(grid, { key: "ArrowUp" });
+    expect(document.activeElement).toBe(cards[0]);
+  });
+
+  it("moves focus to the first and last card on Home and End", () => {
+    renderDefault();
+
+    const cards = getEnabledCards();
+    act(() => { cards[1].focus(); });
+
+    const grid = document.querySelector('[role="group"]')!;
+    fireEvent.keyDown(grid, { key: "Home" });
+    expect(document.activeElement).toBe(cards[0]);
+
+    fireEvent.keyDown(grid, { key: "End" });
+    expect(document.activeElement).toBe(cards[1]);
+  });
+
+  it("updates tabIndex when focus moves between cards", () => {
+    renderDefault();
+
+    const cards = getEnabledCards();
+    act(() => { cards[1].focus(); });
+
+    expect(cards[0]).toHaveAttribute("tabindex", "-1");
+    expect(cards[1]).toHaveAttribute("tabindex", "0");
+
+    const grid = document.querySelector('[role="group"]')!;
+    fireEvent.keyDown(grid, { key: "ArrowLeft" });
+    expect(cards[0]).toHaveAttribute("tabindex", "0");
+    expect(cards[1]).toHaveAttribute("tabindex", "-1");
+  });
+
+  it("renders the grid container with role group and aria-label", () => {
+    renderDefault();
+
+    const group = document.querySelector('[role="group"]');
+    expect(group).toHaveAttribute("aria-label", "Quick actions");
   });
 });
 

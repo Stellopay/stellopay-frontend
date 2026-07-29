@@ -1,3 +1,4 @@
+import { useState } from "react";
 import {
   render,
   screen,
@@ -8,10 +9,25 @@ import {
 import { describe, expect, it, vi, afterEach, beforeEach } from "vitest";
 
 import SecurityTab, {
+  BACKUP_CODE_COUNT,
   DEFAULT_TWO_FACTOR_ENABLED,
   TWO_FACTOR_CODE_LENGTH,
   getVerificationCodeError,
 } from "./security-tab";
+import { verifyTotpCode } from "@/lib/totp";
+
+vi.mock("@/lib/totp", () => ({
+  generateTotpSecret: () => ({
+    base32: "JBSWY3DPEHPK3PXP",
+    otpauthUrl: "otpauth://totp/Stellopay:test?secret=JBSWY3DPEHPK3PXP",
+  }),
+  verifyTotpCode: vi.fn(() => true),
+}));
+
+vi.mock("qrcode", () => ({
+  default: { toDataURL: vi.fn(() => Promise.resolve("data:image/png;base64,iVBORw0KGgo=")) },
+  toDataURL: vi.fn(() => Promise.resolve("data:image/png;base64,iVBORw0KGgo=")),
+}));
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -813,7 +829,16 @@ describe("SecurityTab — 2FA setup panel open/close", () => {
   }
 
   it("toggling 2FA OFF from the enabled state flips the switch directly (no panel)", () => {
-    render(<SecurityTab twoFactorEnabled={true} />);
+    const Wrapper = () => {
+      const [enabled, setEnabled] = useState(true);
+      return (
+        <SecurityTab
+          twoFactorEnabled={enabled}
+          onTwoFactorEnabledChange={setEnabled}
+        />
+      );
+    };
+    render(<Wrapper />);
     const sw = screen.getByRole("switch", {
       name: /authenticator app verification/i,
     });
@@ -1009,7 +1034,9 @@ describe("SecurityTab — 2FA verification code validation", () => {
     fireEvent.change(input, { target: { value: "123A56" } });
 
     const alert = screen.getByRole("alert");
-    expect(input).toHaveAccessibleDescription(alert.textContent ?? "");
+    expect(input).toHaveAccessibleDescription(
+      new RegExp(alert.textContent ?? "", "i"),
+    );
   });
 });
 
@@ -1021,8 +1048,21 @@ describe("SecurityTab — 2FA verification submit", () => {
   function openSetupPanelWith(
     props: React.ComponentProps<typeof SecurityTab> = {},
   ) {
-    const mergedProps = { twoFactorEnabled: false, ...props } as const;
-    render(<SecurityTab {...mergedProps} />);
+    const Wrapper = () => {
+      const [enabled, setEnabled] = useState(false);
+      return (
+        <SecurityTab
+          twoFactorEnabled={enabled}
+          onTwoFactorEnabledChange={(val) => {
+            setEnabled(val);
+            if (props.onTwoFactorEnabledChange) {
+              props.onTwoFactorEnabledChange(val);
+            }
+          }}
+        />
+      );
+    };
+    render(<Wrapper />);
     const sw = screen.getByRole("switch", {
       name: /authenticator app verification/i,
     });
@@ -1101,7 +1141,7 @@ describe("SecurityTab — 2FA verification submit", () => {
   });
 
   it("failed submission: clears the verification code input (security) and shows a server error inline", async () => {
-    vi.spyOn(Math, "random").mockReturnValue(0.95);
+    vi.mocked(verifyTotpCode).mockReturnValueOnce(false);
     const onChange = vi.fn();
     const { input, getVerifyButton } = openSetupPanelWith({
       onTwoFactorEnabledChange: onChange,
@@ -1133,7 +1173,7 @@ describe("SecurityTab — 2FA verification submit", () => {
   });
 
   it("failed submission: after the input is cleared, re-typing a valid code re-enables submit", async () => {
-    vi.spyOn(Math, "random").mockReturnValue(0.95);
+    vi.mocked(verifyTotpCode).mockReturnValueOnce(false);
     const { input, getVerifyButton } = openSetupPanelWith();
 
     fireEvent.change(input, { target: { value: "121212" } });
@@ -1155,7 +1195,7 @@ describe("SecurityTab — 2FA verification submit", () => {
 
 describe("SecurityTab — 2FA verification security", () => {
   it("never logs the actual verification code to console during a failed submit", async () => {
-    vi.spyOn(Math, "random").mockReturnValue(0.95);
+    vi.mocked(verifyTotpCode).mockReturnValueOnce(false);
     const consoleSpy = vi
       .spyOn(console, "log")
       .mockImplementation(() => void 0);

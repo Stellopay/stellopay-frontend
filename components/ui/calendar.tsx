@@ -1,12 +1,12 @@
 "use client";
 
 import * as React from "react";
-import { DayPicker } from "react-day-picker";
+import { DayPicker, type DayPickerProps, type Matcher } from "react-day-picker";
 
 import { cn } from "@/utils/commonUtils";
 import { buttonVariants } from "@/components/ui/button";
 
-export interface CalendarProps extends React.ComponentProps<typeof DayPicker> {
+export type CalendarProps = DayPickerProps & {
   /**
    * Optional lower bound for selectable dates (inclusive).
    *
@@ -31,7 +31,7 @@ export interface CalendarProps extends React.ComponentProps<typeof DayPicker> {
    * <Calendar maxDate={new Date()} ... />
    */
   maxDate?: Date;
-}
+};
 
 /**
  * Normalises a `Date` to midnight (00:00:00.000) in local time so that
@@ -62,9 +62,7 @@ function Calendar({
    *   2. The day is strictly after `maxDate` (if provided).
    *   3. The caller's own `disabled` matcher returns `true` for the day.
    */
-  const mergedDisabled = React.useMemo<
-    React.ComponentProps<typeof DayPicker>["disabled"]
-  >(() => {
+  const mergedDisabled = React.useMemo<Matcher | Matcher[] | undefined>(() => {
     const hasMin = minDate instanceof Date && !isNaN(minDate.getTime());
     const hasMax = maxDate instanceof Date && !isNaN(maxDate.getTime());
 
@@ -152,7 +150,7 @@ function Calendar({
             "aria-selected:bg-accent aria-selected:text-accent-foreground",
           day_hidden: "invisible",
           ...classNames,
-        } as React.ComponentProps<typeof DayPicker>["classNames"]
+        } as DayPickerProps["classNames"]
       }
       {...props}
     />
