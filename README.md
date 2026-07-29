@@ -304,7 +304,7 @@ stellopay-frontend
 │  ├─ auth/              # login, sign-up
 │  ├─ dashboard/
 │  ├─ help/support/
-│  ├─ settings/          # preferences, profile
+│  ├─ settings/          # preferences (tabbed shell — see design/settings-ia.md)
 │  ├─ transactions/
 │  ├─ layout.tsx
 │  └─ page.tsx           # landing page
@@ -328,6 +328,26 @@ stellopay-frontend
 ├─ e2e/                  # Additional Playwright specs
 └─ pages/                # Legacy Pages Router landing page assets
 ```
+
+### Settings section structure
+
+`app/settings/preferences` is a tabbed shell with five sections — **Account**
+(profile, identity, and locale defaults), **Notifications** (transaction alerts
+and delivery-channel toggles), **Security** (password, 2-FA, and session
+management), **Wallets** (connected Stellar wallets and transfer safeguards),
+and **Statements** (downloadable tax summaries and periodic statements) — each
+driven by a `?section=<value>` deep-link parameter.
+
+See [design/settings-ia.md](design/settings-ia.md) for the full information
+architecture: per-tab breakdown, routing behaviour, unsaved-changes guard,
+accessibility requirements, and step-by-step instructions for adding a new
+settings section.
+
+> **Adding a new settings section?** Follow the checklist in
+> `design/settings-ia.md` → *Adding a new settings section*, then update the
+> tab table at the top of that file and add a corresponding subsection. Keep
+> the spec, the code (`buildSections()` in `settings-page-shell.tsx`), and the
+> tests in sync — the spec is the single source of truth for the settings IA.
 
 ## Design Resources
 
