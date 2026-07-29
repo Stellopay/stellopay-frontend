@@ -97,6 +97,20 @@ describe("Button — variant classes (design-token alignment)", () => {
     expect(btn.className).toMatch(/text-primary/);
     expect(btn.className).toMatch(/underline-offset-4/);
   });
+
+  it.each([
+    ["default", "bg-primary"],
+    ["destructive", "bg-destructive"],
+    ["outline", "bg-background"],
+    ["secondary", "bg-secondary"],
+    ["ghost", "hover:bg-accent"],
+    ["link", "text-primary"],
+  ] as const)("applies the %s variant classes (data-driven)", (variant, expectedClass) => {
+    render(<Button variant={variant}>{variant}</Button>);
+    expect(screen.getByRole("button", { name: variant })).toHaveClass(
+      expectedClass,
+    );
+  });
 });
 
 // ─── Size classes ─────────────────────────────────────────────────────────────
@@ -124,6 +138,18 @@ describe("Button — size classes", () => {
   it("icon size applies size-9 (equal width and height)", () => {
     const btn = renderButton({ size: "icon" });
     expect(btn.className).toMatch(/size-9/);
+  });
+
+  it.each([
+    ["default", "h-9"],
+    ["sm", "h-8"],
+    ["lg", "h-10"],
+    ["icon", "size-9"],
+  ] as const)("applies the %s size classes (data-driven)", (size, expectedClass) => {
+    render(<Button size={size}>{size}</Button>);
+    expect(screen.getByRole("button", { name: size })).toHaveClass(
+      expectedClass,
+    );
   });
 });
 
@@ -155,6 +181,25 @@ describe("Button — disabled state", () => {
     const btn = screen.getByRole("button");
     await userEvent.click(btn);
     expect(handleClick).not.toHaveBeenCalled();
+  });
+});
+
+// ─── Click interaction ────────────────────────────────────────────────────────
+
+describe("Button — click interaction", () => {
+  it("calls onClick when clicked", async () => {
+    const handleClick = vi.fn();
+    render(<Button onClick={handleClick}>Submit</Button>);
+    await userEvent.click(screen.getByRole("button", { name: "Submit" }));
+    expect(handleClick).toHaveBeenCalledTimes(1);
+  });
+
+  it("passes through the native type attribute", () => {
+    render(<Button type="submit">Save</Button>);
+    expect(screen.getByRole("button", { name: "Save" })).toHaveAttribute(
+      "type",
+      "submit",
+    );
   });
 });
 
@@ -269,6 +314,12 @@ describe("buttonVariants — exported CVA helper", () => {
     const cls = buttonVariants();
     expect(cls).toMatch(/bg-primary/);
     expect(cls).toMatch(/h-9/);
+  });
+
+  it("returns the base classes plus the requested variant/size", () => {
+    const classes = buttonVariants({ variant: "outline", size: "sm" });
+    expect(classes).toContain("border");
+    expect(classes).toContain("h-8");
   });
 });
 
