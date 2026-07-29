@@ -1,7 +1,11 @@
 "use client";
 
 import React from "react";
+import Image from "next/image";
 import { UserPlus, Wallet, Send } from "lucide-react";
+import { motion } from "framer-motion";
+import { useReducedMotion } from "@/hooks/useReducedMotion";
+import { duration, easing } from "@/lib/motion";
 
 const steps = [
   {
@@ -10,6 +14,7 @@ const steps = [
     description:
       "Link your preferred crypto wallet in seconds. We support all major wallets including MetaMask, Trust Wallet, and more.",
     icon: UserPlus,
+    imageSrc: "/landing/step-connect.svg",
     iconGradient: "bg-gradient-to-br from-[#83A7FF] to-[#83A7FF]/50",
     dotColor: "bg-[#83A7FF]",
     progressColor: "bg-[#83A7FF]",
@@ -20,6 +25,7 @@ const steps = [
     description:
       "Send payments instantly to anyone, anywhere. Choose from multiple cryptocurrencies with live conversion rates.",
     icon: Wallet,
+    imageSrc: "/landing/step-payment.svg",
     iconGradient: "bg-gradient-to-br from-[#C4F49F] to-[#C4F49F]/50",
     dotColor: "bg-[#C4F49F]",
     progressColor: "bg-[#C4F49F]",
@@ -30,6 +36,7 @@ const steps = [
     description:
       "Recipients get funds instantly in their preferred local currency with automatic conversion at competitive rates.",
     icon: Send,
+    imageSrc: "/landing/step-receive.svg",
     iconGradient: "bg-gradient-to-br from-[#393A9F] to-[#393A9F]/50",
     dotColor: "bg-[#393A9F]",
     progressColor: "bg-[#393A9F]",
@@ -43,9 +50,25 @@ const metrics = [
   { label: "Transaction Speed", value: "<3s" },
 ];
 
+const normalVariants = {
+  hidden: { opacity: 0, y: 40 },
+  visible: {
+    opacity: 1,
+    y: 0,
+    transition: { duration: duration.slow, ease: easing.easeOut },
+  },
+};
+
+const reducedVariants = {
+  hidden: { opacity: 0 },
+  visible: { opacity: 1 },
+};
+
 const HowItWorks = () => {
+  const reducedMotion = useReducedMotion();
+
   return (
-    <section className="py-20 px-4 bg-white dark:bg-[#181818] font-['Inter',sans-serif]">
+    <section className="py-16 sm:py-20 lg:py-24 px-4 bg-white dark:bg-[#181818] font-['Inter',sans-serif]">
       {/* Header Section */}
       <div className="max-w-6xl mx-auto text-center mb-16">
         <div className="inline-block px-4 py-1 mb-6 text-sm font-medium text-gray-600 dark:text-gray-400 border border-gray-200 dark:border-[#27272A] rounded-full">
@@ -65,14 +88,28 @@ const HowItWorks = () => {
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8 relative z-10">
           {steps.map((step, index) => (
-            <div
+            <motion.div
               key={index}
+              variants={reducedMotion ? reducedVariants : normalVariants}
+              initial="hidden"
+              whileInView="visible"
+              viewport={{ once: true, amount: 0.2 }}
               className="relative bg-white dark:bg-[#1C1C1C] border border-gray-200 dark:border-[#27272A] rounded-3xl p-10 hover:shadow-md transition-shadow duration-300"
             >
               {/* Top Decorative Dot */}
               <div className="absolute -top-1.5 left-1/2 -translate-x-1/2 w-3 h-3 rounded-full flex items-center justify-center bg-white dark:bg-[#1C1C1C]">
                 <div className={`size-2 rounded-full ${step.dotColor}`} />
               </div>
+
+              {/* Illustration */}
+              <Image
+                src={step.imageSrc}
+                alt=""
+                width={140}
+                height={140}
+                className="mx-auto mb-4 w-35 h-35"
+                aria-hidden="true"
+              />
 
               {/* Large Background Step Number */}
               <div className="text-8xl font-bold text-gray-100 dark:text-gray-800 mb-6 select-none">
@@ -106,10 +143,22 @@ const HowItWorks = () => {
                 />
                 <span className="h-1 flex-1 bg-gray-200 dark:bg-[#27272A] rounded-full" />
               </div>
-            </div>
+            </motion.div>
           ))}
         </div>
       </div>
+      {/* Video Section */}
+      <div className="max-w-6xl mx-auto mb-20">
+        <VideoFacade
+          videoId="REPLACE_WITH_ACTUAL_VIDEO_ID"
+          platform="youtube"
+          videoTitle="See how Stellopay works in 2 minutes"
+          captionsUrl="/docs/demo-transcript"
+          captionsLabel="View demo transcript"
+          className="mt-8 lg:mt-12 max-w-3xl mx-auto"
+        />
+      </div>
+
       {/* Metrics Section */}
       <div className="max-w-6xl mx-auto grid grid-cols-2 md:grid-cols-4 gap-4">
         {metrics.map((metric, index) => (

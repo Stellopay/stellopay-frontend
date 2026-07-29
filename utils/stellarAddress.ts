@@ -163,3 +163,51 @@ export const stellarAddressSchema = z
 
 /** A validated, normalized Stellar public address. */
 export type StellarAddress = z.infer<typeof stellarAddressSchema>;
+
+/**
+ * Default number of leading characters to show in a truncated address.
+ * Balances readability with sufficient context to distinguish addresses.
+ */
+const DEFAULT_TRUNCATE_PREFIX = 6;
+
+/**
+ * Default number of trailing characters to show in a truncated address.
+ * Balances readability with sufficient context to distinguish addresses.
+ */
+const DEFAULT_TRUNCATE_SUFFIX = 6;
+
+/**
+ * Truncates a Stellar address (or any long string) for display in constrained
+ * UI spaces, showing only the first and last few characters separated by "...".
+ *
+ * The function is defensive — it returns the original string unchanged if it
+ * is shorter than `prefix + suffix + 4` (enough room for two characters plus
+ * "..."), so it is safe to call on arbitrary input without pre-checking.
+ *
+ * @example
+ * truncateStellarAddress("GA4GYKB4JP2K7UABH4GJ6Y5K7UABH4GJ6Y5K7UABH4GJ6Y5K7UABH4GJ6Y")
+ * // => "GA4GYK...ABH4GJ"
+ *
+ * @param address - The full address to truncate.
+ * @param prefix - Number of leading characters to keep (default 6).
+ * @param suffix - Number of trailing characters to keep (default 6).
+ * @returns The truncated address with an ellipsis separator, or the original
+ *          string if it is too short to warrant truncation.
+ */
+export function truncateStellarAddress(
+  address: string,
+  prefix: number = DEFAULT_TRUNCATE_PREFIX,
+  suffix: number = DEFAULT_TRUNCATE_SUFFIX,
+): string {
+  if (typeof address !== "string") {
+    return "";
+  }
+
+  // Only truncate if the string is long enough to need it.
+  const minFullLength = prefix + suffix + 4; // e.g. "GA4G...H4GJ" is 10 chars
+  if (address.length <= minFullLength) {
+    return address;
+  }
+
+  return `${address.slice(0, prefix)}...${address.slice(-suffix)}`;
+}

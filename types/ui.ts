@@ -1,17 +1,6 @@
 import React from "react";
 
 // UI component prop types
-export interface ButtonProps {
-  text: string | React.ReactNode;
-  disabled?: boolean;
-  onClick?: (event: React.MouseEvent<HTMLButtonElement>) => void;
-  loading?: boolean;
-  width?: string;
-  height?: string;
-  fill?: boolean;
-  type?: "button" | "submit" | "reset";
-}
-
 export interface TextInputProps {
   label?: string;
   value: string;
@@ -28,6 +17,7 @@ export interface TextareaInputProps {
   placeholder?: string;
   onChange: (value: string) => void;
   rows?: number;
+  maxLength?: number;
 }
 
 export interface EmailInputProps {
@@ -39,6 +29,8 @@ export interface FaqCardProps {
   title: string;
   subtitle: string;
   link?: string;
+  icon?: React.ReactNode;
+  articleCount?: number;
 }
 
 export interface SupportTabsProps {
@@ -59,6 +51,7 @@ export interface ToggleCardProps {
 export interface NotificationProps {
   className?: string;
   notifications: import("./notification-item").NotificationItem[];
+  onMarkAllAsRead?: () => void;
 }
 
 export interface AppLayoutProps {
