@@ -177,6 +177,86 @@
   .transactions-print-root img {
     filter: grayscale(100%) contrast(1.15);
   }
+
+  /* ── Landing page print scope ────────────────────────────────────────────
+   * When printing the public landing page (hero + footer), hide every
+   * decorative element (gradient orbs, floating cards, shadows), collapse
+   * the footer to essential links only, and render all text in a
+   * high-contrast black-on-white palette to save ink and stay readable
+   * when printed for offline reference.
+   *
+   * The .landing-print-root class is applied to the top-level <div> in
+   * components/landing/landing-page.tsx and matching selectors target the
+   * actual DOM structure of hero.tsx and footer.tsx.                  */
+
+  .landing-print-root,
+  .landing-print-root * {
+    visibility: visible;
+  }
+
+  .landing-print-root {
+    position: static;
+    background: #ffffff !important;
+    color: #111827 !important;
+  }
+
+  .landing-print-root * {
+    color: #111827 !important;
+    background-color: transparent !important;
+    border-color: #d1d5db !important;
+    box-shadow: none !important;
+    text-shadow: none !important;
+    background-image: none !important;
+  }
+
+  /* Hero: hide all decorative gradient orbs (aria-hidden blur-3xl) */
+  .landing-print-root section[aria-label*="Hero"] [aria-hidden="true"] {
+    display: none !important;
+  }
+
+  /* Hero: hide floating cards (absolutely positioned z-2 cards that
+     float over the main mockup card). Uses z-2 instead of rotate so
+     the selector works regardless of prefers-reduced-motion state. */
+  .landing-print-root section[aria-label*="Hero"] [class*="absolute"][class*="z-2"] {
+    display: none !important;
+  }
+
+  /* Hero: convert gradient text to solid printable black */
+  .landing-print-root section[aria-label*="Hero"] h1 span.bg-clip-text {
+    background: none !important;
+    -webkit-background-clip: unset !important;
+    background-clip: unset !important;
+    color: #111827 !important;
+    -webkit-text-fill-color: #111827 !important;
+  }
+
+  /* Hero: collapse CTA buttons to simple bordered buttons */
+  .landing-print-root section[aria-label*="Hero"] button {
+    border: 1px solid #d1d5db !important;
+    background: #f9fafb !important;
+    color: #111827 !important;
+  }
+
+  /* Footer: hide the cookie consent banner */
+  .landing-print-root footer [role="dialog"][aria-label="Cookie consent"] {
+    display: none !important;
+  }
+
+  /* Footer: hide newsletter subscription section */
+  .landing-print-root footer form {
+    display: none !important;
+  }
+
+  /* Footer: hide social media icon links */
+  .landing-print-root footer a[target="_blank"] {
+    display: none !important;
+  }
+
+  /* Footer: simplify link text */
+  .landing-print-root footer a {
+    color: #111827 !important;
+    text-decoration: underline;
+  }
 }
 
 @utility text-body-lg {
