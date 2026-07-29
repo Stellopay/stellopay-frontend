@@ -12,6 +12,8 @@ import {
 import { TransactionsTableProps, TransactionProps } from "@/types/transaction";
 import { Badge } from "@/components/ui/badge";
 import Image from "next/image";
+import { Skeleton } from "@/components/ui/skeleton";
+import { TransactionTableSkeleton } from "@/components/ui/table-skeleton";
 import { getStatusColor } from "@/utils/transactionUtils";
 import { truncateStellarAddress } from "@/utils/stellarAddress";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -98,7 +100,9 @@ function TransactionQuickViewDialog({
               <p className="text-sm font-semibold">#{transaction.id}</p>
             </div>
             <div>
-              <p className="text-sm font-medium text-muted-foreground">Status</p>
+              <p className="text-sm font-medium text-muted-foreground">
+                Status
+              </p>
               <p className="text-sm font-semibold">{transaction.status}</p>
             </div>
           </div>
@@ -106,7 +110,9 @@ function TransactionQuickViewDialog({
           {/* Address & Counterparty */}
           <div className="space-y-2">
             <div>
-              <p className="text-sm font-medium text-muted-foreground">Address</p>
+              <p className="text-sm font-medium text-muted-foreground">
+                Address
+              </p>
               <p
                 className="text-sm font-mono break-all cursor-help focus:outline-none focus:ring-2 focus:ring-[#D7E0EF] rounded px-1 -ml-1"
                 title={transaction.address}
@@ -117,7 +123,9 @@ function TransactionQuickViewDialog({
             </div>
             {transaction.counterparty && (
               <div>
-                <p className="text-sm font-medium text-muted-foreground">Counterparty</p>
+                <p className="text-sm font-medium text-muted-foreground">
+                  Counterparty
+                </p>
                 <p
                   className="text-sm font-mono break-all cursor-help focus:outline-none focus:ring-2 focus:ring-[#D7E0EF] rounded px-1 -ml-1"
                   title={transaction.counterparty}
@@ -133,13 +141,19 @@ function TransactionQuickViewDialog({
           <div className="grid grid-cols-2 gap-4">
             <div>
               <p className="text-sm font-medium text-muted-foreground">Date</p>
-              <time dateTime={transaction.date} className="text-sm font-semibold">
+              <time
+                dateTime={transaction.date}
+                className="text-sm font-semibold"
+              >
                 {transaction.date}
               </time>
             </div>
             <div>
               <p className="text-sm font-medium text-muted-foreground">Time</p>
-              <time dateTime={transaction.time} className="text-sm font-semibold">
+              <time
+                dateTime={transaction.time}
+                className="text-sm font-semibold"
+              >
                 {transaction.time}
               </time>
             </div>
@@ -156,11 +170,15 @@ function TransactionQuickViewDialog({
                   width={16}
                   height={16}
                 />
-                <span className="text-sm font-semibold">{transaction.token}</span>
+                <span className="text-sm font-semibold">
+                  {transaction.token}
+                </span>
               </div>
             </div>
             <div>
-              <p className="text-sm font-medium text-muted-foreground">Amount</p>
+              <p className="text-sm font-medium text-muted-foreground">
+                Amount
+              </p>
               <p
                 className={`text-sm font-semibold ${
                   transaction.amount.startsWith("+")
@@ -194,7 +212,9 @@ function TransactionQuickViewDialog({
           {/* Transaction Hash */}
           {transaction.hash && (
             <div>
-              <p className="text-sm font-medium text-muted-foreground">Transaction Hash</p>
+              <p className="text-sm font-medium text-muted-foreground">
+                Transaction Hash
+              </p>
               <p
                 className="text-sm font-mono break-all cursor-help focus:outline-none focus:ring-2 focus:ring-[#D7E0EF] rounded px-1 -ml-1"
                 title={transaction.hash}
@@ -244,19 +264,39 @@ export function TransactionsTable({
   }, []);
 
   const isEmpty = !isLoading && transactions.length === 0;
-  
-  // State for quick-view dialog
-  const [selectedTransaction, setSelectedTransaction] = React.useState<TransactionProps | null>(null);
-  const [isDialogOpen, setIsDialogOpen] = React.useState(false);
-  const triggerRef = React.useRef<HTMLButtonElement | null>(null);
 
-  const handleRowClick = (transaction: TransactionProps, event: React.MouseEvent<HTMLButtonElement>) => {
+  const [density, setDensity] = useState<TableDensity>("comfortable");
+
+  useEffect(() => {
+    const stored = safeStorage.getItem(DENSITY_STORAGE_KEY) as TableDensity | null;
+    if (stored && ["compact", "comfortable", "spacious"].includes(stored)) {
+      setDensity(stored);
+    }
+  }, []);
+
+  const handleDensityChange = useCallback((value: TableDensity) => {
+    setDensity(value);
+    safeStorage.setItem(DENSITY_STORAGE_KEY, value);
+  }, []);
+
+  const s = DENSITY_CONFIG[density];
+
+  /** Ref to the table wrapper div so we can query its navigable rows. */
+  const tableWrapperRef = useRef<HTMLDivElement>(null);
+
+  const handleRowClick = (
+    transaction: TransactionProps,
+    event: React.MouseEvent<HTMLButtonElement>,
+  ) => {
     triggerRef.current = event.currentTarget;
     setSelectedTransaction(transaction);
     setIsDialogOpen(true);
   };
 
-  const handleRowKeyDown = (transaction: TransactionProps, event: React.KeyboardEvent<HTMLButtonElement>) => {
+  const handleRowKeyDown = (
+    transaction: TransactionProps,
+    event: React.KeyboardEvent<HTMLButtonElement>,
+  ) => {
     // Open dialog on Enter or Space
     if (event.key === "Enter" || event.key === " ") {
       event.preventDefault();
@@ -295,6 +335,33 @@ export function TransactionsTable({
 
   return (
     <>
+      {/* Density Toggle */}
+      <div className="hidden md:flex items-center gap-2 mb-3">
+        <span className="text-xs text-zinc-400">Density:</span>
+        <div
+          role="radiogroup"
+          aria-label="Table density"
+          className="inline-flex rounded-lg border border-[#2D2D2D] bg-[#191919] p-0.5"
+        >
+          {DENSITY_OPTIONS.map((opt) => (
+            <button
+              key={opt.value}
+              type="button"
+              role="radio"
+              aria-checked={density === opt.value}
+              onClick={() => handleDensityChange(opt.value)}
+              className={`rounded-md px-3 py-1 text-xs font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 ${
+                density === opt.value
+                  ? "bg-white/10 text-white"
+                  : "text-zinc-400 hover:text-white"
+              }`}
+            >
+              {opt.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
       {/* Desktop Table */}
       <div
         ref={tableWrapperRef}
@@ -302,7 +369,9 @@ export function TransactionsTable({
       >
         <Table>
           {/* caption is visually hidden but announced by screen readers */}
-          <caption className="sr-only">Transaction history. Click a row to view transaction details.</caption>
+          <caption className="sr-only">
+            Transaction history. Click a row to view transaction details.
+          </caption>
           <TableHeader>
             <TableRow className="bg-[#191919]">
               {isSelectable && (
@@ -326,39 +395,45 @@ export function TransactionsTable({
               )}
               <TableHead
                 scope="col"
-                className="text-white font-bold border-[#2D2D2D] border-y-2 border-t-0 py-4 px-6"
+                className={`text-white font-bold border-[#2D2D2D] border-y-2 border-t-0 ${s.head}`}
               >
                 Transaction Type
               </TableHead>
               <TableHead
                 scope="col"
-                className="text-white font-bold border-[#2D2D2D] border-y-2 border-t-0 py-4 px-6 w-[200px]"
+                className={`text-white font-bold border-[#2D2D2D] border-y-2 border-t-0 ${s.head} w-[200px]`}
               >
                 Address
               </TableHead>
               <TableHead
                 scope="col"
-                className="text-white font-bold border-[#2D2D2D] border-y-2 border-t-0 py-4 px-6"
+                className={`text-white font-bold border-[#2D2D2D] border-y-2 border-t-0 ${s.head}`}
               >
                 Date
               </TableHead>
               <TableHead
                 scope="col"
-                className="text-white font-bold border-[#2D2D2D] border-y-2 border-t-0 py-4 px-6"
+                className={`text-white font-bold border-[#2D2D2D] border-y-2 border-t-0 ${s.head}`}
               >
                 Token
               </TableHead>
               <TableHead
                 scope="col"
-                className="text-white font-bold border-[#2D2D2D] border-y-2 border-t-0 py-4 px-6 w-[140px]"
+                className={`text-white font-bold border-[#2D2D2D] border-y-2 border-t-0 ${s.head} w-[140px]`}
               >
                 Amount
               </TableHead>
               <TableHead
                 scope="col"
-                className="text-white font-bold border-[#2D2D2D] border-y-2 border-t-0 py-4 px-6 w-[120px]"
+                className={`text-white font-bold border-[#2D2D2D] border-y-2 border-t-0 ${s.head} w-[120px]`}
               >
                 Status
+              </TableHead>
+              <TableHead
+                scope="col"
+                className={`text-white font-bold border-[#2D2D2D] border-y-2 border-t-0 ${s.head} w-[140px]`}
+              >
+                Receipt
               </TableHead>
             </TableRow>
           </TableHeader>
@@ -369,39 +444,34 @@ export function TransactionsTable({
                   key={`skeleton-${index}`}
                   className="border border-[#2D2D2D]"
                 >
-                  {isSelectable && (
-                    <TableCell className="border border-[#2D2D2D] py-4 px-4 w-12">
-                      <Skeleton className="size-4 rounded" />
-                    </TableCell>
-                  )}
-                  <TableCell className="font-medium border border-[#2D2D2D] py-4 px-6">
+                  <TableCell className={`font-medium border border-[#2D2D2D] ${s.skeleton}`}>
                     <Skeleton className="h-4 w-20 mb-1" />
                     <Skeleton className="h-3 w-16" />
                   </TableCell>
-                  <TableCell className="border border-[#2D2D2D] py-4 px-6">
+                  <TableCell className={`border border-[#2D2D2D] ${s.skeleton}`}>
                     <Skeleton className="h-4 w-32" />
                   </TableCell>
-                  <TableCell className="border border-[#2D2D2D] py-4 px-6">
+                  <TableCell className={`border border-[#2D2D2D] ${s.skeleton}`}>
                     <Skeleton className="h-4 w-24" />
                   </TableCell>
-                  <TableCell className="flex place-items-center gap-2 py-8 px-6">
+                  <TableCell className={`flex place-items-center gap-2 ${s.skeleton}`}>
                     <Skeleton className="w-5 h-5 rounded-full" />
                     <Skeleton className="h-4 w-12" />
                   </TableCell>
-                  <TableCell className="border border-[#2D2D2D] py-4 px-6">
+                  <TableCell className={`border border-[#2D2D2D] ${s.skeleton}`}>
                     <Skeleton className="h-4 w-20" />
                   </TableCell>
-                  <TableCell className="py-4 px-6">
+                  <TableCell className={s.skeleton}>
                     <Skeleton className="h-6 w-16 rounded-full" />
+                  </TableCell>
+                  <TableCell className={s.skeleton}>
+                    <Skeleton className="h-4 w-24" />
                   </TableCell>
                 </TableRow>
               ))
             ) : isEmpty ? (
               <TableRow>
-                <TableCell
-                  colSpan={isSelectable ? 7 : 6}
-                  className="py-12 text-center"
-                >
+                <TableCell colSpan={7} className="py-12 text-center">
                   <EmptyState
                     title="No Transactions Found"
                     description="No transactions found. Try adjusting your filters."
@@ -413,26 +483,29 @@ export function TransactionsTable({
                 <TableRow
                   key={transaction.id ?? index}
                   className="border border-[#2D2D2D]"
+                  aria-selected={
+                    isSelectable ? selectedIds.has(transaction.id) : undefined
+                  }
                 >
-                  <TableCell className="font-medium border border-[#2D2D2D] py-4 px-6">
+                  <TableCell className={`font-medium border border-[#2D2D2D] ${s.cell}`}>
                     <span className="text-[#D7E0EF]">{transaction.type}</span>
                     <p>#{transaction.id}</p>
                   </TableCell>
-                  <TableCell className="border border-[#2D2D2D] py-4 px-6 max-w-[200px]">
+                  <TableCell className={`border border-[#2D2D2D] ${s.cell} w-[180px] max-w-[180px]`}>
                     <span
                       className="block truncate cursor-help focus:outline-none focus:ring-2 focus:ring-[#D7E0EF] rounded px-1 -ml-1"
                       title={transaction.address}
                       tabIndex={0}
                     >
-                      {transaction.address}
+                      {truncateStellarAddress(transaction.address)}
                     </span>
                   </TableCell>
-                  <TableCell className="border border-[#2D2D2D] py-4 px-6">
+                  <TableCell className={`border border-[#2D2D2D] ${s.cell}`}>
                     <time dateTime={transaction.date}>
                       {transaction.date} {transaction.time}
                     </time>
                   </TableCell>
-                  <TableCell className="flex place-items-center space-x-2 py-8 px-6">
+                  <TableCell className={`flex place-items-center gap-2 ${s.cell}`}>
                     <Image
                       src={transaction.tokenIcon}
                       alt={`${transaction.token} token icon`}
@@ -441,7 +514,7 @@ export function TransactionsTable({
                     />
                     <span>{transaction.token}</span>
                   </TableCell>
-                  <TableCell className="border border-[#2D2D2D] py-4 px-6 max-w-[150px]">
+                  <TableCell className={`border border-[#2D2D2D] ${s.cell} max-w-[150px]`}>
                     <span
                       className="block truncate cursor-help focus:outline-none focus:ring-2 focus:ring-[#D7E0EF] rounded px-1 -ml-1"
                       title={transaction.amount}
@@ -450,7 +523,7 @@ export function TransactionsTable({
                       {transaction.amount}
                     </span>
                   </TableCell>
-                  <TableCell className="py-4 px-6">
+                  <TableCell className={s.cell}>
                     <Badge
                       aria-label={`Status: ${transaction.status}`}
                       className={getStatusColor(transaction.status)}
@@ -458,30 +531,16 @@ export function TransactionsTable({
                       <span className="text-sm">{transaction.status}</span>
                     </Badge>
                   </TableCell>
-                  <TableCell className="py-4 px-2 w-12">
-                    <button
-                      type="button"
-                      onClick={(e) => handleRowClick(transaction, e)}
-                      onKeyDown={(e) => handleRowKeyDown(transaction, e)}
-                      className="p-2 rounded-md hover:bg-[#2D2D2D] focus:outline-none focus:ring-2 focus:ring-[#D7E0EF] transition-colors"
-                      aria-label={`View details for transaction ${transaction.id}`}
-                    >
-                      <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        width="16"
-                        height="16"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="2"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        aria-hidden="true"
-                      >
-                        <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z" />
-                        <circle cx="12" cy="12" r="3" />
-                      </svg>
-                    </button>
+                  <TableCell className={s.cell}>
+                    <DownloadReceiptButton
+                      transaction={{
+                        id: transaction.id,
+                        hash: transaction.hash,
+                        amount: transaction.amount,
+                        counterparty: transaction.counterparty,
+                        timestamp: transaction.timestamp,
+                      }}
+                    />
                   </TableCell>
                 </TableRow>
               )            ))}
@@ -517,14 +576,14 @@ export function TransactionsTable({
                   <p className="font-medium">
                     {transaction.type} #{transaction.id}
                   </p>
-                  <p 
+                  <p
                     className="text-sm text-muted-foreground block truncate max-w-[180px] cursor-help focus:outline-none focus:ring-2 focus:ring-[#D7E0EF] rounded px-1 -ml-1"
                     title={transaction.address}
                     tabIndex={0}
                     onClick={(e) => e.stopPropagation()}
                   >
-                    {transaction.status}
-                  </Badge>
+                    {truncateStellarAddress(transaction.address)}
+                  </p>
                 </div>
                 <Badge
                   variant={

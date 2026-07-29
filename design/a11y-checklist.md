@@ -3,7 +3,7 @@
 ## Overview
 This checklist defines the mandatory accessibility requirements (targeting WCAG 2.1 AA compliance) for all components and views in the Stellopay frontend.
 
-## Reduced Motion (WCAG 2.1 Success Criterion 2.3.3 — Animation from Interactions)
+## Components
 
 ### Requirement
 Every component that uses framer-motion (or any JS-driven animation) **must** check the user's `prefers-reduced-motion: reduce` OS-level preference and disable or simplify the animation accordingly.

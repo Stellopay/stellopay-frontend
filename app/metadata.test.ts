@@ -25,6 +25,7 @@ describe("Route Metadata Exports", () => {
     expect(rootMetadata.description).toBeDefined();
     expect(rootMetadata.openGraph).toBeDefined();
     expect(rootMetadata.twitter).toBeDefined();
+    expect(rootMetadata.manifest).toBe("/manifest.json");
   });
 
   it("exports a dedicated viewport object on the root layout", () => {
@@ -432,5 +433,231 @@ describe("Robots — app/robots.ts", () => {
     publicRoutes.forEach((route) => {
       expect(DISALLOWED_PATHS).not.toContain(route);
     });
+  });
+});
+
+// ── JSON-LD Structured Data (lib/seo-constants.ts + app/page.tsx) ─────────────
+
+import {
+  SITE_URL,
+  SITE_NAME,
+  SITE_LOGO_URL,
+  SITE_DESCRIPTION,
+  SITE_SAME_AS,
+  JSONLD_PAYLOAD,
+} from "@/lib/seo-constants";
+import { jsonLdPayload } from "@/app/page";
+
+describe("SEO constants — lib/seo-constants.ts", () => {
+  // ── SITE_URL ──────────────────────────────────────────────────────────────
+
+  it("SITE_URL is the canonical production origin", () => {
+    expect(SITE_URL).toBe("https://stellopay.com");
+  });
+
+  it("SITE_URL has no trailing slash", () => {
+    expect(SITE_URL).not.toMatch(/\/$/);
+  });
+
+  it("SITE_URL uses HTTPS", () => {
+    expect(SITE_URL).toMatch(/^https:\/\//);
+  });
+
+  // ── SITE_NAME ─────────────────────────────────────────────────────────────
+
+  it("SITE_NAME is the StelloPay brand name", () => {
+    expect(SITE_NAME).toBe("StelloPay");
+  });
+
+  // ── SITE_LOGO_URL ─────────────────────────────────────────────────────────
+
+  it("SITE_LOGO_URL is an absolute URL under SITE_URL", () => {
+    expect(SITE_LOGO_URL).toMatch(/^https:\/\//);
+    expect(SITE_LOGO_URL.startsWith(SITE_URL)).toBe(true);
+  });
+
+  it("SITE_LOGO_URL references an image file", () => {
+    expect(SITE_LOGO_URL).toMatch(/\.(png|jpg|jpeg|svg|webp)$/i);
+  });
+
+  // ── SITE_DESCRIPTION ──────────────────────────────────────────────────────
+
+  it("SITE_DESCRIPTION is a non-empty string", () => {
+    expect(typeof SITE_DESCRIPTION).toBe("string");
+    expect(SITE_DESCRIPTION.length).toBeGreaterThan(0);
+  });
+
+  it("SITE_DESCRIPTION mentions StelloPay", () => {
+    expect(SITE_DESCRIPTION.toLowerCase()).toContain("stellopay");
+  });
+
+  // ── SITE_SAME_AS ──────────────────────────────────────────────────────────
+
+  it("SITE_SAME_AS is a non-empty array", () => {
+    expect(Array.isArray(SITE_SAME_AS)).toBe(true);
+    expect(SITE_SAME_AS.length).toBeGreaterThan(0);
+  });
+
+  it("every SITE_SAME_AS entry is an absolute HTTPS URL", () => {
+    SITE_SAME_AS.forEach((url) => {
+      expect(url).toMatch(/^https:\/\//);
+    });
+  });
+
+  it("SITE_SAME_AS entries are unique", () => {
+    const unique = new Set(SITE_SAME_AS);
+    expect(unique.size).toBe(SITE_SAME_AS.length);
+  });
+});
+
+describe("JSONLD_PAYLOAD — lib/seo-constants.ts", () => {
+  // ── Top-level shape ───────────────────────────────────────────────────────
+
+  it("uses https://schema.org as @context", () => {
+    expect(JSONLD_PAYLOAD["@context"]).toBe("https://schema.org");
+  });
+
+  it("has a @graph array with exactly two nodes", () => {
+    expect(Array.isArray(JSONLD_PAYLOAD["@graph"])).toBe(true);
+    expect(JSONLD_PAYLOAD["@graph"]).toHaveLength(2);
+  });
+
+  // ── Organization node ─────────────────────────────────────────────────────
+
+  it("@graph[0] is an Organization type", () => {
+    expect(JSONLD_PAYLOAD["@graph"][0]["@type"]).toBe("Organization");
+  });
+
+  it("Organization has the correct @id fragment", () => {
+    expect(JSONLD_PAYLOAD["@graph"][0]["@id"]).toBe(
+      `${SITE_URL}/#organization`,
+    );
+  });
+
+  it("Organization name matches SITE_NAME", () => {
+    expect(JSONLD_PAYLOAD["@graph"][0].name).toBe(SITE_NAME);
+  });
+
+  it("Organization url matches SITE_URL", () => {
+    expect(JSONLD_PAYLOAD["@graph"][0].url).toBe(SITE_URL);
+  });
+
+  it("Organization logo url matches SITE_LOGO_URL", () => {
+    const logo = JSONLD_PAYLOAD["@graph"][0].logo as { url: string };
+    expect(logo.url).toBe(SITE_LOGO_URL);
+  });
+
+  it("Organization logo is an ImageObject", () => {
+    const logo = JSONLD_PAYLOAD["@graph"][0].logo as { "@type": string };
+    expect(logo["@type"]).toBe("ImageObject");
+  });
+
+  it("Organization description matches SITE_DESCRIPTION", () => {
+    expect(JSONLD_PAYLOAD["@graph"][0].description).toBe(SITE_DESCRIPTION);
+  });
+
+  it("Organization sameAs contains all SITE_SAME_AS entries", () => {
+    const sameAs = JSONLD_PAYLOAD["@graph"][0].sameAs as string[];
+    SITE_SAME_AS.forEach((url) => {
+      expect(sameAs).toContain(url);
+    });
+  });
+
+  it("Organization sameAs entries are all absolute HTTPS URLs", () => {
+    const sameAs = JSONLD_PAYLOAD["@graph"][0].sameAs as string[];
+    sameAs.forEach((url) => {
+      expect(url).toMatch(/^https:\/\//);
+    });
+  });
+
+  // ── WebSite node ──────────────────────────────────────────────────────────
+
+  it("@graph[1] is a WebSite type", () => {
+    expect(JSONLD_PAYLOAD["@graph"][1]["@type"]).toBe("WebSite");
+  });
+
+  it("WebSite has the correct @id fragment", () => {
+    expect(JSONLD_PAYLOAD["@graph"][1]["@id"]).toBe(`${SITE_URL}/#website`);
+  });
+
+  it("WebSite url matches SITE_URL", () => {
+    expect(JSONLD_PAYLOAD["@graph"][1].url).toBe(SITE_URL);
+  });
+
+  it("WebSite name matches SITE_NAME", () => {
+    expect(JSONLD_PAYLOAD["@graph"][1].name).toBe(SITE_NAME);
+  });
+
+  it("WebSite publisher @id references the Organization node", () => {
+    const publisher = JSONLD_PAYLOAD["@graph"][1].publisher as {
+      "@id": string;
+    };
+    expect(publisher["@id"]).toBe(`${SITE_URL}/#organization`);
+  });
+
+  it("WebSite potentialAction is a SearchAction", () => {
+    const action = JSONLD_PAYLOAD["@graph"][1].potentialAction as {
+      "@type": string;
+    };
+    expect(action["@type"]).toBe("SearchAction");
+  });
+
+  it("SearchAction urlTemplate contains the search_term_string placeholder", () => {
+    const action = JSONLD_PAYLOAD["@graph"][1].potentialAction as {
+      target: { urlTemplate: string };
+    };
+    expect(action.target.urlTemplate).toContain("{search_term_string}");
+  });
+
+  it("SearchAction urlTemplate is rooted at SITE_URL", () => {
+    const action = JSONLD_PAYLOAD["@graph"][1].potentialAction as {
+      target: { urlTemplate: string };
+    };
+    expect(action.target.urlTemplate.startsWith(SITE_URL)).toBe(true);
+  });
+
+  it("SearchAction query-input declares required search_term_string", () => {
+    const action = JSONLD_PAYLOAD["@graph"][1].potentialAction as {
+      "query-input": string;
+    };
+    expect(action["query-input"]).toBe("required name=search_term_string");
+  });
+
+  // ── Serialisability ───────────────────────────────────────────────────────
+
+  it("JSONLD_PAYLOAD serialises to valid JSON without throwing", () => {
+    expect(() => JSON.stringify(JSONLD_PAYLOAD)).not.toThrow();
+  });
+
+  it("serialised payload round-trips back to an equivalent object", () => {
+    const serialised = JSON.stringify(JSONLD_PAYLOAD);
+    const parsed = JSON.parse(serialised);
+    expect(parsed["@context"]).toBe("https://schema.org");
+    expect(parsed["@graph"]).toHaveLength(2);
+  });
+
+  it("serialised payload contains no undefined values (JSON.stringify omits them)", () => {
+    const serialised = JSON.stringify(JSONLD_PAYLOAD);
+    // JSON.stringify silently drops undefined — if a key resolved to undefined
+    // it would simply be absent; this test confirms the critical fields survive.
+    expect(serialised).toContain(SITE_URL);
+    expect(serialised).toContain(SITE_NAME);
+    expect(serialised).toContain(SITE_LOGO_URL);
+  });
+});
+
+describe("jsonLdPayload re-export — app/page.tsx", () => {
+  it("jsonLdPayload re-export is identical to JSONLD_PAYLOAD", () => {
+    expect(jsonLdPayload).toBe(JSONLD_PAYLOAD);
+  });
+
+  it("jsonLdPayload has @context https://schema.org", () => {
+    expect(jsonLdPayload["@context"]).toBe("https://schema.org");
+  });
+
+  it("jsonLdPayload @graph has Organization and WebSite nodes", () => {
+    const types = jsonLdPayload["@graph"].map((n) => n["@type"]);
+    expect(types).toContain("Organization");
+    expect(types).toContain("WebSite");
   });
 });
