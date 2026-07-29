@@ -266,4 +266,17 @@
 | `components/auth/sign-up/sign-up-email-modal.tsx` | `DialogDescription`, aria-live resend status, button types, focus rings                  |
 | `components/transactions/transactions-table.tsx`  | `<caption>`, `scope="col"`, aria-label on badges, aria-hidden on icons, `<time>` element |
 | `components/common/side-bar.tsx`                  | aria-label, aria-expanded, aria-hidden icons, focus rings                                |
+| `app/error.tsx`                                   | `role="alert"`, `aria-live="assertive"`, dynamic error copy and action buttons           |
 | `design/a11y-checklist.md`                        | This document                                                                            |
+
+---
+
+## Global Error Boundary (Network vs Unexpected) — Verified
+
+**File:** `app/error.tsx`
+**Fix:** Differentiated messaging and primary actions for network vs unexpected errors to reduce user confusion. 
+**Accessibility Annotations:**
+- **ARIA/Role:** Main container uses `role="alert"` and `aria-live="assertive"` so screen readers immediately announce critical error states to the user as soon as the boundary catches an error.
+- **Keyboard Nav:** Primary and secondary actions (Retry / Go to dashboard) use standard `<Button>` components which are naturally focusable and triggerable via Enter/Space.
+- **Contrast:** Ensures error text relies on high-contrast semantic tokens (`text-destructive` and `text-muted-foreground`) that meet WCAG 2.1 AA requirements against the `bg-background` class.
+**WCAG:** 4.1.3 Status Messages, 2.1.1 Keyboard, 1.4.3 Contrast
