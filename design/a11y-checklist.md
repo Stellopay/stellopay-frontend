@@ -669,3 +669,118 @@ A roving-tabindex pattern now lets ArrowLeft/ArrowRight (and ArrowUp/ArrowDown i
 | `components/dashboard/quick-actions.tsx` | Added `activeIndex` state, `gridRef`, `handleGridKeyDown`, `data-quick-action` and `tabIndex` on cards, `onFocus` handlers, grid `role="group"` and `aria-label` |
 | `components/dashboard/quick-actions.test.tsx` | Added roving tabindex tests: single tabIndex 0, arrow key movement, Home/End, disabled card exclusion, focus tracking |
 | `design/a11y-checklist.md` | Updated — this section |
+
+---
+
+## Transaction Status Badges — Icons + Text, Not Color Alone
+
+**Branch:** `a11y/transactions-status-not-color-only`
+**Scope:** `components/transactions/transactions-table.tsx`, `utils/transactionUtils.ts`
+**Standard:** WCAG 2.1 Level AA — 1.4.1 Use of Color
+**Date:** 2026-07-29
+
+### Overview
+
+Status badges (Completed / Pending / Failed) in the transactions table previously
+communicated their meaning through background/text colour only (`getStatusColor`).
+Colour-blind users who cannot distinguish the green/amber/red hues could not
+determine the status at a glance.
+
+Each badge now pairs its colour treatment with a distinct lucide-react icon and
+the status text label, making the status identifiable in greyscale or under any
+colour-vision deficiency simulation.
+
+### Icon mapping
+
+| Status    | Icon          | Rationale                     |
+|-----------|---------------|-------------------------------|
+| Completed | `CheckCircle2`| Checkmark — success / done    |
+| Pending   | `Clock`       | Clock — awaiting processing   |
+| Failed    | `XCircle`     | Cross-circle — error / denied |
+| Unknown   | `AlertCircle` | Warning — unrecognised status |
+
+### WCAG Criteria addressed
+
+#### WCAG 1.4.1 — Use of Color
+
+The status is conveyed through **shape (icon) + text label**, not colour alone.
+All three channels (icon shape, text label, badge colour) are redundant so any
+one can be removed without losing the information.
+
+#### WCAG 1.1.1 — Non-text Content
+
+Each icon is rendered with `aria-hidden="true"` since the accompanying text
+label already communicates the status. Screen readers hear `"Status: Completed"`
+from the badge's `aria-label` and read the visible text, without double-
+announcing the icon.
+
+#### WCAG 4.1.2 — Name, Role, Value
+
+Each badge has `aria-label="Status: {status}"` so assistive technology
+identifies the element's purpose regardless of the visual representation.
+
+### Implementation details
+
+```tsx
+<Badge
+  aria-label={`Status: ${transaction.status}`}
+  className={getStatusColor(transaction.status)}
+>
+  <StatusIcon className="size-4" aria-hidden="true" />
+  <span className="text-sm">{transaction.status}</span>
+</Badge>
+```
+
+- **`getStatusIcon(status)`** (`utils/transactionUtils.ts`) — returns a
+  `LucideIcon` component from a fixed lookup table (`STATUS_ICON_MAP`).
+  Unrecognised statuses fall back to `AlertCircle` (same pattern as
+  `getStatusColor` → `UNKNOWN_STATUS_COLOR`).
+- **`STATUS_ICON_MAP`** — `Record<KnownTransactionStatus, LucideIcon>` mapping
+  `completed` → `CheckCircle2`, `pending` → `Clock`, `failed` → `XCircle`.
+- **Icon sizing** — `size-4` (16 px) follows the design system's "Small" token
+  for badge overlays per `design/icons.md`.
+
+### Coverage
+
+| Surface               | Location                                              | Before                            | After                                      |
+|-----------------------|-------------------------------------------------------|-----------------------------------|--------------------------------------------|
+| Desktop table         | `transactions-table.tsx:530` (TableCell → Badge)      | Colour-only badge                 | Icon + text + colour                       |
+| Mobile card           | `transactions-table.tsx:595` (Badge inside card)      | Colour-variant badge              | Icon + text + colour (uses `getStatusColor`) |
+| Quick-view dialog     | `transactions-table.tsx:81` (DialogTitle → Badge)     | Colour-only badge                 | Icon + text + colour                       |
+
+### Responsive behaviour
+
+| Breakpoint | Behaviour |
+|------------|-----------|
+| All        | Icon scales with `size-4` (16 px); text remains `text-sm` (14 px). The badge layout is `inline-flex` (via `<Badge>`), so icon + text wrap naturally on narrow cards. |
+| sm (640)   | Table switches to stacked card layout; badge remains at top-right of each card. |
+| md (768)   | Table view activates; badge sits in its dedicated column. |
+| lg (1024)  | No layout change; density controls visible above table. |
+| xl (1280)  | Same as lg. |
+
+### Colorblind Simulation Notes
+
+- **Protanopia / Deuteranopia** (red-green deficiency): The `CheckCircle2` icon
+  (circle with checkmark), `Clock` icon, and `XCircle` icon are all
+  distinguishable by shape alone. The text label "Completed" / "Pending" /
+  "Failed" provides a tertiary channel.
+- **Achromatopsia** (full greyscale): Colour disappears entirely, but the icon
+  shapes and text remain fully legible.
+- **Tritanopia** (blue-yellow deficiency): The amber (`#FBBF24`) and green
+  (`#34D399`) hues may be confused, but `Clock` vs `CheckCircle2` icons prevent
+  misidentification.
+
+### Keyboard navigation
+
+No changes were needed — the `<Badge>` component and its parent `<TableCell>`
+already support keyboard focus and screen-reader announcements. The icon is
+`aria-hidden` so it does not interfere with keyboard or AT navigation.
+
+### Files changed
+
+| File | Changes |
+|------|---------|
+| `utils/transactionUtils.ts` | Added `getStatusIcon()`, `STATUS_ICON_MAP`, `UNKNOWN_STATUS_ICON` |
+| `components/transactions/transactions-table.tsx` | Added `<StatusIcon>` inside all three badge locations (desktop, mobile card, dialog), converted map callbacks to explicit return for icon resolution |
+| `components/transactions/transactions-table.test.tsx` | Added tests: SVG icon with `aria-hidden` in badge, status text fidelity, `aria-label` preservation, dialog icon rendering, grayscale-survival assertion |
+| `design/a11y-checklist.md` | Updated — this section |
