@@ -45,7 +45,25 @@ npm run build       # production build
 
 Run lint, type-check, and tests locally before opening a PR.
 
-## Accessibility (a11y) gate
+## Cookie Consent Banner
+
+The cookie-consent banner is rendered by `components/common/footer.tsx` and appears as a fixed bottom bar when no consent preference is stored in `localStorage`.
+
+### Behaviour
+
+- **No stored consent**: The banner is visible on every page.
+- **Accept**: Stores `"accepted"` under `stellopay.cookie-consent` in `localStorage` and hides the banner. The choice persists across reloads.
+- **Reject**: Stores `"rejected"` under the same key and hides the banner. The choice persists across reloads.
+- **Dismiss (close button)**: Hides the banner without writing a consent value. The banner reappears on the next page load because no preference was recorded.
+- **Fresh browser context**: When no value is stored, the banner is shown again.
+
+### Persistence
+
+The banner uses `safeStorage` (`@/utils/safeStorage`) for all `localStorage` reads and writes, so it is SSR-safe and handles storage-unavailable environments gracefully.
+
+### Adding a11y coverage
+
+The cookie-consent banner is included in the axe-core accessibility gate via `tests/cookie-consent.spec.ts`. If a new route renders the banner, ensure it is also added to `tests/a11y.spec.ts`.
 
 All primary routes must pass an axe-core scan before merging. The gate is enforced by `tests/a11y.spec.ts` and runs in CI under the `a11y-gate` job on every pull request and push to `main`.
 
