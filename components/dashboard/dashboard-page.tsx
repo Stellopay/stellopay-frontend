@@ -1,6 +1,15 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useMemo } from "react";
+import {
+  FileText,
+  Wallet,
+  Shield,
+  Settings,
+  Clock3,
+  ChevronRight,
+} from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 import DashboardNavbar from "@/components/dashboard/dashboard-navbar";
 import AccountOverview from "@/components/dashboard/account-overview";
 import { QuickActions } from "@/components/dashboard/quick-actions";
@@ -9,6 +18,10 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { ErrorState } from "@/components/ui/error-state";
 import ClientAnalyticsView from "@/components/analytics/client-analytics-view";
 import { DashboardTour } from "@/components/dashboard/dashboard-tour";
+import Link from "next/link";
+import dynamic from "next/dynamic";
+import { useTransactions } from "@/hooks/useTransactions";
+import type { Transaction } from "@/types/transaction";
 
 const AnalyticsInsights = dynamic(
   () =>
