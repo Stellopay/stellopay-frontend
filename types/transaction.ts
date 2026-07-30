@@ -80,7 +80,15 @@ export interface TransactionsTableProps {
 }
 
 export interface TokenIconProps {
+  /** Token symbol, e.g. `"USDC"`. Drives both the icon and the accessible name. */
   token: string;
+  /**
+   * Explicit icon path. Defaults to the symbol's known logo, falling back to a
+   * generic coin for unrecognised symbols.
+   */
+  src?: string;
+  /** Rendered width/height in pixels. Defaults to 20. */
+  size?: number;
 }
 
 export interface TransactionsHeaderProps {

@@ -11,7 +11,7 @@ import {
 } from "@/components/ui/table";
 import { TransactionsTableProps, TransactionProps, Tag } from "@/types/transaction";
 import { Badge } from "@/components/ui/badge";
-import Image from "next/image";
+import TokenIcon from "@/components/transactions/token-icon";
 import { getStatusColor } from "@/utils/transactionUtils";
 import { truncateStellarAddress } from "@/utils/stellarAddress";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -28,6 +28,10 @@ import {
 import { Button } from "@/components/ui/button";
 import { ExternalLink } from "lucide-react";
 import Link from "next/link";
+import { Skeleton } from "@/components/ui/skeleton";
+import { DownloadReceiptButton } from "@/components/transactions/download-receipt-button";
+import { TagChip } from "@/components/transactions/tag-chip";
+import { TransactionTableSkeleton } from "@/components/ui/table-skeleton";
 
 interface TransactionsTablePropsExtended extends TransactionsTableProps {
   isLoading?: boolean;
@@ -168,11 +172,10 @@ function TransactionQuickViewDialog({
             <div>
               <p className="text-sm font-medium text-muted-foreground">Token</p>
               <div className="flex items-center gap-2">
-                <Image
+                <TokenIcon
+                  token={transaction.token}
                   src={transaction.tokenIcon}
-                  alt={`${transaction.token} token icon`}
-                  width={16}
-                  height={16}
+                  size={16}
                 />
                 <span className="text-sm font-semibold">{transaction.token}</span>
               </div>
@@ -259,6 +262,7 @@ export function TransactionsTable({
   const [selectedTransaction, setSelectedTransaction] = React.useState<TransactionProps | null>(null);
   const [isDialogOpen, setIsDialogOpen] = React.useState(false);
   const triggerRef = React.useRef<HTMLButtonElement | null>(null);
+  const tableWrapperRef = React.useRef<HTMLDivElement | null>(null);
 
   const handleRowClick = (transaction: TransactionProps, event: React.MouseEvent<HTMLButtonElement>) => {
     triggerRef.current = event.currentTarget;
@@ -443,11 +447,10 @@ export function TransactionsTable({
                     </time>
                   </TableCell>
                   <TableCell className="flex place-items-center space-x-2 py-8 px-6">
-                    <Image
+                    <TokenIcon
+                      token={transaction.token}
                       src={transaction.tokenIcon}
-                      alt={`${transaction.token} token icon`}
-                      width={20}
-                      height={20}
+                      size={20}
                     />
                     <span>{transaction.token}</span>
                   </TableCell>
@@ -492,20 +495,19 @@ export function TransactionsTable({
                         <circle cx="12" cy="12" r="3" />
                       </svg>
                     </button>
+                    <DownloadReceiptButton
+                      transaction={{
+                        id: transaction.id,
+                        hash: transaction.hash ?? transaction.txId,
+                        amount: transaction.amount,
+                        counterparty: transaction.counterparty ?? transaction.address,
+                        timestamp: `${transaction.date} ${transaction.time}`.trim(),
+                      }}
+                    />
                   </TableCell>
                 </TableRow>
               ))
             )}
-
-            <DownloadReceiptButton
-            transaction={{
-              id: transaction.id,
-              hash: transaction.hash,
-              amount: transaction.amount,
-              counterparty: transaction.counterparty,
-              timestamp: transaction.timestamp,
-            }}
-          />
           </TableBody>
         </Table>
       </div>
