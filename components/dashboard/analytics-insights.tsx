@@ -261,14 +261,60 @@ interface AnalyticsInsightsProps {
   viewAllHref?: string;
 }
 
+/**
+ * Renders individual KPI card elements for the analytics insights grid.
+ * Extracted into a standalone function to avoid nested JSX expression
+ * parsing issues inside the inline ternary.
+ */
+function renderKPICards(items: KPICardItem[]) {
+  return items.map((item) => {
+    const Icon = item.icon;
+    return (
+      <div
+        key={item.id}
+        className={cn(
+          "rounded-2xl border p-5 flex flex-col group hover:shadow-elevation-2 transition-all",
+          "bg-zinc-50/50 dark:bg-zinc-900/30 border-zinc-100 dark:border-zinc-800/50",
+        )}
+      >
+        <div className="flex items-start justify-between gap-2">
+          <div
+            className={cn(
+              "flex items-center justify-center w-12 h-12 rounded-xl shrink-0 transition-transform group-hover:scale-110",
+              item.iconBg,
+              item.iconColor,
+            )}
+          >
+            <Icon className="h-6 w-6" aria-hidden />
+          </div>
+          <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-emerald-50 dark:bg-emerald-500/10">
+            <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400">
+              {item.change}
+            </span>
+          </div>
+        </div>
+        <p className="text-3xl font-bold text-zinc-900 dark:text-white mt-4 tracking-tight">
+          {item.value}
+        </p>
+        <p className="text-sm font-bold text-zinc-400 dark:text-zinc-500 mt-1 uppercase tracking-wider">
+          {item.label}
+        </p>
+      </div>
+    );
+  });
+}
+
 export function AnalyticsInsights({
-  kpis = defaultKPIs,
+  kpis: kpisProp,
   viewAllHref = "/analytics-view",
 }: AnalyticsInsightsProps) {
   const [timeRange, setTimeRange] = useState(timeRangeOptions[0]);
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [selectedMetricIds, setSelectedMetricIds] = useState<string[]>([]);
   const [hasHydrated, setHasHydrated] = useState(false);
+
+  // Whether kpis was explicitly passed by the parent (not using the default)
+  const hasExplicitKPIs = kpisProp !== undefined;
 
   // Load persisted metric selection on mount
   useEffect(() => {
@@ -300,6 +346,11 @@ export function AnalyticsInsights({
   const visibleKPIs = hasHydrated
     ? METRIC_CATALOG.filter((metric) => selectedMetricIds.includes(metric.id))
     : defaultKPIs;
+
+  // Determine which KPIs to render:
+  // - If the parent explicitly passes kpis, use that (could be empty = empty state)
+  // - Otherwise use the catalog-based visibleKPIs (always populated)
+  const displayKPIs = hasExplicitKPIs ? kpisProp : visibleKPIs;
 
   const handleMetricsChange = (ids: string[]) => {
     setSelectedMetricIds(ids);
@@ -392,42 +443,15 @@ export function AnalyticsInsights({
         </div>
       </div>
 
-      {/* KPI Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-        {visibleKPIs.map((item) => {
-          const Icon = item.icon;
-          return (
-            <div
-              key={item.id}
-              className={cn(
-                "rounded-2xl border p-5 flex flex-col group hover:shadow-elevation-2 transition-all",
-                "bg-zinc-50/50 dark:bg-zinc-900/30 border-zinc-100 dark:border-zinc-800/50",
-              )}
-            >
-              <div className="flex items-start justify-between gap-2">
-                <div
-                  className={cn(
-                    "flex items-center justify-center w-12 h-12 rounded-xl shrink-0 transition-transform group-hover:scale-110",
-                    item.iconBg,
-                    item.iconColor,
-                  )}
-                >
-                  <Icon className="h-6 w-6" aria-hidden />
-                </div>
-                <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-emerald-50 dark:bg-emerald-500/10">
-                  <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400">
-                    {item.change}
-                  </span>
-                </div>
-                <p className="text-3xl font-bold text-zinc-900 dark:text-white mt-4 tracking-tight">
-                  {item.value}
-                </p>
-                <p className="text-sm font-bold text-zinc-400 dark:text-zinc-500 mt-1 uppercase tracking-wider">
-                  {item.label}
-                </p>
-              </div>
-            );
-          })}
+      {/* KPI Cards or Empty State */}
+      {displayKPIs.length === 0 ? (
+        <EmptyState
+          title="No analytics data yet"
+          description="Start accepting payments to see your transaction metrics, success rates, and wallet activity here."
+        />
+      ) : (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+          {renderKPICards(displayKPIs)}
         </div>
       )}
     </section>
