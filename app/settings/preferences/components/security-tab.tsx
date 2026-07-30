@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import { useSearchHighlight } from "@/hooks/useSearchHighlight";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import {
@@ -16,6 +17,7 @@ import {
   Smartphone,
   Loader2,
 } from "lucide-react";
+import { ErrorSummary } from "@/components/ui/error-summary";
 import ToggleCard from "@/components/common/toggle-card";
 import { Button } from "@/components/ui/button";
 import {
@@ -121,6 +123,53 @@ export function createApiKeySecret(name: string): string {
 /** How many single-use two-factor backup codes are issued per set. */
 export const BACKUP_CODE_COUNT = 10;
 
+/** Stable id for the screen-reader password-requirements helper text. */
+export const NEW_PASSWORD_REQUIREMENTS_ID = "new-password-requirements";
+
+/** Stable id for the polite live region that announces requirement changes. */
+export const NEW_PASSWORD_REQUIREMENTS_STATUS_ID =
+  "new-password-requirements-status";
+
+/**
+ * Debounce window (ms) before announcing password-requirement changes.
+ * Long enough to avoid keystroke spam; short enough to feel responsive.
+ */
+export const PASSWORD_REQUIREMENTS_ANNOUNCE_DELAY_MS = 700;
+
+type PasswordRequirementFlags = ReturnType<typeof checkPasswordRequirements>;
+
+/**
+ * Builds a concise screen-reader announcement for the current password
+ * requirement state. Empty string when the field is empty (nothing to announce).
+ *
+ * Exported for unit tests so the announcement copy stays asserted without
+ * relying on debounce timers in the component.
+ */
+export function buildPasswordRequirementsAnnouncement(
+  requirements: PasswordRequirementFlags,
+  passwordsMatch: boolean,
+  hasPassword: boolean,
+): string {
+  if (!hasPassword) {
+    return "";
+  }
+
+  const items = [
+    { label: "at least 8 characters", met: requirements.minLength },
+    { label: "one uppercase letter", met: requirements.uppercase },
+    { label: "one special character", met: requirements.specialChar },
+    { label: "passwords match", met: passwordsMatch },
+  ];
+
+  const unmet = items.filter((item) => !item.met).map((item) => item.label);
+
+  if (unmet.length === 0) {
+    return "All password requirements met.";
+  }
+
+  return `Still needed: ${unmet.join(", ")}.`;
+}
+
 /**
  * Generates a set of single-use two-factor backup (recovery) codes.
  *
@@ -189,6 +238,8 @@ interface SecurityTabProps {
    */
   twoFactorEnabled?: boolean;
   onTwoFactorEnabledChange?: (next: boolean) => void;
+  /** When set, scrolls to and highlights the matching control. */
+  highlightedSearchLabel?: string | null;
 }
 
 /**
@@ -266,7 +317,9 @@ export function getVerificationCodeError(value: string): string | null {
 export default function SecurityTab({
   twoFactorEnabled: controlledTwoFactor,
   onTwoFactorEnabledChange,
+  highlightedSearchLabel,
 }: SecurityTabProps = {}) {
+  useSearchHighlight(highlightedSearchLabel ?? null);
   const [internalTwoFactor, setInternalTwoFactor] = useState(
     controlledTwoFactor ?? DEFAULT_TWO_FACTOR_ENABLED,
   );
@@ -463,6 +516,53 @@ export default function SecurityTab({
   );
   const passwordsMatch =
     watchedPassword.length > 0 && watchedPassword === watchedConfirm;
+
+  const passwordRequirementsAnnouncement = useMemo(
+    () =>
+      buildPasswordRequirementsAnnouncement(
+        {
+          minLength: passwordRequirements.minLength,
+          uppercase: passwordRequirements.uppercase,
+          specialChar: passwordRequirements.specialChar,
+        },
+        passwordsMatch,
+        watchedPassword.length > 0,
+      ),
+    [
+      passwordRequirements.minLength,
+      passwordRequirements.uppercase,
+      passwordRequirements.specialChar,
+      passwordsMatch,
+      watchedPassword.length,
+    ],
+  );
+
+  // Debounced + change-gated live region: announce only after typing pauses
+  // and only when the unmet/met summary actually changes (avoids SR spam).
+  const [liveRequirementsAnnouncement, setLiveRequirementsAnnouncement] =
+    useState("");
+  const lastAnnouncedRequirementsRef = useRef("");
+
+  useEffect(() => {
+    if (!passwordRequirementsAnnouncement) {
+      setLiveRequirementsAnnouncement("");
+      lastAnnouncedRequirementsRef.current = "";
+      return;
+    }
+
+    const timer = window.setTimeout(() => {
+      if (
+        passwordRequirementsAnnouncement !==
+        lastAnnouncedRequirementsRef.current
+      ) {
+        lastAnnouncedRequirementsRef.current =
+          passwordRequirementsAnnouncement;
+        setLiveRequirementsAnnouncement(passwordRequirementsAnnouncement);
+      }
+    }, PASSWORD_REQUIREMENTS_ANNOUNCE_DELAY_MS);
+
+    return () => window.clearTimeout(timer);
+  }, [passwordRequirementsAnnouncement]);
 
   const canSubmit =
     form.formState.isValid &&
@@ -686,7 +786,10 @@ export default function SecurityTab({
 
   return (
     <div className="grid gap-6 xl:grid-cols-[minmax(0,1.2fr)_minmax(320px,0.8fr)]">
-      <Card className="border-zinc-200 bg-white/90 shadow-sm dark:border-white/10 dark:bg-white/5">
+      <Card
+        data-search-label="Password and recovery"
+        className="border-zinc-200 bg-white/90 shadow-sm dark:border-white/10 dark:bg-white/5"
+      >
         <CardHeader className="border-b border-zinc-200/80 dark:border-white/10">
           <div className="flex items-center gap-3">
             <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-zinc-900 text-white dark:bg-white dark:text-zinc-900">
@@ -713,6 +816,10 @@ export default function SecurityTab({
               noValidate
               className="space-y-6"
             >
+              <ErrorSummary
+                errors={form.formState.errors}
+                className="mb-4"
+              />
               <div className="grid gap-4 md:grid-cols-2">
                 <FormFieldPassword
                   control={form.control}
@@ -721,6 +828,7 @@ export default function SecurityTab({
                   placeholder="Use a strong password"
                   autoComplete="new-password"
                   disabled={isSaving}
+                  ariaDescribedBy={NEW_PASSWORD_REQUIREMENTS_ID}
                 />
                 <div className="space-y-4">
                   <FormFieldPassword
@@ -739,7 +847,25 @@ export default function SecurityTab({
                 </div>
               </div>
 
-              <div className="grid gap-3 sm:grid-cols-2">
+              <p id={NEW_PASSWORD_REQUIREMENTS_ID} className="sr-only">
+                Password requirements: at least 8 characters, one uppercase
+                letter, and one special character. Confirm password must match.
+              </p>
+              <div
+                id={NEW_PASSWORD_REQUIREMENTS_STATUS_ID}
+                role="status"
+                aria-live="polite"
+                aria-atomic="true"
+                className="sr-only"
+              >
+                {liveRequirementsAnnouncement}
+              </div>
+
+              <div
+                className="grid gap-3 sm:grid-cols-2"
+                role="list"
+                aria-label="Password requirements"
+              >
                 <RequirementItem
                   label="At least 8 characters"
                   met={passwordRequirements.minLength}
@@ -1065,12 +1191,14 @@ export default function SecurityTab({
               description="Challenge sign-ins from browsers or devices you have not approved yet."
               enabled={loginApprovalEnabled}
               onToggle={setLoginApprovalEnabled}
+              searchLabel="New device approval"
             />
             <ToggleCard
               title="Large transfer approval"
               description="Hold transfers over your threshold for a second confirmation."
               enabled={transferApprovalEnabled}
               onToggle={setTransferApprovalEnabled}
+              searchLabel="Large transfer approval"
             />
 
             {twoFactorEnabled && !backupCodes && (
@@ -1346,7 +1474,10 @@ export default function SecurityTab({
           </CardContent>
         </Card>
 
-        <Card className="border-zinc-200 bg-white/90 shadow-sm dark:border-white/10 dark:bg-white/5">
+        <Card
+          data-search-label="Active sessions"
+          className="border-zinc-200 bg-white/90 shadow-sm dark:border-white/10 dark:bg-white/5"
+        >
           <CardHeader className="border-b border-zinc-200/80 dark:border-white/10">
             <div className="flex items-center justify-between gap-3">
               <div className="space-y-1">
@@ -1392,26 +1523,28 @@ export default function SecurityTab({
               );
             })}
 
-            <DestructiveActionDialog
-              triggerLabel="Sign out all sessions"
-              title="Sign out every other session"
-              description="This will invalidate every session except the current browser."
-              impactItems={[
-                "Every signed-in mobile or web session will need to log in again.",
-                "Pending high-risk actions will be interrupted until re-authentication.",
-                "This action should only be used if you suspect account access issues.",
-              ]}
-              confirmationToken="LOGOUT"
-              confirmationLabel='Type "LOGOUT" to continue'
-              confirmLabel="Force sign-out"
-              onConfirm={() =>
-                setStatus({
-                  message:
-                    "Session reset requested. All other devices would be signed out.",
-                  type: "success",
-                })
-              }
-            />
+            <div data-search-label="Sign out all sessions">
+              <DestructiveActionDialog
+                triggerLabel="Sign out all sessions"
+                title="Sign out every other session"
+                description="This will invalidate every session except the current browser."
+                impactItems={[
+                  "Every signed-in mobile or web session will need to log in again.",
+                  "Pending high-risk actions will be interrupted until re-authentication.",
+                  "This action should only be used if you suspect account access issues.",
+                ]}
+                confirmationToken="LOGOUT"
+                confirmationLabel='Type "LOGOUT" to continue'
+                confirmLabel="Force sign-out"
+                onConfirm={() =>
+                  setStatus({
+                    message:
+                      "Session reset requested. All other devices would be signed out.",
+                    type: "success",
+                  })
+                }
+              />
+            </div>
           </CardContent>
         </Card>
       </div>
@@ -1421,14 +1554,20 @@ export default function SecurityTab({
 
 function RequirementItem({ label, met }: { label: string; met: boolean }) {
   return (
-    <div className="flex items-center gap-2 rounded-2xl border border-zinc-200 bg-zinc-50 px-4 py-3 text-sm text-zinc-600 dark:border-white/10 dark:bg-white/5 dark:text-zinc-400">
+    <div
+      role="listitem"
+      className="flex items-center gap-2 rounded-2xl border border-zinc-200 bg-zinc-50 px-4 py-3 text-sm text-zinc-600 dark:border-white/10 dark:bg-white/5 dark:text-zinc-400"
+    >
       <CheckCircle2
         className={`size-4 ${
           met ? "text-emerald-500" : "text-zinc-300 dark:text-zinc-600"
         }`}
         aria-hidden="true"
       />
-      <span>{label}</span>
+      <span>
+        <span className="sr-only">{met ? "Met: " : "Not met: "}</span>
+        {label}
+      </span>
     </div>
   );
 }

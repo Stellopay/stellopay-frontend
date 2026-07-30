@@ -1,7 +1,17 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { describe, expect, it, beforeEach, afterEach, vi } from "vitest";
 import { axe } from "vitest-axe";
+
+import * as toHaveNoViolationsExport from "vitest-axe/matchers";
 import { VideoFacade } from "./video-facade";
+
+// Register vitest-axe matchers
+const matchers = (toHaveNoViolationsExport as any).default || toHaveNoViolationsExport;
+expect.extend(matchers);
+
+
+import { VideoFacade } from "./video-facade";
+
 
 const TEST_VIDEO_ID = "dQw4w9WgXcQ";
 const TEST_VIDEO_TITLE = "Test Video Title";
@@ -257,7 +267,11 @@ describe("VideoFacade", () => {
       );
 
       const aspectContainer = container.querySelector(
+
+        "[style*='aspect']"
+
         "[style*='aspect-ratio']"
+
       );
       expect(aspectContainer).toBeInTheDocument();
     });
@@ -279,7 +293,11 @@ describe("VideoFacade", () => {
 
       await waitFor(() => {
         const aspectContainer = container.querySelector(
+
+          "[style*='aspect']"
+
           "[style*='aspect-ratio']"
+
         );
         expect(aspectContainer).toBeInTheDocument();
       });
@@ -295,7 +313,11 @@ describe("VideoFacade", () => {
       );
 
       const aspectContainer = container.querySelector(
+
+        "[style*='aspect']"
+
         "[style*='aspect-ratio']"
+
       );
       expect(aspectContainer).toHaveStyle({ aspectRatio: "4/3" });
     });
@@ -416,12 +438,22 @@ describe("VideoFacade", () => {
         expect(iframe).toBeInTheDocument();
       });
 
+
+      const results = await axe(container, {
+        iframes: false,
+        rules: {
+          "frame-tested": { enabled: false },
+        },
+      });
+      expect(results).toHaveNoViolations();
+
       // axe-core cannot analyse cross-origin iframes in jsdom (they have no
       // real content), so we exclude the iframe element from the scan.
       const results = await axe(container, {
         exclude: [["iframe"]],
       });
       expect(results.violations).toHaveLength(0);
+
     });
   });
 
@@ -488,7 +520,11 @@ describe("VideoFacade", () => {
 
       // Check for overflow on the aspect container
       const aspectContainer = container.querySelector(
+
+        "[style*='aspect']"
+
         "[style*='aspect-ratio']"
+
       );
       expect(aspectContainer).toHaveClass("overflow-hidden");
 
@@ -673,8 +709,15 @@ describe("VideoFacade", () => {
         name: `Play ${TEST_VIDEO_TITLE}`,
       });
 
+
+      const event = new KeyboardEvent("keydown", { key: "Enter", bubbles: true });
+      const preventDefaultSpy = vi.spyOn(event, "preventDefault");
+
+      playButton.dispatchEvent(event);
+
       // Use fireEvent which works with React's synthetic event system
       fireEvent.keyDown(playButton, { key: "Enter" });
+
 
       // After Enter, the iframe should have mounted (proves the handler ran)
       await waitFor(() => {
@@ -694,8 +737,15 @@ describe("VideoFacade", () => {
         name: `Play ${TEST_VIDEO_TITLE}`,
       });
 
+
+      const event = new KeyboardEvent("keydown", { key: " ", bubbles: true });
+      const preventDefaultSpy = vi.spyOn(event, "preventDefault");
+
+      playButton.dispatchEvent(event);
+
       // Use fireEvent which works with React's synthetic event system
       fireEvent.keyDown(playButton, { key: " " });
+
 
       // After Space, the iframe should have mounted (proves the handler ran)
       await waitFor(() => {

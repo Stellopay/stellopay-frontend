@@ -23,11 +23,23 @@ describe("CardSkeleton", () => {
     const { container } = render(<CardSkeleton className="dark:bg-slate-800 rtl:mr-4" />);
     expect(container.firstChild).toHaveClass("dark:bg-slate-800", "rtl:mr-4");
   });
+
+  it("uses skeleton-shimmer on all inner placeholders (shared animation timing)", () => {
+    const { container } = render(<CardSkeleton lines={3} />);
+    const shimmers = container.querySelectorAll(".skeleton-shimmer");
+    expect(shimmers.length).toBeGreaterThanOrEqual(5);
+  });
 });
 
 describe("AccountSummaryCardSkeleton", () => {
   it("renders the account summary loading state correctly", () => {
     const { container } = render(<AccountSummaryCardSkeleton />);
     expect(container.firstChild).toBeInTheDocument();
+  });
+
+  it("uses skeleton-shimmer on all inner placeholders", () => {
+    const { container } = render(<AccountSummaryCardSkeleton />);
+    const shimmers = container.querySelectorAll(".skeleton-shimmer");
+    expect(shimmers.length).toBeGreaterThanOrEqual(4);
   });
 });

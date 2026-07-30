@@ -1,12 +1,11 @@
 "use client";
 
 import React from "react";
-import Link from "next/link";
-import { TrendingUp, TrendingDown } from "lucide-react";
 import { AccountSummaryCardProps } from './summary-data';
 import dynamic from 'next/dynamic';
 import { Skeleton } from '@/components/ui/skeleton';
 import { formatCurrency } from '@/utils/formatUtils';
+import { StatCard } from '@/components/ui/stat-card';
 
 const RechartsMiniBarChart = dynamic(
   () => import('./RechartsMiniBarChart').then(mod => mod.RechartsMiniBarChart),
@@ -88,7 +87,7 @@ export default function AccountSummaryCard({
 
       <RechartsMiniBarChart
         data={chartData}
-        color={chartColor}
+        cssVar={chartColor}
         ariaLabel={`${title} mini chart`}
         height="3rem"
       />
@@ -112,9 +111,27 @@ export default function AccountSummaryCard({
   }
 
   return (
-    <div className={baseClasses}>
-      {cardContent}
-    </div>
+    <StatCard
+      size="sm"
+      title={title}
+      subtitle={subtitle}
+      value={displayValue}
+      valueTestId="account-summary-card-value"
+      icon={icon}
+      iconBgColor={iconBgColor}
+      change={change}
+      isPositive={isPositive}
+      chartSlot={
+        <RechartsMiniBarChart
+          data={chartData}
+          color={chartColor}
+          ariaLabel={`${title} mini chart`}
+          height="3rem"
+        />
+      }
+      href={href}
+      testId={href ? "account-summary-card-link" : undefined}
+      ariaLabel={href ? `View ${title} transactions` : undefined}
+    />
   );
 }
-
