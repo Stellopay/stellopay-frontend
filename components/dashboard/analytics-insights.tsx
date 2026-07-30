@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import Link from "next/link";
 import {
   TrendingUp,
@@ -93,11 +93,6 @@ const MAX_VISIBLE_METRICS = 4;
 
 // Derive the default KPIs for backward compatibility
 const defaultKPIs: KPICardItem[] = METRIC_CATALOG;
-
-interface AnalyticsInsightsProps {
-  kpis?: KPICardItem[];
-  viewAllHref?: string;
-}
 
 /**
  * MetricPickerDialog Component
@@ -269,6 +264,13 @@ export function AnalyticsInsights({
   const [selectedMetricIds, setSelectedMetricIds] = useState<string[]>([]);
   const [hasHydrated, setHasHydrated] = useState(false);
 
+  // Render counter for performance regression testing
+  const renderCount = useRef(0);
+  renderCount.current++;
+
+  // Counter for memo recomputations — incremented ONLY when useMemo re-executes
+  const memoInvocationCount = useRef(0);
+
   // Load persisted metric selection on mount
   useEffect(() => {
     const saved = safeStorage.getItem(STORAGE_KEY);
@@ -295,10 +297,34 @@ export function AnalyticsInsights({
     safeStorage.setItem(STORAGE_KEY, JSON.stringify(selectedMetricIds));
   }, [selectedMetricIds, hasHydrated]);
 
-  // Get the KPIs to display based on selected IDs, maintaining order from the catalog
-  const visibleKPIs = hasHydrated
-    ? METRIC_CATALOG.filter((metric) => selectedMetricIds.includes(metric.id))
-    : defaultKPIs;
+  // Memoized KPIs with computed trend data — only recomputes when selections
+  // or hydration state change, NOT on unrelated state updates (timeRange, dropdownOpen)
+  const visibleKPIs = useMemo(() => {
+    memoInvocationCount.current++;
+
+    const kpis = hasHydrated
+      ? METRIC_CATALOG.filter((metric) => selectedMetricIds.includes(metric.id))
+      : defaultKPIs;
+
+    // Compute trend percentages and formatted deltas for each KPI
+    return kpis.map((kpi) => {
+      const changeStr = kpi.change;
+      const isPositive = changeStr.startsWith("+");
+      const isNegative = changeStr.startsWith("-");
+      const numericPart = parseFloat(changeStr.replace(/[^0-9.]/g, ""));
+      const isPercentage = changeStr.includes("%");
+
+      return {
+        ...kpi,
+        computedTrend: {
+          direction: isPositive ? "up" as const : isNegative ? "down" as const : "neutral" as const,
+          value: Number.isNaN(numericPart) ? 0 : numericPart,
+          isPercentage,
+          formattedDelta: changeStr,
+        },
+      };
+    });
+  }, [hasHydrated, selectedMetricIds]);
 
   const handleMetricsChange = (ids: string[]) => {
     setSelectedMetricIds(ids);
@@ -306,6 +332,8 @@ export function AnalyticsInsights({
 
   return (
     <section
+      data-render-count={renderCount.current}
+      data-memo-count={memoInvocationCount.current}
       className={cn(
         "rounded-2xl border p-6 transition-all",
         "bg-white dark:bg-[#111111] border-zinc-200 dark:border-zinc-800 shadow-sm",
@@ -414,8 +442,18 @@ export function AnalyticsInsights({
                   <Icon className="h-6 w-6" aria-hidden />
                 </div>
                 <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-emerald-50 dark:bg-emerald-500/10">
-                  <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400">
-                    {item.change}
+                  <span
+                    className={cn(
+                      "text-xs font-bold",
+                      item.computedTrend.direction === "up" &&
+                        "text-emerald-600 dark:text-emerald-400",
+                      item.computedTrend.direction === "down" &&
+                        "text-red-600 dark:text-red-400",
+                      item.computedTrend.direction === "neutral" &&
+                        "text-zinc-500 dark:text-zinc-400",
+                    )}
+                  >
+                    {item.computedTrend.formattedDelta}
                   </span>
                 </div>
               </div>
