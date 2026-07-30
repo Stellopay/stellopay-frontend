@@ -23,10 +23,12 @@ export default function ToggleCard({
   enabled,
   disabled = false,
   onToggle,
+  searchLabel,
 }: ToggleCardProps) {
   return (
     <div
       aria-disabled={disabled || undefined}
+      {...(searchLabel ? { 'data-search-label': searchLabel } : {})}
       className={cn(
         "flex items-center justify-between gap-4 rounded-2xl border border-zinc-200/80 bg-white p-4 text-zinc-900 shadow-sm transition-all dark:border-white/10 dark:bg-white/5 dark:text-white",
         disabled && "cursor-not-allowed",

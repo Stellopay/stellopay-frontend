@@ -2,6 +2,7 @@
 
 import React, { useState } from "react";
 import { Trash2, Wallet as WalletIcon } from "lucide-react";
+import { useSearchHighlight } from "@/hooks/useSearchHighlight";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -21,6 +22,8 @@ export interface WalletItem {
 interface WalletsSectionProps {
   wallets?: WalletItem[];
   onRemoveWallet?: (id: string) => void;
+  /** When set, scrolls to and highlights the matching control. */
+  highlightedSearchLabel?: string | null;
 }
 
 const DEFAULT_WALLETS: WalletItem[] = [
@@ -39,7 +42,9 @@ const DEFAULT_WALLETS: WalletItem[] = [
 export function WalletsSection({
   wallets = DEFAULT_WALLETS,
   onRemoveWallet,
+  highlightedSearchLabel,
 }: WalletsSectionProps) {
+  useSearchHighlight(highlightedSearchLabel ?? null);
   const [walletList, setWalletList] = useState<WalletItem[]>(wallets);
   const [walletToRemove, setWalletToRemove] = useState<WalletItem | null>(null);
 
@@ -55,7 +60,7 @@ export function WalletsSection({
 
   return (
     <section className="space-y-4 rounded-lg border p-4 bg-background text-foreground">
-      <div>
+      <div data-search-label="Connected wallets">
         <h3 className="text-lg font-medium">Connected Wallets</h3>
         <p className="text-sm text-muted-foreground">
           Manage your connected wallets for payroll and payments.
@@ -69,6 +74,7 @@ export function WalletsSection({
           {walletList.map((wallet) => (
             <li
               key={wallet.id}
+              data-search-label="Remove primary wallet"
               className="flex items-center justify-between p-3 transition-colors hover:bg-muted/50"
             >
               <div className="flex items-center space-x-3">

@@ -1,7 +1,23 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
-import { DEMO_PROFILE } from "@/lib/demo-data";
+import { useState, useEffect, useRef } from "react";
+import { useSearchHighlight } from "@/hooks/useSearchHighlight";
+import Image from "next/image";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Badge } from "@/components/ui/badge";
+import { Separator } from "@/components/ui/separator";
+import { saveProfile } from "@/lib/api/profile";
+import { toast } from "sonner";
+import {
+  User,
+  Upload,
+  Save,
+  Loader2,
+  CheckCircle2,
+  AlertCircle,
+} from "lucide-react";
 
 // ─── Profile data types & defaults ───────────────────────────────────────────
 
@@ -88,13 +104,14 @@ const PROFILE_FIELDS: Array<{
   key: keyof ProfileData;
   label: string;
   type?: string;
+  searchLabel?: string;
 }> = [
-  { key: 'firstName', label: 'First Name' },
-  { key: 'lastName', label: 'Last Name' },
-  { key: 'displayName', label: 'Display Name' },
-  { key: 'email', label: 'Email', type: 'email' },
-  { key: 'timezone', label: 'Timezone' },
-  { key: 'currency', label: 'Currency' },
+  { key: 'firstName', label: 'First Name', searchLabel: 'First name' },
+  { key: 'lastName', label: 'Last Name', searchLabel: 'Last name' },
+  { key: 'displayName', label: 'Display Name', searchLabel: 'Display name' },
+  { key: 'email', label: 'Email', type: 'email', searchLabel: 'Email address' },
+  { key: 'timezone', label: 'Timezone', searchLabel: 'Timezone' },
+  { key: 'currency', label: 'Currency', searchLabel: 'Settlement currency' },
   { key: 'legalEntity', label: 'Legal Entity' },
   { key: 'billingCountry', label: 'Billing Country' },
 ];
@@ -104,12 +121,15 @@ const PROFILE_FIELDS: Array<{
 interface AccountSectionProps {
   profile: ProfileData;
   onProfileChange: (profile: ProfileData) => void;
+  highlightedSearchLabel?: string | null;
 }
 
 export default function AccountSection({
   profile,
   onProfileChange,
+  highlightedSearchLabel,
 }: AccountSectionProps) {
+  useSearchHighlight(highlightedSearchLabel ?? null);
   // Snapshot captured at mount time for rollback on save failure.
   const lastSavedProfile = useRef<ProfileData>({ ...profile });
 
@@ -229,8 +249,12 @@ export default function AccountSection({
         </div>
 
         <div className="grid gap-5 sm:grid-cols-2">
-          {PROFILE_FIELDS.map(({ key, label, type }) => (
-            <div key={key} className="space-y-2">
+          {PROFILE_FIELDS.map(({ key, label, type, searchLabel }) => (
+            <div
+              key={key}
+              className="space-y-2"
+              {...(searchLabel ? { 'data-search-label': searchLabel } : {})}
+            >
               <Label htmlFor={key}>{label}</Label>
               <Input
                 id={key}

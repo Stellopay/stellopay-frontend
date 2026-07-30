@@ -4,6 +4,7 @@
 import { useState, useEffect } from "react";
 
 import { useState, useEffect, useId } from "react";
+import { useSearchHighlight } from "@/hooks/useSearchHighlight";
 import ToggleCard from "@/components/common/toggle-card";
  main
 import { Button } from "@/components/ui/button";
@@ -242,13 +243,17 @@ interface NotificationsSectionProps {
    * save fails.
    */
   onSaved?: (saved: NotificationSettingsState) => void;
+  /** When set, scrolls to and highlights the matching control. */
+  highlightedSearchLabel?: string | null;
 }
 
 export default function NotificationsSection({
   settings: controlledSettings,
   onSettingsChange,
   onSaved,
+  highlightedSearchLabel,
 }: NotificationsSectionProps = {}) {
+  useSearchHighlight(highlightedSearchLabel ?? null);
   const [internalSettings, setInternalSettings] =
     useState<NotificationSettingsState>(DEFAULT_NOTIFICATION_SETTINGS);
   const settings = controlledSettings ?? internalSettings;
@@ -390,6 +395,7 @@ export default function NotificationsSection({
             enabled={settings.transactionAlerts}
             disabled={eventTogglesDisabled}
             onToggle={(value) => updateSetting("transactionAlerts", value)}
+            searchLabel="Transaction alerts"
           />
           <ToggleCard
             title="Security notifications"
@@ -398,6 +404,7 @@ export default function NotificationsSection({
             enabled={settings.securityAlerts}
             disabled={eventTogglesDisabled}
             onToggle={(value) => updateSetting("securityAlerts", value)}
+            searchLabel="Security notifications"
           />
           <ToggleCard
             title="Product updates"
@@ -405,6 +412,7 @@ export default function NotificationsSection({
             enabled={settings.productUpdates}
             disabled={eventTogglesDisabled}
             onToggle={(value) => updateSetting("productUpdates", value)}
+            searchLabel="Product updates"
           />
           <ToggleCard
             title="Marketing and announcements"
@@ -412,6 +420,7 @@ export default function NotificationsSection({
             enabled={settings.marketing}
             disabled={eventTogglesDisabled}
             onToggle={(value) => updateSetting("marketing", value)}
+            searchLabel="Marketing and announcements"
           />
 
           <details className="rounded-2xl border border-zinc-200 bg-zinc-50 p-4 dark:border-white/10 dark:bg-white/5">
@@ -424,6 +433,7 @@ export default function NotificationsSection({
                 description="Primary channel for receipts and account notices."
                 enabled={settings.emailChannel}
                 onToggle={(value) => updateSetting("emailChannel", value)}
+                searchLabel="Email"
               />
               <DigestFrequencySelector
                 value={settings.emailDigestFrequency}
@@ -438,6 +448,7 @@ export default function NotificationsSection({
                 description="Fastest way to catch changes while you are signed in."
                 enabled={settings.pushChannel}
                 onToggle={(value) => updateSetting("pushChannel", value)}
+                searchLabel="Push notifications"
               />
               <DigestFrequencySelector
                 value={settings.pushDigestFrequency}
@@ -452,6 +463,7 @@ export default function NotificationsSection({
                 description="Reserved for urgent or delivery-critical events."
                 enabled={settings.smsChannel}
                 onToggle={(value) => updateSetting("smsChannel", value)}
+                searchLabel="SMS fallback"
               />
               <DigestFrequencySelector
                 value={settings.smsDigestFrequency}
