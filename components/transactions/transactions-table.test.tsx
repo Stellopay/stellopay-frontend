@@ -121,33 +121,43 @@ describe("TransactionsTable — status icons (WCAG 1.4.1)", () => {
 
   it("renders status text alongside the icon in the badge", () => {
     render(<TransactionsTable transactions={mockTransactions} />);
-    expect(screen.getByText("Completed")).toBeInTheDocument();
-    expect(screen.getByText("Pending")).toBeInTheDocument();
-    expect(screen.getByText("Failed")).toBeInTheDocument();
+    // Both desktop and mobile views render, so use getAllByText
+    const completedBadges = screen.getAllByText("Completed");
+    expect(completedBadges.length).toBeGreaterThanOrEqual(1);
+    const pendingBadges = screen.getAllByText("Pending");
+    expect(pendingBadges.length).toBeGreaterThanOrEqual(1);
+    const failedBadges = screen.getAllByText("Failed");
+    expect(failedBadges.length).toBeGreaterThanOrEqual(1);
   });
 
   it("preserves aria-label on the status badge for screen readers", () => {
     render(<TransactionsTable transactions={mockTransactions} />);
-    expect(screen.getByLabelText("Status: Completed")).toBeInTheDocument();
-    expect(screen.getByLabelText("Status: Pending")).toBeInTheDocument();
-    expect(screen.getByLabelText("Status: Failed")).toBeInTheDocument();
+    const completedBadges = screen.getAllByLabelText("Status: Completed");
+    expect(completedBadges.length).toBeGreaterThanOrEqual(1);
+    const pendingBadges = screen.getAllByLabelText("Status: Pending");
+    expect(pendingBadges.length).toBeGreaterThanOrEqual(1);
+    const failedBadges = screen.getAllByLabelText("Status: Failed");
+    expect(failedBadges.length).toBeGreaterThanOrEqual(1);
   });
 
   it("status badge aria-label survives grayscale simulation (no color-only info)", () => {
     render(<TransactionsTable transactions={mockTransactions} />);
 
-    // Completed
-    const completedBadge = screen.getByLabelText("Status: Completed");
+    // Completed - use first badge
+    const completedBadges = screen.getAllByLabelText("Status: Completed");
+    const completedBadge = completedBadges[0];
     expect(completedBadge).toHaveTextContent("Completed");
     expect(completedBadge.querySelector("svg")).toBeInTheDocument();
 
     // Pending
-    const pendingBadge = screen.getByLabelText("Status: Pending");
+    const pendingBadges = screen.getAllByLabelText("Status: Pending");
+    const pendingBadge = pendingBadges[0];
     expect(pendingBadge).toHaveTextContent("Pending");
     expect(pendingBadge.querySelector("svg")).toBeInTheDocument();
 
     // Failed
-    const failedBadge = screen.getByLabelText("Status: Failed");
+    const failedBadges = screen.getAllByLabelText("Status: Failed");
+    const failedBadge = failedBadges[0];
     expect(failedBadge).toHaveTextContent("Failed");
     expect(failedBadge.querySelector("svg")).toBeInTheDocument();
   });
@@ -163,7 +173,8 @@ describe("TransactionsTable — status icons (WCAG 1.4.1)", () => {
     render(<TransactionsTable transactions={mockTransactions} />);
     const viewButtons = screen.getAllByLabelText(/View details for transaction/i);
     fireEvent.click(viewButtons[0]);
-    const dialogBadge = screen.getByLabelText("Status: Completed");
+    const dialogBadges = screen.getAllByLabelText("Status: Completed");
+    const dialogBadge = dialogBadges[dialogBadges.length - 1];
     expect(dialogBadge.querySelector("svg[aria-hidden='true']")).toBeInTheDocument();
     expect(dialogBadge).toHaveTextContent("Completed");
   });

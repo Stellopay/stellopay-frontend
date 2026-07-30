@@ -598,7 +598,10 @@ export function TransactionsTable({
                     />
                   </TableCell>
                 </TableRow>
-              )))}
+              );
+            })
+          )
+          }
           </TableBody>
         </Table>
       </div>

@@ -11,6 +11,7 @@ import type {
   TransactionProps,
 } from "@/types/transaction";
 import { useTransactions } from "@/hooks/useTransactions";
+import { formatTransactionDateTime } from "@/utils/date-utils";
 import { TransactionTableSkeleton } from "@/components/ui/table-skeleton";
 import TransactionsHeader from "./transactions-header";
 import TransactionsFilters from "./transactions-filters";
@@ -262,22 +263,29 @@ const getTokenIcon = (token: string): string => {
 };
 
 /** Convert internal Transaction → display TransactionProps */
-const toTransactionProps = (t: Transaction): TransactionProps => ({
-  id: t.id,
-  type: t.type,
-  txId: t.txId,
-  address: t.address,
-  date: t.date,
-  time: t.time,
-  token: t.token,
-  amount:
-    t.amount >= 0
-      ? `+$${t.amount.toFixed(2)}`
-      : `-$${Math.abs(t.amount).toFixed(2)}`,
-  status: t.status as "Completed" | "Pending" | "Failed",
-  tokenIcon: getTokenIcon(t.token),
-  memo: t.memo,
-});
+const toTransactionProps = (
+  t: Transaction,
+  timezone?: string,
+): TransactionProps => {
+  const formatted = formatTransactionDateTime(t.date, t.time, timezone);
+  return {
+    id: t.id,
+    type: t.type,
+    txId: t.txId,
+    address: t.address,
+    date: formatted.date,
+    time: formatted.time,
+    token: t.token,
+    amount:
+      t.amount >= 0
+        ? `+$${t.amount.toFixed(2)}`
+        : `-$${Math.abs(t.amount).toFixed(2)}`,
+    status: t.status as "Completed" | "Pending" | "Failed",
+    tokenIcon: getTokenIcon(t.token),
+    memo: t.memo,
+    timestamp: formatted.timestamp,
+  };
+};
 
 export default function TransactionsContent() {
   const router = useRouter();

@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { saveProfile } from "@/lib/api/profile";
 import { toast } from "sonner";
+import { safeStorage, STORAGE_KEYS } from "@/utils/safeStorage";
 import {
   User,
   Upload,
@@ -133,6 +134,9 @@ export default function AccountSection({
 
     try {
       await saveProfile(profile);
+      // Persist timezone preference to localStorage so other components
+      // (e.g. transaction table) can read it without a server round-trip.
+      safeStorage.setItem(STORAGE_KEYS.TIMEZONE, profile.timezone);
       // Update the last-known-good snapshot on successful save
       lastSavedProfile.current = { ...profile };
       setSaveStatus('success');
