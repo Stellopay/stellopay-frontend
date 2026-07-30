@@ -1,8 +1,6 @@
 "use client";
 
 import { useState, useMemo, useCallback, useEffect, useRef } from "react";
-import { useRouter, usePathname, useSearchParams } from "next/navigation";
-import { FileText } from "lucide-react";
 import type {
   SortField,
   SortConfig,
@@ -10,7 +8,7 @@ import type {
   TransactionFilters,
   Transaction,
   TransactionProps,
-  Tag,
+  SavedView,
 } from "@/types/transaction";
 import { useTransactions } from "@/hooks/useTransactions";
 import { useTransactionTags } from "@/hooks/useTransactionTags";
@@ -26,6 +24,8 @@ import {
   TRANSACTIONS_PAGE_SIZE,
   getDefaultDateRange,
 } from "./transactions-config";
+import { safeStorage } from "@/utils/safeStorage";
+import { useWallet } from "@/context/wallet-context";
 
 const DEFAULT_SELECTED_FILTER = "All Transactions";
 const DEFAULT_SORT_CONFIGS: readonly SortConfig[] = [
@@ -264,6 +264,47 @@ const getTokenIcon = (token: string): string => {
   }
 };
 
+/** localStorage key prefix for saved views. Appended with the wallet address for per-account isolation. */
+const SAVED_VIEWS_KEY_PREFIX = "stellopay.transactions-saved-views";
+
+/** Maximum number of saved views per account. */
+const MAX_SAVED_VIEWS = 10;
+
+/** Maximum length for a saved view name. */
+const MAX_VIEW_NAME_LENGTH = 50;
+
+/** Build the per-account storage key. */
+function getSavedViewsKey(address: string | null): string {
+  if (!address) return `${SAVED_VIEWS_KEY_PREFIX}.default`;
+  return `${SAVED_VIEWS_KEY_PREFIX}.${address}`;
+}
+
+/** Load saved views from localStorage, returning an empty array on any failure. */
+function loadSavedViews(address: string | null): SavedView[] {
+  const stored = safeStorage.getItem(getSavedViewsKey(address));
+  if (!stored) return [];
+  try {
+    const parsed = JSON.parse(stored);
+    if (!Array.isArray(parsed)) return [];
+    return parsed.filter(
+      (v: unknown): v is SavedView =>
+        typeof v === "object" &&
+        v !== null &&
+        typeof (v as SavedView).id === "string" &&
+        typeof (v as SavedView).name === "string" &&
+        typeof (v as SavedView).createdAt === "string" &&
+        typeof (v as SavedView).filters === "object",
+    );
+  } catch {
+    return [];
+  }
+}
+
+/** Persist saved views to localStorage. */
+function persistSavedViews(address: string | null, views: SavedView[]): void {
+  safeStorage.setItem(getSavedViewsKey(address), JSON.stringify(views));
+}
+
 /** Convert internal Transaction → display TransactionProps */
 const toTransactionProps = (
   t: Transaction,
@@ -313,20 +354,35 @@ export default function TransactionsContent() {
     );
   }
 
-  const defaultFilters = defaultFiltersRef.current;
-  const initialUrlState = initialUrlStateRef.current;
-  const currentQueryString = searchParams.toString();
+export default function TransactionsContent() {
+  const { address } = useWallet();
 
   const [filters, setFilters] = useState<TransactionFilters>(() => ({
     ...initialUrlState.filters,
     sortConfigs: cloneSortConfigs(initialUrlState.filters.sortConfigs),
   }));
-  const [tagFilter, setTagFilter] = useState("");
-  const [currentPage, setCurrentPage] = useState(initialUrlState.page);
-  const [statementRange, setStatementRange] = useState<{
-    fromDate: string;
-    toDate: string;
-  } | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [savedViews, setSavedViews] = useState<SavedView[]>([]);
+  const [hasHydratedViews, setHasHydratedViews] = useState(false);
+  const addressRef = useRef(address);
+
+  // Hydrate saved views from localStorage on mount
+  useEffect(() => {
+    setSavedViews(loadSavedViews(address));
+    setHasHydratedViews(true);
+  }, [address]);
+
+  // Persist saved views whenever they change (skip initial render before hydration)
+  useEffect(() => {
+    if (!hasHydratedViews) return;
+    persistSavedViews(address, savedViews);
+  }, [savedViews, address, hasHydratedViews]);
+
+  // Keep the address ref in sync so downstream effects can detect account switches.
+  useEffect(() => {
+    addressRef.current = address;
+  }, [address]);
+  const [advancedPanelOpen, setAdvancedPanelOpen] = useState(false);
   const itemsPerPage = TRANSACTIONS_PAGE_SIZE;
 
   // ── Selection state ─────────────────────────────────────────────────────────
@@ -534,7 +590,67 @@ export default function TransactionsContent() {
       setCurrentPage(1);
       clearSelection();
     },
-    [clearSelection],
+    [],
+  );
+
+  // ── Saved views helpers ────────────────────────────────────────────────
+
+  /** Save the current filter/sort state as a named view. */
+  const handleSaveView = useCallback(
+    (name: string) => {
+      const trimmed = name.trim();
+      if (!trimmed || trimmed.length > MAX_VIEW_NAME_LENGTH) return;
+      if (savedViews.length >= MAX_SAVED_VIEWS) return;
+
+      const newView: SavedView = {
+        id: crypto.randomUUID?.() ?? `sv-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`,
+        name: trimmed,
+        filters: { ...filters },
+        createdAt: new Date().toISOString(),
+      };
+      setSavedViews((prev) => [...prev, newView]);
+    },
+    [filters, savedViews.length],
+  );
+
+  /** Load (apply) a saved view's filter/sort state. */
+  const handleLoadView = useCallback((view: SavedView) => {
+    setFilters(view.filters);
+    setCurrentPage(1);
+  }, []);
+
+  /** Rename a saved view. */
+  const handleRenameView = useCallback(
+    (view: SavedView, newName: string) => {
+      const trimmed = newName.trim();
+      if (!trimmed || trimmed.length > MAX_VIEW_NAME_LENGTH) return;
+      setSavedViews((prev) =>
+        prev.map((v) => (v.id === view.id ? { ...v, name: trimmed } : v)),
+      );
+    },
+    [],
+  );
+
+  /** Delete a saved view. */
+  const handleDeleteView = useCallback((view: SavedView) => {
+    setSavedViews((prev) => prev.filter((v) => v.id !== view.id));
+  }, []);
+
+  // ── Advanced filter panel helpers ──────────────────────────────────────
+
+  /** Draft values for the open panel (pre-apply). */
+  const advancedPanelValues: AdvancedFilterValues = useMemo(
+    () => ({
+      status: filters.selectedFilter,
+      minAmount:
+        filters.minAmount !== undefined ? String(filters.minAmount) : "",
+      maxAmount:
+        filters.maxAmount !== undefined ? String(filters.maxAmount) : "",
+      counterparty: filters.counterparty ?? "",
+      fromDate: filters.fromDate,
+      toDate: filters.toDate,
+    }),
+    [filters],
   );
 
   // ── Bulk action handlers ─────────────────────────────────────────────────────
@@ -610,23 +726,12 @@ export default function TransactionsContent() {
                 toDate: filters.toDate,
               })
             }
-            disabled={statementLedger.isLoading || !!statementLedger.error}
-            className="inline-flex items-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground shadow-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring disabled:cursor-not-allowed disabled:opacity-60"
-            aria-describedby="statement-help"
-          >
-            <FileText aria-hidden="true" size={16} />
-            Generate statement
-          </button>
-          <span id="statement-help" className="sr-only">
-            Creates a printable reconciliation statement for the selected date
-            range.
-          </span>
-          {statementLedger.error && (
-            <p role="status" className="ml-3 self-center text-sm text-red-300">
-              Statement data could not be loaded. Try again later.
-            </p>
-          )}
-        </div>
+            savedViews={hasHydratedViews ? savedViews : undefined}
+            onSaveView={handleSaveView}
+            onLoadView={handleLoadView}
+            onRenameView={handleRenameView}
+            onDeleteView={handleDeleteView}
+          />
 
         {statementRange && (
           <TransactionsStatement
