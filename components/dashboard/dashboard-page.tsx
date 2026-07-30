@@ -43,6 +43,10 @@ import {
   Settings,
   Clock3,
   ChevronRight,
+  Rocket,
+  ArrowRight,
+  BarChart3,
+  ArrowUpRight,
 } from "lucide-react";
 import Link from "next/link";
 import { DashboardTour } from "@/components/dashboard/dashboard-tour";
@@ -633,8 +637,95 @@ function DashboardDragOverlay({ id }: { id: WidgetId }) {
  * AnalyticsInsights below-the-fold to speed up initial route execution and
  * loading metrics.
  */
+/**
+ * Checks whether the account has any data by looking at available transactions
+ * and other data sources. This is the single source of truth for determining
+ * whether to show the onboarding empty state vs the regular dashboard.
+ */
+function hasAccountData(): boolean {
+  return allTransactions.length > 0;
+}
+
+/**
+ * Welcoming empty-state component shown on the dashboard's first paint when
+ * the account is confirmed to have no data. Provides clear next-step guidance
+ * so new users know what to do rather than seeing a blank dashboard.
+ */
+function DashboardOnboardingEmptyState() {
+  const steps = [
+    {
+      icon: Wallet,
+      title: "Connect a wallet",
+      description:
+        "Link your Stellar wallet to start sending and receiving payments.",
+    },
+    {
+      icon: ArrowUpRight,
+      title: "Make your first transfer",
+      description:
+        "Send funds to any Stellar address instantly with zero fees.",
+    },
+    {
+      icon: BarChart3,
+      title: "Explore analytics",
+      description:
+        "Track your transactions and account activity in real time.",
+    },
+  ];
+
+  return (
+    <section
+      role="status"
+      aria-live="polite"
+      className="w-full rounded-2xl border border-zinc-200 bg-white p-8 shadow-elevation-1 transition-colors dark:border-zinc-800 dark:bg-[#111111] sm:p-12"
+    >
+      <div className="mx-auto max-w-2xl text-center">
+        <div className="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-r from-[#83A7FF] to-[#8B5CF6] shadow-sm">
+          <Rocket className="h-8 w-8 text-white" aria-hidden="true" />
+        </div>
+        <h2 className="mb-2 text-2xl font-bold text-zinc-900 dark:text-white">
+          Welcome to Stellopay
+        </h2>
+        <p className="mb-8 text-sm text-zinc-600 dark:text-zinc-400">
+          Your dashboard is ready. Connect a wallet and make your first
+          transaction to see your account activity, analytics, and more.
+        </p>
+        <div className="mb-8 grid gap-4 text-left sm:grid-cols-3">
+          {steps.map((step, index) => {
+            const StepIcon = step.icon;
+            return (
+              <div
+                key={step.title}
+                className="rounded-xl border border-zinc-100 bg-zinc-50 p-4 dark:border-zinc-800 dark:bg-zinc-900/50"
+              >
+                <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-lg bg-gradient-to-r from-[#83A7FF] to-[#8B5CF6]">
+                  <StepIcon className="h-5 w-5 text-white" aria-hidden="true" />
+                </div>
+                <p className="mb-1 text-sm font-semibold text-zinc-900 dark:text-white">
+                  {index + 1}. {step.title}
+                </p>
+                <p className="text-xs text-zinc-600 dark:text-zinc-400">
+                  {step.description}
+                </p>
+              </div>
+            );
+          })}
+        </div>
+        <Link
+          href="/help/support"
+          className="inline-flex items-center gap-2 rounded-xl border border-zinc-200 bg-zinc-50 px-5 py-2.5 text-sm font-semibold text-zinc-800 transition-colors hover:bg-zinc-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900 focus-visible:ring-offset-2 dark:border-zinc-800 dark:bg-zinc-900/70 dark:text-zinc-100 dark:hover:bg-zinc-800 dark:focus-visible:ring-white dark:focus-visible:ring-offset-[#111111]"
+        >
+          Get started guide
+          <ArrowRight className="h-4 w-4" aria-hidden="true" />
+        </Link>
+      </div>
+    </section>
+  );
+}
+
 export default function Dashboard() {
   const [isLoading, setIsLoading] = useState(true);
+  const [isDataConfirmedEmpty, setIsDataConfirmedEmpty] = useState(false);
   const [widgetOrder, setWidgetOrder] = useState<WidgetId[]>([...WIDGET_IDS]);
   const [hasHydrated, setHasHydrated] = useState(false);
   const [activeDragId, setActiveDragId] = useState<WidgetId | null>(null);
@@ -684,6 +775,10 @@ export default function Dashboard() {
   useEffect(() => {
     const timer = setTimeout(() => {
       setIsLoading(false);
+      // Check if the account genuinely has no data after the initial load
+      if (!hasAccountData()) {
+        setIsDataConfirmedEmpty(true);
+      }
     }, 1500);
     return () => clearTimeout(timer);
   }, []);
@@ -750,33 +845,111 @@ export default function Dashboard() {
     <div className="w-full min-h-screen bg-white dark:bg-[#0D0D0D] transition-colors duration-200">
       <DashboardNavbar />
 
-      <div className="flex-1 p-6 lg:p-10 max-w-[1600px] mx-auto w-full">
-        <DndContext
-          onDragStart={(event) => setActiveDragId(event.active.id as WidgetId)}
-          onDragEnd={handleDragEnd}
-          sensors={sensors}
+      {isLoading ? (
+        /* ── Loading skeleton (first paint) ──────────────────────
+         * Visually distinct from the empty state. Uses a shimmer
+         * animation so the user knows data is on the way.
+         */
+        <div
+          role="status"
+          aria-label="Loading dashboard"
+          aria-busy="true"
+          aria-live="polite"
+          className="flex-1 p-6 lg:p-10 max-w-[1600px] mx-auto w-full space-y-6"
         >
-          <SortableContext items={widgetOrder} strategy={verticalListSortingStrategy}>
-            <div className="space-y-10" role="list" aria-label="Dashboard widgets">
-              {widgetOrder.map((id, index) => (
-                <SortableWidget
-                  key={id}
-                  id={id}
-                  index={index}
-                  total={widgetOrder.length}
-                  onMove={handleMove}
-                  tourRef={refMap[id]}
-                >
-                  {renderWidget(id)}
-                </SortableWidget>
+          <span className="sr-only">Loading your dashboard...</span>
+
+          {/* Header skeleton */}
+          <div className="rounded-2xl border border-zinc-200 bg-white p-6 dark:border-zinc-800 dark:bg-[#111111]">
+            <div className="flex items-center gap-4">
+              <Skeleton className="h-12 w-12 rounded-xl" shade="dark" />
+              <div className="space-y-2 flex-1">
+                <Skeleton className="h-5 w-48" shade="dark" />
+                <Skeleton className="h-4 w-72" shade="dark" />
+              </div>
+            </div>
+          </div>
+
+          {/* Cards skeleton */}
+          <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
+            {Array.from({ length: 3 }).map((_, i) => (
+              <div
+                key={i}
+                className="rounded-2xl border border-zinc-200 bg-white p-6 dark:border-zinc-800 dark:bg-[#111111]"
+              >
+                <Skeleton className="h-4 w-24 mb-4" shade="dark" />
+                <Skeleton className="h-8 w-36 mb-2" shade="dark" />
+                <Skeleton className="h-4 w-48" shade="dark" />
+              </div>
+            ))}
+          </div>
+
+          {/* Activity skeleton */}
+          <div className="rounded-2xl border border-zinc-200 bg-white p-6 dark:border-zinc-800 dark:bg-[#111111]">
+            <Skeleton className="h-5 w-36 mb-6" shade="dark" />
+            <div className="space-y-4">
+              {Array.from({ length: 4 }).map((_, i) => (
+                <div key={i} className="flex items-center gap-4">
+                  <Skeleton className="h-10 w-10 rounded-xl" shade="dark" />
+                  <div className="space-y-2 flex-1">
+                    <Skeleton className="h-4 w-2/3" shade="dark" />
+                    <Skeleton className="h-3 w-full" shade="dark" />
+                  </div>
+                  <Skeleton className="h-3 w-20" shade="dark" />
+                </div>
               ))}
             </div>
-          </SortableContext>
-          <DragOverlay>
-            {activeDragId ? <DashboardDragOverlay id={activeDragId} /> : null}
-          </DragOverlay>
-        </DndContext>
-      </div>
+          </div>
+        </div>
+      ) : isDataConfirmedEmpty ? (
+        /* ── Confirmed-empty state ─────────────────────────────────
+         * Only shown after loading is confirmed complete AND the
+         * account has genuinely no data. Provides welcoming guidance.
+         */
+        <div className="flex-1 p-6 lg:p-10 max-w-[1600px] mx-auto w-full">
+          <DashboardOnboardingEmptyState />
+        </div>
+      ) : (
+        /* ── Normal dashboard with data ─────────────────────────── */
+        <div className="flex-1 p-6 lg:p-10 max-w-[1600px] mx-auto w-full">
+          <DndContext
+            onDragStart={(event) =>
+              setActiveDragId(event.active.id as WidgetId)
+            }
+            onDragEnd={handleDragEnd}
+            sensors={sensors}
+          >
+            <SortableContext
+              items={widgetOrder}
+              strategy={verticalListSortingStrategy}
+            >
+              <div
+                className="space-y-10"
+                role="list"
+                aria-label="Dashboard widgets"
+              >
+                {widgetOrder.map((id, index) => (
+                  <SortableWidget
+                    key={id}
+                    id={id}
+                    index={index}
+                    total={widgetOrder.length}
+                    onMove={handleMove}
+                    tourRef={refMap[id]}
+                  >
+                    {renderWidget(id)}
+                  </SortableWidget>
+                ))}
+              </div>
+            </SortableContext>
+            <DragOverlay>
+              {activeDragId ? (
+                <DashboardDragOverlay id={activeDragId} />
+              ) : null}
+            </DragOverlay>
+          </DndContext>
+        </div>
+      )}
 
       <DashboardTour
         accountSummaryRef={accountSummaryRef}

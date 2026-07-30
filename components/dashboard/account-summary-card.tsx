@@ -1,12 +1,11 @@
 "use client";
 
 import React from "react";
-import Link from "next/link";
-import { TrendingUp, TrendingDown, BarChart3 } from "lucide-react";
 import { AccountSummaryCardProps } from './summary-data';
 import dynamic from 'next/dynamic';
 import { Skeleton } from '@/components/ui/skeleton';
 import { formatCurrency } from '@/utils/formatUtils';
+import { StatCard } from '@/components/ui/stat-card';
 
 const RechartsMiniBarChart = dynamic(
   () => import('./RechartsMiniBarChart').then(mod => mod.RechartsMiniBarChart),
@@ -90,24 +89,12 @@ export default function AccountSummaryCard({
         </div>
       </div>
 
-      {isZeroBalance ? (
-        <div
-          className="flex items-center justify-center gap-2"
-          style={{ height: '3rem' }}
-          aria-label="No activity yet"
-          role="img"
-        >
-          <BarChart3 className="w-5 h-5 text-zinc-300 dark:text-zinc-600 shrink-0" aria-hidden="true" />
-          <span className="text-xs text-zinc-400 dark:text-zinc-500">No activity yet</span>
-        </div>
-      ) : (
-        <RechartsMiniBarChart
-          data={chartData}
-          color={chartColor}
-          ariaLabel={`${title} mini chart`}
-          height="3rem"
-        />
-      )}
+      <RechartsMiniBarChart
+        data={chartData}
+        cssVar={chartColor}
+        ariaLabel={`${title} mini chart`}
+        height="3rem"
+      />
     </>
   );
 
@@ -128,9 +115,27 @@ export default function AccountSummaryCard({
   }
 
   return (
-    <div className={baseClasses}>
-      {cardContent}
-    </div>
+    <StatCard
+      size="sm"
+      title={title}
+      subtitle={subtitle}
+      value={displayValue}
+      valueTestId="account-summary-card-value"
+      icon={icon}
+      iconBgColor={iconBgColor}
+      change={change}
+      isPositive={isPositive}
+      chartSlot={
+        <RechartsMiniBarChart
+          data={chartData}
+          color={chartColor}
+          ariaLabel={`${title} mini chart`}
+          height="3rem"
+        />
+      }
+      href={href}
+      testId={href ? "account-summary-card-link" : undefined}
+      ariaLabel={href ? `View ${title} transactions` : undefined}
+    />
   );
 }
-

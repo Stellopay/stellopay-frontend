@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -78,6 +78,25 @@ export function SignUpEmailModal({
   };
 
   const isResendDisabled = isResending || isCoolingDown;
+
+  // ── Focus-return-to-trigger ────────────────────────────────────
+  // Capture the previously focused element before the dialog opens
+  // and restore focus to it on every close path so keyboard and
+  // screen-reader users don't lose their place (WCAG 2.1 AA 2.4.3).
+  const prevFocusedRef = useRef<HTMLElement | null>(null);
+
+  useEffect(() => {
+    if (isOpen) {
+      prevFocusedRef.current = document.activeElement as HTMLElement;
+    } else if (prevFocusedRef.current) {
+      // Use requestAnimationFrame to ensure the Radix dialog has
+      // fully unmounted before we programmatically move focus.
+      requestAnimationFrame(() => {
+        prevFocusedRef.current?.focus();
+        prevFocusedRef.current = null;
+      });
+    }
+  }, [isOpen]);
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>

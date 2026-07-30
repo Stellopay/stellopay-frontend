@@ -41,6 +41,14 @@ export interface TransactionFilters {
   sortConfigs: SortConfig[];
   /** Counterparty address filter (partial match). */
   counterparty?: string;
+  /** Tag names to filter by. Transactions matching any of these tags are shown. */
+  tagFilter?: string[];
+}
+
+export interface Tag {
+  id: string;
+  name: string;
+  color: string;
 }
 
 export interface TransactionProps {
@@ -62,6 +70,8 @@ export interface TransactionProps {
   fee?: string;
   /** Optional raw transaction hash */
   hash?: string;
+  /** User-assignable category tag names */
+  tags?: string[];
 }
 
 // Transaction component props
@@ -70,7 +80,15 @@ export interface TransactionsTableProps {
 }
 
 export interface TokenIconProps {
+  /** Token symbol, e.g. `"USDC"`. Drives both the icon and the accessible name. */
   token: string;
+  /**
+   * Explicit icon path. Defaults to the symbol's known logo, falling back to a
+   * generic coin for unrecognised symbols.
+   */
+  src?: string;
+  /** Rendered width/height in pixels. Defaults to 20. */
+  size?: number;
 }
 
 export interface TransactionsHeaderProps {
@@ -78,6 +96,14 @@ export interface TransactionsHeaderProps {
   toDate: string;
   onFromDateChange: (date: string) => void;
   onToDateChange: (date: string) => void;
+}
+
+/** A user-named preset that captures the full filter/sort state of the transactions view. */
+export interface SavedView {
+  id: string;
+  name: string;
+  filters: TransactionFilters;
+  createdAt: string;
 }
 
 export interface TransactionsFiltersProps {
@@ -93,4 +119,14 @@ export interface TransactionsFiltersProps {
   debounceMs?: number;
   /** Whether any advanced filters (amount range, counterparty) are active. */
   hasAdvancedFilters?: boolean;
+  /** Saved views for the current account. */
+  savedViews?: SavedView[];
+  /** Callback to save the current filter/sort state as a named view. */
+  onSaveView?: (name: string) => void;
+  /** Callback to load (apply) a previously saved view. */
+  onLoadView?: (view: SavedView) => void;
+  /** Callback to rename a saved view. */
+  onRenameView?: (view: SavedView, newName: string) => void;
+  /** Callback to delete a saved view. */
+  onDeleteView?: (view: SavedView) => void;
 }

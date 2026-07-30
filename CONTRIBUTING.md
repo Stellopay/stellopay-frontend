@@ -802,9 +802,40 @@ The application navbar (`components/common/navbar.tsx`) derives active route sty
   - Color contrast (`bg-primary/10 text-primary`) meets minimum requirements across light/dark modes.
   - Mobile dropdown drawer includes complete `aria-expanded` and `aria-controls` bindings.
 
-## Navbar Active Route Management (#785)
 
-The application navbar (`components/common/navbar.tsx`) derives active route styling from `usePathname()` via `next/navigation`.
+## Notification Timestamps (#1096)
+
+The notification panel (`components/common/notification-panel.tsx`) renders each
+item's `timestamp` as **relative time** rather than a raw or absolute value, so a
+list of notifications stays scannable at a glance.
+
+Formatting is owned by `utils/date-utils.ts` — never format a notification date
+inline in a component.
+
+### Helpers
+
+| Helper | Purpose |
+| --- | --- |
+| `formatRelativeTime(dateLike, { now?, thresholdDays? })` | Short relative label (`"just now"`, `"5m ago"`, `"2h ago"`, `"yesterday"`, `"3d ago"`) |
+| `formatAbsoluteDateTime(dateLike)` | Precise `"Jul 29, 2026, 3:00 PM"` string for tooltips |
+| `toIsoDateTime(dateLike)` | ISO 8601 value for a `<time dateTime>` attribute, or `undefined` |
+
+### Standards & Guidelines
+
+- **Threshold**: past `RELATIVE_TIME_THRESHOLD_DAYS` (7), relative time gives way
+  to an absolute `MMM dd, yyyy` date — "47d ago" is noise, not information.
+- **Precision is never lost**: every relative label is rendered inside a `<time>`
+  element carrying the exact instant in both `title` (pointer tooltip) and
+  `dateTime` (machine-readable ISO).
+- **Deterministic tests**: pass the `now` prop (or the `now` option) instead of
+  relying on the system clock. Do not use `formatRelativeTime` without it in a
+  test that asserts on exact output.
+- **Clock skew**: future timestamps render as `"in 5m"` / `"tomorrow"`, never as
+  a negative age.
+- **Invalid input**: `null`, `undefined`, `""` and unparsable strings return `""`
+  and the `<time>` element is omitted entirely rather than rendered empty.
+
+### Accessibility (WCAG 2.1 AA)
 
 ### Standards & Guidelines
 - **Single Source of Truth**: Never persist active route state in local component state (`useState`).
@@ -814,14 +845,103 @@ The application navbar (`components/common/navbar.tsx`) derives active route sty
   - Color contrast (`bg-primary/10 text-primary`) meets minimum requirements across light/dark modes.
   - Mobile dropdown drawer includes complete `aria-expanded` and `aria-controls` bindings.
 
-## Navbar Active Route Management (#785)
+## Memoizing Row-Level Components (#1099)
 
-The application navbar (`components/common/navbar.tsx`) derives active route styling from `usePathname()` via `next/navigation`.
+`components/transactions/token-icon.tsx` renders once per transaction row. Any
+re-render of `transactions-table.tsx` for an unrelated reason — a sort-icon
+hover, a density change, a tag popover opening — used to re-render every icon
+on screen. With dozens of rows that churn is measurable.
 
-### Standards & Guidelines
-- **Single Source of Truth**: Never persist active route state in local component state (`useState`).
-- **In-Page Nav Sync**: Dynamic URL updates from inline links automatically re-render active navbar indicators.
-- **Accessibility (WCAG 2.1 AA)**:
-  - Active navigation links receive `aria-current="page"`.
-  - Color contrast (`bg-primary/10 text-primary`) meets minimum requirements across light/dark modes.
-  - Mobile dropdown drawer includes complete `aria-expanded` and `aria-controls` bindings.
+`TokenIcon` is now wrapped in `React.memo`.
+
+### When to reach for `React.memo`
+
+Apply it to a component that meets all three conditions:
+
+1. It renders many times on one screen (once per row, per cell, per chip).
+2. Its props are stable for the lifetime of that row.
+3. Its parent re-renders for reasons unrelated to those props.
+
+Do not memoize a component that renders once per page, or one whose props
+change on nearly every parent render. `React.memo` is not free — it adds a
+props comparison on every render — and applied indiscriminately it costs more
+than it saves.
+
+### Keep props shallow-comparable
+
+`React.memo`'s default comparison is shallow. `TokenIcon` takes only
+primitives (`token: string`, `src?: string`, `size?: number`), so the default
+is the correct equality check and no custom comparator is needed.
+
+Prefer restructuring props over writing a comparator. If you find yourself
+passing an object or an inline arrow, the memo will break silently because a
+fresh reference fails shallow equality on every render:
+
+```tsx
+// Breaks memoization — new object and new function every parent render
+<TokenIcon meta={{ token: t.token }} onClick={() => select(t.id)} />
+
+// Memoizes correctly — primitives only
+<TokenIcon token={t.token} src={t.tokenIcon} size={20} />
+```
+
+If a callback is genuinely required, hoist it with `useCallback` in the parent
+so its identity is stable.
+
+### Guard it with a render count, not a snapshot
+
+A memo regression is invisible to normal assertions: the component still
+renders the right output, just too often. Tests must count renders.
+
+The pattern in `token-icon.test.tsx` wraps the component in a counting shim,
+keyed by token so one row re-rendering cannot hide behind another:
+
+```tsx
+const CountingTokenIcon = React.memo(function CountingTokenIcon(props) {
+  renderCounts[props.token] = (renderCounts[props.token] ?? 0) + 1;
+  return <TokenIcon {...props} />;
+});
+```
+
+Then drive an unrelated state change in a parent harness and assert the counts
+did not move:
+
+```tsx
+render(<TableHarness tokens={["USDC", "XLM", "ETH"]} />);
+expect(renderCounts).toEqual({ USDC: 1, XLM: 1, ETH: 1 });
+
+fireEvent.click(screen.getByRole("button", { name: /toggle sort hover/i }));
+
+expect(renderCounts).toEqual({ USDC: 1, XLM: 1, ETH: 1 });
+```
+
+Always pair this with the inverse case — that the component *does* re-render
+when its own props genuinely change. A component that never re-renders is a
+bug, not a win, and a test suite that only checks the "stays flat" direction
+would pass for a component that is broken.
+
+### Accessibility (WCAG 2.1 AA)
+
+Memoization must not change what assistive tech sees.
+
+- `TokenIcon`'s `alt` is the token symbol plus "token icon", so the symbol is
+  never conveyed by the image alone (SC 1.1.1). Each row also renders the
+  symbol as adjacent text, so it survives images being disabled.
+- Unrecognised symbols render a generic coin rather than nothing, so a row
+  never collapses to a gap and column alignment holds (SC 1.3.2). The previous
+  implementation returned `undefined` for anything other than USDC or XLM.
+- The icon is presentational and not focusable, so it stays out of the tab
+  order and does not interrupt table keyboard navigation (SC 2.1.1).
+
+### Responsive
+
+`TokenIcon` takes an explicit `size` (16px in the mobile card view, 20px in the
+desktop table) and carries `shrink-0`, so it holds its dimensions in a flex row
+and adjacent text truncates instead of squashing the icon. Verified at sm 640,
+md 768, lg 1024 and xl 1280.
+
+### Testing
+
+```bash
+npx vitest run components/transactions/token-icon.test.tsx
+```

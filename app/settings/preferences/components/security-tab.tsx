@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import { useSearchHighlight } from "@/hooks/useSearchHighlight";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import {
@@ -15,7 +16,10 @@ import {
   ShieldCheck,
   Smartphone,
   Loader2,
+  Link2,
+  ShieldOff,
 } from "lucide-react";
+import { ErrorSummary } from "@/components/ui/error-summary";
 import ToggleCard from "@/components/common/toggle-card";
 import { Button } from "@/components/ui/button";
 import {
@@ -36,6 +40,7 @@ import {
   checkPasswordRequirements,
 } from "@/utils/authUtils";
 import DestructiveActionDialog from "./destructive-action-dialog";
+import { DEMO_SECURITY, DEMO_CONNECTED_APPS } from "@/lib/demo-data";
 import { DEMO_SECURITY } from "@/lib/demo-data";
 import { generateTotpSecret, verifyTotpCode } from "@/lib/totp";
 import QRCode from "qrcode";
@@ -121,6 +126,53 @@ export function createApiKeySecret(name: string): string {
 /** How many single-use two-factor backup codes are issued per set. */
 export const BACKUP_CODE_COUNT = 10;
 
+/** Stable id for the screen-reader password-requirements helper text. */
+export const NEW_PASSWORD_REQUIREMENTS_ID = "new-password-requirements";
+
+/** Stable id for the polite live region that announces requirement changes. */
+export const NEW_PASSWORD_REQUIREMENTS_STATUS_ID =
+  "new-password-requirements-status";
+
+/**
+ * Debounce window (ms) before announcing password-requirement changes.
+ * Long enough to avoid keystroke spam; short enough to feel responsive.
+ */
+export const PASSWORD_REQUIREMENTS_ANNOUNCE_DELAY_MS = 700;
+
+type PasswordRequirementFlags = ReturnType<typeof checkPasswordRequirements>;
+
+/**
+ * Builds a concise screen-reader announcement for the current password
+ * requirement state. Empty string when the field is empty (nothing to announce).
+ *
+ * Exported for unit tests so the announcement copy stays asserted without
+ * relying on debounce timers in the component.
+ */
+export function buildPasswordRequirementsAnnouncement(
+  requirements: PasswordRequirementFlags,
+  passwordsMatch: boolean,
+  hasPassword: boolean,
+): string {
+  if (!hasPassword) {
+    return "";
+  }
+
+  const items = [
+    { label: "at least 8 characters", met: requirements.minLength },
+    { label: "one uppercase letter", met: requirements.uppercase },
+    { label: "one special character", met: requirements.specialChar },
+    { label: "passwords match", met: passwordsMatch },
+  ];
+
+  const unmet = items.filter((item) => !item.met).map((item) => item.label);
+
+  if (unmet.length === 0) {
+    return "All password requirements met.";
+  }
+
+  return `Still needed: ${unmet.join(", ")}.`;
+}
+
 /**
  * Generates a set of single-use two-factor backup (recovery) codes.
  *
@@ -189,13 +241,15 @@ interface SecurityTabProps {
    */
   twoFactorEnabled?: boolean;
   onTwoFactorEnabledChange?: (next: boolean) => void;
+  /** When set, scrolls to and highlights the matching control. */
+  highlightedSearchLabel?: string | null;
 }
 
 /**
  * Client-side validation for a 2FA/authenticator verification code.
  *
  * Rejects anything that isn't exactly {@link TWO_FACTOR_CODE_LENGTH} ASCII
- * digits — whitespace, letters, separators (e.g. `-`), partial lengths, and
+ * digits  -  whitespace, letters, separators (e.g. `-`), partial lengths, and
  * over-length values all produce a distinct, user-actionable message so a
  * silent failure can never occur before the network is hit.
  *
@@ -203,11 +257,11 @@ interface SecurityTabProps {
  *   the returned string intentionally contains only user-facing guidance text
  *   (never a substring of the typed code).
  *
- * @param value - The raw typed value (never trimmed — a leading/trailing space
+ * @param value - The raw typed value (never trimmed  -  a leading/trailing space
  *   is considered an explicit mismatch the user must fix).
  * @returns An inline error string when the value is invalid, or `null` when
- *   the value is acceptable: empty ("user hasn't typed yet") → null; valid
- *   6-digit numeric code → null.
+ *   the value is acceptable: empty ("user hasn't typed yet")  -  null; valid
+ *   6-digit numeric code  -  null.
  */
 export function getVerificationCodeError(value: string): string | null {
   if (value.length === 0) {
@@ -232,7 +286,7 @@ export function getVerificationCodeError(value: string): string | null {
 }
 
 /**
- * SecurityTab — password change, two-factor verification setup, and active sessions.
+ * SecurityTab  -  password change, two-factor verification setup, and active sessions.
  *
  * ## Two-factor setup flow (verification code validation)
  *
@@ -241,14 +295,14 @@ export function getVerificationCodeError(value: string): string | null {
  * Instead, it opens a gated setup panel where the user must type a 6-digit
  * numeric TOTP code. Validation layers:
  *
- * 1. **Client-side, on every keystroke** — {@link getVerificationCodeError}
+ * 1. **Client-side, on every keystroke**  -  {@link getVerificationCodeError}
  *    rejects non-digits, partial codes, and over-length codes immediately with
  *    a distinct inline error. `aria-invalid` and `aria-describedby` are wired
  *    to the input so the error is announced.
- * 2. **Submit gate** — the "Verify and enable" button is disabled until the
+ * 2. **Submit gate**  -  the "Verify and enable" button is disabled until the
  *    typed value is a valid 6-digit numeric code AND the async submit is not
  *    in flight.
- * 3. **Second client-side check at submit time** — `handleVerifyTwoFactor`
+ * 3. **Second client-side check at submit time**  -  `handleVerifyTwoFactor`
  *    re-runs `getVerificationCodeError` just before the simulated fetch, so
  *    calling the handler programmatically (or a stale React state) can never
  *    bypass validation.
@@ -266,7 +320,9 @@ export function getVerificationCodeError(value: string): string | null {
 export default function SecurityTab({
   twoFactorEnabled: controlledTwoFactor,
   onTwoFactorEnabledChange,
+  highlightedSearchLabel,
 }: SecurityTabProps = {}) {
+  useSearchHighlight(highlightedSearchLabel ?? null);
   const [internalTwoFactor, setInternalTwoFactor] = useState(
     controlledTwoFactor ?? DEFAULT_TWO_FACTOR_ENABLED,
   );
@@ -277,6 +333,24 @@ export default function SecurityTab({
   };
   const [loginApprovalEnabled, setLoginApprovalEnabled] = useState(true);
   const [transferApprovalEnabled, setTransferApprovalEnabled] = useState(true);
+  const [connectedApps, setConnectedApps] = useState(() => [
+    ...DEMO_CONNECTED_APPS,
+  ]);
+
+  const handleRevokeApp = (appId: string) => {
+    setConnectedApps((current) => current.filter((app) => app.id !== appId));
+    setStatus({
+      message: "Access revoked. The app can no longer reach your account.",
+      type: "success",
+    });
+  };
+
+  const formatAuthorizedDate = (isoDate: string) =>
+    new Intl.DateTimeFormat("en-US", {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+    }).format(new Date(isoDate));
   const [status, setStatus] = useState<StatusState>({
     message: "",
     type: null,
@@ -373,9 +447,9 @@ export default function SecurityTab({
   /**
    * Called when the "Authenticator app verification" ToggleCard is clicked.
    *
-   * - If the user is turning 2FA **off** → allow it directly (no code needed;
+   * - If the user is turning 2FA **off**  -  allow it directly (no code needed;
    *   destructive action flow would be a separate concern, out of scope here).
-   * - If the user is turning 2FA **on** → open the gated verification panel
+   * - If the user is turning 2FA **on**  -  open the gated verification panel
    *   so a code must be typed before the state flips.
    */
   const handleTwoFactorToggleRequest = (nextRequested: boolean) => {
@@ -463,6 +537,53 @@ export default function SecurityTab({
   );
   const passwordsMatch =
     watchedPassword.length > 0 && watchedPassword === watchedConfirm;
+
+  const passwordRequirementsAnnouncement = useMemo(
+    () =>
+      buildPasswordRequirementsAnnouncement(
+        {
+          minLength: passwordRequirements.minLength,
+          uppercase: passwordRequirements.uppercase,
+          specialChar: passwordRequirements.specialChar,
+        },
+        passwordsMatch,
+        watchedPassword.length > 0,
+      ),
+    [
+      passwordRequirements.minLength,
+      passwordRequirements.uppercase,
+      passwordRequirements.specialChar,
+      passwordsMatch,
+      watchedPassword.length,
+    ],
+  );
+
+  // Debounced + change-gated live region: announce only after typing pauses
+  // and only when the unmet/met summary actually changes (avoids SR spam).
+  const [liveRequirementsAnnouncement, setLiveRequirementsAnnouncement] =
+    useState("");
+  const lastAnnouncedRequirementsRef = useRef("");
+
+  useEffect(() => {
+    if (!passwordRequirementsAnnouncement) {
+      setLiveRequirementsAnnouncement("");
+      lastAnnouncedRequirementsRef.current = "";
+      return;
+    }
+
+    const timer = window.setTimeout(() => {
+      if (
+        passwordRequirementsAnnouncement !==
+        lastAnnouncedRequirementsRef.current
+      ) {
+        lastAnnouncedRequirementsRef.current =
+          passwordRequirementsAnnouncement;
+        setLiveRequirementsAnnouncement(passwordRequirementsAnnouncement);
+      }
+    }, PASSWORD_REQUIREMENTS_ANNOUNCE_DELAY_MS);
+
+    return () => window.clearTimeout(timer);
+  }, [passwordRequirementsAnnouncement]);
 
   const canSubmit =
     form.formState.isValid &&
@@ -651,7 +772,7 @@ export default function SecurityTab({
   /**
    * Invoked by `form.handleSubmit` after zod passes all validations.
    *
-   * `_data` is typed as `ChangePasswordFormValues` but intentionally unused —
+   * `_data` is typed as `ChangePasswordFormValues` but intentionally unused  - 
    * no password value is read, stored, or logged anywhere in this function.
    */
   const handleSaveChanges = async (_data: ChangePasswordFormValues) => {
@@ -686,7 +807,10 @@ export default function SecurityTab({
 
   return (
     <div className="grid gap-6 xl:grid-cols-[minmax(0,1.2fr)_minmax(320px,0.8fr)]">
-      <Card className="border-zinc-200 bg-white/90 shadow-sm dark:border-white/10 dark:bg-white/5">
+      <Card
+        data-search-label="Password and recovery"
+        className="border-zinc-200 bg-white/90 shadow-sm dark:border-white/10 dark:bg-white/5"
+      >
         <CardHeader className="border-b border-zinc-200/80 dark:border-white/10">
           <div className="flex items-center gap-3">
             <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-zinc-900 text-white dark:bg-white dark:text-zinc-900">
@@ -713,6 +837,10 @@ export default function SecurityTab({
               noValidate
               className="space-y-6"
             >
+              <ErrorSummary
+                errors={form.formState.errors}
+                className="mb-4"
+              />
               <div className="grid gap-4 md:grid-cols-2">
                 <FormFieldPassword
                   control={form.control}
@@ -721,6 +849,7 @@ export default function SecurityTab({
                   placeholder="Use a strong password"
                   autoComplete="new-password"
                   disabled={isSaving}
+                  ariaDescribedBy={NEW_PASSWORD_REQUIREMENTS_ID}
                 />
                 <div className="space-y-4">
                   <FormFieldPassword
@@ -739,7 +868,25 @@ export default function SecurityTab({
                 </div>
               </div>
 
-              <div className="grid gap-3 sm:grid-cols-2">
+              <p id={NEW_PASSWORD_REQUIREMENTS_ID} className="sr-only">
+                Password requirements: at least 8 characters, one uppercase
+                letter, and one special character. Confirm password must match.
+              </p>
+              <div
+                id={NEW_PASSWORD_REQUIREMENTS_STATUS_ID}
+                role="status"
+                aria-live="polite"
+                aria-atomic="true"
+                className="sr-only"
+              >
+                {liveRequirementsAnnouncement}
+              </div>
+
+              <div
+                className="grid gap-3 sm:grid-cols-2"
+                role="list"
+                aria-label="Password requirements"
+              >
                 <RequirementItem
                   label="At least 8 characters"
                   met={passwordRequirements.minLength}
@@ -908,7 +1055,7 @@ export default function SecurityTab({
                       id="two-factor-code-instruction"
                       className="text-xs text-zinc-600 dark:text-zinc-400"
                     >
-                      Type the code exactly as shown — no spaces or letters.
+                      Type the code exactly as shown  -  no spaces or letters.
                     </p>
                     <Input
                       id="two-factor-verification-code"
@@ -1065,12 +1212,14 @@ export default function SecurityTab({
               description="Challenge sign-ins from browsers or devices you have not approved yet."
               enabled={loginApprovalEnabled}
               onToggle={setLoginApprovalEnabled}
+              searchLabel="New device approval"
             />
             <ToggleCard
               title="Large transfer approval"
               description="Hold transfers over your threshold for a second confirmation."
               enabled={transferApprovalEnabled}
               onToggle={setTransferApprovalEnabled}
+              searchLabel="Large transfer approval"
             />
 
             {twoFactorEnabled && !backupCodes && (
@@ -1346,7 +1495,10 @@ export default function SecurityTab({
           </CardContent>
         </Card>
 
-        <Card className="border-zinc-200 bg-white/90 shadow-sm dark:border-white/10 dark:bg-white/5">
+        <Card
+          data-search-label="Active sessions"
+          className="border-zinc-200 bg-white/90 shadow-sm dark:border-white/10 dark:bg-white/5"
+        >
           <CardHeader className="border-b border-zinc-200/80 dark:border-white/10">
             <div className="flex items-center justify-between gap-3">
               <div className="space-y-1">
@@ -1392,26 +1544,129 @@ export default function SecurityTab({
               );
             })}
 
-            <DestructiveActionDialog
-              triggerLabel="Sign out all sessions"
-              title="Sign out every other session"
-              description="This will invalidate every session except the current browser."
-              impactItems={[
-                "Every signed-in mobile or web session will need to log in again.",
-                "Pending high-risk actions will be interrupted until re-authentication.",
-                "This action should only be used if you suspect account access issues.",
-              ]}
-              confirmationToken="LOGOUT"
-              confirmationLabel='Type "LOGOUT" to continue'
-              confirmLabel="Force sign-out"
-              onConfirm={() =>
-                setStatus({
-                  message:
-                    "Session reset requested. All other devices would be signed out.",
-                  type: "success",
-                })
-              }
-            />
+            <div data-search-label="Sign out all sessions">
+              <DestructiveActionDialog
+                triggerLabel="Sign out all sessions"
+                title="Sign out every other session"
+                description="This will invalidate every session except the current browser."
+                impactItems={[
+                  "Every signed-in mobile or web session will need to log in again.",
+                  "Pending high-risk actions will be interrupted until re-authentication.",
+                  "This action should only be used if you suspect account access issues.",
+                ]}
+                confirmationToken="LOGOUT"
+                confirmationLabel='Type "LOGOUT" to continue'
+                confirmLabel="Force sign-out"
+                onConfirm={() =>
+                  setStatus({
+                    message:
+                      "Session reset requested. All other devices would be signed out.",
+                    type: "success",
+                  })
+                }
+              />
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="border-zinc-200 bg-white/90 shadow-sm dark:border-white/10 dark:bg-white/5">
+          <CardHeader className="border-b border-zinc-200/80 dark:border-white/10">
+            <div className="flex items-center justify-between gap-3">
+              <div className="flex items-center gap-3">
+                <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-violet-500/10 text-violet-600 dark:text-violet-300">
+                  <Link2 className="size-5" aria-hidden="true" />
+                </span>
+                <div className="space-y-1">
+                  <CardTitle className="font-general text-xl text-zinc-950 dark:text-white">
+                    Connected apps
+                  </CardTitle>
+                  <CardDescription className="text-zinc-600 dark:text-zinc-400">
+                    Third-party applications authorized to access your account.
+                  </CardDescription>
+                </div>
+              </div>
+              <Badge
+                variant="outline"
+                className="border-zinc-200 bg-zinc-100 text-zinc-600 dark:border-white/10 dark:bg-white/5 dark:text-zinc-400"
+              >
+                {connectedApps.length} connected
+              </Badge>
+            </div>
+          </CardHeader>
+          <CardContent className="space-y-4 pt-6">
+            {connectedApps.length === 0 ? (
+              <div
+                role="status"
+                className="flex flex-col items-center gap-2 rounded-2xl border border-dashed border-zinc-200 bg-zinc-50 px-4 py-8 text-center dark:border-white/10 dark:bg-white/5"
+              >
+                <ShieldOff
+                  className="size-6 text-zinc-400 dark:text-zinc-500"
+                  aria-hidden="true"
+                />
+                <p className="text-sm font-medium text-zinc-900 dark:text-white">
+                  No third-party apps connected
+                </p>
+                <p className="text-xs text-zinc-500 dark:text-zinc-400">
+                  Apps you authorize will appear here with the option to revoke
+                  access at any time.
+                </p>
+              </div>
+            ) : (
+              <ul
+                className="space-y-3"
+                aria-label="Connected third-party applications"
+              >
+                {connectedApps.map((app) => (
+                  <li
+                    key={app.id}
+                    className="flex flex-col gap-3 rounded-2xl border border-zinc-200 bg-zinc-50 px-4 py-3 dark:border-white/10 dark:bg-white/5 sm:flex-row sm:items-start sm:justify-between"
+                  >
+                    <div className="flex items-start gap-3">
+                      <span className="mt-0.5 flex h-10 w-10 items-center justify-center rounded-2xl bg-zinc-900 text-white dark:bg-white dark:text-zinc-900">
+                        <Link2 className="size-4" aria-hidden="true" />
+                      </span>
+                      <div className="space-y-1.5">
+                        <p className="font-medium text-zinc-900 dark:text-white">
+                          {app.name}
+                        </p>
+                        <div
+                          className="flex flex-wrap gap-1.5"
+                          aria-label={`Scopes granted to ${app.name}`}
+                        >
+                          {app.scopes.map((scope) => (
+                            <Badge
+                              key={scope}
+                              variant="outline"
+                              className="border-zinc-200 bg-white text-xs font-normal text-zinc-600 dark:border-white/10 dark:bg-white/5 dark:text-zinc-400"
+                            >
+                              {scope}
+                            </Badge>
+                          ))}
+                        </div>
+                        <p className="text-xs text-zinc-400 dark:text-zinc-500">
+                          Authorized on {formatAuthorizedDate(app.authorizedAt)}
+                        </p>
+                      </div>
+                    </div>
+
+                    <DestructiveActionDialog
+                      triggerLabel="Revoke"
+                      title={`Revoke access for ${app.name}`}
+                      description={`This immediately removes ${app.name}'s access to your account. It will need to be re-authorized to reconnect.`}
+                      impactItems={[
+                        `${app.name} will lose access to: ${app.scopes.join(", ")}.`,
+                        "Any active sessions or tokens issued to this app will stop working.",
+                        "You can re-authorize this app again later if needed.",
+                      ]}
+                      confirmationToken="REVOKE"
+                      confirmationLabel='Type "REVOKE" to continue'
+                      confirmLabel="Revoke access"
+                      onConfirm={() => handleRevokeApp(app.id)}
+                    />
+                  </li>
+                ))}
+              </ul>
+            )}
           </CardContent>
         </Card>
       </div>
@@ -1421,14 +1676,20 @@ export default function SecurityTab({
 
 function RequirementItem({ label, met }: { label: string; met: boolean }) {
   return (
-    <div className="flex items-center gap-2 rounded-2xl border border-zinc-200 bg-zinc-50 px-4 py-3 text-sm text-zinc-600 dark:border-white/10 dark:bg-white/5 dark:text-zinc-400">
+    <div
+      role="listitem"
+      className="flex items-center gap-2 rounded-2xl border border-zinc-200 bg-zinc-50 px-4 py-3 text-sm text-zinc-600 dark:border-white/10 dark:bg-white/5 dark:text-zinc-400"
+    >
       <CheckCircle2
         className={`size-4 ${
           met ? "text-emerald-500" : "text-zinc-300 dark:text-zinc-600"
         }`}
         aria-hidden="true"
       />
-      <span>{label}</span>
+      <span>
+        <span className="sr-only">{met ? "Met: " : "Not met: "}</span>
+        {label}
+      </span>
     </div>
   );
 }

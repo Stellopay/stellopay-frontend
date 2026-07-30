@@ -1,0 +1,6 @@
+{
+  "/": 225,
+  "/dashboard": 180,
+  "/auth/login": 200,
+  "/auth/sign-up": 200
+}

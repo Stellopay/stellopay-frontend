@@ -20,6 +20,7 @@ export function Skeleton({
 
   return (
     <div
+      aria-hidden="true"
       className={cn(
         "rounded-md",
         baseColors[shade],
