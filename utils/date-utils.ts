@@ -132,6 +132,114 @@ export function getCurrentDate(): string {
   return formatDateForInput(new Date());
 }
 
+/** Default age, in days, past which relative time gives way to an absolute date. */
+export const RELATIVE_TIME_THRESHOLD_DAYS = 7;
+
+const MS_PER_MINUTE = 60_000;
+const MS_PER_HOUR = 60 * MS_PER_MINUTE;
+const MS_PER_DAY = 24 * MS_PER_HOUR;
+
+/**
+ * Coerces a `Date` or date-like string into a valid `Date`, or `null`.
+ */
+function toValidDate(dateLike: Date | string | null | undefined): Date | null {
+  if (dateLike === null || dateLike === undefined || dateLike === "") return null;
+  const date = typeof dateLike === "string" ? new Date(dateLike) : dateLike;
+  return isValid(date) ? date : null;
+}
+
+/**
+ * Formats a timestamp as a short, scannable relative time string.
+ *
+ * Buckets (past):
+ * - `< 60s`            → `"just now"`
+ * - `< 60m`            → `"5m ago"`
+ * - `< 24h`            → `"2h ago"`
+ * - exactly 1 day      → `"yesterday"`
+ * - `2..6 days`        → `"3d ago"`
+ * - `>= thresholdDays` → absolute `MMM dd, yyyy` (see {@link formatDate})
+ *
+ * Future timestamps mirror the same buckets (`"in 5m"`, `"tomorrow"`, …) so a
+ * clock skew between client and server never renders as a negative age.
+ *
+ * @param dateLike - A `Date` instance or a parsable date string.
+ * @param options.now - Reference point for "now". Defaults to the current time.
+ * Injecting it keeps tests deterministic.
+ * @param options.thresholdDays - Age in days past which an absolute date is
+ * returned instead. Defaults to {@link RELATIVE_TIME_THRESHOLD_DAYS}.
+ * @returns The relative time string, or an empty string when `dateLike` is not
+ * a valid date.
+ */
+export function formatRelativeTime(
+  dateLike: Date | string | null | undefined,
+  options: { now?: Date; thresholdDays?: number } = {},
+): string {
+  const date = toValidDate(dateLike);
+  if (!date) return "";
+
+  const { now = new Date(), thresholdDays = RELATIVE_TIME_THRESHOLD_DAYS } =
+    options;
+  if (!isValid(now)) return "";
+
+  const deltaMs = now.getTime() - date.getTime();
+  const isFuture = deltaMs < 0;
+  const absMs = Math.abs(deltaMs);
+
+  if (absMs >= thresholdDays * MS_PER_DAY) return formatDate(date);
+
+  if (absMs < MS_PER_MINUTE) return "just now";
+
+  if (absMs < MS_PER_HOUR) {
+    const minutes = Math.floor(absMs / MS_PER_MINUTE);
+    return isFuture ? `in ${minutes}m` : `${minutes}m ago`;
+  }
+
+  if (absMs < MS_PER_DAY) {
+    const hours = Math.floor(absMs / MS_PER_HOUR);
+    return isFuture ? `in ${hours}h` : `${hours}h ago`;
+  }
+
+  const days = Math.floor(absMs / MS_PER_DAY);
+  if (days === 1) return isFuture ? "tomorrow" : "yesterday";
+  return isFuture ? `in ${days}d` : `${days}d ago`;
+}
+
+/**
+ * Formats a timestamp as a precise, locale-stable absolute date and time.
+ *
+ * Intended for the `title`/tooltip companion to {@link formatRelativeTime}, so
+ * the exact instant stays available to anyone who needs it.
+ *
+ * @param dateLike - A `Date` instance or a parsable date string.
+ * @returns A string such as `"Jul 29, 2026, 3:00 PM"`, or an empty string when
+ * `dateLike` is not a valid date.
+ */
+export function formatAbsoluteDateTime(
+  dateLike: Date | string | null | undefined,
+): string {
+  const date = toValidDate(dateLike);
+  if (!date) return "";
+
+  return new Intl.DateTimeFormat("en-US", {
+    dateStyle: "medium",
+    timeStyle: "short",
+  }).format(date);
+}
+
+/**
+ * Returns the machine-readable ISO 8601 value for a `<time dateTime>` attribute.
+ *
+ * @param dateLike - A `Date` instance or a parsable date string.
+ * @returns The ISO 8601 string, or `undefined` when `dateLike` is not a valid
+ * date, so the attribute can be omitted entirely rather than emitted empty.
+ */
+export function toIsoDateTime(
+  dateLike: Date | string | null | undefined,
+): string | undefined {
+  const date = toValidDate(dateLike);
+  return date ? date.toISOString() : undefined;
+}
+
 /**
  * Formats a date with timezone-aware output using {@link https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Intl/DateTimeFormat | Intl.DateTimeFormat}.
  *
