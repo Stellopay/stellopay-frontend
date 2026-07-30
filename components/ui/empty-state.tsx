@@ -2,6 +2,7 @@
 
 import React from "react";
 import { Inbox } from "lucide-react";
+import { StatePanel, StatePanelAction } from "@/components/ui/state-panel";
 
 /**
  * Descriptor for the optional call-to-action button rendered inside
@@ -58,9 +59,15 @@ export interface EmptyStateProps {
  * An optional call-to-action button can be added via the `action` prop
  * (preferred) or the legacy `onRetry` + `actionLabel` pair.
  *
+ * Layout is delegated to {@link StatePanel}, the pattern shared with
+ * `ErrorState`, so the two stay visually aligned. Only the semantic
+ * differences live here: the inbox icon, the neutral tone, and the polite
+ * live-region urgency.
+ *
  * Accessibility: uses `role="status"` with `aria-live="polite"` so screen
  * readers announce the empty state when it appears without interrupting the
- * current reading flow.
+ * current reading flow. An empty result is not an error, so it must not
+ * preempt whatever the user is already hearing.
  */
 export function EmptyState({
   icon,
@@ -78,24 +85,19 @@ export function EmptyState({
       : null;
 
   return (
-    <div
+    <StatePanel
+      tone="neutral"
       role="status"
-      aria-live="polite"
-      className="flex flex-col items-center justify-center p-8 text-center border border-[#2D2D2D] bg-[#111111] rounded-xl"
+      live="polite"
+      icon={icon || <Inbox />}
+      title={title}
+      description={description}
     >
-      <div className="text-zinc-500 mb-4">
-        {icon || <Inbox className="w-10 h-10" aria-hidden="true" />}
-      </div>
-      <h3 className="text-lg font-semibold text-white mb-2">{title}</h3>
-      <p className="text-sm text-zinc-400 max-w-md mb-6">{description}</p>
       {resolvedAction && (
-        <button
-          onClick={resolvedAction.onClick}
-          className="px-4 py-2 bg-[#2D2D2D] hover:bg-[#3A3A3A] transition-colors text-white text-sm font-medium rounded-lg"
-        >
+        <StatePanelAction tone="neutral" onClick={resolvedAction.onClick}>
           {resolvedAction.label}
-        </button>
+        </StatePanelAction>
       )}
-    </div>
+    </StatePanel>
   );
 }

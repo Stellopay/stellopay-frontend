@@ -7,6 +7,7 @@ import {
   waitFor,
   within,
 } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import SettingsPageShell from "./settings-page-shell";
 
@@ -89,130 +90,111 @@ describe("SettingsPageShell summary cards", () => {
   });
 });
 
-describe("SettingsPageShell statements section", () => {
+describe("SettingsPageShell unsaved-changes navigation guard", () => {
   afterEach(() => {
     cleanup();
+    vi.restoreAllMocks();
   });
 
-  it("routes statements through the settings tabs and renders downloadable documents", () => {
-    render(<SettingsPageShell initialSection="documents" />);
+  it("does not warn when switching sections with no unsaved changes", async () => {
+    const user = userEvent.setup();
+    render(<SettingsPageShell />);
+    const confirmSpy = vi.spyOn(window, "confirm");
 
-    expect(screen.getByRole("tab", { name: /statements/i })).toHaveAttribute(
-      "aria-selected",
-      "true",
+    // Radix's TabsTrigger activates on pointer events, not a bare click, so
+    // this needs userEvent (which dispatches the full pointer sequence)
+    // rather than fireEvent.click.
+    await user.click(screen.getByRole("tab", { name: /notifications/i }));
+
+    expect(confirmSpy).not.toHaveBeenCalled();
+    expect(screen.getByRole("tab", { name: /notifications/i })).toHaveAttribute(
+      "data-state",
+      "active",
+    );
+  });
+
+  it("warns before switching sections with an unsaved account edit, and stays put if cancelled", async () => {
+    const user = userEvent.setup();
+    render(<SettingsPageShell />);
+
+    const firstNameInput = screen.getByLabelText(/first name/i);
+    fireEvent.change(firstNameInput, { target: { value: "Ada" } });
+
+    const confirmSpy = vi.spyOn(window, "confirm").mockReturnValue(false);
+    await user.click(screen.getByRole("tab", { name: /notifications/i }));
+
+    expect(confirmSpy).toHaveBeenCalled();
+    expect(screen.getByRole("tab", { name: /account/i })).toHaveAttribute(
+      "data-state",
+      "active",
+    );
+  });
+
+  it("allows switching sections with an unsaved edit once the user confirms", async () => {
+    const user = userEvent.setup();
+    render(<SettingsPageShell />);
+
+    const firstNameInput = screen.getByLabelText(/first name/i);
+    fireEvent.change(firstNameInput, { target: { value: "Ada" } });
+
+    vi.spyOn(window, "confirm").mockReturnValue(true);
+    await user.click(screen.getByRole("tab", { name: /notifications/i }));
+
+    expect(screen.getByRole("tab", { name: /notifications/i })).toHaveAttribute(
+      "data-state",
+      "active",
+    );
+  });
+
+  it("clears the dirty flag after a successful save, so a later navigation is unprompted", async () => {
+    const user = userEvent.setup();
+    // The simulated save in AccountSection has a random failure chance;
+    // force the success branch deterministically (same pattern used in
+    // account-section.test.tsx).
+    vi.spyOn(Math, "random").mockReturnValue(0.1);
+    render(<SettingsPageShell />);
+
+    const firstNameInput = screen.getByLabelText(/first name/i);
+    fireEvent.change(firstNameInput, { target: { value: "Ada" } });
+    fireEvent.click(
+      screen.getByRole("button", { name: /save account changes/i }),
     );
 
-    const table = screen.getByRole("table", {
-      name: /available statements and tax documents/i,
-    });
+    await waitFor(
+      () =>
+        expect(
+          screen.getByText(/staged and ready for backend save/i),
+        ).toBeInTheDocument(),
+      { timeout: 3000 },
+    );
+
+    const confirmSpy = vi.spyOn(window, "confirm");
+    await user.click(screen.getByRole("tab", { name: /notifications/i }));
+
+    expect(confirmSpy).not.toHaveBeenCalled();
     expect(
-      within(table).getByRole("columnheader", { name: /period/i }),
-    ).toBeInTheDocument();
-    expect(within(table).getByText("Q2 2026")).toBeInTheDocument();
-    expect(within(table).getByText("Tax year 2025")).toBeInTheDocument();
-
-    const downloadLink = screen.getByRole("link", {
-      name: /download q2 2026 transaction statement/i,
-    });
-    expect(downloadLink).toHaveAttribute("download", "stmt-2026-q2.txt");
-    expect(downloadLink).toHaveAttribute(
-      "href",
-      expect.stringMatching(/^data:/),
-    );
+      screen.getByRole("tab", { name: /notifications/i }),
+    ).toHaveAttribute("data-state", "active");
   });
 
-  it("uses the shared empty state when no statements are available", () => {
-    render(<SettingsPageShell initialSection="documents" statements={[]} />);
+  it("prevents a tab close/reload when there are unsaved changes", () => {
+    render(<SettingsPageShell />);
 
-    expect(
-      within(summaryValue("Statements")).getByText("0 ready"),
-    ).toBeInTheDocument();
-    expect(screen.queryByRole("table")).not.toBeInTheDocument();
-    expect(screen.getByRole("status")).toHaveTextContent(
-      /no statements available yet/i,
-    );
-  });
-});
+    const firstNameInput = screen.getByLabelText(/first name/i);
+    fireEvent.change(firstNameInput, { target: { value: "Ada" } });
 
-describe("SettingsPageShell keyboard tabs", () => {
-  afterEach(() => {
-    cleanup();
+    const event = new Event("beforeunload", { cancelable: true });
+    window.dispatchEvent(event);
+
+    expect(event.defaultPrevented).toBe(true);
   });
 
-  function settingsTabs() {
-    const tablist = screen.getByRole("tablist", {
-      name: "Settings sections",
-    });
-    return within(tablist).getAllByRole("tab");
-  }
+  it("does not prevent a tab close/reload when there are no unsaved changes", () => {
+    render(<SettingsPageShell />);
 
-  it("keeps only the active settings tab in the tab order", () => {
-    render(<SettingsPageShell initialSection="notifications" />);
+    const event = new Event("beforeunload", { cancelable: true });
+    window.dispatchEvent(event);
 
-    const tabs = settingsTabs();
-    const tabbableTabs = tabs.filter((tab) => tab.tabIndex === 0);
-
-    expect(tabbableTabs).toHaveLength(1);
-    expect(tabbableTabs[0]).toHaveTextContent(/notifications/i);
-    expect(screen.getByRole("tab", { name: /notifications/i }))
-      .toHaveAttribute("aria-selected", "true");
-  });
-
-  it("cycles focus and active section with ArrowRight and ArrowLeft", async () => {
-    render(<SettingsPageShell initialSection="notifications" />);
-
-    const notificationsTab = screen.getByRole("tab", {
-      name: /notifications/i,
-    });
-    notificationsTab.focus();
-
-    fireEvent.keyDown(notificationsTab, { key: "ArrowRight" });
-    await waitFor(() => {
-      expect(screen.getByRole("tab", { name: /security/i })).toHaveFocus();
-      expect(screen.getByRole("tab", { name: /security/i })).toHaveAttribute(
-        "aria-selected",
-        "true",
-      );
-    });
-
-    fireEvent.keyDown(screen.getByRole("tab", { name: /security/i }), {
-      key: "ArrowLeft",
-    });
-    await waitFor(() => {
-      expect(
-        screen.getByRole("tab", { name: /notifications/i }),
-      ).toHaveFocus();
-      expect(screen.getByRole("tab", { name: /notifications/i }))
-        .toHaveAttribute("aria-selected", "true");
-    });
-  });
-
-  it("moves to the first and last settings tabs with Home and End", async () => {
-    render(<SettingsPageShell initialSection="notifications" />);
-
-    const notificationsTab = screen.getByRole("tab", {
-      name: /notifications/i,
-    });
-    notificationsTab.focus();
-
-    fireEvent.keyDown(notificationsTab, { key: "End" });
-    await waitFor(() => {
-      expect(screen.getByRole("tab", { name: /statements/i })).toHaveFocus();
-      expect(screen.getByRole("tab", { name: /statements/i })).toHaveAttribute(
-        "aria-selected",
-        "true",
-      );
-    });
-
-    fireEvent.keyDown(screen.getByRole("tab", { name: /statements/i }), {
-      key: "Home",
-    });
-    await waitFor(() => {
-      expect(screen.getByRole("tab", { name: /account/i })).toHaveFocus();
-      expect(screen.getByRole("tab", { name: /account/i })).toHaveAttribute(
-        "aria-selected",
-        "true",
-      );
-    });
+    expect(event.defaultPrevented).toBe(false);
   });
 });

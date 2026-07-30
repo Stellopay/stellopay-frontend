@@ -1,10 +1,12 @@
 "use client";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { useTheme } from "@/context/theme-context";
+import { useWallet, formatAddress } from "@/context/wallet-context";
 import NetworkSwitcher from "@/components/common/network-switcher";
+import { Loader2, AlertCircle } from "lucide-react";
 import { safeStorage } from "@/utils/safeStorage";
 
 const navLinks = [
@@ -17,11 +19,29 @@ const navLinks = [
 ];
 const MOBILE_NAV_STORAGE_KEY = "landingMobileNavOpen";
 
+/** CSS selector that matches all natively focusable elements. */
+const FOCUSABLE_SELECTOR = [
+  "a[href]",
+  "button:not([disabled])",
+  "input:not([disabled])",
+  "select:not([disabled])",
+  "textarea:not([disabled])",
+  '[tabindex]:not([tabindex="-1"])',
+].join(", ");
+
 export default function Navbar() {
   const pathname = usePathname() || "/";
   const { theme, resolvedTheme, toggleTheme } = useTheme();
+  const wallet = useWallet();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [hasHydratedMobileNav, setHasHydratedMobileNav] = useState(false);
+  const [isConnecting, setIsConnecting] = useState(false);
+  const [connectError, setConnectError] = useState<string | null>(null);
+
+  /** Ref on the hamburger/close button — focus returns here when drawer closes. */
+  const menuButtonRef = useRef<HTMLButtonElement>(null);
+  /** Ref on the mobile drawer — used to query focusable children. */
+  const drawerRef = useRef<HTMLElement>(null);
 
   useEffect(() => {
     const storedState = safeStorage.getItem(MOBILE_NAV_STORAGE_KEY);
@@ -34,13 +54,82 @@ export default function Navbar() {
   useEffect(() => {
     // Avoid replacing a saved preference with the SSR-safe default before it restores.
     if (!hasHydratedMobileNav) return;
-
     safeStorage.setItem(MOBILE_NAV_STORAGE_KEY, mobileOpen.toString());
   }, [hasHydratedMobileNav, mobileOpen]);
 
-  const handleConnect = () => {
-    // TODO: integrate wallet modal/connector here.
-    alert("Connect Wallet clicked (stub)");
+  // ── Focus trap ─────────────────────────────────────────────────────────────
+  useEffect(() => {
+    if (!mobileOpen) return;
+
+    // Move initial focus into the drawer on open.
+    const drawer = drawerRef.current;
+    if (drawer) {
+      const firstFocusable = drawer.querySelector<HTMLElement>(FOCUSABLE_SELECTOR);
+      firstFocusable?.focus();
+    }
+
+    /** Trap Tab/Shift+Tab within the drawer; close on Escape. */
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        setMobileOpen(false);
+        return;
+      }
+
+      if (e.key !== "Tab" || !drawer) return;
+
+      const focusableEls = Array.from(
+        drawer.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR),
+      ).filter((el) => !el.closest("[hidden]") && el.tabIndex !== -1);
+
+      if (focusableEls.length === 0) return;
+
+      const first = focusableEls[0];
+      const last = focusableEls[focusableEls.length - 1];
+
+      if (e.shiftKey) {
+        if (document.activeElement === first) {
+          e.preventDefault();
+          last.focus();
+        }
+      } else {
+        if (document.activeElement === last) {
+          e.preventDefault();
+          first.focus();
+        }
+      }
+    };
+
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, [mobileOpen]);
+
+  // Return focus to the trigger button when the drawer closes.
+  const prevMobileOpen = useRef(mobileOpen);
+  useEffect(() => {
+    if (prevMobileOpen.current && !mobileOpen) {
+      menuButtonRef.current?.focus();
+    }
+    prevMobileOpen.current = mobileOpen;
+  }, [mobileOpen]);
+
+  const handleConnect = async () => {
+    if (wallet.isConnected) {
+      wallet.disconnect();
+      setConnectError(null);
+      return;
+    }
+    setConnectError(null);
+    setIsConnecting(true);
+    try {
+      await new Promise((r) => setTimeout(r, 150));
+      await wallet.connect();
+    } catch (err) {
+      setConnectError(
+        err instanceof Error ? err.message : "Failed to connect wallet",
+      );
+    } finally {
+      setIsConnecting(false);
+    }
   };
 
   return (
@@ -132,18 +221,45 @@ export default function Navbar() {
 
               <NetworkSwitcher variant="landing" />
 
-              <button
-                onClick={handleConnect}
-                className={`hidden xl:inline-flex items-center px-5 py-2 rounded-full font-medium transition-shadow shadow-sm ${
-                  resolvedTheme === "dark"
-                    ? "bg-white text-black hover:opacity-95"
-                    : "bg-black text-white hover:opacity-95"
-                }`}
-              >
-                Connect Wallet
-              </button>
+              <div className="relative hidden xl:inline-flex flex-col items-center">
+                <button
+                  onClick={handleConnect}
+                  disabled={isConnecting}
+                  aria-label={
+                    wallet.isConnected
+                      ? `Disconnect ${formatAddress(wallet.address)}`
+                      : "Connect wallet"
+                  }
+                  className={`inline-flex items-center gap-2 px-5 py-2 rounded-full font-medium transition-shadow shadow-sm disabled:opacity-50 disabled:cursor-not-allowed ${
+                    resolvedTheme === "dark"
+                      ? "bg-white text-black hover:opacity-95"
+                      : "bg-black text-white hover:opacity-95"
+                  }`}
+                >
+                  {isConnecting ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" aria-hidden="true" />
+                      <span>Connecting...</span>
+                    </>
+                  ) : wallet.isConnected ? (
+                    formatAddress(wallet.address)
+                  ) : (
+                    "Connect Wallet"
+                  )}
+                </button>
+                {connectError && (
+                  <span
+                    role="alert"
+                    className="absolute top-full mt-1.5 flex items-center gap-1 text-xs text-red-500 dark:text-red-400 whitespace-nowrap"
+                  >
+                    <AlertCircle className="w-3 h-3 shrink-0" aria-hidden="true" />
+                    {connectError}
+                  </span>
+                )}
+              </div>
 
               <button
+                ref={menuButtonRef}
                 className="xl:hidden p-2 rounded-md hover:bg-gray-100 dark:hover:bg-white/5"
                 aria-label={mobileOpen ? "Close menu" : "Open menu"}
                 aria-expanded={mobileOpen}
@@ -193,8 +309,11 @@ export default function Navbar() {
       {mobileOpen && (
         <nav
           id="mobile-nav"
+          ref={drawerRef}
           className="xl:hidden absolute left-0 right-0 top-full z-40 mt-2"
           aria-label="Mobile navigation menu"
+          aria-modal="true"
+          role="dialog"
         >
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="bg-white dark:bg-[#0b0b0b] border-b border-[#E4E4E7] dark:border-[#27272A] rounded-b-2xl py-4 space-y-2 px-4">
@@ -208,8 +327,45 @@ export default function Navbar() {
                   {l.label}
                 </Link>
               ))}
-              <div className="pt-4 border-t border-gray-100 dark:border-white/5 flex justify-center">
+              <div className="pt-4 border-t border-gray-100 dark:border-white/5 flex flex-col items-center gap-3">
                 <NetworkSwitcher variant="landing" />
+                <button
+                  onClick={() => {
+                    setMobileOpen(false);
+                    handleConnect();
+                  }}
+                  disabled={isConnecting}
+                  aria-label={
+                    wallet.isConnected
+                      ? `Disconnect ${formatAddress(wallet.address)}`
+                      : "Connect wallet"
+                  }
+                  className={`inline-flex items-center gap-2 px-5 py-2 rounded-full font-medium transition-shadow shadow-sm disabled:opacity-50 disabled:cursor-not-allowed ${
+                    resolvedTheme === "dark"
+                      ? "bg-white text-black hover:opacity-95"
+                      : "bg-black text-white hover:opacity-95"
+                  }`}
+                >
+                  {isConnecting ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" aria-hidden="true" />
+                      <span>Connecting...</span>
+                    </>
+                  ) : wallet.isConnected ? (
+                    formatAddress(wallet.address)
+                  ) : (
+                    "Connect Wallet"
+                  )}
+                </button>
+                {connectError && (
+                  <span
+                    role="alert"
+                    className="flex items-center gap-1 text-xs text-red-500 dark:text-red-400"
+                  >
+                    <AlertCircle className="w-3 h-3 shrink-0" aria-hidden="true" />
+                    {connectError}
+                  </span>
+                )}
               </div>
             </div>
           </div>

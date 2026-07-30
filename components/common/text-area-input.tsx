@@ -2,6 +2,13 @@ import React, { ChangeEvent } from "react";
 import { TextareaInputProps } from "@/types/ui";
 import { Label } from "@/components/ui/label";
 import { cn } from "@/utils/commonUtils";
+import {
+  INPUT_WRAPPER_CLASSES,
+  INPUT_DEFAULT_CLASSES,
+  INPUT_ERROR_CLASSES,
+  INPUT_DISABLED_CLASSES,
+  INPUT_INNER_CLASSES,
+} from "./input-tokens";
 
 interface EnhancedTextareaInputProps extends TextareaInputProps {
   error?: boolean;
@@ -10,13 +17,8 @@ interface EnhancedTextareaInputProps extends TextareaInputProps {
   disabled?: boolean;
   className?: string;
   resize?: boolean;
-  /**
-   * Maximum number of characters allowed. When set, a live character counter
-   * is rendered below the textarea. Typing beyond the limit is prevented.
-   * The counter is announced via `aria-live` when the user is within 20
-   * characters of the limit and when the limit is reached.
-   */
   maxLength?: number;
+  onBlur?: (event: React.FocusEvent<HTMLTextAreaElement>) => void;
 }
 
 const TextareaInput: React.FC<EnhancedTextareaInputProps> = ({
@@ -32,6 +34,7 @@ const TextareaInput: React.FC<EnhancedTextareaInputProps> = ({
   disabled = false,
   className,
   resize = false,
+  onBlur,
   maxLength,
 }) => {
   const fieldId = React.useId();
@@ -63,6 +66,7 @@ const TextareaInput: React.FC<EnhancedTextareaInputProps> = ({
     <div className={cn("w-full space-y-2", className)}>
       {label && (
         <Label
+          htmlFor={fieldId}
           required={required}
           error={error}
           descriptionId={descriptionId}
@@ -73,11 +77,12 @@ const TextareaInput: React.FC<EnhancedTextareaInputProps> = ({
       )}
       <div
         className={cn(
-          "flex items-start border rounded-md overflow-hidden transition-colors",
+          INPUT_WRAPPER_CLASSES,
+          "items-start",
           error || isOverLimit
-            ? "border-destructive ring-destructive/20"
-            : "border-input",
-          disabled && "opacity-50 cursor-not-allowed",
+            ? INPUT_ERROR_CLASSES
+            : INPUT_DEFAULT_CLASSES,
+          disabled && INPUT_DISABLED_CLASSES,
         )}
       >
         {icon && (
@@ -91,14 +96,11 @@ const TextareaInput: React.FC<EnhancedTextareaInputProps> = ({
           placeholder={placeholder}
           value={value}
           onChange={handleChange}
+          onBlur={onBlur}
           rows={rows}
           disabled={disabled}
           maxLength={maxLength}
-          className={cn(
-            "px-3 py-3 w-full bg-transparent focus:outline-none text-foreground",
-            !resize && "resize-none",
-            icon && "pl-0",
-          )}
+          className={cn(INPUT_INNER_CLASSES, "py-3", !resize && "resize-none", icon && "pl-0")}
           aria-invalid={error || isOverLimit ? "true" : "false"}
           aria-describedby={describedBy}
           aria-required={required}

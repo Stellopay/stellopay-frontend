@@ -1,3 +1,4 @@
+import { useState } from "react";
 import {
   render,
   screen,
@@ -8,10 +9,29 @@ import {
 import { describe, expect, it, vi, afterEach, beforeEach } from "vitest";
 
 import SecurityTab, {
+  BACKUP_CODE_COUNT,
   DEFAULT_TWO_FACTOR_ENABLED,
+  NEW_PASSWORD_REQUIREMENTS_ID,
+  NEW_PASSWORD_REQUIREMENTS_STATUS_ID,
+  PASSWORD_REQUIREMENTS_ANNOUNCE_DELAY_MS,
   TWO_FACTOR_CODE_LENGTH,
+  buildPasswordRequirementsAnnouncement,
   getVerificationCodeError,
 } from "./security-tab";
+import { verifyTotpCode } from "@/lib/totp";
+
+vi.mock("@/lib/totp", () => ({
+  generateTotpSecret: () => ({
+    base32: "JBSWY3DPEHPK3PXP",
+    otpauthUrl: "otpauth://totp/Stellopay:test?secret=JBSWY3DPEHPK3PXP",
+  }),
+  verifyTotpCode: vi.fn(() => true),
+}));
+
+vi.mock("qrcode", () => ({
+  default: { toDataURL: vi.fn(() => Promise.resolve("data:image/png;base64,iVBORw0KGgo=")) },
+  toDataURL: vi.fn(() => Promise.resolve("data:image/png;base64,iVBORw0KGgo=")),
+}));
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -215,6 +235,150 @@ describe("SecurityTab — requirements checklist", () => {
     expect(row?.querySelector("svg")?.classList.toString()).toContain(
       "text-zinc-300",
     );
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Password requirements — screen reader association + live announcements
+// ---------------------------------------------------------------------------
+
+describe("buildPasswordRequirementsAnnouncement", () => {
+  const unmetAll = {
+    minLength: false,
+    uppercase: false,
+    specialChar: false,
+  };
+
+  it("returns an empty string when the password field is empty", () => {
+    expect(
+      buildPasswordRequirementsAnnouncement(unmetAll, false, false),
+    ).toBe("");
+  });
+
+  it("lists unmet requirements while the password is incomplete", () => {
+    expect(
+      buildPasswordRequirementsAnnouncement(
+        { minLength: true, uppercase: false, specialChar: false },
+        false,
+        true,
+      ),
+    ).toBe(
+      "Still needed: one uppercase letter, one special character, passwords match.",
+    );
+  });
+
+  it("announces success when every requirement is met", () => {
+    expect(
+      buildPasswordRequirementsAnnouncement(
+        { minLength: true, uppercase: true, specialChar: true },
+        true,
+        true,
+      ),
+    ).toBe("All password requirements met.");
+  });
+});
+
+describe("SecurityTab — password requirements accessibility", () => {
+  it("associates the new-password input with screen-reader requirements helper text", () => {
+    render(<SecurityTab />);
+
+    const helper = document.getElementById(NEW_PASSWORD_REQUIREMENTS_ID);
+    expect(helper).toBeTruthy();
+    expect(helper).toHaveClass("sr-only");
+    expect(helper).toHaveTextContent(/at least 8 characters/i);
+    expect(helper).toHaveTextContent(/one uppercase letter/i);
+    expect(helper).toHaveTextContent(/one special character/i);
+
+    const describedBy = getPasswordInput().getAttribute("aria-describedby");
+    expect(describedBy?.split(/\s+/)).toContain(NEW_PASSWORD_REQUIREMENTS_ID);
+  });
+
+  it("exposes a polite live region for requirement status updates", () => {
+    render(<SecurityTab />);
+
+    const liveRegion = document.getElementById(
+      NEW_PASSWORD_REQUIREMENTS_STATUS_ID,
+    );
+    expect(liveRegion).toBeTruthy();
+    expect(liveRegion).toHaveAttribute("aria-live", "polite");
+    expect(liveRegion).toHaveAttribute("aria-atomic", "true");
+    expect(liveRegion).toHaveClass("sr-only");
+  });
+
+  it("announces unmet requirements after typing pauses (debounced)", async () => {
+    vi.useFakeTimers();
+    render(<SecurityTab />);
+
+    typePassword("short");
+
+    const liveRegion = document.getElementById(
+      NEW_PASSWORD_REQUIREMENTS_STATUS_ID,
+    );
+    expect(liveRegion).toHaveTextContent("");
+
+    await act(async () => {
+      vi.advanceTimersByTime(PASSWORD_REQUIREMENTS_ANNOUNCE_DELAY_MS);
+    });
+
+    expect(liveRegion).toHaveTextContent(
+      /Still needed: at least 8 characters, one uppercase letter, one special character, passwords match\./i,
+    );
+  });
+
+  it("does not re-announce while keystrokes leave the unmet set unchanged", async () => {
+    vi.useFakeTimers();
+    render(<SecurityTab />);
+
+    typePassword("a");
+    await act(async () => {
+      vi.advanceTimersByTime(PASSWORD_REQUIREMENTS_ANNOUNCE_DELAY_MS);
+    });
+
+    const liveRegion = document.getElementById(
+      NEW_PASSWORD_REQUIREMENTS_STATUS_ID,
+    );
+    const firstAnnouncement = liveRegion?.textContent ?? "";
+    expect(firstAnnouncement).toMatch(/Still needed:/i);
+
+    typePassword("ab");
+    await act(async () => {
+      vi.advanceTimersByTime(PASSWORD_REQUIREMENTS_ANNOUNCE_DELAY_MS);
+    });
+
+    expect(liveRegion).toHaveTextContent(firstAnnouncement);
+  });
+
+  it("announces when all password requirements become met", async () => {
+    vi.useFakeTimers();
+    render(<SecurityTab />);
+
+    fillValidPasswords("StrongPass@1");
+
+    await act(async () => {
+      vi.advanceTimersByTime(PASSWORD_REQUIREMENTS_ANNOUNCE_DELAY_MS);
+    });
+
+    expect(
+      document.getElementById(NEW_PASSWORD_REQUIREMENTS_STATUS_ID),
+    ).toHaveTextContent("All password requirements met.");
+  });
+
+  it("marks each visual requirement with met / not-met screen-reader text", () => {
+    render(<SecurityTab />);
+    typePassword("short");
+
+    const unmetRow = screen.getByText("At least 8 characters").closest(
+      "[role='listitem']",
+    );
+    expect(unmetRow).toHaveTextContent(/^Not met:\s*At least 8 characters/);
+
+    typePassword("Abcdefg@1");
+    typeConfirm("Abcdefg@1");
+
+    const metRow = screen.getByText("At least 8 characters").closest(
+      "[role='listitem']",
+    );
+    expect(metRow).toHaveTextContent(/^Met:\s*At least 8 characters/);
   });
 });
 
@@ -509,7 +673,8 @@ describe("SecurityTab — successful password change", () => {
 
     await waitFor(
       () => {
-        const container = screen.getByRole("status");
+        const message = screen.getByText(/password policy satisfied/i);
+        const container = message.closest("[role='status']");
         expect(container).toHaveAttribute("aria-live", "polite");
       },
       { timeout: 3000 },
@@ -813,7 +978,16 @@ describe("SecurityTab — 2FA setup panel open/close", () => {
   }
 
   it("toggling 2FA OFF from the enabled state flips the switch directly (no panel)", () => {
-    render(<SecurityTab twoFactorEnabled={true} />);
+    const Wrapper = () => {
+      const [enabled, setEnabled] = useState(true);
+      return (
+        <SecurityTab
+          twoFactorEnabled={enabled}
+          onTwoFactorEnabledChange={setEnabled}
+        />
+      );
+    };
+    render(<Wrapper />);
     const sw = screen.getByRole("switch", {
       name: /authenticator app verification/i,
     });
@@ -1009,7 +1183,9 @@ describe("SecurityTab — 2FA verification code validation", () => {
     fireEvent.change(input, { target: { value: "123A56" } });
 
     const alert = screen.getByRole("alert");
-    expect(input).toHaveAccessibleDescription(alert.textContent ?? "");
+    expect(input).toHaveAccessibleDescription(
+      new RegExp(alert.textContent ?? "", "i"),
+    );
   });
 });
 
@@ -1021,8 +1197,21 @@ describe("SecurityTab — 2FA verification submit", () => {
   function openSetupPanelWith(
     props: React.ComponentProps<typeof SecurityTab> = {},
   ) {
-    const mergedProps = { twoFactorEnabled: false, ...props } as const;
-    render(<SecurityTab {...mergedProps} />);
+    const Wrapper = () => {
+      const [enabled, setEnabled] = useState(false);
+      return (
+        <SecurityTab
+          twoFactorEnabled={enabled}
+          onTwoFactorEnabledChange={(val) => {
+            setEnabled(val);
+            if (props.onTwoFactorEnabledChange) {
+              props.onTwoFactorEnabledChange(val);
+            }
+          }}
+        />
+      );
+    };
+    render(<Wrapper />);
     const sw = screen.getByRole("switch", {
       name: /authenticator app verification/i,
     });
@@ -1101,7 +1290,7 @@ describe("SecurityTab — 2FA verification submit", () => {
   });
 
   it("failed submission: clears the verification code input (security) and shows a server error inline", async () => {
-    vi.spyOn(Math, "random").mockReturnValue(0.95);
+    vi.mocked(verifyTotpCode).mockReturnValueOnce(false);
     const onChange = vi.fn();
     const { input, getVerifyButton } = openSetupPanelWith({
       onTwoFactorEnabledChange: onChange,
@@ -1133,7 +1322,7 @@ describe("SecurityTab — 2FA verification submit", () => {
   });
 
   it("failed submission: after the input is cleared, re-typing a valid code re-enables submit", async () => {
-    vi.spyOn(Math, "random").mockReturnValue(0.95);
+    vi.mocked(verifyTotpCode).mockReturnValueOnce(false);
     const { input, getVerifyButton } = openSetupPanelWith();
 
     fireEvent.change(input, { target: { value: "121212" } });
@@ -1155,7 +1344,7 @@ describe("SecurityTab — 2FA verification submit", () => {
 
 describe("SecurityTab — 2FA verification security", () => {
   it("never logs the actual verification code to console during a failed submit", async () => {
-    vi.spyOn(Math, "random").mockReturnValue(0.95);
+    vi.mocked(verifyTotpCode).mockReturnValueOnce(false);
     const consoleSpy = vi
       .spyOn(console, "log")
       .mockImplementation(() => void 0);

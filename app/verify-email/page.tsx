@@ -11,7 +11,8 @@ import {
 } from "@/lib/api/auth";
 
 type StatusType = "idle" | "loading" | "success" | "error";
-type TokenStatus = "idle" | "loading" | "success" | "expired" | "invalid" | "error";
+type TokenStatus =
+  "idle" | "loading" | "success" | "expired" | "invalid" | "error";
 const OTP_LENGTH = 6;
 const RESEND_COOLDOWN_SECONDS = 30;
 
@@ -26,11 +27,7 @@ function VerifyEmailForm() {
   const [message, setMessage] = useState("");
   const [codeError, setCodeError] = useState("");
   const [resendStatus, setResendStatus] = useState<StatusType>("idle");
-  const {
-    secondsLeft,
-    isActive,
-    start: startCooldown,
-  } = useCountdown();
+  const { secondsLeft, isActive, start: startCooldown } = useCountdown();
   const inputRefs = useRef<Array<HTMLInputElement | null>>([]);
   const codeValue = code.join("");
 
@@ -228,10 +225,7 @@ function VerifyEmailForm() {
           <h1 className="text-[#F8D2FE] text-2xl sm:text-[32px] font-medium">
             Link {tokenStatus === "expired" ? "expired" : "invalid"}
           </h1>
-          <p
-            role="alert"
-            className="text-sm text-red-300 mb-4"
-          >
+          <p role="alert" className="text-sm text-red-300 mb-4">
             {tokenErrorMessage}
           </p>
           <button
@@ -250,19 +244,20 @@ function VerifyEmailForm() {
               "Request new verification email"
             )}
           </button>
-          {resendMessage && (resendStatus === "success" || resendStatus === "error") && (
-            <div
-              role="status"
-              aria-live="polite"
-              className={`text-sm px-4 py-2 rounded-lg mt-2 ${
-                resendStatus === "success"
-                  ? "bg-emerald-500/10 text-emerald-300"
-                  : "bg-red-500/10 text-red-300"
-              }`}
-            >
-              {resendMessage}
-            </div>
-          )}
+          {resendMessage &&
+            (resendStatus === "success" || resendStatus === "error") && (
+              <div
+                role="status"
+                aria-live="polite"
+                className={`text-sm px-4 py-2 rounded-lg mt-2 ${
+                  resendStatus === "success"
+                    ? "bg-emerald-500/10 text-emerald-300"
+                    : "bg-red-500/10 text-red-300"
+                }`}
+              >
+                {resendMessage}
+              </div>
+            )}
         </>
       );
     }
@@ -296,7 +291,11 @@ function VerifyEmailForm() {
 
       {/* Modal Card */}
       <div className="border-[#2D2D2D] border rounded-[24px] px-7 sm:px-11 py-9 w-full max-w-[480px] space-y-4 text-center shadow-lg">
-        <h1 className="text-[#F8D2FE] text-2xl sm:text-[32px] font-medium mb-2">
+        {token ? (
+          renderTokenContent()
+        ) : (
+          <>
+            <h1 className="text-[#F8D2FE] text-2xl sm:text-[32px] font-medium mb-2">
           Check your email
         </h1>
         <p className="text-sm text-[#ACB4B5] mb-6">
@@ -338,7 +337,7 @@ function VerifyEmailForm() {
                       inputRefs.current[index] = node;
                     }}
                     type="text"
-                    inputMode="text"
+                    inputMode="numeric"
                     autoComplete={index === 0 ? "one-time-code" : "off"}
                     maxLength={1}
                     value={value}
@@ -355,7 +354,10 @@ function VerifyEmailForm() {
                 ))}
               </div>
             </fieldset>
-            <p id={codeHelpId} className="text-left text-xs text-[#ACB4B5] mb-2">
+            <p
+              id={codeHelpId}
+              className="text-left text-xs text-[#ACB4B5] mb-2"
+            >
               Enter the 6-digit code sent to your email.
             </p>
             {codeError && (

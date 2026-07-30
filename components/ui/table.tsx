@@ -4,15 +4,39 @@ import * as React from "react";
 
 import { cn } from "@/utils/commonUtils";
 
-function Table({ className, ...props }: React.ComponentProps<"table">) {
+interface TableProps extends React.ComponentProps<"table"> {
+  /** Makes the <thead> row stick to the top of the scroll container. */
+  stickyHeader?: boolean;
+  /** Makes the first column (th/td) stick to the left edge of the scroll container. */
+  stickyFirstColumn?: boolean;
+  /** Extra classes for the scroll container div (e.g. max-h-[480px] for vertical scroll). */
+  containerClassName?: string;
+}
+
+function Table({
+  className,
+  containerClassName,
+  stickyHeader = false,
+  stickyFirstColumn = false,
+  ...props
+}: TableProps) {
   return (
     <div
       data-slot="table-container"
-      className="relative w-full overflow-x-auto"
+      data-sticky-header={stickyHeader || undefined}
+      data-sticky-first-column={stickyFirstColumn || undefined}
+      className={cn("relative w-full overflow-auto", containerClassName)}
     >
       <table
         data-slot="table"
-        className={cn("w-full caption-bottom text-sm", className)}
+        className={cn(
+          "w-full caption-bottom text-sm",
+          stickyHeader &&
+            "[&_thead]:sticky [&_thead]:top-0 [&_thead]:z-20 [&_thead_th]:bg-background",
+          stickyFirstColumn &&
+            "[&_tbody_tr>:first-child]:sticky [&_tbody_tr>:first-child]:left-0 [&_tbody_tr>:first-child]:z-10 [&_tbody_tr>:first-child]:bg-background [&_tbody_tr>:first-child]:border-r [&_thead_tr>:first-child]:sticky [&_thead_tr>:first-child]:left-0 [&_thead_tr>:first-child]:z-30 [&_thead_tr>:first-child]:border-r",
+          className,
+        )}
         {...props}
       />
     </div>
@@ -69,6 +93,7 @@ function TableHead({ className, ...props }: React.ComponentProps<"th">) {
   return (
     <th
       data-slot="table-head"
+      scope="col"
       className={cn(
         "text-foreground h-10 px-2 text-left align-middle font-medium whitespace-nowrap [&:has([role=checkbox])]:pr-0 [&>[role=checkbox]]:translate-y-[2px]",
         className,
