@@ -38,6 +38,16 @@ describe("Skeleton (base)", () => {
     const { container } = render(<Skeleton className="test-class" />);
     expect(container.firstChild).toHaveClass("test-class");
   });
+
+  it("has position relative and overflow hidden required for the ::after shimmer", () => {
+    const { container } = render(<Skeleton />);
+    expect(container.firstChild).toHaveClass("skeleton-shimmer");
+  });
+
+  it("is hidden from screen readers since skeleton is purely decorative", () => {
+    const { container } = render(<Skeleton />);
+    expect(container.firstChild).toHaveAttribute("aria-hidden", "true");
+  });
 });
 
 describe("SkeletonLine", () => {
@@ -55,6 +65,11 @@ describe("SkeletonLine", () => {
   it("inherits the shade prop", () => {
     const { container } = render(<SkeletonLine shade="light" />);
     expect(container.firstChild).toHaveClass("bg-[#3A3A3A]");
+  });
+
+  it("applies skeleton-shimmer for consistent animation timing", () => {
+    const { container } = render(<SkeletonLine />);
+    expect(container.firstChild).toHaveClass("skeleton-shimmer");
   });
 });
 
@@ -81,6 +96,12 @@ describe("SkeletonText", () => {
     const { container } = render(<SkeletonText lines={1} />);
     expect(container.querySelector(".w-3\\/4")).not.toBeInTheDocument();
   });
+
+  it("applies skeleton-shimmer to every line", () => {
+    const { container } = render(<SkeletonText lines={3} />);
+    const shimmers = container.querySelectorAll(".skeleton-shimmer");
+    expect(shimmers).toHaveLength(3);
+  });
 });
 
 describe("SkeletonAvatar", () => {
@@ -102,6 +123,11 @@ describe("SkeletonAvatar", () => {
   it("is shrink-0 to prevent flex compression", () => {
     const { container } = render(<SkeletonAvatar />);
     expect(container.firstChild).toHaveClass("shrink-0");
+  });
+
+  it("applies skeleton-shimmer for consistent animation timing", () => {
+    const { container } = render(<SkeletonAvatar />);
+    expect(container.firstChild).toHaveClass("skeleton-shimmer");
   });
 });
 
@@ -132,6 +158,12 @@ describe("SkeletonRow", () => {
     const lines = container.querySelectorAll(".bg-\\[\\#2D2D2D\\]");
     expect(lines.length).toBeGreaterThanOrEqual(3);
   });
+
+  it("applies skeleton-shimmer to all animated elements", () => {
+    const { container } = render(<SkeletonRow avatarSize={32} lines={2} />);
+    const shimmers = container.querySelectorAll(".skeleton-shimmer");
+    expect(shimmers.length).toBeGreaterThanOrEqual(3);
+  });
 });
 
 describe("SkeletonCard", () => {
@@ -150,13 +182,18 @@ describe("SkeletonCard", () => {
   it("renders the specified number of content lines", () => {
     const { container } = render(<SkeletonCard lines={5} />);
     const lines = container.querySelectorAll(".bg-\\[\\#2D2D2D\\]");
-    // 2 (header icon + title) + 5 content lines = 7
     expect(lines.length).toBeGreaterThanOrEqual(5);
   });
 
   it("applies custom className", () => {
     const { container } = render(<SkeletonCard className="my-custom" />);
     expect(container.firstChild).toHaveClass("my-custom");
+  });
+
+  it("applies skeleton-shimmer to all inner placeholders", () => {
+    const { container } = render(<SkeletonCard lines={3} />);
+    const shimmers = container.querySelectorAll(".skeleton-shimmer");
+    expect(shimmers.length).toBeGreaterThanOrEqual(5);
   });
 });
 
@@ -166,5 +203,10 @@ describe("SkeletonButton", () => {
     expect(container.firstChild).toHaveClass("h-9");
     expect(container.firstChild).toHaveClass("w-24");
     expect(container.firstChild).toHaveClass("rounded-lg");
+  });
+
+  it("applies skeleton-shimmer for consistent animation timing", () => {
+    const { container } = render(<SkeletonButton />);
+    expect(container.firstChild).toHaveClass("skeleton-shimmer");
   });
 });
