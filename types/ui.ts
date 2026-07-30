@@ -29,8 +29,12 @@ export interface FaqCardProps {
   title: string;
   subtitle: string;
   link?: string;
+ ui/notifications-section-channel-matrix
+  highlightQuery?: string;
+
   icon?: React.ReactNode;
   articleCount?: number;
+ main
 }
 
 export interface SupportTabsProps {

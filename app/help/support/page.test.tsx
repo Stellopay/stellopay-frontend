@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, within } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import "@testing-library/jest-dom";
 import fs from "node:fs";
 import path from "node:path";
@@ -29,12 +30,18 @@ vi.mock("@/components/common/support-tabs", () => ({
 }));
 
 vi.mock("@/components/common/faq-card", () => ({
+ ui/notifications-section-channel-matrix
+  default: ({ title, highlightQuery }: any) => (
+    <div data-testid="faq-card" data-highlight-query={highlightQuery || ""}>
+      {title}
+
   default: ({ title, articleCount }: any) => (
     <div data-testid="faq-card">
       {title}
       {articleCount !== undefined && (
         <span data-testid="faq-article-count">{articleCount}</span>
       )}
+ main
     </div>
   ),
 }));
@@ -74,7 +81,6 @@ describe("Support Page", () => {
     render(<SupportPage />);
     const widget = screen.getByTestId("ticket-widget");
     expect(widget).toBeInTheDocument();
-    // Widget should be first element in main content
     const mainContent = widget.closest("div");
     expect(mainContent).toBeTruthy();
   });
@@ -89,7 +95,6 @@ describe("Support Page", () => {
     const ticketList = screen.getByTestId("ticket-list");
     expect(ticketList).toBeInTheDocument();
 
-    // Should display all demo tickets
     const tickets = demoData.getDemoSupportTickets();
     tickets.forEach((ticket) => {
       expect(screen.getByTestId(`ticket-${ticket.id}`)).toBeInTheDocument();
@@ -108,7 +113,6 @@ describe("Support Page", () => {
   it("should render FAQ cards", () => {
     render(<SupportPage />);
 
-    // Click to ensure FAQ tab is active
     const faqButton = screen.getByText("Client FAQ");
     faqButton.click();
 
@@ -163,7 +167,6 @@ describe("Support Page - Demo Data", () => {
     const tickets = demoData.getDemoSupportTickets();
     const statuses = new Set(tickets.map((t) => t.status));
 
-    // Should have at least 2 different statuses for demo purposes
     expect(statuses.size).toBeGreaterThanOrEqual(2);
   });
 
@@ -204,9 +207,12 @@ describe("Support Page - Responsive Layout", () => {
   it("should render full width ticket widget", () => {
     render(<SupportPage />);
     const widget = screen.getByTestId("ticket-widget");
+ ui/notifications-section-channel-matrix
+    const wrapper = widget.parentElement;
 
     // Check that widget's parent has full width class
     const wrapper = widget.parentElement;
+ main
     expect(wrapper?.className).toMatch(/w-full/);
   });
 
@@ -214,17 +220,29 @@ describe("Support Page - Responsive Layout", () => {
     const { container } = render(<SupportPage />);
     const mainDiv = container.querySelector(".min-h-screen");
 
-    // Should have responsive padding (p-4 sm:p-6)
     expect(mainDiv?.className).toMatch(/p-4/);
     expect(mainDiv?.className).toMatch(/sm:p-6/);
 
-    // Should have responsive gap (gap-6)
     expect(mainDiv?.className).toMatch(/gap-6/);
   });
 });
 
 describe("Support Page - Integration", () => {
   it("should render ticket widget before tabs", () => {
+ ui/notifications-section-channel-matrix
+    render(<SupportPage />);
+    const container = screen.getByTestId("ticket-widget").closest(
+      ".min-h-screen",
+    )!;
+    const widget = container.querySelector(
+      `[data-testid="ticket-widget"]`,
+    )!;
+    const tabs = container.querySelector(`[data-testid="support-tabs"]`)!;
+
+    expect(
+      widget.compareDocumentPosition(tabs) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+
     const { container } = render(<SupportPage />);
     const mainContainer = container.querySelector(".min-h-screen");
     const widgetElem = mainContainer?.querySelector(
@@ -241,16 +259,186 @@ describe("Support Page - Integration", () => {
           Node.DOCUMENT_POSITION_FOLLOWING,
       ).toBeTruthy();
     }
+ main
   });
 
   it("should maintain dark mode styling context", () => {
     const { container } = render(<SupportPage />);
     const mainDiv = container.querySelector(".min-h-screen");
 
-    // Should have dark text color
     expect(mainDiv?.className).toMatch(/text-white/);
   });
 });
+ ui/notifications-section-channel-matrix
+describe("Support Page - Search", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it("should render search input inside FAQ section", () => {
+    render(<SupportPage />);
+    const faqButton = screen.getByText("Client FAQ");
+    faqButton.click();
+    const searchInput = screen.getByRole("searchbox");
+    expect(searchInput).toBeInTheDocument();
+  });
+
+  it("should have accessible search label", () => {
+    render(<SupportPage />);
+    const faqButton = screen.getByText("Client FAQ");
+    faqButton.click();
+    const searchInput = screen.getByRole("searchbox");
+    expect(searchInput).toHaveAttribute("aria-label", "Search help articles");
+  });
+
+  it("should show search landmark with correct aria-label", () => {
+    render(<SupportPage />);
+    const faqButton = screen.getByText("Client FAQ");
+    faqButton.click();
+    const searchLandmark = screen.getByRole("search");
+    expect(searchLandmark).toHaveAttribute("aria-label", "Search help articles");
+  });
+
+  it("should display all FAQ cards when search is empty", () => {
+    render(<SupportPage />);
+    const faqButton = screen.getByText("Client FAQ");
+    faqButton.click();
+    const cards = screen.getAllByTestId("faq-card");
+    expect(cards.length).toBe(6);
+  });
+
+  it("should filter FAQ cards based on search query", async () => {
+    const user = userEvent.setup();
+    render(<SupportPage />);
+    const faqButton = screen.getByText("Client FAQ");
+    faqButton.click();
+    const searchInput = screen.getByRole("searchbox");
+
+    await user.type(searchInput, "password");
+
+    const cards = screen.getAllByTestId("faq-card");
+    expect(cards.length).toBe(1);
+    expect(cards[0]).toHaveTextContent("Account Management");
+  });
+
+  it("should filter FAQ cards by subtitle", async () => {
+    const user = userEvent.setup();
+    render(<SupportPage />);
+    const faqButton = screen.getByText("Client FAQ");
+    faqButton.click();
+    const searchInput = screen.getByRole("searchbox");
+
+    await user.type(searchInput, "dispute");
+
+    const cards = screen.getAllByTestId("faq-card");
+    expect(cards.length).toBe(1);
+    expect(cards[0]).toHaveTextContent("Transaction Issues");
+  });
+
+  it("should show no results state when no topics match", async () => {
+    const user = userEvent.setup();
+    render(<SupportPage />);
+    const faqButton = screen.getByText("Client FAQ");
+    faqButton.click();
+    const searchInput = screen.getByRole("searchbox");
+
+    await user.type(searchInput, "xyznonexistent");
+
+    expect(
+      screen.getByText(/no results for.*xyznonexistent/i),
+    ).toBeInTheDocument();
+    expect(screen.queryByTestId("faq-card")).not.toBeInTheDocument();
+  });
+
+  it("should show result count when searching", async () => {
+    const user = userEvent.setup();
+    render(<SupportPage />);
+    const faqButton = screen.getByText("Client FAQ");
+    faqButton.click();
+    const searchInput = screen.getByRole("searchbox");
+
+    await user.type(searchInput, "payment");
+
+    expect(screen.getByText(/showing \d+ results?/i)).toBeInTheDocument();
+  });
+
+  it("should not show result count when search is empty", () => {
+    render(<SupportPage />);
+    const faqButton = screen.getByText("Client FAQ");
+    faqButton.click();
+    expect(screen.queryByText(/showing/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/no results/i)).not.toBeInTheDocument();
+  });
+
+  it("should clear search and restore all cards when clear button clicked", async () => {
+    const user = userEvent.setup();
+    render(<SupportPage />);
+    const faqButton = screen.getByText("Client FAQ");
+    faqButton.click();
+    const searchInput = screen.getByRole("searchbox");
+
+    await user.type(searchInput, "password");
+    expect(screen.getAllByTestId("faq-card").length).toBe(1);
+
+    const clearButton = screen.getByRole("button", { name: /clear search/i });
+    await user.click(clearButton);
+
+    expect(searchInput).toHaveValue("");
+    const cards = screen.getAllByTestId("faq-card");
+    expect(cards.length).toBe(6);
+  });
+
+  it("should have polite live region for empty state", async () => {
+    const user = userEvent.setup();
+    render(<SupportPage />);
+    const faqButton = screen.getByText("Client FAQ");
+    faqButton.click();
+    const searchInput = screen.getByRole("searchbox");
+
+    await user.type(searchInput, "xyznonexistent");
+
+    const statusRegions = screen.getAllByRole("status");
+    statusRegions.forEach((r) => {
+      expect(r).toHaveAttribute("aria-live", "polite");
+    });
+  });
+
+  it("should show clear button only when search has text", () => {
+    render(<SupportPage />);
+    const faqButton = screen.getByText("Client FAQ");
+    faqButton.click();
+    expect(
+      screen.queryByRole("button", { name: /clear search/i }),
+    ).not.toBeInTheDocument();
+  });
+
+  it("should forward search query to FaqCard as highlightQuery", async () => {
+    const user = userEvent.setup();
+    render(<SupportPage />);
+    const faqButton = screen.getByText("Client FAQ");
+    faqButton.click();
+    const searchInput = screen.getByRole("searchbox");
+
+    await user.type(searchInput, "password");
+
+    const cards = screen.getAllByTestId("faq-card");
+    cards.forEach((card) => {
+      expect(card).toHaveAttribute("data-highlight-query", "password");
+    });
+  });
+
+  it("should handle search by keywords", async () => {
+    const user = userEvent.setup();
+    render(<SupportPage />);
+    const faqButton = screen.getByText("Client FAQ");
+    faqButton.click();
+    const searchInput = screen.getByRole("searchbox");
+
+    await user.type(searchInput, "2fa");
+
+    const cards = screen.getAllByTestId("faq-card");
+    expect(cards.length).toBe(1);
+    expect(cards[0]).toHaveTextContent("Security & Privacy");
 
 describe("Support Page — FAQ card route existence", () => {
   const repoRoot = path.resolve(__dirname, "../../..");
@@ -286,5 +474,6 @@ describe("Support Page — FAQ card route existence", () => {
 
   it("no FAQ card links are duplicated for different routes", () => {
     expect(faqLinkRoutes.length).toBe(new Set(faqLinkRoutes).size);
+ main
   });
 });
