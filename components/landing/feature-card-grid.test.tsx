@@ -51,4 +51,12 @@ describe("FeatureCardGrid", () => {
     const link = screen.getByRole("link", { name: /Learn more/i });
     expect(link).toBeInTheDocument();
   });
+
+  it("marks decorative icon as aria-hidden", () => {
+    const { container } = render(<FeatureCardGrid {...mockProps} />);
+    
+    // The icon container should be aria-hidden
+    const iconContainers = container.querySelectorAll('[aria-hidden="true"]');
+    expect(iconContainers.length).toBeGreaterThanOrEqual(1);
+  });
 });
