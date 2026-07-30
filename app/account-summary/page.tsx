@@ -7,6 +7,17 @@ import Icon from "@/public/Icon.png";
 import Piggy from "@/public/piggy-bank.png";
 import { copyToClipboardWithTimeout } from "@/utils/clipboardUtils";
 import { useWallet, formatAddress } from "@/context/wallet-context";
+import { Breadcrumb, type BreadcrumbItem } from "@/components/common/breadcrumb";
+
+/**
+ * The route lives at `/account-summary` but the user always arrives from the
+ * dashboard sidebar, so the trail is spelled out rather than derived from the
+ * URL segments.
+ */
+const BREADCRUMB_TRAIL: BreadcrumbItem[] = [
+  { label: "Dashboard", href: "/dashboard" },
+  { label: "Account Summary" },
+];
 
 /**
  * Renders the account summary card, sourcing the wallet address from the
@@ -88,5 +99,12 @@ function AccountSummaryView({
 
 export default function Page() {
   // If this page later fetches data, you can wire up loading state here.
-  return <AccountSummaryView isLoading={false} />;
+  return (
+    <>
+      <div className="px-4 py-4 md:px-6 w-full max-w-screen-xl mx-auto">
+        <Breadcrumb items={BREADCRUMB_TRAIL} />
+      </div>
+      <AccountSummaryView isLoading={false} />
+    </>
+  );
 }

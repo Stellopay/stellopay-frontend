@@ -5,7 +5,28 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { ChevronRight, Home } from "lucide-react";
 
+/**
+ * A single entry in an explicit breadcrumb trail.
+ *
+ * Omit `href` for the entry that represents the page the user is currently on;
+ * it renders as static text carrying `aria-current="page"` instead of a link.
+ */
+export interface BreadcrumbItem {
+  /** Visible label, e.g. "Account Summary". */
+  label: string;
+  /** Destination. Omit for the current page. */
+  href?: string;
+}
+
 export interface BreadcrumbProps {
+  /**
+   * Explicit trail, used when the URL segments do not match the way the user
+   * actually navigated (e.g. `/analytics-view` is reached from the dashboard
+   * and reads better as "Dashboard > Analytics").
+   *
+   * When omitted, the trail is derived from the current pathname as before.
+   */
+  items?: BreadcrumbItem[];
   /** Optional prefix to add to the breadcrumb trail (e.g., Home) */
   homeElement?: React.ReactNode;
   /** Separator between breadcrumb items */
@@ -15,12 +36,25 @@ export interface BreadcrumbProps {
 }
 
 export function Breadcrumb({
+  items,
   homeElement = <Home className="w-4 h-4" aria-hidden="true" />,
   separator = <ChevronRight className="w-4 h-4 text-gray-400" aria-hidden="true" />,
   capitalizeLinks = true,
 }: BreadcrumbProps) {
-  const paths = usePathname();
+  const paths = usePathname() ?? "/";
   const pathNames = paths.split("/").filter((path) => path);
+
+  const derived: BreadcrumbItem[] = pathNames.map((link, index) => ({
+    label: capitalizeLinks
+      ? link.charAt(0).toUpperCase() + link.slice(1).replace(/-/g, " ")
+      : link,
+    href:
+      index === pathNames.length - 1
+        ? undefined
+        : `/${pathNames.slice(0, index + 1).join("/")}`,
+  }));
+
+  const trail = items ?? derived;
 
   return (
     <nav aria-label="Breadcrumb" className="w-full flex items-center mb-6">
@@ -34,36 +68,30 @@ export function Breadcrumb({
             {homeElement}
           </Link>
         </li>
-        {pathNames.length > 0 && <li aria-hidden="true">{separator}</li>}
-        {pathNames.map((link, index) => {
-          let href = `/${pathNames.slice(0, index + 1).join("/")}`;
-          const isLast = index === pathNames.length - 1;
-          const label = capitalizeLinks
-            ? link.charAt(0).toUpperCase() + link.slice(1).replace(/-/g, " ")
-            : link;
+        {trail.length > 0 && <li aria-hidden="true">{separator}</li>}
+        {trail.map((item, index) => {
+          const isLast = index === trail.length - 1;
 
           return (
-            <React.Fragment key={index}>
+            <React.Fragment key={`${item.label}-${index}`}>
               <li className="flex items-center">
-                {!isLast ? (
+                {item.href && !isLast ? (
                   <Link
-                    href={href}
+                    href={item.href}
                     className="hover:text-primary transition-colors focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 rounded"
                   >
-                    {label}
+                    {item.label}
                   </Link>
                 ) : (
                   <span
                     className="text-gray-900 font-medium"
                     aria-current="page"
                   >
-                    {label}
+                    {item.label}
                   </span>
                 )}
               </li>
-              {pathNames.length !== index + 1 && (
-                <li aria-hidden="true">{separator}</li>
-              )}
+              {!isLast && <li aria-hidden="true">{separator}</li>}
             </React.Fragment>
           );
         })}
