@@ -4,6 +4,7 @@ import React from "react";
 import { UserPlus, Wallet, Send } from "lucide-react";
 import { motion } from "framer-motion";
 import { useReducedMotion } from "@/hooks/useReducedMotion";
+import { VideoFacade } from "./video-facade";
 
 const steps = [
   {
