@@ -183,13 +183,13 @@ describe("AnalyticsInsights", () => {
 
       await waitFor(() => {
         expect(
-          screen.getByText("No Metrics Selected"),
+          screen.getByText("No analytics data yet"),
         ).toBeInTheDocument();
       });
 
       expect(
         screen.getByText(
-          /select at least one metric/i,
+          /Start accepting payments/i,
         ),
       ).toBeInTheDocument();
     });
@@ -473,6 +473,62 @@ describe("AnalyticsInsights", () => {
       expect(btn).toHaveAttribute("aria-expanded");
       expect(btn).toHaveAttribute("aria-haspopup", "listbox");
       expect(btn).toHaveAttribute("aria-label", "Select time range");
+    });
+  });
+
+  describe("Empty state – no data case", () => {
+    it("renders EmptyState when kpis prop is an empty array", async () => {
+      render(<AnalyticsInsights kpis={[]} />);
+
+      await waitFor(() => {
+        expect(
+          screen.getByText("No analytics data yet"),
+        ).toBeInTheDocument();
+      });
+
+      expect(
+        screen.getByText(
+          /Start accepting payments to see your transaction metrics/i,
+        ),
+      ).toBeInTheDocument();
+    });
+
+    it("does not render KPI cards when kpis is empty", async () => {
+      render(<AnalyticsInsights kpis={[]} />);
+
+      await waitFor(() => {
+        expect(
+          screen.getByText(/No analytics data/i),
+        ).toBeInTheDocument();
+      });
+
+      expect(screen.queryByText("Total Volume")).not.toBeInTheDocument();
+      expect(screen.queryByText("Avg. Transaction")).not.toBeInTheDocument();
+    });
+
+    it("empty state is visually distinct from loading state (uses role=status)", async () => {
+      render(<AnalyticsInsights kpis={[]} />);
+
+      await waitFor(() => {
+        const emptyEl = screen.getByRole("status");
+        expect(emptyEl).toBeInTheDocument();
+        expect(emptyEl).toHaveAttribute("aria-live", "polite");
+      });
+    });
+
+    it("still renders the header and controls even when showing empty state", async () => {
+      render(<AnalyticsInsights kpis={[]} />);
+
+      await waitFor(() => {
+        expect(
+          screen.getByText("Analytics & Insights"),
+        ).toBeInTheDocument();
+      });
+
+      expect(
+        screen.getByText("Track your payment activity and performance"),
+      ).toBeInTheDocument();
+      expect(screen.getByLabelText("Customize metrics")).toBeInTheDocument();
     });
   });
 });
