@@ -2,7 +2,7 @@
 
 import React from "react";
 import Link from "next/link";
-import { TrendingUp, TrendingDown } from "lucide-react";
+import { TrendingUp, TrendingDown, BarChart3 } from "lucide-react";
 import { AccountSummaryCardProps } from './summary-data';
 import dynamic from 'next/dynamic';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -43,6 +43,10 @@ export default function AccountSummaryCard({
     typeof value === 'number'
       ? formatCurrency(value, currency, decimals)
       : value;
+
+  const isZeroBalance =
+    typeof value === 'number' && value === 0 &&
+    (chartData.length === 0 || chartData.every((d) => d.value === 0));
 
   const href =
     filterQuery !== undefined
@@ -86,12 +90,24 @@ export default function AccountSummaryCard({
         </div>
       </div>
 
-      <RechartsMiniBarChart
-        data={chartData}
-        color={chartColor}
-        ariaLabel={`${title} mini chart`}
-        height="3rem"
-      />
+      {isZeroBalance ? (
+        <div
+          className="flex items-center justify-center gap-2"
+          style={{ height: '3rem' }}
+          aria-label="No activity yet"
+          role="img"
+        >
+          <BarChart3 className="w-5 h-5 text-zinc-300 dark:text-zinc-600 shrink-0" aria-hidden="true" />
+          <span className="text-xs text-zinc-400 dark:text-zinc-500">No activity yet</span>
+        </div>
+      ) : (
+        <RechartsMiniBarChart
+          data={chartData}
+          color={chartColor}
+          ariaLabel={`${title} mini chart`}
+          height="3rem"
+        />
+      )}
     </>
   );
 
