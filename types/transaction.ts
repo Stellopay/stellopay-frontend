@@ -34,6 +34,10 @@ export interface TransactionFilters {
   /** Ordered list of sort criteria. The first entry is the primary sort,
    *  the second (if present) is the secondary (tiebreaker) sort, etc. */
   sortConfigs: SortConfig[];
+  /** Optional minimum transaction amount filter (absolute value). */
+  minAmount?: number;
+  /** Optional maximum transaction amount filter (absolute value). */
+  maxAmount?: number;
 }
 
 export interface TransactionProps {

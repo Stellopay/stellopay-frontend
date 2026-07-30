@@ -325,6 +325,8 @@ function VerifyEmailForm() {
             : "You can request a new verification code."}
         </p>
 
+        {!token ? (
+          <>
             {/* OTP input */}
             <fieldset className="mt-5 mb-2">
               <legend className="sr-only">Verification code</legend>
@@ -412,6 +414,8 @@ function VerifyEmailForm() {
               Go Back
             </button>
           </>
+        ) : (
+          renderTokenContent()
         )}
       </div>
     </div>

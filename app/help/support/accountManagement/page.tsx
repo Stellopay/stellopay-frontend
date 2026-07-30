@@ -2,11 +2,21 @@
 import { Search, Check } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import SupportTabs from "@/components/common/support-tabs";
+import { WasThisHelpful } from "@/components/common/was-this-helpful";
 
 export default function AccountManagement() {
   const [activeTab, setActiveTab] = useState("Client FAQ");
+
+  /**
+   * Switches the parent SupportTabs to the "Contact Support" tab.
+   * Used by the WasThisHelpful widget when the user says the article
+   * was not helpful.
+   */
+  const handleContactSupport = useCallback(() => {
+    setActiveTab("Contact Support");
+  }, []);
 
   return (
     <>
@@ -221,6 +231,12 @@ export default function AccountManagement() {
                           </p>
                         </div>
                       </div>
+
+                      {/* Was this helpful? feedback widget */}
+                      <WasThisHelpful
+                        articleId="password-security"
+                        onContactSupport={handleContactSupport}
+                      />
                     </div>
                   </TabsContent>
 
