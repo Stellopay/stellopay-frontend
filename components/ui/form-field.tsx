@@ -39,7 +39,9 @@ interface FormFieldBaseProps {
 interface FormFieldInputProps<
   TFieldValues extends FieldValues = FieldValues,
   TName extends FieldPath<TFieldValues> = FieldPath<TFieldValues>,
-> extends FormFieldBaseProps,
+>
+  extends
+    FormFieldBaseProps,
     Omit<ControllerProps<TFieldValues, TName>, "render"> {
   type?: "text" | "email" | "password" | "number" | "tel" | "url";
   autoComplete?: string;
@@ -139,7 +141,9 @@ export function FormFieldInput<
 interface FormFieldTextareaProps<
   TFieldValues extends FieldValues = FieldValues,
   TName extends FieldPath<TFieldValues> = FieldPath<TFieldValues>,
-> extends FormFieldBaseProps,
+>
+  extends
+    FormFieldBaseProps,
     Omit<ControllerProps<TFieldValues, TName>, "render"> {
   rows?: number;
   resize?: boolean;
@@ -229,7 +233,9 @@ export function FormFieldTextarea<
 interface FormFieldCheckboxProps<
   TFieldValues extends FieldValues = FieldValues,
   TName extends FieldPath<TFieldValues> = FieldPath<TFieldValues>,
-> extends FormFieldBaseProps,
+>
+  extends
+    FormFieldBaseProps,
     Omit<ControllerProps<TFieldValues, TName>, "render"> {
   indeterminate?: boolean;
 }
@@ -431,6 +437,93 @@ export function FormFieldPassword<
         );
       }}
     />
+  );
+}
+
+interface PasswordFieldWrapperProps {
+  fieldId: string;
+  showPassword: boolean;
+  setShowPassword: React.Dispatch<React.SetStateAction<boolean>>;
+  disabled?: boolean;
+  placeholder?: string;
+  autoComplete?: string;
+  inputMode?: React.ComponentProps<"input">["inputMode"];
+  hasError: boolean;
+  success?: boolean;
+  warning?: boolean;
+  loading?: boolean;
+  label?: React.ReactNode;
+  description?: string;
+  descriptionId?: string;
+  errorId?: string;
+  successMessage?: string;
+  warningMessage?: string;
+  field: Record<string, unknown>;
+  controllerProps: Record<string, unknown>;
+}
+
+function PasswordFieldWrapper({
+  fieldId,
+  showPassword,
+  setShowPassword,
+  disabled,
+  placeholder,
+  autoComplete,
+  inputMode,
+  hasError,
+  success,
+  warning,
+  loading,
+  label,
+  description,
+  descriptionId,
+  errorId,
+  field,
+  controllerProps,
+}: PasswordFieldWrapperProps) {
+  return (
+    <div className="relative">
+      <Input
+        id={fieldId}
+        type={showPassword ? "text" : "password"}
+        placeholder={placeholder}
+        disabled={disabled}
+        autoComplete={autoComplete}
+        inputMode={inputMode}
+        error={hasError}
+        success={success}
+        warning={warning}
+        loading={loading}
+        labelId={label ? `${fieldId}-label` : undefined}
+        descriptionId={description ? descriptionId : undefined}
+        errorId={errorId}
+        className="pr-10"
+        {...field}
+        onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+          (field.onChange as (e: React.ChangeEvent<HTMLInputElement>) => void)(e);
+          const props = controllerProps as {
+            onChange?: (e: React.ChangeEvent<HTMLInputElement>) => void;
+          };
+          if (props.onChange) {
+            props.onChange(e);
+          }
+        }}
+      />
+      <button
+        type="button"
+        onClick={() => setShowPassword(!showPassword)}
+        disabled={disabled}
+        className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 rounded-sm"
+        aria-label={showPassword ? "Hide password" : "Show password"}
+        aria-pressed={showPassword}
+      >
+        {showPassword ? (
+          <EyeOff className="h-4 w-4" />
+        ) : (
+          <Eye className="h-4 w-4" />
+        )}
+      </button>
+    </div>
   );
 }
 

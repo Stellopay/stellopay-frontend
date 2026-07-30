@@ -105,11 +105,21 @@ describe("AuthFormField Component", () => {
 
     expect(passwordInput).toHaveAttribute("type", "password");
     expect(toggleButton).toBeInTheDocument();
+    expect(toggleButton).toHaveAttribute("aria-pressed", "false");
 
     await userEvent.click(toggleButton);
 
     expect(passwordInput).toHaveAttribute("type", "text");
-    expect(screen.getByRole("button", { name: /Hide password/i })).toBeInTheDocument();
+    const hideButton = screen.getByRole("button", { name: /Hide password/i });
+    expect(hideButton).toBeInTheDocument();
+    expect(hideButton).toHaveAttribute("aria-pressed", "true");
+
+    await userEvent.click(hideButton);
+
+    expect(passwordInput).toHaveAttribute("type", "password");
+    const showButton = screen.getByRole("button", { name: /Show password/i });
+    expect(showButton).toBeInTheDocument();
+    expect(showButton).toHaveAttribute("aria-pressed", "false");
   });
 
   it("handles user typing and react-hook-form value binding", async () => {
@@ -133,7 +143,7 @@ describe("AuthFormField Component", () => {
           email: "stello@example.com",
           password: "Secret123!",
         },
-        expect.anything()
+        expect.anything(),
       );
     });
   });

@@ -556,6 +556,15 @@ When testing API utilities that map to UI elements, annotate accessibility requi
 
   Runs local end-to-end tests.
 
+- **Keyboard-Only E2E Tests (Playwright):**
+
+  ```bash
+  npm run test:e2e -- tests/auth-signup-keyboard.spec.ts
+  ```
+
+  Runs end-to-end keyboard-navigation tests for the sign-up form using only
+  Tab, Shift+Tab, Enter, and Space — no mouse interactions.
+
 - **Type Checking:**
   ```bash
   npm run type-check
@@ -648,6 +657,53 @@ When the `playwright` CI job fails because of a visual diff:
 4. Open a PR — CI will compare future runs against the committed baselines automatically.
 
 ---
+
+## Keyboard Navigation & Accessibility Expectations
+
+Every interactive element must be fully operable using only the keyboard
+(Tab, Shift+Tab, Enter, Space) and expose correct ARIA attributes so
+assistive technologies can interpret its state and purpose.
+
+### Keyboard Navigation Guidance
+
+- **Tab order** must follow the visual reading order — top-to-bottom,
+  left-to-right in LTR locales. Use the browser's natural DOM order;
+  avoid positive `tabIndex` values.
+- **No focus traps**: focus must never become stuck on a single element.
+  The user must always be able to Tab forward, Shift+Tab backward, or
+  dismiss (Escape) any overlay.
+- **Visible focus indicators**: every focusable element must show a
+  visible focus ring via `focus-visible:ring-*` (minimum 3∶1 contrast
+  ratio per WCAG 2.1 SC 2.4.7). Never use `outline: none` without
+  providing a replacement `:focus-visible` style.
+- **Aria states**: toggle buttons must use `aria-pressed`; expandable
+  regions must use `aria-expanded`; active nav links must use
+  `aria-current="page"`.
+
+### Keyboard-Only E2E Test Requirements
+
+New form components and interactive flows must include keyboard-only
+Playwright tests that:
+
+- Use only Tab / Shift+Tab for navigation and Enter / Space for activation.
+- Verify every interactive element receives focus in the correct order.
+- Confirm that focus never becomes trapped.
+- Verify that required fields are reachable.
+- Validate that toggles and controls update their ARIA states correctly
+  (e.g., `aria-pressed`, `aria-expanded`).
+- Cover the full form-completion flow from fill to submit using the
+  keyboard exclusively.
+- Check success and error states are reachable via keyboard focus.
+- Cover edge cases: empty submission, validation errors, long input values.
+- Test across breakpoints: `sm` (640px), `md` (768px), `lg` (1024px), `xl` (1280px).
+- Include dark-mode coverage when applicable.
+
+### Running Keyboard Tests
+
+```bash
+# Sign-up form keyboard-only tests
+npm run test:e2e -- tests/auth-signup-keyboard.spec.ts
+```
 
 ## Dark-Mode Screenshot Audit
 
