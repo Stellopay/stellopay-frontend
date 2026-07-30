@@ -4,7 +4,9 @@ import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { useTheme } from "@/context/theme-context";
+import { useWallet, formatAddress } from "@/context/wallet-context";
 import NetworkSwitcher from "@/components/common/network-switcher";
+import { Loader2, AlertCircle } from "lucide-react";
 import { safeStorage } from "@/utils/safeStorage";
 
 const navLinks = [
@@ -30,8 +32,11 @@ const FOCUSABLE_SELECTOR = [
 export default function Navbar() {
   const pathname = usePathname() || "/";
   const { theme, resolvedTheme, toggleTheme } = useTheme();
+  const wallet = useWallet();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [hasHydratedMobileNav, setHasHydratedMobileNav] = useState(false);
+  const [isConnecting, setIsConnecting] = useState(false);
+  const [connectError, setConnectError] = useState<string | null>(null);
 
   /** Ref on the hamburger/close button — focus returns here when drawer closes. */
   const menuButtonRef = useRef<HTMLButtonElement>(null);
@@ -107,9 +112,24 @@ export default function Navbar() {
     prevMobileOpen.current = mobileOpen;
   }, [mobileOpen]);
 
-  const handleConnect = () => {
-    // TODO: integrate wallet modal/connector here.
-    alert("Connect Wallet clicked (stub)");
+  const handleConnect = async () => {
+    if (wallet.isConnected) {
+      wallet.disconnect();
+      setConnectError(null);
+      return;
+    }
+    setConnectError(null);
+    setIsConnecting(true);
+    try {
+      await new Promise((r) => setTimeout(r, 150));
+      await wallet.connect();
+    } catch (err) {
+      setConnectError(
+        err instanceof Error ? err.message : "Failed to connect wallet",
+      );
+    } finally {
+      setIsConnecting(false);
+    }
   };
 
   return (
@@ -201,16 +221,42 @@ export default function Navbar() {
 
               <NetworkSwitcher variant="landing" />
 
-              <button
-                onClick={handleConnect}
-                className={`hidden xl:inline-flex items-center px-5 py-2 rounded-full font-medium transition-shadow shadow-sm ${
-                  resolvedTheme === "dark"
-                    ? "bg-white text-black hover:opacity-95"
-                    : "bg-black text-white hover:opacity-95"
-                }`}
-              >
-                Connect Wallet
-              </button>
+              <div className="relative hidden xl:inline-flex flex-col items-center">
+                <button
+                  onClick={handleConnect}
+                  disabled={isConnecting}
+                  aria-label={
+                    wallet.isConnected
+                      ? `Disconnect ${formatAddress(wallet.address)}`
+                      : "Connect wallet"
+                  }
+                  className={`inline-flex items-center gap-2 px-5 py-2 rounded-full font-medium transition-shadow shadow-sm disabled:opacity-50 disabled:cursor-not-allowed ${
+                    resolvedTheme === "dark"
+                      ? "bg-white text-black hover:opacity-95"
+                      : "bg-black text-white hover:opacity-95"
+                  }`}
+                >
+                  {isConnecting ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" aria-hidden="true" />
+                      <span>Connecting...</span>
+                    </>
+                  ) : wallet.isConnected ? (
+                    formatAddress(wallet.address)
+                  ) : (
+                    "Connect Wallet"
+                  )}
+                </button>
+                {connectError && (
+                  <span
+                    role="alert"
+                    className="absolute top-full mt-1.5 flex items-center gap-1 text-xs text-red-500 dark:text-red-400 whitespace-nowrap"
+                  >
+                    <AlertCircle className="w-3 h-3 shrink-0" aria-hidden="true" />
+                    {connectError}
+                  </span>
+                )}
+              </div>
 
               <button
                 ref={menuButtonRef}
@@ -281,8 +327,45 @@ export default function Navbar() {
                   {l.label}
                 </Link>
               ))}
-              <div className="pt-4 border-t border-gray-100 dark:border-white/5 flex justify-center">
+              <div className="pt-4 border-t border-gray-100 dark:border-white/5 flex flex-col items-center gap-3">
                 <NetworkSwitcher variant="landing" />
+                <button
+                  onClick={() => {
+                    setMobileOpen(false);
+                    handleConnect();
+                  }}
+                  disabled={isConnecting}
+                  aria-label={
+                    wallet.isConnected
+                      ? `Disconnect ${formatAddress(wallet.address)}`
+                      : "Connect wallet"
+                  }
+                  className={`inline-flex items-center gap-2 px-5 py-2 rounded-full font-medium transition-shadow shadow-sm disabled:opacity-50 disabled:cursor-not-allowed ${
+                    resolvedTheme === "dark"
+                      ? "bg-white text-black hover:opacity-95"
+                      : "bg-black text-white hover:opacity-95"
+                  }`}
+                >
+                  {isConnecting ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" aria-hidden="true" />
+                      <span>Connecting...</span>
+                    </>
+                  ) : wallet.isConnected ? (
+                    formatAddress(wallet.address)
+                  ) : (
+                    "Connect Wallet"
+                  )}
+                </button>
+                {connectError && (
+                  <span
+                    role="alert"
+                    className="flex items-center gap-1 text-xs text-red-500 dark:text-red-400"
+                  >
+                    <AlertCircle className="w-3 h-3 shrink-0" aria-hidden="true" />
+                    {connectError}
+                  </span>
+                )}
               </div>
             </div>
           </div>
