@@ -85,6 +85,16 @@
     --leading-caption-sm: 1.43;
     --tracking-caption-sm: 0.01em;
 
+ design-system/mini-bar-chart-dark-tokens
+    /* Chart tokens — used by Recharts components */
+    --chart-1: #4f6fff;
+    --chart-2: #10b981;
+    --chart-3: #f59e0b;
+    --chart-4: #8b5cf6;
+    --chart-5: #ef4444;
+    --chart-tooltip-bg: #ffffff;
+    --chart-tooltip-text: #09090b;
+
     /* Chart colors — light mode
      * Used by RechartsMiniBarChart and other chart components.
      * Each token maps to a semantic chart color that adapts in dark mode.
@@ -93,15 +103,27 @@
     --chart-green: #10B981;
     --chart-amber: #F59E0B;
     --chart-tooltip-bg: #ffffff;
+ main
     --chart-tooltip-border: #e4e4e7;
   }
 
   .dark {
+ design-system/mini-bar-chart-dark-tokens
+    --chart-1: #6b8aff;
+    --chart-2: #34d399;
+    --chart-3: #fbbf24;
+    --chart-4: #a78bfa;
+    --chart-5: #f87171;
+    --chart-tooltip-bg: #18181b;
+    --chart-tooltip-text: #fafafa;
+    --chart-tooltip-border: #27272a;
+
     /* Elevation / shadow scale (dark) — deeper shadows for contrast */
     --elevation-1: 0 1px 3px 0 rgb(0 0 0 / 0.4), 0 1px 2px -1px rgb(0 0 0 / 0.3);
     --elevation-2: 0 4px 6px -1px rgb(0 0 0 / 0.5), 0 2px 4px -2px rgb(0 0 0 / 0.4);
     --elevation-3: 0 10px 15px -3px rgb(0 0 0 / 0.55), 0 4px 6px -4px rgb(0 0 0 / 0.45);
     --elevation-4: 0 20px 25px -5px rgb(0 0 0 / 0.65), 0 8px 10px -6px rgb(0 0 0 / 0.5);
+ main
   }
 }
 

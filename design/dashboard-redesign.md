@@ -244,112 +244,109 @@ The `resolveVariants(prefersReduced, delay?)` helper returns `fadeOnly` (zero-du
 
 ### Accessibility (WCAG 2.1 AA)
 
-| File | Purpose |
-|------|---------|
-| `components/transactions/advanced-filter-panel.tsx` | Togglable drawer with status radio, min/max amount inputs, counterparty text input, Apply/Clear All buttons |
-| `components/transactions/filter-chips.tsx` | Removable chips showing active filter state with individual remove and bulk clear |
-| `components/transactions/transactions-filters.tsx` | Updated with Advanced filter toggle button (indicator dot when active) |
-| `components/transactions/transactions-content.tsx` | Orchestrates panel open/close, draft state, apply/commit, chip removal, and passes values to API |
+ design-system/mini-bar-chart-dark-tokens
+---
 
-### State Model
+## RechartsMiniBarChart — Theme-Aware Design Tokens (#821)
 
-- Draft state lives in `transactions-content.tsx` — panel inputs modify draft values; committed filters flow through `TransactionFilters` (which gained `minAmount`, `maxAmount`, and `counterparty` fields).
-- The API layer (`lib/api/transactions.ts` → `utils/transactionUtils.ts`) applies `counterparty` filtering as a case-insensitive partial match on the transaction address field.
+### Overview
+`components/dashboard/RechartsMiniBarChart.tsx` previously passed hardcoded Tailwind class strings (e.g. `"bg-blue-500"`) to Recharts' `fill` prop, which Recharts does not interpret as a valid CSS color — effectively leaving bars unfilled. The tooltip referenced an undefined `--chart-tooltip-bg` variable that silently defaulted to `transparent`.
 
-### Accessibility Notes (WCAG 2.1 AA)
+The component now reads colour values from the CSS custom properties defined in `app/globals.css`, so bar and tooltip colours respond to theme changes (light/dark) without a page reload.
 
-#### Advanced Filter Panel (`advanced-filter-panel.tsx`)
+### What changed
 
-- **Role & Label**: Panel uses `role="dialog"` with `aria-modal="true"` and `aria-label="Advanced transaction filters"`.
-- **Focus Trap**: When the panel opens, focus is moved to the first focusable element after a 150ms animation delay. Tab/Shift+Tab cycles within the panel. Focus is restored to the triggering element on close.
-- **Escape to Close**: Pressing Escape closes the panel and returns focus.
-- **Backdrop Click**: Clicking the backdrop overlay closes the panel.
-- **Body Scroll Lock**: `document.body.style.overflow = "hidden"` is set while the panel is open; restored on close/unmount.
-- **Validation Errors**: Amount range validation uses `role="alert"` with `aria-live="polite"` for non-intrusive screen reader announcement.
-- **Contrast**: 
-  - Status radio labels: white text on dark background (#160f17) — passes AA.
-  - Selected status: `border-[#04842E]` (green) on `bg-[#04842E]/10` background.
-  - Inputs: white text on `bg-[#1A1A1A]` with `border-[#2D2D2D]`.
-  - Apply button: white text on `bg-[#04842E]` (green) background.
-  - Clear All button: gray-400 text on transparent, darkens on hover.
-- **Keyboard Navigation**: All buttons, inputs, and radio controls are fully keyboard-accessible with visible `focus-visible:ring-2` focus indicators.
-- **Disabled State**: When `disabled={true}`, all inputs and buttons receive `disabled` attribute, preventing interaction during loading states.
+| File | Change |
+|------|--------|
+| `app/globals.css` | Added `--chart-1` through `--chart-5` and `--chart-tooltip-*` tokens in both `:root` (light) and `.dark` (dark) blocks |
+| `components/dashboard/RechartsMiniBarChart.tsx` | Added `"use client"`; introduced `cssVar` prop for CSS variable names; added empty-state rendering; wired tooltip to `--chart-tooltip-bg/text/border` |
+| `components/dashboard/summary-data.tsx` | Changed `chartColor` values from `"bg-blue-500"` / `"bg-emerald-500"` / `"bg-amber-500"` to `"--chart-1"` / `"--chart-2"` / `"--chart-3"` |
+| `components/dashboard/account-summary-card.tsx` | Changed prop from `color={chartColor}` to `cssVar={chartColor}` |
+| `components/dashboard/RechartsMiniBarChart.test.tsx` | New file — 22 tests covering render states, props, edge cases, tooltip CSS variables, and aria |
 
-#### Filter Chips (`filter-chips.tsx`)
+### Design tokens added to `app/globals.css`
 
-- **Region Role**: Chips container uses `role="region"` with `aria-label="Active filters"` (customizable).
-- **Remove Buttons**: Each chip's remove button has a descriptive `aria-label` (e.g., "Remove Status filter: Payment Sent").
-- **Clear All**: When multiple chips are present, a "Clear all" button with `aria-label="Clear all active filters"` is shown.
-- **Focus Indicators**: Remove buttons and Clear all link use `focus-visible:ring-2` outlines.
+```css
+:root {
+  --chart-1: #4f6fff;           /* blue — first data series */
+  --chart-2: #10b981;           /* emerald — second data series */
+  --chart-3: #f59e0b;           /* amber — third data series */
+  --chart-4: #8b5cf6;           /* purple — fourth data series */
+  --chart-5: #ef4444;           /* red — fifth data series (use sparingly) */
+  --chart-tooltip-bg: #ffffff;
+  --chart-tooltip-text: #09090b;
+  --chart-tooltip-border: #e4e4e7;
+}
 
-#### Responsive Behavior
+.dark {
+  --chart-1: #6b8aff;
+  --chart-2: #34d399;
+  --chart-3: #fbbf24;
+  --chart-4: #a78bfa;
+  --chart-5: #f87171;
+  --chart-tooltip-bg: #18181b;
+  --chart-tooltip-text: #fafafa;
+  --chart-tooltip-border: #27272a;
+}
+```
 
-- **Panel Width**: Full width on mobile, `sm:w-[420px]` on small screens, `lg:w-[480px]` on large screens.
-- **Amount Range**: Two-column grid (`grid-cols-2`) adapts well at all breakpoints.
-- **Advanced Toggle Button**: Label text is hidden on mobile (`hidden sm:inline`) to conserve space; the sliders icon remains visible.
-- **Chips**: Use `flex-wrap` for natural wrapping on narrow viewports.
+### How it works
 
-## Saved Views Feature (Added: feature/transactions-saved-views)
+The `fill` attribute on Recharts' `<Bar>` component is set to `var(--chart-1)` (or whichever variable the consumer passes). Since SVG `fill` supports CSS custom properties, the browser re-evaluates the variable whenever the `.dark` class toggles on `<html>`, and the chart repaints immediately without a React re-render.
 
-The Saved Views feature lets users name and persist filter/sort combinations so they can recall them across visits without rebuilding state by hand. Views are stored per-account in localStorage via the existing `safeStorage` utility.
+### CSS variable reference (live cascade)
 
-### Components
+| CSS variable | Used in | Light value | Dark value | WCAG 2.1 AA contrast |
+|---|---|---|---|---|
+| `--chart-tooltip-bg` | Tooltip background | `#ffffff` | `#18181b` | — |
+| `--chart-tooltip-text` | Tooltip text | `#09090b` | `#fafafa` | >15:1 (light), ~14.5:1 (dark) |
+| `--chart-tooltip-border` | Tooltip border | `#e4e4e7` | `#27272a` | >3:1 non-text |
 
-| File | Purpose |
-|------|---------|
-| `components/transactions/transactions-filters.tsx` | Updated with "Save" button and "Saved Views" dropdown (load, rename, delete) |
-| `components/transactions/transactions-content.tsx` | Manages saved views state, CRUD operations, and localStorage persistence |
-| `types/transaction.ts` | Added `SavedView` interface and extended `TransactionsFiltersProps` |
+### Accessibility annotations (WCAG 2.1 AA)
 
-### State Model
+- **Contrast**: Tooltip text on background exceeds 4.5:1 in both modes (15:1 light, 14.5:1 dark). Bar colours use the chart tokens which provide sufficient contrast against both the light (`#fff`) and dark (`#111`) card surfaces.
+- **Keyboard**: The chart is purely decorative/illustrative — it receives no interactive focus. Navigation proceeds to adjacent interactive elements (buttons, links) with no interruption.
+- **ARIA**: The wrapper `div` has `role="img"` and `aria-label` (customisable via `ariaLabel` prop, defaults to `"Mini bar chart"`). Empty state renders `aria-label="No chart data available"` on the placeholder. The empty-state text uses `text-muted-foreground` for adequate contrast.
 
-- A `SavedView` captures the full `TransactionFilters` state (type filter, sort configs, advanced filters, date range, search query) plus a user-defined name.
-- Saved views are stored under `stellopay.transactions-saved-views.{walletAddress}` (or `.default` when no wallet is connected).
-- Maximum 10 saved views per account; names are limited to 50 characters.
-- A `hasHydratedViews` flag prevents overwriting localStorage with empty defaults before the stored data is restored on mount.
+### Responsive behaviour
 
-### User Interactions
+- The chart container uses `height` as a CSS `style` prop (default `3rem`) and `width: 100%` via `ResponsiveContainer`. No breakpoint-specific overrides are needed — the chart reflows with its parent container.
+- At `sm: 640px`, `md: 768px`, `lg: 1024px`, and `xl: 1280px`, the card grid that hosts the chart uses the existing `grid-cols-1 md:grid-cols-2 lg:grid-cols-3` responsive layout; the mini chart scales down fluidly inside each card.
 
-| Action | Trigger | Behavior |
-|--------|---------|----------|
-| **Save** | Click "Save" button | Prompts for a name via `window.prompt`, then stores the current filter/sort state |
-| **Load** | Click a saved view name | Replaces all active filters and sort configs with the stored preset |
-| **Rename** | Click pencil icon | Inline text input appears; Enter or blur commits, Escape cancels |
-| **Delete** | Click trash icon | Confirmation dialog appears before removal |
+### Testing
 
-### Accessibility Notes (WCAG 2.1 AA)
+```bash
+# Unit tests (22 tests covering render, props, edge cases, tooltip, aria)
+npm test -- --run components/dashboard/RechartsMiniBarChart.test.tsx
+```
 
-#### Save View Button
+| Test group | Tests | Covers |
+|---|---|---|
+| Basic rendering | 3 | Renders chart, empty state, default fill |
+| cssVar prop | 2 | Custom CSS variable, cssVar overrides color |
+| color prop | 1 | Static fill fallback |
+| height prop | 2 | Default 3rem, custom height |
+| ariaLabel prop | 3 | Default label, custom label, role="img" |
+| Data transformation | 2 | Index labels, zero margins |
+| Bar props | 2 | dataKey, radius |
+| XAxis props | 1 | Data key and hidden |
+| Tooltip props | 3 | cursor, CSS variable references, percentage formatter |
+| Edge cases | 4 | Single point, zero value, empty array, empty state aria |
 
-- **Label**: `aria-label="Save current view"` on the button.
-- **Visibility**: Hidden when 10 views already exist (max reached) or when the callback is not provided.
-- **Contrast**: Gray-400 text on dark background; brightens to white on hover — passes AA.
+### Files changed
 
-#### Saved Views Dropdown
+| File | Status |
+|------|--------|
+| `app/globals.css` | Modified — added chart token block |
+| `components/dashboard/RechartsMiniBarChart.tsx` | Modified — CSS variable fill, tooltip tokens, empty state |
+| `components/dashboard/summary-data.tsx` | Modified — updated chartColor values |
+| `components/dashboard/account-summary-card.tsx` | Modified — `cssVar` prop |
+| `components/dashboard/RechartsMiniBarChart.test.tsx` | New |
+| `design/dashboard-redesign.md` | This section |
 
-- **Label**: `aria-label="Saved views"` on the dropdown trigger.
-- **Count Badge**: Shows the number of saved views for quick scanning.
-- **Items**: Each saved view is wrapped in `role="group"` with `aria-label="Saved view: {name}"`.
-- **Load Button**: Descriptive `aria-label="Load saved view: {name}"`.
-- **Rename Button**: `aria-label="Rename saved view: {name}"`; inline input has `aria-label="Rename saved view"` and `focus-visible:ring-2` for keyboard focus indication.
-- **Delete Button**: `aria-label="Delete saved view: {name}"` with a `window.confirm` guard.
-- **Keyboard Navigation**: All interactive elements are fully keyboard-accessible with visible focus rings. Enter commits rename, Escape cancels.
 
-#### Action Button Visibility
-
-- On desktop (`sm`+), rename/delete buttons appear on row hover/focus via `sm:group-hover:opacity-100` / `sm:group-focus-within:opacity-100`.
-- On mobile/touch devices, action buttons are always visible (`opacity-100`) for discoverability.
-
-#### Contrast
-
-- Saved view names: white text on `#160f17` dark background — passes AA.
-- Action buttons: gray-500 to white on hover; delete button to red-400 on hover.
-- Rename input: white text on `bg-[#1A1A1A]` with `border-[#2D2D2D]` — consistent with the search input.
-- Focus rings: `focus-visible:ring-[#04842E]` (green) for interactive elements, `focus-visible:ring-red-500` for the delete button.
-
-#### Responsive Behavior
-
-- Save button label text is hidden on mobile (`hidden sm:inline`); the bookmark icon remains visible.
-- Saved Views dropdown label shows the view count badge; the "Views" label is hidden on mobile.
-- Inline rename input adapts to the dropdown width with `flex-1`.
-- Action buttons use `flex` layout that adapts naturally to narrow viewports.
+- **Reduced Motion**: All motion-enabled components check `useReducedMotion()` and disable non-essential movement when the OS-level `prefers-reduced-motion: reduce` is set.
+- **No Content Loss**: Hidden decorative elements (gradient orbs, rotating cards) remain visually hidden without animation; all content stays accessible and functional.
+- **Focus Management**: Sidebar open/close preserves focus order and returns focus to `#main-content` on close (handled in `AppLayout`).
+- **Contrast**: All transition elements use the existing color token system with `dark:` variants for sufficient contrast.
+ main
