@@ -127,7 +127,7 @@ const FAQSection = dynamic(() => import("@/components/landing/faq-section"), {
  */
 export default function LandingPage() {
   return (
-    <div>
+    <div className="landing-print-root">
       <Navbar />
       <Hero />
       <section className="bg-[#F5F3FF] dark:bg-[#0F0A14] py-16 sm:py-20 lg:py-24 px-4">
