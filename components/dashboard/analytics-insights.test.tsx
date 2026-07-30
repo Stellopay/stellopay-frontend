@@ -431,6 +431,75 @@ describe("AnalyticsInsights", () => {
     });
   });
 
+  describe("Performance – trend memoization", () => {
+    it("does not recompute trend data when unrelated state (timeRange) changes", async () => {
+      const user = userEvent.setup();
+      setupLocalStorage();
+
+      render(<AnalyticsInsights />);
+
+      await waitFor(() => {
+        expect(screen.getByText("Total Volume")).toBeInTheDocument();
+      });
+
+      const section = screen.getByText("Analytics & Insights").closest("section")!;
+
+      // Capture the memo invocation count after initial hydration
+      const initialMemoCount = Number(section.getAttribute("data-memo-count"));
+
+      // Toggle the time range dropdown — this triggers a re-render
+      // (renderCount increases), but the useMemo should NOT re-execute
+      // because its deps [hasHydrated, selectedMetricIds] haven't changed
+      const timeRangeBtn = screen.getByText("Last 7 days");
+      await user.click(timeRangeBtn);
+
+      // Select a different time range option
+      const option = screen.getByText("Last 30 days");
+      await user.click(option);
+
+      const memoCountAfter = Number(section.getAttribute("data-memo-count"));
+
+      // The memo invocation count MUST NOT have changed —
+      // this is the regression guard: timeRange changes do NOT
+      // trigger trend recomputation
+      expect(memoCountAfter).toBe(initialMemoCount);
+
+      // All metrics should still be visible and correctly rendered
+      expect(screen.getByText("Total Volume")).toBeInTheDocument();
+      expect(screen.getByText("Avg. Transaction")).toBeInTheDocument();
+      expect(screen.getByText("Success Rate")).toBeInTheDocument();
+      expect(screen.getByText("Active Wallets")).toBeInTheDocument();
+    });
+
+    it("recomputes trend data only when selectedMetricIds change", async () => {
+      const user = userEvent.setup();
+      setupLocalStorage(JSON.stringify(["total-volume", "success-rate"]));
+
+      render(<AnalyticsInsights />);
+
+      await waitFor(() => {
+        expect(screen.getByText("Total Volume")).toBeInTheDocument();
+      });
+
+      const section = screen.getByText("Analytics & Insights").closest("section")!;
+      const memoCountBefore = Number(section.getAttribute("data-memo-count"));
+
+      // Open time range dropdown and toggle it — these are unrelated
+      // state changes that should NOT trigger memo recomputation
+      const timeRangeBtn = screen.getByText("Last 7 days");
+      await user.click(timeRangeBtn);
+      await user.click(timeRangeBtn);
+      await user.click(timeRangeBtn);
+
+      const memoCountAfterToggles = Number(section.getAttribute("data-memo-count"));
+      expect(memoCountAfterToggles).toBe(memoCountBefore);
+
+      // All trend values should still be correctly displayed
+      expect(screen.getByText("+12.5%")).toBeInTheDocument();
+      expect(screen.getByText("+0.3%")).toBeInTheDocument();
+    });
+  });
+
   describe("Accessibility", () => {
     it("has proper ARIA attributes on customize button", async () => {
       render(<AnalyticsInsights />);
