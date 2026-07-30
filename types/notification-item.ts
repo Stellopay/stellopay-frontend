@@ -20,6 +20,15 @@ export type NotificationItem = {
   title: string;
   message: string;
   read: boolean;
+  /**
+   * ISO timestamp for when the notification was created.
+   *
+   * Rendered as relative time ("2h ago", "yesterday") in the panel, with the
+   * precise instant exposed via the `title` and `dateTime` attributes.
+   */
+  timestamp?: string;
+  /** Category used by the panel's filter chips */
+  category?: NotificationCategory | string;
   /** ISO timestamp set when the notification transitions from unread to read */
   readAt?: string;
 };

@@ -802,26 +802,56 @@ The application navbar (`components/common/navbar.tsx`) derives active route sty
   - Color contrast (`bg-primary/10 text-primary`) meets minimum requirements across light/dark modes.
   - Mobile dropdown drawer includes complete `aria-expanded` and `aria-controls` bindings.
 
-## Navbar Active Route Management (#785)
 
-The application navbar (`components/common/navbar.tsx`) derives active route styling from `usePathname()` via `next/navigation`.
+## Notification Timestamps (#1096)
+
+The notification panel (`components/common/notification-panel.tsx`) renders each
+item's `timestamp` as **relative time** rather than a raw or absolute value, so a
+list of notifications stays scannable at a glance.
+
+Formatting is owned by `utils/date-utils.ts` — never format a notification date
+inline in a component.
+
+### Helpers
+
+| Helper | Purpose |
+| --- | --- |
+| `formatRelativeTime(dateLike, { now?, thresholdDays? })` | Short relative label (`"just now"`, `"5m ago"`, `"2h ago"`, `"yesterday"`, `"3d ago"`) |
+| `formatAbsoluteDateTime(dateLike)` | Precise `"Jul 29, 2026, 3:00 PM"` string for tooltips |
+| `toIsoDateTime(dateLike)` | ISO 8601 value for a `<time dateTime>` attribute, or `undefined` |
 
 ### Standards & Guidelines
-- **Single Source of Truth**: Never persist active route state in local component state (`useState`).
-- **In-Page Nav Sync**: Dynamic URL updates from inline links automatically re-render active navbar indicators.
-- **Accessibility (WCAG 2.1 AA)**:
-  - Active navigation links receive `aria-current="page"`.
-  - Color contrast (`bg-primary/10 text-primary`) meets minimum requirements across light/dark modes.
-  - Mobile dropdown drawer includes complete `aria-expanded` and `aria-controls` bindings.
 
-## Navbar Active Route Management (#785)
+- **Threshold**: past `RELATIVE_TIME_THRESHOLD_DAYS` (7), relative time gives way
+  to an absolute `MMM dd, yyyy` date — "47d ago" is noise, not information.
+- **Precision is never lost**: every relative label is rendered inside a `<time>`
+  element carrying the exact instant in both `title` (pointer tooltip) and
+  `dateTime` (machine-readable ISO).
+- **Deterministic tests**: pass the `now` prop (or the `now` option) instead of
+  relying on the system clock. Do not use `formatRelativeTime` without it in a
+  test that asserts on exact output.
+- **Clock skew**: future timestamps render as `"in 5m"` / `"tomorrow"`, never as
+  a negative age.
+- **Invalid input**: `null`, `undefined`, `""` and unparsable strings return `""`
+  and the `<time>` element is omitted entirely rather than rendered empty.
 
-The application navbar (`components/common/navbar.tsx`) derives active route styling from `usePathname()` via `next/navigation`.
+### Accessibility (WCAG 2.1 AA)
 
-### Standards & Guidelines
-- **Single Source of Truth**: Never persist active route state in local component state (`useState`).
-- **In-Page Nav Sync**: Dynamic URL updates from inline links automatically re-render active navbar indicators.
-- **Accessibility (WCAG 2.1 AA)**:
-  - Active navigation links receive `aria-current="page"`.
-  - Color contrast (`bg-primary/10 text-primary`) meets minimum requirements across light/dark modes.
-  - Mobile dropdown drawer includes complete `aria-expanded` and `aria-controls` bindings.
+- The relative label is `aria-hidden`, paired with an `sr-only` span carrying the
+  full absolute date/time. Screen-reader users hear `"Jul 29, 2026, 3:00 PM"`
+  instead of an ambiguous `"2h ago"` (SC 1.3.1).
+- The `title` attribute is a supplement, not the only route to the information —
+  it is never the sole carrier of the timestamp (SC 3.3.2).
+- Timestamp text uses `#A0A0A0` on the `#12121266` item surface, clearing 4.5:1
+  against the panel background (SC 1.4.3).
+- The `<time>` element is inert and outside the roving-tabindex order, so it does
+  not interrupt listbox keyboard navigation (SC 2.1.1).
+
+### Responsive behaviour
+
+- The timestamp sits on the item's title row with `whitespace-nowrap` and
+  `shrink-0`; the title takes `truncate`, so a long title yields to the
+  timestamp rather than wrapping it.
+- Verified at sm 640, md 768, lg 1024 and xl 1280. The panel is
+  `w-full max-w-[400px]`, so below 400px it fills the viewport and the title
+  truncates while the timestamp stays fully visible.
