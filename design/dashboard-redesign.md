@@ -248,3 +248,75 @@ The `resolveVariants(prefersReduced, delay?)` helper returns `fadeOnly` (zero-du
 - **No Content Loss**: Hidden decorative elements (gradient orbs, rotating cards) remain visually hidden without animation; all content stays accessible and functional.
 - **Focus Management**: Sidebar open/close preserves focus order and returns focus to `#main-content` on close (handled in `AppLayout`).
 - **Contrast**: All transition elements use the existing color token system with `dark:` variants for sufficient contrast.
+
+---
+
+## Skeleton Shimmer Token (#758)
+
+### Unified Token Definition
+
+| Token                    | Value           | Location                    | Use Case                           |
+| :----------------------- | :-------------- | :-------------------------- | :--------------------------------- |
+| `--shimmer-duration`     | `2s`            | `app/globals.css` `:root`   | Single cycle of skeleton shimmer   |
+| `--shimmer-easing`       | `ease-in-out`   | `app/globals.css` `:root`   | Natural-feeling shimmer sweep      |
+
+The `skeleton-shimmer` CSS class in `app/globals.css` uses these tokens so all skeleton loading states animate at the same speed:
+
+- `components/ui/skeleton.tsx` — shared base component
+- `components/ui/card-skeleton.tsx` — card loading placeholders
+- `components/ui/table-skeleton.tsx` — table loading placeholders
+
+### Implementation
+
+```css
+@keyframes skeleton-shimmer-sweep {
+  0%   { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
+}
+
+@keyframes skeleton-pulse {
+  0%, 100% { opacity: 1; }
+  50%      { opacity: 0.5; }
+}
+
+.skeleton-shimmer {
+  position: relative;
+  overflow: hidden;
+}
+
+.skeleton-shimmer::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.06) 50%,
+    transparent 100%
+  );
+  animation: skeleton-shimmer-sweep var(--shimmer-duration) var(--shimmer-easing) infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .skeleton-shimmer::after { animation: none; }
+  .skeleton-shimmer { animation: skeleton-pulse 2s ease-in-out infinite; }
+}
+```
+
+### prefers-reduced-motion Support
+
+When the user has `prefers-reduced-motion: reduce` active, the shimmer animation is replaced with a static opacity fallback (`opacity: 0.8`) instead of the sliding gradient. This complies with WCAG 2.1 AA Success Criterion 2.3.3 (Animation from Interactions).
+
+### Accessibility
+
+| Criterion            | Implementation                                                              |
+| :------------------- | :-------------------------------------------------------------------------- |
+| **Perceivable**      | Skeleton placeholders provide a visible loading indicator while content loads |
+| **Reduced Motion**   | `@media (prefers-reduced-motion: reduce)` replaces shimmer with static opacity |
+| **Screen Reader**    | Skeleton containers should carry `aria-busy="true"` and `role="status"`      |
+| **Contrast**         | Shimmer overlay uses `rgb(255 255 255 / 0.05)` — subtle enough to not reduce contrast on the dark backgrounds (`#2D2D2D` / `#3A3A3A`) |
+
+### Responsive Behavior
+
+The `skeleton-shimmer` class uses `position: relative` and `overflow: hidden` on the container, with an absolutely positioned `::after` pseudo-element using `inset: 0`. This means the shimmer scales automatically with any container size and works at all breakpoints (sm 640, md 768, lg 1024, xl 1280) without additional breakpoints.
