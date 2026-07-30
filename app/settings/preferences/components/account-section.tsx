@@ -1,25 +1,49 @@
 'use client';
 
-import { useState, useEffect, useRef } from "react";
-import Image from "next/image";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Badge } from "@/components/ui/badge";
-import { Separator } from "@/components/ui/separator";
-import { saveProfile } from "@/lib/api/profile";
-import { toast } from "sonner";
-import { safeStorage, STORAGE_KEYS } from "@/utils/safeStorage";
-import {
-  User,
-  Upload,
-  Save,
-  Loader2,
-  CheckCircle2,
-  AlertCircle,
-} from "lucide-react";
+import React, { useState, useEffect } from 'react';
+import { DEMO_PROFILE } from "@/lib/demo-data";
 
-// ─── Types ──────────────────────────────────────────────────────────────────
+// ─── Profile data types & defaults ───────────────────────────────────────────
+
+export interface ProfileData {
+  firstName: string;
+  lastName: string;
+  displayName: string;
+  email: string;
+  timezone: string;
+  currency: string;
+  legalEntity: string;
+  billingCountry: string;
+}
+
+export const DEFAULT_PROFILE: ProfileData = DEMO_PROFILE;
+
+export function isProfileComplete(profile: ProfileData): boolean {
+  return countCompletedProfileFields(profile) === totalProfileFields(profile);
+}
+
+export function countCompletedProfileFields(profile: ProfileData): number {
+  return Object.values(profile).filter(
+    (value) => typeof value === "string" && value.trim().length > 0,
+  ).length;
+}
+
+export function totalProfileFields(_profile: ProfileData): number {
+  return Object.keys(DEFAULT_PROFILE).length;
+}
+
+// ─── AccountSection component ─────────────────────────────────────────────────
+
+interface AccountSectionProps {
+  /** Controlled profile state from parent (settings shell). */
+  profile?: ProfileData;
+  /** Called when the profile is edited. */
+  onProfileChange?: (next: ProfileData) => void;
+}
+
+export const AccountSection: React.FC<AccountSectionProps> = (_props) => {
+  const [analytics, setAnalytics] = useState<boolean>(false);
+  const [marketing, setMarketing] = useState<boolean>(false);
 
 export interface ProfileData {
   firstName: string;
@@ -442,4 +466,7 @@ export default function AccountSection({
       </div>
     </div>
   );
+};
+
+export default AccountSection;
 }
