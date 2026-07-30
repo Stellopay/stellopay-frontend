@@ -1,63 +1,120 @@
-import { render, screen, fireEvent } from '@testing-library/react';
-import { describe, it, expect, vi } from 'vitest';
-import ToggleCard from './toggle-card';
+import { render, screen, fireEvent } from "@testing-library/react";
+import { describe, it, expect, vi } from "vitest";
+import ToggleCard from "./toggle-card";
 
-describe('ToggleCard Accessibility', () => {
-  it('exposes aria-pressed and aria-checked attributes that flip on toggle', () => {
+describe("ToggleCard Accessibility", () => {
+  it("exposes aria-pressed and aria-checked attributes that flip on toggle", () => {
     const handleToggle = vi.fn();
     const { rerender } = render(
-      <ToggleCard title="Notifications" enabled={false} onToggle={handleToggle} />
+      <ToggleCard
+        title="Notifications"
+        enabled={false}
+        onToggle={handleToggle}
+      />,
     );
-    
-    const button = screen.getByRole('switch');
-    expect(button).toHaveAttribute('aria-pressed', 'false');
-    expect(button).toHaveAttribute('aria-checked', 'false');
-    expect(button).toHaveAttribute('aria-label', 'Notifications, disabled');
-    
+
+    const button = screen.getByRole("switch");
+    expect(button).toHaveAttribute("aria-pressed", "false");
+    expect(button).toHaveAttribute("aria-checked", "false");
+    expect(button).toHaveAttribute("aria-label", "Notifications, disabled");
+
     // Simulate clicking the toggle which triggers the handler
     fireEvent.click(button);
     expect(handleToggle).toHaveBeenCalledWith(true);
-    
+
     // Rerender with new state
-    rerender(<ToggleCard title="Notifications" enabled={true} onToggle={handleToggle} />);
-    expect(button).toHaveAttribute('aria-pressed', 'true');
-    expect(button).toHaveAttribute('aria-checked', 'true');
-    expect(button).toHaveAttribute('aria-label', 'Notifications, enabled');
+    rerender(
+      <ToggleCard
+        title="Notifications"
+        enabled={true}
+        onToggle={handleToggle}
+      />,
+    );
+    expect(button).toHaveAttribute("aria-pressed", "true");
+    expect(button).toHaveAttribute("aria-checked", "true");
+    expect(button).toHaveAttribute("aria-label", "Notifications, enabled");
   });
 
-  it('activates the toggle via Space and Enter keys', () => {
+  it("activates the toggle via Space and Enter keys", () => {
     const handleToggle = vi.fn();
-    render(<ToggleCard title="Notifications" enabled={false} onToggle={handleToggle} />);
-    
-    const button = screen.getByRole('switch');
-    
-    fireEvent.keyDown(button, { key: 'Enter', code: 'Enter' });
+    render(
+      <ToggleCard
+        title="Notifications"
+        enabled={false}
+        onToggle={handleToggle}
+      />,
+    );
+
+    const button = screen.getByRole("switch");
+
+    fireEvent.keyDown(button, { key: "Enter", code: "Enter" });
     expect(handleToggle).toHaveBeenCalledWith(true);
-    
-    fireEvent.keyDown(button, { key: ' ', code: 'Space' });
+
+    fireEvent.keyDown(button, { key: " ", code: "Space" });
     expect(handleToggle).toHaveBeenCalledTimes(2);
   });
 
-  it('does not trigger onToggle when disabled', () => {
+  it("does not trigger onToggle when disabled", () => {
     const handleToggle = vi.fn();
-    render(<ToggleCard title="Notifications" enabled={false} disabled={true} onToggle={handleToggle} />);
-    
-    const button = screen.getByRole('switch');
+    const { container } = render(
+      <ToggleCard
+        title="Notifications"
+        enabled={false}
+        disabled={true}
+        onToggle={handleToggle}
+      />,
+    );
+
+    const button = screen.getByRole("switch");
     expect(button).toBeDisabled();
-    
+
     fireEvent.click(button);
     expect(handleToggle).not.toHaveBeenCalled();
+
+    // card container announces disabled state to assistive tech
+    expect(container.firstChild).toHaveAttribute("aria-disabled", "true");
   });
-  
-  it('handles rapid toggles properly', () => {
+
+  it("does not set aria-disabled when disabled is not provided", () => {
+    const { container } = render(
+      <ToggleCard title="Notifications" enabled={false} onToggle={vi.fn()} />,
+    );
+    expect(container.firstChild).not.toHaveAttribute("aria-disabled");
+  });
+
+  it("applies disabled visual styling to the card", () => {
+    const { container } = render(
+      <ToggleCard
+        title="Notifications"
+        enabled={false}
+        disabled={true}
+        onToggle={vi.fn()}
+      />,
+    );
+
+    // outer card gets cursor-not-allowed
+    expect(container.firstChild).toHaveClass("cursor-not-allowed");
+
+    // content area gets reduced opacity
+    const contentArea = container.firstChild!.firstChild as HTMLElement;
+    expect(contentArea).toHaveClass("opacity-60");
+  });
+
+  it("handles rapid toggles properly", () => {
     const handleToggle = vi.fn();
-    render(<ToggleCard title="Notifications" enabled={false} onToggle={handleToggle} />);
-    const button = screen.getByRole('switch');
-    
+    render(
+      <ToggleCard
+        title="Notifications"
+        enabled={false}
+        onToggle={handleToggle}
+      />,
+    );
+    const button = screen.getByRole("switch");
+
     fireEvent.click(button);
     fireEvent.click(button);
     fireEvent.click(button);
-    
+
     expect(handleToggle).toHaveBeenCalledTimes(3);
   });
 });

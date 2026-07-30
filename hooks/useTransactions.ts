@@ -25,9 +25,71 @@ interface UseTransactionsResult {
 }
 
 /**
- * Hook to fetch transactions with filters, pagination, and loading/error states.
+ * Fetch paginated, filtered transactions with full AbortController-based
+ * cancellation to prevent stale async responses from corrupting UI state.
  *
- * @param options - filters, page, and pageSize
+ * ---
+ *
+ * ### Cancellation lifecycle (per-effect AbortController)
+ *
+ * Every time the effect re-runs (when `filters`, `page`, `pageSize`, or the
+ * internal `tick` counter changes) a **new** `AbortController` is created for
+ * that request. The effect's cleanup function calls `controller.abort()`,
+ * which means:
+ *
+ * - **Filter / page change** — React runs the previous effect's cleanup
+ *   *before* executing the new effect, so the in-flight request for the old
+ *   parameters is aborted before the new one starts.
+ * - **Component unmount** — React runs the cleanup on unmount, aborting any
+ *   pending request so no `setState` call can fire on an unmounted component.
+ * - **`refetch()` call** — increments `tick`, which is in the dependency
+ *   array, triggering the same cleanup-then-rerun cycle.
+ *
+ * ### Request-identity guard (`requestId`)
+ *
+ * In addition to the abort signal, each effect run captures a unique
+ * `Symbol("useTransactions-request")` as `requestId`. Both `.then()` and
+ * `.catch()` callbacks compare the captured `requestId` against
+ * `latestRequestId` before committing any state. This is a belt-and-suspenders
+ * defence: even if an aborted promise somehow resolves instead of rejecting
+ * (which can happen with some polyfills or test doubles), the stale result
+ * cannot overwrite the data from a later request.
+ *
+ * ### AbortError swallowing
+ *
+ * `getTransactions` rejects with a `DOMException` whose `.name` is
+ * `"AbortError"` when the signal fires. This rejection is **not** surfaced to
+ * the caller via the `error` field — it is the expected outcome of the
+ * cancellation lifecycle. The hook detects an AbortError by checking
+ * `err.name === "AbortError"` rather than `instanceof DOMException` because
+ * jsdom's `DOMException` is a cross-realm object that fails `instanceof`
+ * checks in tests.
+ *
+ * ### `refetch` reference stability
+ *
+ * `refetch` is wrapped in `useCallback` with an empty dependency array, so
+ * its reference is stable across renders. It is safe to pass to memoized
+ * child components and dependency arrays without causing extra re-renders.
+ *
+ * @example
+ * ```tsx
+ * function TransactionList() {
+ *   const { data, isLoading, error, refetch } = useTransactions({
+ *     filters: { searchQuery: 'stellar' },
+ *     page: 1,
+ *     pageSize: 10,
+ *   });
+ *
+ *   if (isLoading) return <Spinner />;
+ *   if (error)     return <ErrorBanner message={error} onRetry={refetch} />;
+ *   return <Table rows={data?.data} />;
+ * }
+ * ```
+ *
+ * @param options - Optional filters, page index (1-based), and page size.
+ *   Defaults to `{ page: 1, pageSize: 6 }` with no filters.
+ * @returns `{ data, isLoading, error, refetch }` — current result state and
+ *   a stable callback to manually re-trigger the request.
  */
 export function useTransactions(
   options: UseTransactionsOptions = {},
@@ -66,8 +128,18 @@ export function useTransactions(
         setIsLoading(false);
       })
       .catch((err: unknown) => {
-        // AbortError is expected during rapid filter/page changes.
-        if (controller.signal.aborted) return;
+        // AbortError is expected during rapid filter/page changes. Check the
+        // error's own name rather than `instanceof Error`/`instanceof
+        // Object` — jsdom's DOMException is a cross-realm object that fails
+        // both those checks despite being a real AbortError — and rather
+        // than only our controller's signal, since the underlying fetch can
+        // reject with AbortError before our `controller.abort()` cleanup
+        // call ever flips `signal.aborted`.
+        const isAbortError =
+          typeof err === "object" &&
+          err !== null &&
+          (err as { name?: unknown }).name === "AbortError";
+        if (controller.signal.aborted || isAbortError) return;
         if (requestId !== latestRequestId) return;
 
         setError(
@@ -78,6 +150,7 @@ export function useTransactions(
       });
 
     return () => {
+      // Abort in-flight request on unmount or dependency change
       controller.abort();
     };
   }, [
@@ -87,8 +160,9 @@ export function useTransactions(
     filters?.selectedFilter,
     filters?.fromDate,
     filters?.toDate,
-    filters?.sortField,
-    filters?.sortDirection,
+    filters?.minAmount,
+    filters?.maxAmount,
+    filters?.sortConfigs,
     page,
     pageSize,
     tick,

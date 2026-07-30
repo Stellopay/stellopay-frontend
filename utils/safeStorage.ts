@@ -1,8 +1,14 @@
 /**
- * Safe localStorage wrapper that handles SSR and quota errors.
+ * Safe localStorage wrapper that handles SSR, unavailable storage, and quota-related write failures.
  * Never stores secrets in localStorage.
- * Swallows storage exceptions without leaking errors.
+ * Reads remain safe even if a write fails because the browser refuses the update.
  */
+export const STORAGE_KEYS = {
+  DASHBOARD_TOUR_COMPLETED: "stellopay_dashboard_tour_completed",
+  DASHBOARD_WIDGET_ORDER: "stellopay_dashboard_widget_order",
+  TIMEZONE: "stellopay_timezone",
+} as const;
+
 export const safeStorage = {
   /**
    * Safely retrieves an item from localStorage.
@@ -17,31 +23,76 @@ export const safeStorage = {
       return null; // Swallow errors (e.g. privacy mode)
     }
   },
-  
+
   /**
    * Safely sets an item in localStorage.
+   * Returns true when the write succeeds and false when the browser refuses it.
+   * This includes storage-unavailable scenarios and quota-exceeded writes, which are distinct
+   * from the read path and should not surface as uncaught exceptions.
    * @param key - The key of the item to set.
    * @param value - The value to store.
    */
-  setItem: (key: string, value: string): void => {
-    if (typeof window === "undefined") return;
+  setItem: (key: string, value: string): boolean => {
+    if (typeof window === "undefined") return false;
     try {
       window.localStorage.setItem(key, value);
+      return true;
     } catch (e) {
-      // Swallow errors (e.g. quota exceeded)
+      return false;
     }
   },
-  
+
   /**
    * Safely removes an item from localStorage.
    * @param key - The key of the item to remove.
    */
-  removeItem: (key: string): void => {
-    if (typeof window === "undefined") return;
+  removeItem: (key: string): boolean => {
+    if (typeof window === "undefined") return false;
     try {
       window.localStorage.removeItem(key);
+      return true;
     } catch (e) {
-      // Swallow errors
+      return false;
     }
-  }
+  },
+
+  /**
+   * Helper to check if the dashboard first-login tour has been completed.
+   */
+  isDashboardTourCompleted: (): boolean => {
+    return safeStorage.getItem(STORAGE_KEYS.DASHBOARD_TOUR_COMPLETED) === "true";
+  },
+
+  /**
+   * Helper to mark the dashboard first-login tour as completed.
+   */
+  setDashboardTourCompleted: (): boolean => {
+    return safeStorage.setItem(STORAGE_KEYS.DASHBOARD_TOUR_COMPLETED, "true");
+  },
+
+  /**
+   * Retrieves the persisted dashboard widget order from localStorage.
+   * Returns null when no order is saved or the stored value is invalid.
+   */
+  getWidgetOrder: (): string[] | null => {
+    const raw = safeStorage.getItem(STORAGE_KEYS.DASHBOARD_WIDGET_ORDER);
+    if (!raw) return null;
+    try {
+      const parsed = JSON.parse(raw);
+      return Array.isArray(parsed) ? parsed : null;
+    } catch {
+      return null;
+    }
+  },
+
+  /**
+   * Persists the dashboard widget order to localStorage.
+   */
+  setWidgetOrder: (order: string[]): boolean => {
+    return safeStorage.setItem(
+      STORAGE_KEYS.DASHBOARD_WIDGET_ORDER,
+      JSON.stringify(order),
+    );
+  },
 };
+

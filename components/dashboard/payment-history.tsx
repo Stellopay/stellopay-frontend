@@ -1,13 +1,27 @@
 "use client";
 
 import Image from "next/image";
+import { useRouter } from "next/navigation";
 import { usePaymentHistory } from "@/hooks/usePaymentHistory";
 import { CardSkeleton } from "@/components/ui/card-skeleton";
 import { ErrorState } from "@/components/ui/error-state";
 import { EmptyState } from "@/components/ui/empty-state";
+import { downloadCsv } from "@/utils/csvUtils";
 
 export default function PaymentHistory() {
+  const router = useRouter();
   const { data, isLoading, error, refetch } = usePaymentHistory();
+
+  const handleExport = () => {
+    if (!data || data.length === 0) return;
+    const headers = ["Description", "Payment ID", "Details"];
+    const csvData = data.map((item) => [
+      item.paymentDescription,
+      item.paymentId,
+      item.history,
+    ]);
+    downloadCsv("payment-history.csv", headers, csvData);
+  };
 
   if (isLoading) {
     return (
@@ -34,12 +48,24 @@ export default function PaymentHistory() {
       <EmptyState
         title="No History"
         description="You have no payment history yet."
+        action={{
+          label: "View Transactions",
+          onClick: () => router.push("/transactions"),
+        }}
       />
     );
   }
 
   return (
     <div className="flex flex-col gap-4">
+      <div className="flex justify-end">
+        <button
+          onClick={handleExport}
+          className="text-xs font-medium text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-white transition-colors underline underline-offset-2"
+        >
+          Export CSV
+        </button>
+      </div>
       {data.map((history) => (
         <div
           key={history.id}

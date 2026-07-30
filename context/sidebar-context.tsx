@@ -8,51 +8,38 @@ import {
   useEffect,
 } from "react";
 import { safeStorage } from "@/utils/safeStorage";
+import { useIsMobile } from "@/hooks/useBreakpoint";
 import type {
   SidebarContextProps,
   SidebarProviderProps,
 } from "@/types/sidebar";
 
 const SidebarContext = createContext<SidebarContextProps | null>(null);
+const SIDEBAR_OPEN_STORAGE_KEY = "sidebarOpen";
 
 export const SidebarProvider: FC<SidebarProviderProps> = ({ children }) => {
   // Initialize with a default; hydrate from localStorage on the client.
   const [isSidebarOpen, setIsSidebarOpenState] = useState<boolean>(true);
+  const [hasHydratedSidebarState, setHasHydratedSidebarState] = useState(false);
+
+  // Shared responsive breakpoint detection (single resize listener).
+  const isMobile = useIsMobile();
 
   // Hydrate sidebar open state from localStorage on the client.
   useEffect(() => {
-    const savedState = safeStorage.getItem("sidebarOpen");
-    if (savedState !== null) {
+    const savedState = safeStorage.getItem(SIDEBAR_OPEN_STORAGE_KEY);
+    if (savedState === "true" || savedState === "false") {
       setIsSidebarOpenState(savedState === "true");
     }
+    setHasHydratedSidebarState(true);
   }, []);
 
-  // Screen size tracking
-  const [screenSize, setScreenSize] = useState<number | undefined>(undefined);
-  const [isMobile, setIsMobile] = useState<boolean>(false);
-
+  // Do not overwrite a saved preference with the SSR-safe default before hydration.
   useEffect(() => {
-    // Handler to call on window resize
-    function handleResize() {
-      const width = window.innerWidth;
-      setScreenSize(width);
-      setIsMobile(width < 768); // Standard md breakpoint
-    }
+    if (!hasHydratedSidebarState) return;
 
-    // Set size at the first client-side load
-    handleResize();
-
-    // Add event listener
-    window.addEventListener("resize", handleResize);
-
-    // Remove event listener on cleanup
-    return () => window.removeEventListener("resize", handleResize);
-  }, []);
-
-  // Persist sidebar state to localStorage when it changes
-  useEffect(() => {
-    safeStorage.setItem("sidebarOpen", isSidebarOpen.toString());
-  }, [isSidebarOpen]);
+    safeStorage.setItem(SIDEBAR_OPEN_STORAGE_KEY, isSidebarOpen.toString());
+  }, [hasHydratedSidebarState, isSidebarOpen]);
 
   const setSidebarOpen = (open: boolean) => {
     setIsSidebarOpenState(open);

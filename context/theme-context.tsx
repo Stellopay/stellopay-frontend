@@ -151,7 +151,9 @@ export const ThemeProvider: React.FC<React.PropsWithChildren<{}>> = ({
   const setTheme = (t: Theme) => setThemeState(t);
 
   return (
-    <ThemeContext.Provider value={{ theme, resolvedTheme, toggleTheme, setTheme }}>
+    <ThemeContext.Provider
+      value={{ theme, resolvedTheme, toggleTheme, setTheme }}
+    >
       {children}
     </ThemeContext.Provider>
   );

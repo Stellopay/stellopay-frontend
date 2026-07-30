@@ -1,9 +1,11 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Plus, Minus } from "lucide-react";
+import { useReducedMotion } from "@/hooks/useReducedMotion";
 import { cn } from "@/utils/commonUtils";
+import { duration, easing } from "@/lib/motion";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 
@@ -40,10 +42,16 @@ const AccordionItem = ({
   item,
   isOpen,
   onToggle,
+  buttonRef,
+  onKeyDown,
+  reducedMotion,
 }: {
   item: FAQItem;
   isOpen: boolean;
   onToggle: () => void;
+  buttonRef: React.RefObject<HTMLButtonElement | null>;
+  onKeyDown: (e: React.KeyboardEvent<HTMLButtonElement>) => void;
+  reducedMotion: boolean;
 }) => {
   return (
     <div
@@ -54,56 +62,102 @@ const AccordionItem = ({
           "bg-white dark:bg-[#1A1A1A] border-[#F2F2F2] dark:border-[#262626]",
       )}
     >
-      <button
-        onClick={onToggle}
-        className="w-full flex items-center justify-between p-6 md:p-8 text-left focus:outline-none"
-        aria-expanded={isOpen}
-      >
-        <span className="text-lg md:text-xl font-semibold text-[#09090B] dark:text-[#FAFAFA] font-sans">
-          {item.question}
-        </span>
-        <div
-          className={cn(
-            "flex-shrink-0 w-10 h-10 md:w-12 md:h-12 rounded-2xl flex items-center justify-center transition-colors duration-300",
-            isOpen
-              ? "bg-gradient-to-b from-[#93B4FF] via-[#A78BFA] to-[#7C3AED] dark:from-[#7C9EFF] dark:via-[#8B5CF6] dark:to-[#6D28D9] text-white"
-              : "bg-gradient-to-b from-[#93B4FF] via-[#A78BFA] to-[#7C3AED] dark:from-[#7C9EFF] dark:via-[#8B5CF6] dark:to-[#6D28D9] text-white",
-          )}
+      <h3>
+        <button
+          ref={buttonRef}
+          onClick={onToggle}
+          onKeyDown={onKeyDown}
+          className="w-full flex items-center justify-between p-6 md:p-8 text-left focus:outline-none"
+          aria-expanded={isOpen}
         >
-          {isOpen ? (
-            <Minus className="w-5 h-5 md:w-6 md:h-6" strokeWidth={2.5} />
-          ) : (
-            <Plus className="w-5 h-5 md:w-6 md:h-6" strokeWidth={2.5} />
-          )}
-        </div>
-      </button>
-
-      <AnimatePresence initial={false}>
-        {isOpen && (
-          <motion.div
-            initial={{ height: 0, opacity: 0 }}
-            animate={{ height: "auto", opacity: 1 }}
-            exit={{ height: 0, opacity: 0 }}
-            transition={{ duration: 0.3, ease: "easeInOut" }}
-            className="overflow-hidden"
+          <span className="text-lg md:text-xl font-semibold text-[#09090B] dark:text-[#FAFAFA] font-sans">
+            {item.question}
+          </span>
+          <div
+            className={cn(
+              "flex-shrink-0 w-10 h-10 md:w-12 md:h-12 rounded-2xl flex items-center justify-center transition-colors duration-300",
+              isOpen
+                ? "bg-gradient-to-b from-[#93B4FF] via-[#A78BFA] to-[#7C3AED] dark:from-[#7C9EFF] dark:via-[#8B5CF6] dark:to-[#6D28D9] text-white"
+                : "bg-gradient-to-b from-[#93B4FF] via-[#A78BFA] to-[#7C3AED] dark:from-[#7C9EFF] dark:via-[#8B5CF6] dark:to-[#6D28D9] text-white",
+            )}
           >
-            <div className="px-6 pb-6 md:px-8 md:pb-8">
-              <p className="text-[#71717A] dark:text-[#A1A1AA] text-base md:text-lg leading-relaxed font-sans">
-                {item.answer}
-              </p>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+            {isOpen ? (
+              <Minus className="w-5 h-5 md:w-6 md:h-6" strokeWidth={2.5} />
+            ) : (
+              <Plus className="w-5 h-5 md:w-6 md:h-6" strokeWidth={2.5} />
+            )}
+          </div>
+        </button>
+      </h3>
+
+      {reducedMotion ? (
+        isOpen && (
+          <div className="px-6 pb-6 md:px-8 md:pb-8">
+            <p className="text-[#71717A] dark:text-[#A1A1AA] text-base md:text-lg leading-relaxed font-sans">
+              {item.answer}
+            </p>
+          </div>
+        )
+      ) : (
+        <AnimatePresence initial={false}>
+          {isOpen && (
+            <motion.div
+              initial={{ height: 0, opacity: 0 }}
+              animate={{ height: "auto", opacity: 1 }}
+              exit={{ height: 0, opacity: 0 }}
+              transition={{ duration: duration.base, ease: easing.easeInOut }}
+              className="overflow-hidden"
+            >
+              <div className="px-6 pb-6 md:px-8 md:pb-8">
+                <p className="text-[#71717A] dark:text-[#A1A1AA] text-base md:text-lg leading-relaxed font-sans">
+                  {item.answer}
+                </p>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      )}
     </div>
   );
 };
 
 export default function FAQSection() {
+  const reducedMotion = useReducedMotion();
   const [openIndex, setOpenIndex] = useState<number | null>(0);
+  const buttonRefs = useRef<Array<React.RefObject<HTMLButtonElement | null>>>(
+    faqData.map(() => React.createRef<HTMLButtonElement>()),
+  );
 
   const toggleAccordion = (index: number) => {
     setOpenIndex(openIndex === index ? null : index);
+  };
+
+  const handleKeyDown = (
+    e: React.KeyboardEvent<HTMLButtonElement>,
+    index: number,
+  ) => {
+    const last = faqData.length - 1;
+    let target: number | null = null;
+
+    switch (e.key) {
+      case "ArrowDown":
+        target = index < last ? index + 1 : 0;
+        break;
+      case "ArrowUp":
+        target = index > 0 ? index - 1 : last;
+        break;
+      case "Home":
+        target = 0;
+        break;
+      case "End":
+        target = last;
+        break;
+      default:
+        return;
+    }
+
+    e.preventDefault();
+    buttonRefs.current[target].current?.focus();
   };
 
   return (
@@ -134,6 +188,9 @@ export default function FAQSection() {
               item={item}
               isOpen={openIndex === index}
               onToggle={() => toggleAccordion(index)}
+              buttonRef={buttonRefs.current[index]}
+              onKeyDown={(e) => handleKeyDown(e, index)}
+              reducedMotion={reducedMotion}
             />
           ))}
         </div>

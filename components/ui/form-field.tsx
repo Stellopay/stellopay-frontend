@@ -19,6 +19,12 @@ import {
 interface FormFieldBaseProps {
   label?: React.ReactNode;
   description?: string;
+  /**
+   * Extra element id(s) to include in the input's `aria-describedby`
+   * (space-separated). Useful for associating external helper text such as
+   * password-requirement instructions without rendering a FormDescription.
+   */
+  ariaDescribedBy?: string;
   required?: boolean;
   placeholder?: string;
   disabled?: boolean;
@@ -37,6 +43,7 @@ interface FormFieldInputProps<
     Omit<ControllerProps<TFieldValues, TName>, "render"> {
   type?: "text" | "email" | "password" | "number" | "tel" | "url";
   autoComplete?: string;
+  inputMode?: React.ComponentProps<"input">["inputMode"];
   onChange?: (e: React.ChangeEvent<HTMLInputElement>) => void;
 }
 
@@ -46,6 +53,7 @@ export function FormFieldInput<
 >({
   label,
   description,
+  ariaDescribedBy,
   required,
   placeholder,
   disabled,
@@ -57,11 +65,16 @@ export function FormFieldInput<
   warningMessage,
   type = "text",
   autoComplete,
+  inputMode,
   ...controllerProps
 }: FormFieldInputProps<TFieldValues, TName>) {
   const fieldId = React.useId();
   const descriptionId = `${fieldId}-description`;
   const errorId = `${fieldId}-error`;
+  const describedByIds =
+    [description ? descriptionId : undefined, ariaDescribedBy]
+      .filter(Boolean)
+      .join(" ") || undefined;
 
   return (
     <FormField
@@ -89,12 +102,13 @@ export function FormFieldInput<
                 placeholder={placeholder}
                 disabled={disabled}
                 autoComplete={autoComplete}
+                inputMode={inputMode}
                 error={!!fieldState.error}
                 success={success}
                 warning={warning}
                 loading={loading}
                 labelId={label ? `${fieldId}-label` : undefined}
-                descriptionId={description ? descriptionId : undefined}
+                descriptionId={describedByIds}
                 errorId={
                   fieldState.error || successMessage || warningMessage
                     ? errorId
@@ -309,6 +323,7 @@ export function FormFieldPassword<
 >({
   label,
   description,
+  ariaDescribedBy,
   required,
   placeholder,
   disabled,
@@ -319,12 +334,17 @@ export function FormFieldPassword<
   successMessage,
   warningMessage,
   autoComplete,
+  inputMode,
   ...controllerProps
 }: FormFieldInputProps<TFieldValues, TName>) {
   const [showPassword, setShowPassword] = React.useState(false);
   const fieldId = React.useId();
   const descriptionId = `${fieldId}-description`;
   const errorId = `${fieldId}-error`;
+  const describedByIds =
+    [description ? descriptionId : undefined, ariaDescribedBy]
+      .filter(Boolean)
+      .join(" ") || undefined;
 
   return (
     <FormField
@@ -353,12 +373,13 @@ export function FormFieldPassword<
                   placeholder={placeholder}
                   disabled={disabled}
                   autoComplete={autoComplete}
+                  inputMode={inputMode}
                   error={!!fieldState.error}
                   success={success}
                   warning={warning}
                   loading={loading}
                   labelId={label ? `${fieldId}-label` : undefined}
-                  descriptionId={description ? descriptionId : undefined}
+                  descriptionId={describedByIds}
                   errorId={
                     fieldState.error || successMessage || warningMessage
                       ? errorId
@@ -369,7 +390,11 @@ export function FormFieldPassword<
                   onChange={(e) => {
                     field.onChange(e);
                     // Pass to custom onChange if provided in controllerProps
-                    const props = controllerProps as { onChange?: (e: React.ChangeEvent<HTMLInputElement>) => void };
+                    const props = controllerProps as {
+                      onChange?: (
+                        e: React.ChangeEvent<HTMLInputElement>,
+                      ) => void;
+                    };
                     if (props.onChange) {
                       props.onChange(e);
                     }
@@ -407,6 +432,28 @@ export function FormFieldPassword<
       }}
     />
   );
+}
+
+export interface AuthFormFieldProps<
+  TFieldValues extends FieldValues = FieldValues,
+  TName extends FieldPath<TFieldValues> = FieldPath<TFieldValues>,
+> extends FormFieldInputProps<TFieldValues, TName> {}
+
+/**
+ * AuthFormField – Reusable field wrapper for authentication forms (LoginForm, SignUpForm).
+ *
+ * Encapsulates duplicated label, error message, input container, and react-hook-form
+ * Controller binding. Automatically delegates to `FormFieldPassword` when `type="password"`
+ * or `FormFieldInput` for all other input types.
+ */
+export function AuthFormField<
+  TFieldValues extends FieldValues = FieldValues,
+  TName extends FieldPath<TFieldValues> = FieldPath<TFieldValues>,
+>(props: AuthFormFieldProps<TFieldValues, TName>) {
+  if (props.type === "password") {
+    return <FormFieldPassword {...props} />;
+  }
+  return <FormFieldInput {...props} />;
 }
 
 // Re-export form components for convenience

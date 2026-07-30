@@ -1,0 +1,85 @@
+name: Auto-assign contributor on request
+
+on:
+  issue_comment:
+    types: [created]
+
+permissions:
+  issues: write
+
+jobs:
+  auto-assign:
+    if: github.event.issue.pull_request == null
+    runs-on: ubuntu-latest
+    steps:
+      - name: Assign commenter if they asked to work on this issue
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.MAINTAINER_GH_TOKEN }}
+          script: |
+            const MAX_ASSIGNED_PER_REPO = 6;
+            const body = (context.payload.comment.body || "").toLowerCase();
+            const trigger = /(^|\s)\/assign(\s|$)|\bi'?d like to work on this\b|\bi would like to work on this\b|\bi want to work on this\b|\bassign me\b|\bplease assign\b|\bcan i work on this\b|\bi'?ll take this\b|\bi'?m interested in (working on )?this\b/;
+            if (!trigger.test(body)) {
+              return;
+            }
+
+            const issue = context.payload.issue;
+            const commenter = context.payload.comment.user.login;
+
+            if (issue.assignees && issue.assignees.length > 0) {
+              // Already assigned (to this person or someone else) — stay quiet, avoid noisy duplicate comments.
+              return;
+            }
+
+            const { data: assignedOpen } = await github.rest.search.issuesAndPullRequests({
+              q: `repo:${context.repo.owner}/${context.repo.repo} type:issue state:open assignee:${commenter}`,
+            });
+
+            // Only issues with NO open-or-merged pull request count against the cap —
+            // a PR that's still open (in review) or already merged means the assignee
+            // is clearly active/delivering, so it shouldn't count. A PR that was closed
+            // WITHOUT merging represents abandoned work and still counts toward the cap.
+            let uncoveredCount = 0;
+            for (const item of assignedOpen.items) {
+              const timeline = await github.rest.issues.listEventsForTimeline({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: item.number,
+                per_page: 100,
+              });
+              const hasActivePr = timeline.data.some((ev) => {
+                if (ev.event !== "cross-referenced" || !ev.source || !ev.source.issue || !ev.source.issue.pull_request) {
+                  return false;
+                }
+                const pr = ev.source.issue.pull_request;
+                const isMerged = !!pr.merged_at;
+                const isOpen = ev.source.issue.state === "open";
+                return isOpen || isMerged;
+              });
+              if (!hasActivePr) uncoveredCount++;
+            }
+
+            if (uncoveredCount >= MAX_ASSIGNED_PER_REPO) {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: issue.number,
+                body: `Thanks for the interest, @${commenter}! You currently have ${uncoveredCount} assigned issues in this repo with no PR up yet, which is the cap (${MAX_ASSIGNED_PER_REPO}) for this project. Please open a PR for one of them (or release it) before taking on another — issues you've already submitted a PR for don't count against this.`,
+              });
+              return;
+            }
+
+            await github.rest.issues.addAssignees({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: issue.number,
+              assignees: [commenter],
+            });
+
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: issue.number,
+              body: `Assigned @${commenter} to this issue. Please open a PR referencing this issue (e.g. \`Closes #${issue.number}\`) when you're ready. If you have questions along the way, feel free to join our contributor chat: https://t.me/+vTbe0hOUKrFhNTJl`,
+            });

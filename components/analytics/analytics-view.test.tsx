@@ -75,7 +75,9 @@ describe("AnalyticsViews Component", () => {
 
   it("renders the loading skeleton when isLoading is true and showNotifications is false", () => {
     render(<AnalyticsViews isLoading={true} showNotifications={false} />);
-    expect(screen.getByText("Loading analytics views chart...")).toBeInTheDocument();
+    expect(
+      screen.getByText("Loading analytics views chart..."),
+    ).toBeInTheDocument();
   });
 
   it("renders the loading skeleton when isLoading is true and showNotifications is true", () => {
@@ -108,11 +110,12 @@ describe("AnalyticsViews Component", () => {
     expect(parsedData).toEqual(customData);
   });
 
-  it("renders chart with empty data", async () => {
+  it("renders empty state component when empty data is provided", async () => {
     render(<AnalyticsViews data={[]} />);
-    const barChart = await screen.findByTestId("bar-chart");
-    const parsedData = JSON.parse(barChart.getAttribute("data-data") || "[]");
-    expect(parsedData).toEqual([]);
+    const emptyState = await screen.findByTestId("analytics-chart-empty");
+    expect(emptyState).toBeInTheDocument();
+    expect(screen.getByText("No analytics data available")).toBeInTheDocument();
+    expect(screen.queryByTestId("bar-chart")).not.toBeInTheDocument();
   });
 
   it("renders CustomTooltip content correctly inside Tooltip mock", async () => {
@@ -124,7 +127,7 @@ describe("AnalyticsViews Component", () => {
 
   it("handles year selector dropdown interactions", () => {
     render(<AnalyticsViews showDropdown={true} />);
-    
+
     // Toggle dropdown open
     const dropdownButton = screen.getByText("This Year");
     fireEvent.click(dropdownButton);
@@ -143,6 +146,46 @@ describe("AnalyticsViews Component", () => {
     expect(screen.getByText("PAY-12345")).toBeInTheDocument();
     expect(screen.getByText("Processed on Jun 20")).toBeInTheDocument();
   });
+
+  it("uses semantic design tokens instead of raw zinc utilities", () => {
+    render(<AnalyticsViews showNotifications={true} showDropdown={true} />);
+
+    // Note: this component dynamically renders AnalyticsChart (analytics-chart.tsx)
+    // and PaymentHistory (payment-history.tsx) as children — their zinc usage is
+    // out of scope for the analytics-view.tsx audit (issue #763) and isn't asserted here.
+
+    expect(screen.getByText("Analytics views")).toHaveClass("text-foreground");
+    expect(screen.getByText("Notifications")).toHaveClass("text-foreground");
+
+    const dropdownTrigger = screen.getByText("This Year").parentElement;
+    expect(dropdownTrigger).toHaveClass("border-border");
+    expect(dropdownTrigger).toHaveClass("bg-muted");
+    expect(dropdownTrigger).toHaveClass("hover:bg-muted-foreground/10");
+    expect(dropdownTrigger?.className).not.toMatch(/zinc-\d/);
+
+    const viewAllChip = screen.getByText("View All").parentElement;
+    expect(viewAllChip).toHaveClass("border-border");
+    expect(viewAllChip).toHaveClass("bg-muted");
+    expect(viewAllChip?.className).not.toMatch(/zinc-\d/);
+
+    fireEvent.click(dropdownTrigger!);
+    const yearOption = screen.getByText("2024");
+    expect(yearOption).toHaveClass("text-foreground");
+    expect(yearOption).toHaveClass("hover:bg-muted-foreground/10");
+    expect(yearOption.className).not.toMatch(/zinc-\d/);
+  });
+
+  it("keeps loading-state skeletons free of raw zinc utilities", () => {
+    const { container: notifLoading } = render(
+      <AnalyticsViews isLoading={true} showNotifications={true} />,
+    );
+    expect(notifLoading.innerHTML).not.toMatch(/zinc-\d/);
+
+    const { container: chartLoading } = render(
+      <AnalyticsViews isLoading={true} showNotifications={false} />,
+    );
+    expect(chartLoading.innerHTML).not.toMatch(/zinc-\d/);
+  });
 });
 
 describe("ClientAnalyticsView Component", () => {
@@ -157,7 +200,9 @@ describe("ClientAnalyticsView Component", () => {
 
   it("renders default loading state when isLoading is true", () => {
     render(<ClientAnalyticsView isLoading={true} />);
-    expect(screen.getByText("Loading analytics views chart...")).toBeInTheDocument();
+    expect(
+      screen.getByText("Loading analytics views chart..."),
+    ).toBeInTheDocument();
   });
 
   it("renders notifications loading state when isLoading is true and showNotifications is true", () => {
@@ -170,7 +215,9 @@ describe("ClientAnalyticsView Component", () => {
 
     // After mounting, the loading state should disappear and the chart should appear
     await waitFor(() => {
-      expect(screen.queryByText("Loading analytics views chart...")).not.toBeInTheDocument();
+      expect(
+        screen.queryByText("Loading analytics views chart..."),
+      ).not.toBeInTheDocument();
     });
     expect(screen.getByText("Analytics views")).toBeInTheDocument();
   });
@@ -179,15 +226,12 @@ describe("ClientAnalyticsView Component", () => {
 describe("CustomTooltip", () => {
   it("renders with theme-aware classes and content when active with valid payload", () => {
     const { container } = render(
-      <CustomTooltip active payload={[{ value: 1234 }]} label="TestMonth" />
+      <CustomTooltip active payload={[{ value: 1234 }]} label="TestMonth" />,
     );
     const tooltipEl = container.firstChild as HTMLElement;
-    expect(tooltipEl).toHaveClass("bg-white");
-    expect(tooltipEl).toHaveClass("dark:bg-zinc-900");
-    expect(tooltipEl).toHaveClass("text-zinc-900");
-    expect(tooltipEl).toHaveClass("dark:text-zinc-100");
-    expect(tooltipEl).toHaveClass("border-zinc-200");
-    expect(tooltipEl).toHaveClass("dark:border-zinc-800");
+    expect(tooltipEl).toHaveClass("bg-background");
+    expect(tooltipEl).toHaveClass("text-foreground");
+    expect(tooltipEl).toHaveClass("border-border");
     expect(tooltipEl).toHaveClass("text-center");
     expect(screen.getByText("TestMonth")).toBeInTheDocument();
     expect(screen.getByText("1,234 views")).toBeInTheDocument();
@@ -195,7 +239,7 @@ describe("CustomTooltip", () => {
 
   it("renders nothing when active with empty payload", () => {
     const { container } = render(
-      <CustomTooltip active payload={[]} label="x" />
+      <CustomTooltip active payload={[]} label="x" />,
     );
     expect(container).toBeEmptyDOMElement();
   });

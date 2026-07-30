@@ -12,7 +12,16 @@ export const isLinkActive = (route: string, pathname: string): boolean => {
   if (route === "/") {
     return pathname === "/";
   }
-  return pathname.startsWith(route);
+
+  if (pathname === route) {
+    return true;
+  }
+
+  // Prefix-match nested routes (e.g. "/settings/preferences/theme" under
+  // "/settings/preferences"), while requiring a "/" boundary so a
+  // similar-but-unrelated path like "/settings-old" doesn't falsely match
+  // "/settings".
+  return pathname.startsWith(`${route}/`);
 };
 
 /**

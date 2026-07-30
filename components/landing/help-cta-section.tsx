@@ -27,7 +27,7 @@ export default function HelpCTASection() {
           <Button
             onClick={handleContactSupport}
             size="lg"
-            className="w-full sm:w-auto min-w-[180px] h-12 rounded-xl bg-gradient-to-r from-[#93B4FF] via-[#A78BFA] to-[#7C3AED] dark:from-[#7C9EFF] dark:via-[#8B5CF6] dark:to-[#6D28D9] text-white font-semibold shadow-md hover:opacity-90 hover:shadow-lg focus-visible:ring-2 focus-visible:ring-[#7C3AED] focus-visible:ring-offset-2 dark:focus-visible:ring-offset-[#040404] transition-all"
+            className="w-full sm:w-auto min-w-[180px] h-12 rounded-xl bg-gradient-to-r from-[#93B4FF] via-[#A78BFA] to-[#7C3AED] dark:from-[#7C9EFF] dark:via-[#8B5CF6] dark:to-[#6D28D9] contrast-more:bg-[#5B21B6] contrast-more:bg-none text-white font-semibold shadow-md hover:opacity-90 hover:shadow-lg focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] contrast-more:shadow-none contrast-more:hover:opacity-100 transition-all"
           >
             Contact Support
           </Button>
@@ -35,7 +35,7 @@ export default function HelpCTASection() {
             variant="outline"
             size="lg"
             asChild
-            className="w-full sm:w-auto min-w-[180px] h-12 rounded-xl bg-white dark:bg-[#18181B] border-2 border-[#E4E4E7] dark:border-[#27272A] text-[#09090B] dark:text-[#FAFAFA] font-semibold shadow-sm hover:bg-[#F5F5F5] dark:hover:bg-[#27272A] focus-visible:ring-2 focus-visible:ring-[#7C3AED] focus-visible:ring-offset-2 dark:focus-visible:ring-offset-[#040404] transition-all"
+            className="w-full sm:w-auto min-w-[180px] h-12 rounded-xl bg-white dark:bg-[#18181B] border-2 border-[#E4E4E7] dark:border-[#27272A] text-[#09090B] dark:text-[#FAFAFA] font-semibold shadow-sm hover:bg-[#F5F5F5] dark:hover:bg-[#27272A] focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] transition-all"
           >
             <Link href={HELP_CENTER_URL}>Visit Help Center</Link>
           </Button>
