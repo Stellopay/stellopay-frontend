@@ -16,6 +16,7 @@ import {
   Smartphone,
   Loader2,
 } from "lucide-react";
+import { ErrorSummary } from "@/components/ui/error-summary";
 import ToggleCard from "@/components/common/toggle-card";
 import { Button } from "@/components/ui/button";
 import {
@@ -713,6 +714,10 @@ export default function SecurityTab({
               noValidate
               className="space-y-6"
             >
+              <ErrorSummary
+                errors={form.formState.errors}
+                className="mb-4"
+              />
               <div className="grid gap-4 md:grid-cols-2">
                 <FormFieldPassword
                   control={form.control}
