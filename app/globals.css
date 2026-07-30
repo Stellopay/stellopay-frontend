@@ -1,153 +1,265 @@
 @import "tailwindcss";
-@import "tw-animate-css";
 
-@custom-variant dark (&:is(.dark *));
+@layer base {
+  :root {
+    --font-clash: "Clash Display", sans-serif;
+    --font-general-sans: "General Sans", sans-serif;
+    --font-inter: "Inter", sans-serif;
 
-html {
-  scroll-behavior: smooth;
+    /* ── Elevation / shadow scale (light) ────────────────────────────────
+     * Four-step hierarchy that every card-like surface must use.
+     *
+     *   1 — Static / default cards
+     *   2 — Hoverable / interactive cards
+     *   3 — Floating panels (popovers, dropdowns)
+     *   4 — Modals / dialogs
+     *
+     * Dark-mode values are swapped via the .dark variant below.
+     * Usage: shadow-elevation-1 … shadow-elevation-4
+     */
+    --elevation-1: 0 1px 2px 0 rgb(0 0 0 / 0.03), 0 1px 1px 0 rgb(0 0 0 / 0.02);
+    --elevation-2: 0 4px 6px -1px rgb(0 0 0 / 0.05), 0 2px 4px -2px rgb(0 0 0 / 0.03);
+    --elevation-3: 0 10px 15px -3px rgb(0 0 0 / 0.08), 0 4px 6px -4px rgb(0 0 0 / 0.04);
+    --elevation-4: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.05);
+
+    /* Disabled state token — single source of truth for all disabled controls
+     * Applied via the cursor-disabled and opactiy-disabled utilities below.
+     * Used across Button, Checkbox, TextInput, and Input.
+     */
+    --disabled-opacity: 0.5;
+
+    /* ── Skeleton / shimmer loading tokens ───────────────────────────────
+     * Single source of truth for all skeleton animation timing across the
+     * entire application.  Every skeleton primitive (Skeleton, SkeletonLine,
+     * SkeletonAvatar, etc.) reads these tokens via the .skeleton-shimmer
+     * class so that a card skeleton, a table skeleton, and any other
+     * loading placeholder all pulse / shimmer at exactly the same rate.
+     *
+     *   --shimmer-duration   How long one full animation cycle lasts (2s).
+     *   --shimmer-easing     The easing curve for the shimmer sweep (ease-in-out).
+     *
+     * These tokens are consumed by the `.skeleton-shimmer::after` animation
+     * below and respected by the prefers-reduced-motion fallback.
+     * Change these two values to retime every loading placeholder at once.
+     */
+    --shimmer-duration: 2s;
+    --shimmer-easing: ease-in-out;
+
+    /* Section vertical-rhythm spacing tokens
+     * Applied as py-section-sm / py-section-md / py-section-lg via
+     * the @utility helpers below, or directly via Tailwind responsive
+     * classes: py-16 sm:py-20 lg:py-24. These tokens document the
+     * canonical three-step scale used across every landing section.
+     */
+    --section-py-sm: 4rem;   /* 64 px  — mobile  (≤ 639 px)  */
+    --section-py-md: 5rem;   /* 80 px  — tablet  (≥ 640 px)  */
+    --section-py-lg: 6rem;   /* 96 px  — desktop (≥ 1024 px) */
+
+    /* Clash Display (Display & Headings) Token Scale */
+    --font-display-2xl: 4.5rem;
+    --leading-display-2xl: 1.05;
+    --tracking-display-2xl: -0.03em;
+
+    --font-display-xl: 3.75rem;
+    --leading-display-xl: 1.1;
+    --tracking-display-xl: -0.025em;
+
+    --font-heading-lg: 2.25rem;
+    --leading-heading-lg: 1.2;
+    --tracking-heading-lg: -0.02em;
+
+    --font-heading-md: 1.5rem;
+    --leading-heading-md: 1.25;
+    --tracking-heading-md: -0.015em;
+
+    /* General Sans / Inter (Body Copy & UI) Token Scale */
+    --font-body-lg: 1.125rem;
+    --leading-body-lg: 1.6;
+    --tracking-body-lg: -0.01em;
+
+    --font-body-md: 1rem;
+    --leading-body-md: 1.5;
+    --tracking-body-md: 0em;
+
+    --font-caption-sm: 0.875rem;
+    --leading-caption-sm: 1.43;
+    --tracking-caption-sm: 0.01em;
+
+ design-system/mini-bar-chart-dark-tokens
+    /* Chart tokens — used by Recharts components */
+    --chart-1: #4f6fff;
+    --chart-2: #10b981;
+    --chart-3: #f59e0b;
+    --chart-4: #8b5cf6;
+    --chart-5: #ef4444;
+    --chart-tooltip-bg: #ffffff;
+    --chart-tooltip-text: #09090b;
+
+    /* Chart colors — light mode
+     * Used by RechartsMiniBarChart and other chart components.
+     * Each token maps to a semantic chart color that adapts in dark mode.
+     */
+    --chart-blue: #3B82F6;
+    --chart-green: #10B981;
+    --chart-amber: #F59E0B;
+    --chart-tooltip-bg: #ffffff;
+ main
+    --chart-tooltip-border: #e4e4e7;
+  }
+
+  .dark {
+ design-system/mini-bar-chart-dark-tokens
+    --chart-1: #6b8aff;
+    --chart-2: #34d399;
+    --chart-3: #fbbf24;
+    --chart-4: #a78bfa;
+    --chart-5: #f87171;
+    --chart-tooltip-bg: #18181b;
+    --chart-tooltip-text: #fafafa;
+    --chart-tooltip-border: #27272a;
+
+    /* Elevation / shadow scale (dark) — deeper shadows for contrast */
+    --elevation-1: 0 1px 3px 0 rgb(0 0 0 / 0.4), 0 1px 2px -1px rgb(0 0 0 / 0.3);
+    --elevation-2: 0 4px 6px -1px rgb(0 0 0 / 0.5), 0 2px 4px -2px rgb(0 0 0 / 0.4);
+    --elevation-3: 0 10px 15px -3px rgb(0 0 0 / 0.55), 0 4px 6px -4px rgb(0 0 0 / 0.45);
+    --elevation-4: 0 20px 25px -5px rgb(0 0 0 / 0.65), 0 8px 10px -6px rgb(0 0 0 / 0.5);
+ main
+  }
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-inter);
-  --font-clash: var(--font-clash);
-  --font-general: var(--font-general);
-  --color-sidebar-ring: var(--sidebar-ring);
-  --color-sidebar-border: var(--sidebar-border);
-  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
-  --color-sidebar-accent: var(--sidebar-accent);
-  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
-  --color-sidebar-primary: var(--sidebar-primary);
-  --color-sidebar-foreground: var(--sidebar-foreground);
-  --color-sidebar: var(--sidebar);
-  --color-chart-5: var(--chart-5);
-  --color-chart-4: var(--chart-4);
-  --color-chart-3: var(--chart-3);
-  --color-chart-2: var(--chart-2);
-  --color-chart-1: var(--chart-1);
-  --color-ring: var(--ring);
-  --color-input: var(--input);
-  --color-border: var(--border);
-  --color-destructive: var(--destructive);
-  --color-success: var(--success);
-  --color-warning: var(--warning);
-  --color-accent-foreground: var(--accent-foreground);
-  --color-accent: var(--accent);
-  --color-muted-foreground: var(--muted-foreground);
-  --color-muted: var(--muted);
-  --color-secondary-foreground: var(--secondary-foreground);
-  --color-secondary: var(--secondary);
-  --color-primary-foreground: var(--primary-foreground);
-  --color-primary: var(--primary);
-  --color-popover-foreground: var(--popover-foreground);
-  --color-popover: var(--popover);
-  --color-card-foreground: var(--card-foreground);
-  --color-card: var(--card);
-  --radius-sm: calc(var(--radius) - 4px);
-  --radius-md: calc(var(--radius) - 2px);
-  --radius-lg: var(--radius);
-  --radius-xl: calc(var(--radius) + 4px);
+  --shadow-elevation-1: var(--elevation-1);
+  --shadow-elevation-2: var(--elevation-2);
+  --shadow-elevation-3: var(--elevation-3);
+  --shadow-elevation-4: var(--elevation-4);
+
+  /* Disabled-state tokens — mapped so Tailwind generates cursor-disabled
+   * and opacity-disabled utilities consumed by every disabled control.
+   */
+  --opacity-disabled: var(--disabled-opacity);
+  --cursor-disabled: not-allowed;
+
+  /* Shimmer timing tokens — consumed by skeleton-shimmer utility */
+  --duration-shimmer: var(--shimmer-duration);
+  --easing-shimmer: var(--shimmer-easing);
 }
 
-:root {
-  --radius: 0.625rem;
-  --card: oklch(100% 0.00011 271.152);
-  --card-foreground: oklch(14.479% 0.00002 271.152);
-  --popover: oklch(100% 0.00011 271.152);
-  --popover-foreground: oklch(14.479% 0.00002 271.152);
-  --primary: oklch(20.463% 0.00002 271.152);
-  --primary-foreground: oklch(98.511% 0.00011 271.152);
-  --secondary: oklch(97.015% 0.00011 271.152);
-  --secondary-foreground: oklch(20.463% 0.00002 271.152);
-  --muted: oklch(97.015% 0.00011 271.152);
-  --muted-foreground: oklch(55.553% 0.00006 271.152);
-  --accent: oklch(97.015% 0.00011 271.152);
-  --accent-foreground: oklch(20.463% 0.00002 271.152);
-  --destructive: oklch(58.302% 0.23867 28.465);
-  --success: oklch(62.74% 0.1492 145.45);
-  --warning: oklch(76.94% 0.1766 70.08);
-  --border: oklch(92.191% 0.0001 271.152);
-  --input: oklch(0% 0 0 / 0.502);
-  --ring: oklch(70.9% 0.00008 271.152);
-  --chart-1: oklch(64.71% 0.21732 36.839);
-  --chart-2: oklch(60.488% 0.10705 184.202);
-  --chart-3: oklch(39.716% 0.06984 227.223);
-  --chart-4: oklch(0.828 0.189 84.429);
-  --chart-5: oklch(0.769 0.188 70.08);
-  --sidebar: oklch(98.511% 0.00011 271.152);
-  --sidebar-foreground: oklch(14.479% 0.00002 271.152);
-  --sidebar-primary: oklch(20.463% 0.00002 271.152);
-  --sidebar-primary-foreground: oklch(98.511% 0.00011 271.152);
-  --sidebar-accent: oklch(0.97 0 0);
-  --sidebar-accent-foreground: oklch(0.205 0 0);
-  --sidebar-border: oklch(0.922 0 0);
-  --sidebar-ring: oklch(0.708 0 0);
-  --background: #ffffff;
-  --foreground: #0a0a0a;
+/**
+ * disabled-state
+ * ---------------
+ * Composable utility that applies the canonical disabled look to any element.
+ * Each property is driven by a CSS custom property so a single token edit
+ * updates every disabled control in the project.
+ *
+ * Usage:
+ *   <button className="disabled-state" disabled>Save</button>
+ *
+ * Note: Because Tailwind's disabled: variant does not compose with @utility,
+ * prefer the individual utilities in most cases:
+ *   className="disabled:cursor-disabled disabled:opacity-disabled"
+ */
+@utility disabled-state {
+  opacity: var(--disabled-opacity);
+  cursor: var(--disabled-cursor, not-allowed);
+  pointer-events: none;
 }
 
-.dark {
-  --background: #0a0a0a;
-  --foreground: #fafafa;
-  --card: oklch(20.463% 0.00002 271.152);
-  --card-foreground: oklch(98.511% 0.00011 271.152);
-  --popover: oklch(20.463% 0.00002 271.152);
-  --popover-foreground: oklch(98.511% 0.00011 271.152);
-  --primary: oklch(92.191% 0.0001 271.152);
-  --primary-foreground: oklch(20.463% 0.00002 271.152);
-  --secondary: oklch(26.862% 0.00003 271.152);
-  --secondary-foreground: oklab(98.51100000000001% 0 -0.00011);
-  --muted: oklch(26.862% 0.00003 271.152);
-  --muted-foreground: oklch(70.9% 0.00008 271.152);
-  --accent: oklch(26.862% 0.00003 271.152);
-  --accent-foreground: oklch(98.511% 0.00011 271.152);
-  --destructive: oklch(0.704 0.191 22.216);
-  --success: oklch(0.645 0.246 145.45);
-  --warning: oklch(0.769 0.188 70.08);
-  --border: oklch(100% 0.00011 271.152 / 0.102);
-  --input: oklch(1 0 0 / 15%);
-  --ring: oklch(55.553% 0.00006 271.152);
-  --chart-1: oklch(0.488 0.243 264.376);
-  --chart-2: oklch(70.192% 0.15767 160.464);
-  --chart-3: oklch(0.769 0.188 70.08);
-  --chart-4: oklch(0.627 0.265 303.9);
-  --chart-5: oklch(0.645 0.246 16.439);
-  --sidebar: oklch(20.463% 0.00002 271.152);
-  --sidebar-foreground: oklch(0.985 0 0);
-  --sidebar-primary: oklch(0.488 0.243 264.376);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.269 0 0);
-  --sidebar-accent-foreground: oklch(0.985 0 0);
-  --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: oklch(0.556 0 0);
+@utility text-display-2xl {
+  font-family: var(--font-clash);
+  font-size: var(--font-display-2xl);
+  line-height: var(--leading-display-2xl);
+  letter-spacing: var(--tracking-display-2xl);
 }
 
-@layer base {
-  * {
-    @apply border-border outline-ring/50;
-  }
-  body {
-    @apply bg-background text-foreground font-sans;
+@utility text-display-xl {
+  font-family: var(--font-clash);
+  font-size: var(--font-display-xl);
+  line-height: var(--leading-display-xl);
+  letter-spacing: var(--tracking-display-xl);
+}
+
+@utility text-heading-lg {
+  font-family: var(--font-clash);
+  font-size: var(--font-heading-lg);
+  line-height: var(--leading-heading-lg);
+  letter-spacing: var(--tracking-heading-lg);
+}
+
+/**
+ * section-spacing
+ * ---------------
+ * One-line utility that applies the canonical three-step vertical-rhythm
+ * scale to any landing section.  Use it in place of ad-hoc py-* values:
+ *
+ *   <section className="section-spacing ...">
+ *
+ * Equivalent to `py-16 sm:py-20 lg:py-24` (64 px / 80 px / 96 px).
+ * The values are driven by the --section-py-* CSS custom properties
+ * defined in :root so that a single token edit updates every section.
+ */
+@utility section-spacing {
+  padding-top: var(--section-py-sm);
+  padding-bottom: var(--section-py-sm);
+
+  @media (width >= 640px) {
+    padding-top: var(--section-py-md);
+    padding-bottom: var(--section-py-md);
   }
 
-  input:-webkit-autofill,
-  input:-webkit-autofill:hover,
-  input:-webkit-autofill:focus,
-  textarea:-webkit-autofill,
-  textarea:-webkit-autofill:hover,
-  textarea:-webkit-autofill:focus,
-  select:-webkit-autofill,
-  select:-webkit-autofill:hover,
-  select:-webkit-autofill:focus {
-    box-shadow: 0 0 0 1000px transparent inset !important;
-    -webkit-box-shadow: 0 0 0 1000px transparent inset !important;
-    -webkit-text-fill-color: #ffffff !important;
-    transition: background-color 5000s ease-in-out 0s;
+  @media (width >= 1024px) {
+    padding-top: var(--section-py-lg);
+    padding-bottom: var(--section-py-lg);
   }
 }
 
-/* Skeleton shimmer animation */
+@utility text-body-lg {
+  font-family: var(--font-general-sans), var(--font-inter);
+  font-size: var(--font-body-lg);
+  line-height: var(--leading-body-lg);
+  letter-spacing: var(--tracking-body-lg);
+}
+
+@utility text-body-md {
+  font-family: var(--font-general-sans), var(--font-inter);
+  font-size: var(--font-body-md);
+  line-height: var(--leading-body-md);
+  letter-spacing: var(--tracking-body-md);
+}
+
+@utility text-caption-sm {
+  font-family: var(--font-inter);
+  font-size: var(--font-caption-sm);
+  line-height: var(--leading-caption-sm);
+  letter-spacing: var(--tracking-caption-sm);
+}
+
+/* ── Skeleton shimmer — shared animation ──────────────────────────────────
+ * Single .skeleton-shimmer class consumed by every skeleton component
+ * (Skeleton, CardSkeleton, TableSkeleton, etc.).  A translucent overlay
+ * slides left-to-right across the placeholder surface.
+ *
+ * Duration and easing are driven by --shimmer-* CSS custom properties
+ * defined once in :root so every skeleton animates in lockstep.
+ *
+ * Accessibility — prefers-reduced-motion:
+ *   The directional sweep is replaced with a stationary opacity pulse that
+ *   conveys "loading" without movement that can trigger vestibular disorders
+ *   (WCAG 2.1 AA Success Criterion 2.3.3).
+ *
+ * This must be a plain class (not @utility) because Tailwind v4's @utility
+ * does not support pseudo-elements.
+ * ------------------------------------------------------------------------ */
+
+@keyframes shimmer-slide {
+  from { transform: translateX(-100%); }
+  to   { transform: translateX(100%); }
+}
+
+@keyframes shimmer-pulse {
+  0%, 100% { opacity: 0.4; }
+  50%      { opacity: 0.8; }
+}
+
 .skeleton-shimmer {
   position: relative;
   overflow: hidden;
@@ -156,35 +268,210 @@ html {
 .skeleton-shimmer::after {
   content: "";
   position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
+  inset: 0;
+  pointer-events: none;
   background: linear-gradient(
     90deg,
-    transparent,
-    rgba(255, 255, 255, 0.1),
-    transparent
+    transparent 0%,
+    rgba(255 255 255 / 0.06) 50%,
+    transparent 100%
   );
-  transform: translateX(-100%);
-  animation: shimmer 2s infinite;
+  animation: shimmer-slide var(--shimmer-duration, 2s) var(--shimmer-easing, ease-in-out) infinite;
+  will-change: transform;
 }
 
-@keyframes shimmer {
-  0% {
-    transform: translateX(-100%);
+@media (prefers-reduced-motion: reduce) {
+  .skeleton-shimmer::after {
+    background: transparent;
   }
-  100% {
-    transform: translateX(100%);
+
+  .skeleton-shimmer {
+    animation: shimmer-pulse var(--shimmer-duration, 2s) ease-in-out infinite;
   }
 }
 
-@layer utilities {
-  .scrollbar-hide {
-    -ms-overflow-style: none; /* IE and Edge */
-    scrollbar-width: none; /* Firefox */
+/* Statement output intentionally has its own print scope; table print rules and
+   navigation never leak into the reconciliation document. */
+@media print {
+  body * {
+    visibility: hidden;
   }
-  .scrollbar-hide::-webkit-scrollbar {
-    display: none; /* Chrome, Safari and Opera */
+
+  .statement-print-root,
+  .statement-print-root * {
+    visibility: visible;
+  }
+
+  .statement-print-root {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    margin: 0;
+    border: 0;
+    box-shadow: none;
+    color: #111827 !important;
+    background: #ffffff !important;
+  }
+
+  .statement-print-root .statement-actions {
+    display: none !important;
+  }
+
+  .statement-print-root * {
+    color: #111827 !important;
+    background-color: transparent !important;
+  }
+
+  .statement-print-root table,
+  .statement-print-root tr {
+    break-inside: avoid;
+  }
+
+  .statement-print-root thead {
+    display: table-header-group;
+  }
+
+  @page {
+    margin: 16mm;
+  }
+
+  /* ── Transactions table print scope ─────────────────────────────────────
+   * When printing the interactive transactions page, hide every control
+   * (filters, search, pagination, sort triggers, checkboxes, density
+   * toggle, receipt download buttons) and show only the data rows in a
+   * legible, grayscale-friendly layout with no page-breaks inside rows.
+   * Fully independent of the reconciliation-statement scope above.      */
+
+  .transactions-print-root,
+  .transactions-print-root * {
+    visibility: visible;
+  }
+
+  .transactions-print-root {
+    position: static;
+    background: #ffffff !important;
+    color: #111827 !important;
+  }
+
+  .transactions-print-root * {
+    color: #111827 !important;
+    background-color: transparent !important;
+    border-color: #d1d5db !important;
+  }
+
+  .transactions-print-root table tr {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  .transactions-print-root table thead {
+    display: table-header-group;
+  }
+
+  .transactions-print-root img {
+    filter: grayscale(100%) contrast(1.15);
+  }
+
+  /* ── Landing page print scope ────────────────────────────────────────────
+   * When printing the public landing page (hero + footer), hide every
+   * decorative element (gradient orbs, floating cards, shadows), collapse
+   * the footer to essential links only, and render all text in a
+   * high-contrast black-on-white palette to save ink and stay readable
+   * when printed for offline reference.
+   *
+   * The .landing-print-root class is applied to the top-level <div> in
+   * components/landing/landing-page.tsx and matching selectors target the
+   * actual DOM structure of hero.tsx and footer.tsx.                  */
+
+  .landing-print-root,
+  .landing-print-root * {
+    visibility: visible;
+  }
+
+  .landing-print-root {
+    position: static;
+    background: #ffffff !important;
+    color: #111827 !important;
+  }
+
+  .landing-print-root * {
+    color: #111827 !important;
+    background-color: transparent !important;
+    border-color: #d1d5db !important;
+    box-shadow: none !important;
+    text-shadow: none !important;
+    background-image: none !important;
+  }
+
+  /* Hero: hide all decorative gradient orbs (aria-hidden blur-3xl) */
+  .landing-print-root section[aria-label*="Hero"] [aria-hidden="true"] {
+    display: none !important;
+  }
+
+  /* Hero: hide floating cards (absolutely positioned z-2 cards that
+     float over the main mockup card). Uses z-2 instead of rotate so
+     the selector works regardless of prefers-reduced-motion state. */
+  .landing-print-root section[aria-label*="Hero"] [class*="absolute"][class*="z-2"] {
+    display: none !important;
+  }
+
+  /* Hero: convert gradient text to solid printable black */
+  .landing-print-root section[aria-label*="Hero"] h1 span.bg-clip-text {
+    background: none !important;
+    -webkit-background-clip: unset !important;
+    background-clip: unset !important;
+    color: #111827 !important;
+    -webkit-text-fill-color: #111827 !important;
+  }
+
+  /* Hero: collapse CTA buttons to simple bordered buttons */
+  .landing-print-root section[aria-label*="Hero"] button {
+    border: 1px solid #d1d5db !important;
+    background: #f9fafb !important;
+    color: #111827 !important;
+  }
+
+  /* Footer: hide the cookie consent banner */
+  .landing-print-root footer [role="dialog"][aria-label="Cookie consent"] {
+    display: none !important;
+  }
+
+  /* Footer: hide newsletter subscription section */
+  .landing-print-root footer form {
+    display: none !important;
+  }
+
+  /* Footer: hide social media icon links */
+  .landing-print-root footer a[target="_blank"] {
+    display: none !important;
+  }
+
+  /* Footer: simplify link text */
+  .landing-print-root footer a {
+    color: #111827 !important;
+    text-decoration: underline;
   }
 }
+
+@utility text-body-lg {
+  font-family: var(--font-general-sans), var(--font-inter);
+  font-size: var(--font-body-lg);
+  line-height: var(--leading-body-lg);
+  letter-spacing: var(--tracking-body-lg);
+}
+
+@utility text-body-md {
+  font-family: var(--font-general-sans), var(--font-inter);
+  font-size: var(--font-body-md);
+  line-height: var(--leading-body-md);
+  letter-spacing: var(--tracking-body-md);
+}
+
+@utility text-caption-sm {
+  font-family: var(--font-inter);
+  font-size: var(--font-caption-sm);
+  line-height: var(--leading-caption-sm);
+  letter-spacing: var(--tracking-caption-sm);
+}
+
+

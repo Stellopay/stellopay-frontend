@@ -1,4 +1,5 @@
 import { format, parse, isValid, startOfDay } from "date-fns";
+import { safeStorage, STORAGE_KEYS } from "@/utils/safeStorage";
 
 /**
  * Single source of truth for date parsing, formatting, and range checks.
@@ -7,6 +8,24 @@ import { format, parse, isValid, startOfDay } from "date-fns";
  * locale-dependent `Date.prototype.toLocaleDateString`) and the original
  * `utils/date-utils.ts` (date-fns based) into one module so formatting is
  * deterministic regardless of the host machine's locale.
+ *
+ * ---
+ * ## Timezone convention
+ *
+ * **All functions in this module display dates in the viewer's local timezone.**
+ *
+ * - Input: ISO 8601 strings (e.g. `"2023-04-15T23:30:00.000Z"`) are parsed
+ *   into `Date` objects and **normalized to the local calendar day** via
+ *   `date-fns/startOfDay` before formatting.
+ * - This ensures a UTC timestamp near midnight (e.g. 23:30 UTC on Apr 15)
+ *   consistently displays as the correct local calendar date (Apr 16 in
+ *   UTC+2, Apr 15 in UTC-5) rather than silently showing the UTC date.
+ * - The `formatDateTimeWithTimezone` helper is the exception — it accepts an
+ *   explicit IANA timezone and formats accordingly.
+ *
+ * **Never** call `date-fns/format` or `Date.prototype.toLocaleDateString`
+ * directly from components — always route through a helper here so the
+ * convention stays uniform.
  */
 
 /**
@@ -46,7 +65,10 @@ export function parseTransactionDate(dateString: string): Date | null {
 export function formatDate(dateLike: Date | string): string {
   const date = typeof dateLike === "string" ? new Date(dateLike) : dateLike;
   if (!isValid(date)) return "";
-  return format(date, "MMM dd, yyyy");
+  // Normalize to start of local calendar day so a UTC timestamp near
+  // midnight (e.g. 23:30Z on Apr 15 in UTC+2 → local Apr 16) always
+  // displays the correct local date.
+  return format(startOfDay(date), "MMM dd, yyyy");
 }
 
 /**
@@ -109,6 +131,88 @@ export function isDateInRange(
  */
 export function getCurrentDate(): string {
   return formatDateForInput(new Date());
+}
+
+/**
+ * Reads the user's saved timezone preference from localStorage.
+ * Falls back to the browser's local IANA timezone when no preference is set.
+ */
+export function getSavedTimezone(): string {
+  const saved = safeStorage.getItem(STORAGE_KEYS.TIMEZONE);
+  if (saved) return saved;
+  try {
+    return Intl.DateTimeFormat().resolvedOptions().timeZone;
+  } catch {
+    return "UTC";
+  }
+}
+
+/**
+ * Combines a date string and a 12-hour time string into an ISO-8601 UTC
+ * timestamp (e.g. "2023-04-12T09:32:00.000Z").
+ *
+ * Supports times in "hh:mmAM"/"hh:mm PM" format.
+ */
+export function getTransactionTimestamp(date: string, time = ""): string {
+  const fallback = `${date}T00:00:00.000Z`;
+  const trimmed = time.trim();
+  const match = trimmed.match(/^(\d{1,2}):(\d{2})\s*([AP]M)$/i);
+
+  if (!match) return fallback;
+
+  let hour = Number(match[1]);
+  const minute = Number(match[2]);
+  const period = match[3].toUpperCase();
+
+  if (hour < 1 || hour > 12 || minute < 0 || minute > 59) return fallback;
+
+  if (period === "PM" && hour !== 12) hour += 12;
+  if (period === "AM" && hour === 12) hour = 0;
+
+  return `${date}T${String(hour).padStart(2, "0")}:${String(minute).padStart(2, "0")}:00.000Z`;
+}
+
+/**
+ * Formats a date+time pair (as stored in Transaction) using the user's saved
+ * timezone preference (or the browser's local timezone as fallback).
+ *
+ * Returns `{ date, time }` strings suitable for display.
+ *
+ * Falls back to the original date/time strings when the timestamp cannot be parsed.
+ */
+export function formatTransactionDateTime(
+  date: string,
+  time: string,
+  timezone?: string,
+): { date: string; time: string; timestamp: string } {
+  const tz = timezone ?? getSavedTimezone();
+  const timestamp = getTransactionTimestamp(date, time);
+  const parsed = new Date(timestamp);
+
+  if (Number.isNaN(parsed.getTime())) {
+    return { date, time, timestamp };
+  }
+
+  try {
+    const formatted = new Intl.DateTimeFormat("en-US", {
+      dateStyle: "medium",
+      timeStyle: "short",
+      timeZone: tz,
+    }).format(parsed);
+
+    const parts = formatted.split(", ");
+    // "Jul 29, 2026, 10:30 AM" -> datePart: "Jul 29, 2026", timePart: "10:30 AM"
+    const datePart = parts.slice(0, -1).join(", ");
+    const timePart = parts[parts.length - 1] ?? time;
+
+    return {
+      date: datePart || date,
+      time: timePart || time,
+      timestamp,
+    };
+  } catch {
+    return { date, time, timestamp };
+  }
 }
 
 /**
