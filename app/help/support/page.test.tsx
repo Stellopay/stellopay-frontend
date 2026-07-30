@@ -30,7 +30,7 @@ vi.mock("@/components/common/support-tabs", () => ({
 }));
 
 vi.mock("@/components/common/faq-card", () => ({
- ui/notifications-section-channel-matrix
+ feat/help-support-search-first
   default: ({ title, highlightQuery }: any) => (
     <div data-testid="faq-card" data-highlight-query={highlightQuery || ""}>
       {title}
@@ -207,8 +207,10 @@ describe("Support Page - Responsive Layout", () => {
   it("should render full width ticket widget", () => {
     render(<SupportPage />);
     const widget = screen.getByTestId("ticket-widget");
- ui/notifications-section-channel-matrix
+ feat/help-support-search-first
     const wrapper = widget.parentElement;
+
+
 
     // Check that widget's parent has full width class
     const wrapper = widget.parentElement;
@@ -229,7 +231,7 @@ describe("Support Page - Responsive Layout", () => {
 
 describe("Support Page - Integration", () => {
   it("should render ticket widget before tabs", () => {
- ui/notifications-section-channel-matrix
+feat/help-support-search-first
     render(<SupportPage />);
     const container = screen.getByTestId("ticket-widget").closest(
       ".min-h-screen",
@@ -269,7 +271,8 @@ describe("Support Page - Integration", () => {
     expect(mainDiv?.className).toMatch(/text-white/);
   });
 });
- ui/notifications-section-channel-matrix
+
+ feat/help-support-search-first
 describe("Support Page - Search", () => {
   beforeEach(() => {
     vi.clearAllMocks();

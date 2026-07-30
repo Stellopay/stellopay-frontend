@@ -3,7 +3,7 @@ import { SquareArrowOutUpRight } from "lucide-react";
 import React from "react";
 import { useRouter } from "next/navigation";
 import { FaqCardProps } from "@/types/ui";
- ui/notifications-section-channel-matrix
+ feat/help-support-search-first
 import { HighlightText } from "@/components/common/highlight-text";
 
 import { cn } from "@/utils/commonUtils";
@@ -13,7 +13,7 @@ const FaqCard: React.FC<FaqCardProps> = ({
   title,
   subtitle,
   link,
- ui/notifications-section-channel-matrix
+ feat/help-support-search-first
   highlightQuery,
 
   icon,
@@ -52,7 +52,7 @@ const FaqCard: React.FC<FaqCardProps> = ({
       className="w-full bg-[#121212] border border-[#2E2E2E] rounded-xl p-4 sm:p-5 md:p-6 hover:shadow-2xl hover:scale-105 transition-all duration-300 ease-in-out cursor-pointer"
     >
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
- ui/notifications-section-channel-matrix
+ feat/help-support-search-first
         <div className="flex-1">
           <h3 className="text-base  font-semibold text-white mb-1">
             <HighlightText text={title} query={highlightQuery || ""} />

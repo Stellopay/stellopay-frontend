@@ -3,7 +3,7 @@
 import FaqCard from "@/components/common/faq-card";
 import SupportTabs from "@/components/common/support-tabs";
 import TicketStatusWidget from "@/components/help-support/ticket-status-widget";
- ui/notifications-section-channel-matrix
+ feat/help-support-search-first
 import { Input } from "@/components/ui/input";
 import { CircleHelp, Search, SearchX, X } from "lucide-react";
 import { useState } from "react";
@@ -70,7 +70,7 @@ const SupportPage = () => {
   const [activeTab, setActiveTab] = useState("Client FAQ");
   const [showCoachMarks, setShowCoachMarks] = useState(false);
   const [currentCoachStep, setCurrentCoachStep] = useState(0);
- main
+main
   const supportTickets = getDemoSupportTickets();
   const filteredTopics = filterTopics(searchQuery);
 
@@ -125,7 +125,7 @@ const SupportPage = () => {
               </h3>
             </div>
 
-ui/notifications-section-channel-matrix
+ feat/help-support-search-first
             {/* Prominent Search */}
             <div role="search" aria-label="Search help articles">
               <div className="relative">

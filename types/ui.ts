@@ -29,7 +29,7 @@ export interface FaqCardProps {
   title: string;
   subtitle: string;
   link?: string;
- ui/notifications-section-channel-matrix
+ feat/help-support-search-first
   highlightQuery?: string;
 
   icon?: React.ReactNode;
