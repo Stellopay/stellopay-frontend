@@ -121,6 +121,53 @@ export function createApiKeySecret(name: string): string {
 /** How many single-use two-factor backup codes are issued per set. */
 export const BACKUP_CODE_COUNT = 10;
 
+/** Stable id for the screen-reader password-requirements helper text. */
+export const NEW_PASSWORD_REQUIREMENTS_ID = "new-password-requirements";
+
+/** Stable id for the polite live region that announces requirement changes. */
+export const NEW_PASSWORD_REQUIREMENTS_STATUS_ID =
+  "new-password-requirements-status";
+
+/**
+ * Debounce window (ms) before announcing password-requirement changes.
+ * Long enough to avoid keystroke spam; short enough to feel responsive.
+ */
+export const PASSWORD_REQUIREMENTS_ANNOUNCE_DELAY_MS = 700;
+
+type PasswordRequirementFlags = ReturnType<typeof checkPasswordRequirements>;
+
+/**
+ * Builds a concise screen-reader announcement for the current password
+ * requirement state. Empty string when the field is empty (nothing to announce).
+ *
+ * Exported for unit tests so the announcement copy stays asserted without
+ * relying on debounce timers in the component.
+ */
+export function buildPasswordRequirementsAnnouncement(
+  requirements: PasswordRequirementFlags,
+  passwordsMatch: boolean,
+  hasPassword: boolean,
+): string {
+  if (!hasPassword) {
+    return "";
+  }
+
+  const items = [
+    { label: "at least 8 characters", met: requirements.minLength },
+    { label: "one uppercase letter", met: requirements.uppercase },
+    { label: "one special character", met: requirements.specialChar },
+    { label: "passwords match", met: passwordsMatch },
+  ];
+
+  const unmet = items.filter((item) => !item.met).map((item) => item.label);
+
+  if (unmet.length === 0) {
+    return "All password requirements met.";
+  }
+
+  return `Still needed: ${unmet.join(", ")}.`;
+}
+
 /**
  * Generates a set of single-use two-factor backup (recovery) codes.
  *
@@ -464,6 +511,53 @@ export default function SecurityTab({
   const passwordsMatch =
     watchedPassword.length > 0 && watchedPassword === watchedConfirm;
 
+  const passwordRequirementsAnnouncement = useMemo(
+    () =>
+      buildPasswordRequirementsAnnouncement(
+        {
+          minLength: passwordRequirements.minLength,
+          uppercase: passwordRequirements.uppercase,
+          specialChar: passwordRequirements.specialChar,
+        },
+        passwordsMatch,
+        watchedPassword.length > 0,
+      ),
+    [
+      passwordRequirements.minLength,
+      passwordRequirements.uppercase,
+      passwordRequirements.specialChar,
+      passwordsMatch,
+      watchedPassword.length,
+    ],
+  );
+
+  // Debounced + change-gated live region: announce only after typing pauses
+  // and only when the unmet/met summary actually changes (avoids SR spam).
+  const [liveRequirementsAnnouncement, setLiveRequirementsAnnouncement] =
+    useState("");
+  const lastAnnouncedRequirementsRef = useRef("");
+
+  useEffect(() => {
+    if (!passwordRequirementsAnnouncement) {
+      setLiveRequirementsAnnouncement("");
+      lastAnnouncedRequirementsRef.current = "";
+      return;
+    }
+
+    const timer = window.setTimeout(() => {
+      if (
+        passwordRequirementsAnnouncement !==
+        lastAnnouncedRequirementsRef.current
+      ) {
+        lastAnnouncedRequirementsRef.current =
+          passwordRequirementsAnnouncement;
+        setLiveRequirementsAnnouncement(passwordRequirementsAnnouncement);
+      }
+    }, PASSWORD_REQUIREMENTS_ANNOUNCE_DELAY_MS);
+
+    return () => window.clearTimeout(timer);
+  }, [passwordRequirementsAnnouncement]);
+
   const canSubmit =
     form.formState.isValid &&
     watchedPassword.length > 0 &&
@@ -721,6 +815,7 @@ export default function SecurityTab({
                   placeholder="Use a strong password"
                   autoComplete="new-password"
                   disabled={isSaving}
+                  ariaDescribedBy={NEW_PASSWORD_REQUIREMENTS_ID}
                 />
                 <div className="space-y-4">
                   <FormFieldPassword
@@ -739,7 +834,25 @@ export default function SecurityTab({
                 </div>
               </div>
 
-              <div className="grid gap-3 sm:grid-cols-2">
+              <p id={NEW_PASSWORD_REQUIREMENTS_ID} className="sr-only">
+                Password requirements: at least 8 characters, one uppercase
+                letter, and one special character. Confirm password must match.
+              </p>
+              <div
+                id={NEW_PASSWORD_REQUIREMENTS_STATUS_ID}
+                role="status"
+                aria-live="polite"
+                aria-atomic="true"
+                className="sr-only"
+              >
+                {liveRequirementsAnnouncement}
+              </div>
+
+              <div
+                className="grid gap-3 sm:grid-cols-2"
+                role="list"
+                aria-label="Password requirements"
+              >
                 <RequirementItem
                   label="At least 8 characters"
                   met={passwordRequirements.minLength}
@@ -1421,14 +1534,20 @@ export default function SecurityTab({
 
 function RequirementItem({ label, met }: { label: string; met: boolean }) {
   return (
-    <div className="flex items-center gap-2 rounded-2xl border border-zinc-200 bg-zinc-50 px-4 py-3 text-sm text-zinc-600 dark:border-white/10 dark:bg-white/5 dark:text-zinc-400">
+    <div
+      role="listitem"
+      className="flex items-center gap-2 rounded-2xl border border-zinc-200 bg-zinc-50 px-4 py-3 text-sm text-zinc-600 dark:border-white/10 dark:bg-white/5 dark:text-zinc-400"
+    >
       <CheckCircle2
         className={`size-4 ${
           met ? "text-emerald-500" : "text-zinc-300 dark:text-zinc-600"
         }`}
         aria-hidden="true"
       />
-      <span>{label}</span>
+      <span>
+        <span className="sr-only">{met ? "Met: " : "Not met: "}</span>
+        {label}
+      </span>
     </div>
   );
 }
