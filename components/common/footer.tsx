@@ -5,6 +5,7 @@ import Image from "next/image";
 import { useState, useEffect } from "react";
 import { safeStorage } from "@/utils/safeStorage";
 import { X } from "lucide-react";
+import { messages } from "@/messages";
 
 // Social Media Icons as SVG components
 const TwitterIcon = () => (

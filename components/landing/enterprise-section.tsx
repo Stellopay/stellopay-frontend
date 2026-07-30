@@ -73,15 +73,10 @@ const EnterpriseSolutionSection = () => {
             id="enterprise-solution-desc"
             className="text-[#52525B] dark:text-[#A1A1AA] text-start font-normal text-xl leading-[32.5px] print:text-black"
           >
-            StelloPay is built for scale. Whether you&apos;re a startup or an
-            enterprise, our platform grows with your business needs.
-
-          <p className="text-[#52525B] dark:text-[#A1A1AA] text-start font-normal text-xl leading-[32.5px] print:text-black">
             StelloPay settles cross-border payments on the Stellar network in
             3–5 seconds for less than $0.001 per transaction. Native multi-asset
             support (USDC, XLM, and more) with built-in fiat on/off ramps via
             Stellar anchors.
-
           </p>
         </div>
         <div aria-label="Enterprise features">

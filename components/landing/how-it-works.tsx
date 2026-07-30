@@ -6,6 +6,7 @@ import { UserPlus, Wallet, Send } from "lucide-react";
 import { motion } from "framer-motion";
 import { useReducedMotion } from "@/hooks/useReducedMotion";
 import { duration, easing } from "@/lib/motion";
+import { VideoFacade } from "@/components/landing/video-facade";
 
 const steps = [
   {

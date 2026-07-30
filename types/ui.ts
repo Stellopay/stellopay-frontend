@@ -29,12 +29,9 @@ export interface FaqCardProps {
   title: string;
   subtitle: string;
   link?: string;
- feat/help-support-search-first
   highlightQuery?: string;
-
   icon?: React.ReactNode;
   articleCount?: number;
- main
 }
 
 export interface SupportTabsProps {
