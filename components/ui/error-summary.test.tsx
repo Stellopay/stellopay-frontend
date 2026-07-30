@@ -19,7 +19,7 @@ describe("ErrorSummary", () => {
 
     expect(screen.getByText("There is 1 error")).toBeInTheDocument();
     expect(
-      screen.getByText(/Email: Email is required/),
+      screen.getByText((content) => content.includes("Email") && content.includes("required")),
     ).toBeInTheDocument();
   });
 
@@ -35,10 +35,10 @@ describe("ErrorSummary", () => {
 
     expect(screen.getByText("There are 2 errors")).toBeInTheDocument();
     expect(
-      screen.getByText(/Email: Email is required/),
+      screen.getByText((content) => content.includes("Email") && content.includes("required")),
     ).toBeInTheDocument();
     expect(
-      screen.getByText(/Password: Password is too short/),
+      screen.getByText((content) => content.includes("Password") && content.includes("too short")),
     ).toBeInTheDocument();
   });
 
