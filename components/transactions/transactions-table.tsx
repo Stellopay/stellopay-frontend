@@ -10,7 +10,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { TransactionsTableProps, TransactionProps } from "@/types/transaction";
+import { TransactionsTableProps, TransactionProps, Tag } from "@/types/transaction";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import Image from "next/image";
@@ -31,8 +31,9 @@ import {
   DialogDescription,
   DialogFooter,
 } from "@/components/ui/dialog";
-import { ExternalLink } from "lucide-react";
+import { ExternalLink, Plus } from "lucide-react";
 import { safeStorage } from "@/utils/safeStorage";
+import { TagChip } from "./tag-chip";
 
 // ── Density configuration ───────────────────────────────────────────────────
 
@@ -84,6 +85,16 @@ interface TransactionsTablePropsExtended extends TransactionsTableProps {
    * `checked` is the new desired state (true = select all visible rows).
    */
   onSelectAll?: (checked: boolean) => void;
+  /** All user-defined tags for the tag picker */
+  allTags?: Tag[];
+  /** Map of transaction id -> assigned tag ids */
+  tagAssignments?: Record<string, string[]>;
+  /** Assign a tag to a transaction */
+  onAssignTag?: (txId: string, tagId: string) => void;
+  /** Unassign a tag from a transaction */
+  onUnassignTag?: (txId: string, tagId: string) => void;
+  /** Create a new tag and return it */
+  onCreateTag?: (name: string) => Tag;
 }
 
 /**
@@ -299,6 +310,11 @@ export function TransactionsTable({
   selectedIds = new Set(),
   onSelectRow,
   onSelectAll,
+  allTags = [],
+  tagAssignments = {},
+  onAssignTag,
+  onUnassignTag,
+  onCreateTag,
 }: TransactionsTablePropsExtended) {
   const [selectedTransaction, setSelectedTransaction] = useState<TransactionProps | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -483,6 +499,12 @@ export function TransactionsTable({
               </TableHead>
               <TableHead
                 scope="col"
+                className={`text-white font-bold border-[#2D2D2D] border-y-2 border-t-0 ${s.head} w-[180px] print:hidden`}
+              >
+                Tags
+              </TableHead>
+              <TableHead
+                scope="col"
                 className={`text-white font-bold border-[#2D2D2D] border-y-2 border-t-0 ${s.head} w-[140px] print:hidden`}
               >
                 Receipt
@@ -517,13 +539,16 @@ export function TransactionsTable({
                     <Skeleton className="h-6 w-16 rounded-full" />
                   </TableCell>
                   <TableCell className={s.skeleton}>
+                    <Skeleton className="h-4 w-20" />
+                  </TableCell>
+                  <TableCell className={s.skeleton}>
                     <Skeleton className="h-4 w-24" />
                   </TableCell>
                 </TableRow>
               ))
             ) : isEmpty ? (
               <TableRow>
-                <TableCell colSpan={7} className="py-12 text-center">
+                <TableCell colSpan={isSelectable ? 9 : 8} className="py-12 text-center">
                   <EmptyState
                     title="No Transactions Found"
                     description="No transactions found. Try adjusting your filters."
@@ -533,6 +558,7 @@ export function TransactionsTable({
             ) : (
               transactions.map((transaction, index) => {
                 const StatusIcon = getStatusIcon(transaction.status);
+                const assignedTagObjs = (tagAssignments[transaction.id] ?? []).map((id) => allTags.find((t) => t.id === id)).filter(Boolean) as Tag[];
                 return (
                 <TableRow
                   key={transaction.id ?? index}
@@ -585,6 +611,16 @@ export function TransactionsTable({
                       <StatusIcon className="size-4" aria-hidden="true" />
                       <span className="text-sm">{transaction.status}</span>
                     </Badge>
+                  </TableCell>
+                  <TableCell className={`${s.cell} print:hidden max-w-[180px]`}>
+                    <TagChip
+                      assignedTags={(tagAssignments[transaction.id] ?? []).map((id) => allTags.find((t) => t.id === id)).filter(Boolean) as Tag[]}
+                      allTags={allTags}
+                      onAssign={(tagId) => onAssignTag?.(transaction.id, tagId)}
+                      onUnassign={(tagId) => onUnassignTag?.(transaction.id, tagId)}
+                      onCreateTag={(name) => onCreateTag?.(name) ?? { id: "", name, color: "#34D399" }}
+                      transactionId={transaction.id}
+                    />
                   </TableCell>
                   <TableCell className={`${s.cell} print:hidden`}>
                     <DownloadReceiptButton
@@ -679,6 +715,16 @@ export function TransactionsTable({
                     {transaction.amount}
                   </p>
                 </div>
+              </div>
+              <div className="mt-2" onClick={(e) => e.stopPropagation()}>
+                <TagChip
+                  assignedTags={(tagAssignments[transaction.id] ?? []).map((id) => allTags.find((t) => t.id === id)).filter(Boolean) as Tag[]}
+                  allTags={allTags}
+                  onAssign={(tagId) => onAssignTag?.(transaction.id, tagId)}
+                  onUnassign={(tagId) => onUnassignTag?.(transaction.id, tagId)}
+                  onCreateTag={(name) => onCreateTag?.(name) ?? { id: "", name, color: "#34D399" }}
+                  transactionId={transaction.id}
+                />
               </div>
             </button>
             );

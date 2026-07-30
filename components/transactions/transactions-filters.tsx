@@ -30,6 +30,9 @@ export default function TransactionsFilters({
   onAdvancedFilterToggle,
   hasAdvancedFilters = false,
   debounceMs = 300,
+  tagFilter = "",
+  allTags = [],
+  onTagFilterChange,
 }: TransactionsFiltersProps) {
   const renderSortIndicator = (field: SortField) => {
     const indicators: string[] = [];
@@ -202,6 +205,47 @@ export default function TransactionsFilters({
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
+
+        {/* Tag Filter Dropdown */}
+        {allTags.length > 0 && (
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                variant="ghost"
+                size="default"
+                className={`text-gray-400 hover:text-white hover:bg-[#1a0c1d] ${tagFilter ? "text-[#34D399]" : ""}`}
+              >
+                <span className="text-base">
+                  {tagFilter ? tagFilter : "Tags"}
+                </span>
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent className="bg-[#160f17] border-[#2D2D2D]">
+              <DropdownMenuItem
+                className="text-white hover:bg-gray-800"
+                onClick={() => onTagFilterChange?.("")}
+              >
+                All Tags
+              </DropdownMenuItem>
+              {allTags.map((tag) => (
+                <DropdownMenuItem
+                  key={tag.id}
+                  className="text-white hover:bg-gray-800 flex items-center gap-2"
+                  onClick={() => onTagFilterChange?.(tagFilter === tag.name ? "" : tag.name)}
+                >
+                  <span
+                    className="inline-block size-2 rounded-full shrink-0"
+                    style={{ backgroundColor: tag.color }}
+                  />
+                  {tag.name}
+                  {tagFilter === tag.name && (
+                    <span className="ml-auto text-[#34D399] text-xs">Active</span>
+                  )}
+                </DropdownMenuItem>
+              ))}
+            </DropdownMenuContent>
+          </DropdownMenu>
+        )}
 
         {/* Sort Dropdown */}
         <DropdownMenu>

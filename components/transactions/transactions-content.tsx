@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useMemo, useCallback, useEffect, useRef } from "react";
+import { useRouter, usePathname, useSearchParams } from "next/navigation";
 import { FileText } from "lucide-react";
 import type {
   SortField,
@@ -9,9 +10,10 @@ import type {
   TransactionFilters,
   Transaction,
   TransactionProps,
+  Tag,
 } from "@/types/transaction";
 import { useTransactions } from "@/hooks/useTransactions";
-import { formatTransactionDateTime } from "@/utils/date-utils";
+import { useTransactionTags } from "@/hooks/useTransactionTags";
 import { TransactionTableSkeleton } from "@/components/ui/table-skeleton";
 import TransactionsHeader from "./transactions-header";
 import TransactionsFilters from "./transactions-filters";
@@ -265,32 +267,38 @@ const getTokenIcon = (token: string): string => {
 /** Convert internal Transaction → display TransactionProps */
 const toTransactionProps = (
   t: Transaction,
-  timezone?: string,
-): TransactionProps => {
-  const formatted = formatTransactionDateTime(t.date, t.time, timezone);
-  return {
-    id: t.id,
-    type: t.type,
-    txId: t.txId,
-    address: t.address,
-    date: formatted.date,
-    time: formatted.time,
-    token: t.token,
-    amount:
-      t.amount >= 0
-        ? `+$${t.amount.toFixed(2)}`
-        : `-$${Math.abs(t.amount).toFixed(2)}`,
-    status: t.status as "Completed" | "Pending" | "Failed",
-    tokenIcon: getTokenIcon(t.token),
-    memo: t.memo,
-    timestamp: formatted.timestamp,
-  };
-};
+  getTagNames: (txId: string) => string[],
+): TransactionProps => ({
+  id: t.id,
+  type: t.type,
+  txId: t.txId,
+  address: t.address,
+  date: t.date,
+  time: t.time,
+  token: t.token,
+  amount:
+    t.amount >= 0
+      ? `+$${t.amount.toFixed(2)}`
+      : `-$${Math.abs(t.amount).toFixed(2)}`,
+  status: t.status as "Completed" | "Pending" | "Failed",
+  tokenIcon: getTokenIcon(t.token),
+  memo: t.memo,
+  tags: getTagNames(t.id),
+});
 
 export default function TransactionsContent() {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
+
+  const {
+    allTags,
+    tagAssignments: tagAssignmentsRaw,
+    assignTag,
+    unassignTag,
+    addTag,
+    getTagNamesForTransaction,
+  } = useTransactionTags();
 
   const defaultFiltersRef = useRef<TransactionFilters | null>(null);
   if (defaultFiltersRef.current === null) {
@@ -313,6 +321,7 @@ export default function TransactionsContent() {
     ...initialUrlState.filters,
     sortConfigs: cloneSortConfigs(initialUrlState.filters.sortConfigs),
   }));
+  const [tagFilter, setTagFilter] = useState("");
   const [currentPage, setCurrentPage] = useState(initialUrlState.page);
   const [statementRange, setStatementRange] = useState<{
     fromDate: string;
@@ -441,10 +450,15 @@ export default function TransactionsContent() {
     };
   }, [data, isLoading, error]);
 
-  const paginatedTransactions: TransactionProps[] = useMemo(
-    () => (data?.data ?? []).map(toTransactionProps),
-    [data],
-  );
+  const paginatedTransactions: TransactionProps[] = useMemo(() => {
+    const transactions = (data?.data ?? []).map((t) =>
+      toTransactionProps(t, getTagNamesForTransaction),
+    );
+    if (tagFilter) {
+      return transactions.filter((t) => t.tags?.includes(tagFilter));
+    }
+    return transactions;
+  }, [data, tagFilter, getTagNamesForTransaction]);
 
   // ── Stable select-all that has access to current page ids ────────────────────
   const paginatedTransactionsRef = useRef(paginatedTransactions);
@@ -644,6 +658,13 @@ export default function TransactionsContent() {
               onSearchChange={(q) => updateFilter("searchQuery", q)}
               onFilterChange={(f) => updateFilter("selectedFilter", f)}
               onSort={handleSort}
+              tagFilter={tagFilter}
+              allTags={allTags}
+              onTagFilterChange={(tagName) => {
+                setTagFilter(tagName);
+                setCurrentPage(1);
+                clearSelection();
+              }}
             />
           </div>
 
@@ -668,6 +689,11 @@ export default function TransactionsContent() {
                   selectedIds={selectedIds}
                   onSelectRow={handleSelectRow}
                   onSelectAll={handleSelectAllForPage}
+                  allTags={allTags}
+                  tagAssignments={tagAssignmentsRaw}
+                  onAssignTag={assignTag}
+                  onUnassignTag={unassignTag}
+                  onCreateTag={addTag}
                 />
                 <div className="print:hidden">
                   <TransactionsPagination

@@ -98,6 +98,17 @@ const mockTransactions = [
   },
 ];
 
+const mockTags = [
+  { id: "tag-1", name: "Rent", color: "#34D399" },
+  { id: "tag-2", name: "Payroll", color: "#60A5FA" },
+  { id: "tag-3", name: "Subscription", color: "#F472B6" },
+];
+
+const mockTagAssignments: Record<string, string[]> = {
+  "1": ["tag-1", "tag-2"],
+  "2": ["tag-3"],
+};
+
 // ── Tests ─────────────────────────────────────────────────────────────────────
 
 describe("TransactionsTable — basic rendering", () => {
@@ -121,7 +132,7 @@ describe("TransactionsTable — status icons (WCAG 1.4.1)", () => {
 
   it("renders status text alongside the icon in the badge", () => {
     render(<TransactionsTable transactions={mockTransactions} />);
-    // Both desktop and mobile views render, so use getAllByText
+    // Both desktop and mobile views render status badges, so use getAllByText
     const completedBadges = screen.getAllByText("Completed");
     expect(completedBadges.length).toBeGreaterThanOrEqual(1);
     const pendingBadges = screen.getAllByText("Pending");
@@ -132,6 +143,7 @@ describe("TransactionsTable — status icons (WCAG 1.4.1)", () => {
 
   it("preserves aria-label on the status badge for screen readers", () => {
     render(<TransactionsTable transactions={mockTransactions} />);
+    // Both desktop and mobile views render status badges, so use getAllByLabelText
     const completedBadges = screen.getAllByLabelText("Status: Completed");
     expect(completedBadges.length).toBeGreaterThanOrEqual(1);
     const pendingBadges = screen.getAllByLabelText("Status: Pending");
@@ -143,7 +155,7 @@ describe("TransactionsTable — status icons (WCAG 1.4.1)", () => {
   it("status badge aria-label survives grayscale simulation (no color-only info)", () => {
     render(<TransactionsTable transactions={mockTransactions} />);
 
-    // Completed - use first badge
+    // Completed - use first badge from desktop view
     const completedBadges = screen.getAllByLabelText("Status: Completed");
     const completedBadge = completedBadges[0];
     expect(completedBadge).toHaveTextContent("Completed");
@@ -164,7 +176,6 @@ describe("TransactionsTable — status icons (WCAG 1.4.1)", () => {
 
   it("renders status icons in the mobile card view", () => {
     render(<TransactionsTable transactions={mockTransactions} />);
-    // Mobile cards are rendered with role="button" for view-details
     const badges = screen.getAllByLabelText(/^Status:/i);
     expect(badges.length).toBeGreaterThanOrEqual(3);
   });
@@ -174,6 +185,7 @@ describe("TransactionsTable — status icons (WCAG 1.4.1)", () => {
     const viewButtons = screen.getAllByLabelText(/View details for transaction/i);
     fireEvent.click(viewButtons[0]);
     const dialogBadges = screen.getAllByLabelText("Status: Completed");
+    // The dialog badge is the last one rendered
     const dialogBadge = dialogBadges[dialogBadges.length - 1];
     expect(dialogBadge.querySelector("svg[aria-hidden='true']")).toBeInTheDocument();
     expect(dialogBadge).toHaveTextContent("Completed");
@@ -248,7 +260,7 @@ describe("edge cases", () => {
         onSelectAll={vi.fn()}
       />,
     );
-    const td = container.querySelector("td[colspan='7']");
+    const td = container.querySelector("td[colspan='9']");
     expect(td).toBeInTheDocument();
   });
 
@@ -582,6 +594,70 @@ vi.mock("@/utils/safeStorage", () => ({
     }),
   },
 }));
+
+describe("TransactionsTable — tag column", () => {
+  it("renders tag column header", () => {
+    render(<TransactionsTable transactions={THREE_ROWS} />);
+    const headers = screen.getAllByRole("columnheader");
+    const tagHeader = headers.find((h) => h.textContent === "Tags");
+    expect(tagHeader).toBeInTheDocument();
+  });
+
+  it("shows 'add tag' button for each row (desktop + mobile)", () => {
+    render(
+      <TransactionsTable
+        transactions={THREE_ROWS}
+        allTags={mockTags}
+        tagAssignments={mockTagAssignments}
+        onAssignTag={vi.fn()}
+        onUnassignTag={vi.fn()}
+        onCreateTag={vi.fn()}
+      />,
+    );
+    // Both desktop and mobile views render, so 3 rows x 2 views = 6 buttons
+    const addTagButtons = screen.getAllByLabelText(/Add tag to transaction/i);
+    expect(addTagButtons.length).toBe(6);
+  });
+
+  it("renders assigned tag names in the tag area", () => {
+    render(
+      <TransactionsTable
+        transactions={[THREE_ROWS[0]]}
+        allTags={mockTags}
+        tagAssignments={{ "TX-1": ["tag-1", "tag-2"] }}
+        onAssignTag={vi.fn()}
+        onUnassignTag={vi.fn()}
+        onCreateTag={vi.fn()}
+      />,
+    );
+    // Both desktop and mobile views render, so tag names appear twice
+    const rentTags = screen.getAllByText("Rent");
+    expect(rentTags.length).toBe(2);
+    const payrollTags = screen.getAllByText("Payroll");
+    expect(payrollTags.length).toBe(2);
+  });
+
+  it("does not break when no tag props are provided", () => {
+    expect(() =>
+      render(<TransactionsTable transactions={THREE_ROWS} />),
+    ).not.toThrow();
+  });
+
+  it("handles missing tagAssignments gracefully", () => {
+    expect(() =>
+      render(
+        <TransactionsTable
+          transactions={THREE_ROWS}
+          allTags={mockTags}
+          tagAssignments={{}}
+          onAssignTag={vi.fn()}
+          onUnassignTag={vi.fn()}
+          onCreateTag={vi.fn()}
+        />,
+      ),
+    ).not.toThrow();
+  });
+});
 
 describe("TransactionsTable — density toggle", () => {
   beforeEach(() => {

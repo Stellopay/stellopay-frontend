@@ -41,6 +41,14 @@ export interface TransactionFilters {
   sortConfigs: SortConfig[];
   /** Counterparty address filter (partial match). */
   counterparty?: string;
+  /** Tag names to filter by. Transactions matching any of these tags are shown. */
+  tagFilter?: string[];
+}
+
+export interface Tag {
+  id: string;
+  name: string;
+  color: string;
 }
 
 export interface TransactionProps {
@@ -64,8 +72,6 @@ export interface TransactionProps {
   hash?: string;
   /** User-assignable category tag names */
   tags?: string[];
-  /** ISO-8601 timestamp derived from date + time */
-  timestamp?: string;
 }
 
 // Transaction component props
@@ -97,4 +103,10 @@ export interface TransactionsFiltersProps {
   debounceMs?: number;
   /** Whether any advanced filters (amount range, counterparty) are active. */
   hasAdvancedFilters?: boolean;
+  /** Currently selected tag filter (empty = all) */
+  tagFilter?: string;
+  /** All available tags for tag filtering */
+  allTags?: Tag[];
+  /** Called when tag filter changes */
+  onTagFilterChange?: (tagName: string) => void;
 }
