@@ -43,6 +43,10 @@ export default function AccountSummaryCard({
       ? formatCurrency(value, currency, decimals)
       : value;
 
+  const isZeroBalance =
+    typeof value === 'number' && value === 0 &&
+    (chartData.length === 0 || chartData.every((d) => d.value === 0));
+
   const href =
     filterQuery !== undefined
       ? `/transactions?filter=${encodeURIComponent(filterQuery)}`

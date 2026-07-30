@@ -169,4 +169,82 @@ describe('AccountSummaryCard', () => {
       expect(container.querySelector('.text-rose-700')).toBeInTheDocument();
     });
   });
+
+  describe('Zero-balance empty state', () => {
+    const zeroDataProps = {
+      ...defaultProps,
+      value: 0,
+      change: "0% vs last month",
+    };
+
+    it('shows "No activity yet" when value=0 and chartData is all zeros', () => {
+      render(
+        <AccountSummaryCard
+          {...zeroDataProps}
+          chartData={[{ value: 0 }, { value: 0 }]}
+        />
+      );
+
+      expect(screen.getByText("No activity yet")).toBeInTheDocument();
+    });
+
+    it('shows "No activity yet" when value=0 and chartData is empty', () => {
+      render(
+        <AccountSummaryCard
+          {...zeroDataProps}
+          chartData={[]}
+        />
+      );
+
+      expect(screen.getByText("No activity yet")).toBeInTheDocument();
+    });
+
+    it('renders normal chart when value=0 but chartData has non-zero values', () => {
+      render(
+        <AccountSummaryCard
+          {...zeroDataProps}
+          chartData={[{ value: 40 }, { value: 70 }]}
+        />
+      );
+
+      expect(screen.queryByText("No activity yet")).not.toBeInTheDocument();
+    });
+
+    it('renders normal chart when value is pre-formatted "$0.00" string with all-zero chartData', () => {
+      render(
+        <AccountSummaryCard
+          {...defaultProps}
+          value="$0.00"
+          chartData={[{ value: 0 }, { value: 0 }]}
+        />
+      );
+
+      expect(screen.queryByText("No activity yet")).not.toBeInTheDocument();
+    });
+
+    it('empty-state container has role="img" with aria-label', () => {
+      render(
+        <AccountSummaryCard
+          {...zeroDataProps}
+          chartData={[]}
+        />
+      );
+
+      const emptyState = screen.getByRole("img", { name: /no activity yet/i });
+      expect(emptyState).toBeInTheDocument();
+      expect(emptyState).toHaveStyle({ height: "3rem" });
+    });
+
+    it('renders normal chart when value is non-zero number with empty chartData', () => {
+      render(
+        <AccountSummaryCard
+          {...defaultProps}
+          value={500}
+          chartData={[]}
+        />
+      );
+
+      expect(screen.queryByText("No activity yet")).not.toBeInTheDocument();
+    });
+  });
 });
