@@ -62,6 +62,10 @@ export interface TransactionProps {
   fee?: string;
   /** Optional raw transaction hash */
   hash?: string;
+  /** User-assignable category tag names */
+  tags?: string[];
+  /** ISO-8601 timestamp derived from date + time */
+  timestamp?: string;
 }
 
 // Transaction component props
