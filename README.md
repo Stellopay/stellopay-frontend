@@ -266,11 +266,95 @@ Registration failure is non-fatal — a `.catch()` handler logs a warning and th
 
 ## Metadata & Viewport
 
-BASE_URL // "https://stellopay.com"
-PUBLIC_ROUTES // MetadataRoute.Sitemap — array of public route entries
-DISALLOWED_PATHS // string[] — private route prefixes
-Verifying locally
-After starting the dev server (npm run dev) or after a production build (npm run build && npm run start), inspect the generated files directly:
+Following Next.js 15 conventions, global metadata (titles, descriptions, OpenGraph) and viewport configurations are exported as separate objects in `app/layout.tsx`.
+
+- **`metadata`**: Contains SEO tags, OpenGraph data, and Twitter cards.
+- **`viewport`**: Contains responsive design parameters (e.g., `width`, `initialScale`) and theme colors for dark/light modes.
+
+## Structured Data (JSON-LD)
+
+The landing page (`app/page.tsx`) includes a JSON-LD `@graph` block that describes three schema.org entities, improving how StelloPay surfaces in search results:
+
+| Entity         | @type                                       | Purpose                                                |
+| -------------- | ------------------------------------------- | ------------------------------------------------------ |
+| Organization   | `Organization`                              | Describes StelloPay as a company / provider            |
+| WebSite        | `WebSite`                                   | Enables sitelinks searchbox and website identification |
+| WebApplication | `WebApplication`, `SoftwareApplication`     | Describes the StelloPay payroll/payments software product |
+
+### Why `WebApplication`?
+
+StelloPay is a **web-based software product** delivered as a SaaS — not a physical financial institution. `WebApplication` (a subtype of `SoftwareApplication`) is the most accurate schema.org type for describing a browser-based payroll and payments platform. It captures the application category (`FinanceApplication`), operating system requirements (`Web`), and pricing model — all signals that search engines use to understand software products.
+
+### Validation
+
+- The structured data validates against [Google's Rich Results Test](https://search.google.com/test/rich-results) and the [Schema.org Validator](https://validator.schema.org/).
+- All URLs use HTTPS.
+- No personally identifiable information (PII) or Stellar secret keys are included.
+- The `@graph` pattern keeps all three entities in a single `<script>` tag, minimizing HTML payload size.
+
+### Testing
+
+Structured data is tested in `app/metadata.test.ts`. The tests verify:
+
+- The `@graph` shape and entity count
+- Required properties for each `@type` (`name`, `url`, `applicationCategory`, etc.)
+- The `Offer` freemium pricing model
+- No sensitive data leaks (secret keys, template interpolation)
+- All URLs use HTTPS
+
+```bash
+npm test -- app/metadata.test.ts
+```
+
+### Updating
+
+When the product description, pricing model, or feature list changes, update the `landingStructuredData` object in `app/page.tsx` and adjust the corresponding tests.
+
+## Project Structure
+
+```
+stellopay-frontend
+├─ app/                  # Next.js App Router routes, layouts, and segment metadata
+│  ├─ account-summary/
+│  ├─ analytics-view/
+│  ├─ auth/              # login, sign-up
+│  ├─ dashboard/
+│  ├─ help/support/
+│  ├─ settings/          # preferences, profile
+│  ├─ transactions/
+│  ├─ layout.tsx
+│  └─ page.tsx           # landing page
+├─ components/           # Reusable UI, grouped by feature
+│  ├─ analytics/
+│  ├─ auth/
+│  ├─ common/            # navbar, sidebar, shared inputs
+│  ├─ dashboard/
+│  ├─ landing/
+│  ├─ transactions/
+│  └─ ui/                # shadcn/Radix-based primitives (button, dialog, table, ...)
+├─ context/              # React context providers (sidebar, theme)
+├─ hooks/                # Custom hooks (e.g. useTransactions, usePaymentHistory)
+├─ lib/                  # API client, demo data, shared non-UI logic
+│  └─ api/
+├─ public/               # Static assets
+│  └─ data/              # Mock data used by the UI in the absence of a real backend
+├─ types/                # Shared TypeScript types
+├─ utils/                # Pure utility functions (formatting, pagination, auth, dates, ...)
+├─ tests/                # Playwright E2E specs
+├─ e2e/                  # Additional Playwright specs
+└─ pages/                # Legacy Pages Router landing page assets
+```
+
+## Design Resources
+
+- **Main Figma Design Workspace**: See [design/figma-design.txt](design/figma-design.txt) for all page-specific layouts (Dashboard, Settings, Help/Support, etc.)
+- **Landing Page Redesign Figma Link**: [Figma Link](https://www.figma.com/design/J4X2XvMo8knspQEEQbHoDN/Stellopay-Landing-page?node-id=0-1&t=edynl8rBO0dXUrXp-1)
+
+## Theme System & Dark Mode
+
+The application uses a context-based theme system with Tailwind CSS and local storage persistence.
+
+### Architecture & Usage
 
 Bash
 
