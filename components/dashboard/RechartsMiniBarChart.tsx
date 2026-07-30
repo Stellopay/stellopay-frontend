@@ -10,11 +10,12 @@ export interface RechartsMiniBarChartProps {
    */
   data: { value: number }[];
   /**
-   * The color to use for the bars. Should be a Tailwind or CSS color class string.
+   * The fill color for the bars — pass a CSS `<color>` value or a `var(…)` reference
+   * to a theme token (e.g. `"var(--chart-blue)"`) so the chart adapts to dark mode.
    */
   color: string;
   /**
-   * Optional height of the chart container (e.g., '3rem'). Defaults to '3rem'.
+   * Optional height of the chart container (e.g. '3rem'). Defaults to '3rem'.
    */
   height?: string;
   /**
@@ -26,8 +27,10 @@ export interface RechartsMiniBarChartProps {
 /**
  * A lightweight, responsive mini bar chart using Recharts.
  *
- * It mirrors the visual footprint of the previous handcrafted chart while adding
- * tooltips, axes, and full keyboard/screen‑reader accessibility.
+ * Bar and tooltip colours are driven by CSS custom properties defined in
+ * `globals.css` (`--chart-blue`, `--chart-green`, `--chart-amber`,
+ * `--chart-tooltip-bg`) so they automatically switch between light and dark
+ * values when the `.dark` class is toggled on `<html>`.
  */
 export const RechartsMiniBarChart: React.FC<RechartsMiniBarChartProps> = ({
   data,
@@ -35,7 +38,6 @@ export const RechartsMiniBarChart: React.FC<RechartsMiniBarChartProps> = ({
   height = "3rem",
   ariaLabel = "Mini bar chart",
 }) => {
-  // Transform data to include a simple index label for XAxis (hidden).
   const transformedData = data.map((d, i) => ({ ...d, name: i.toString() }));
 
   return (
@@ -55,7 +57,10 @@ export const RechartsMiniBarChart: React.FC<RechartsMiniBarChartProps> = ({
             cursor={false}
             contentStyle={{
               background: "var(--chart-tooltip-bg)",
-              border: "none",
+              border: "1px solid var(--chart-tooltip-border, #e4e4e7)",
+              borderRadius: "6px",
+              boxShadow: "0 4px 12px rgba(0,0,0,0.1)",
+              fontSize: "12px",
             }}
             formatter={(value) =>
               typeof value === "number" ? `${value}%` : `${value ?? ""}`
