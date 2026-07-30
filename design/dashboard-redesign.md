@@ -350,4 +350,114 @@ The CSV Export Toolbar is a dialog-based export interface that lets power users 
 - **No Content Loss**: Hidden decorative elements (gradient orbs, rotating cards) remain visually hidden without animation; all content stays accessible and functional.
 - **Focus Management**: Sidebar open/close preserves focus order and returns focus to `#main-content` on close (handled in `AppLayout`).
 - **Contrast**: All transition elements use the existing color token system with `dark:` variants for sufficient contrast.
- main
+
+## Empty & Error State Pattern (#1100)
+
+`EmptyState` and `ErrorState` solve closely related problems — no data vs
+failed to load — and are frequently swapped for one another in the same slot
+(`components/transactions/transactions-content.tsx`,
+`components/dashboard/dashboard-page.tsx`). They previously carried
+independent copies of the same markup, so the two had drifted apart.
+
+Both now delegate layout to a single shared primitive,
+`components/ui/state-panel.tsx`.
+
+### The shared pattern
+
+`StatePanel` owns the full layout. Every state panel is, in order:
+
+| Slot | Element | Rules |
+| --- | --- | --- |
+| Icon | `div` wrapper, `aria-hidden` | Sized by the panel (`[&>svg]:h-10 [&>svg]:w-10`); pass an unsized icon |
+| Heading | `h3` | `text-lg font-semibold`, `text-balance` |
+| Body copy | `p` | `text-sm`, `max-w-md`, `text-pretty` |
+| Action slot | `div`, optional | `mt-6`, only rendered when children exist |
+
+Container: `flex flex-col items-center justify-center rounded-xl border
+text-center px-4 py-8 sm:px-8 sm:py-10`.
+
+`StatePanelAction` owns the CTA button, so both panels get identical geometry,
+hover, focus and disabled treatment.
+
+### What stays different
+
+Only the semantics. Everything else is shared by construction.
+
+| | `EmptyState` | `ErrorState` |
+| --- | --- | --- |
+| Tone | `neutral` | `danger` |
+| Surface | zinc | red |
+| Icon | `Inbox` | `AlertCircle` |
+| Role | `status` | `alert` |
+| `aria-live` | `polite` | `assertive` |
+| Default CTA | none (opt in via `action`) | "Try Again" when `onRetry` is set |
+| Extras | none | Reference ID, Report issue link |
+
+The `data-tone` attribute on the container is the tone's only structural
+trace, and exists so tests can assert tone without matching on colour classes.
+
+### Adding a new state panel
+
+Do not hand-roll the markup. Compose the primitive:
+
+```tsx
+import { StatePanel, StatePanelAction } from "@/components/ui/state-panel";
+
+<StatePanel
+  tone="neutral"
+  role="status"
+  live="polite"
+  icon={<SearchX />}
+  title="No matches"
+  description="Try a different search term."
+>
+  <StatePanelAction onClick={reset}>Clear search</StatePanelAction>
+</StatePanel>;
+```
+
+Pick `role`/`live` by meaning, not by tone: `status`/`polite` when nothing has
+gone wrong, `alert`/`assertive` when the user's action failed.
+
+### Accessibility (WCAG 2.1 AA)
+
+- **Live regions.** Both panels are live regions so the state is announced
+  when it replaces content in place. `EmptyState` is polite because an empty
+  result is not an error and must not preempt what the user is already
+  hearing; `ErrorState` is assertive because the user's action failed
+  (SC 4.1.3).
+- **Nothing conveyed by colour alone.** The icon is decorative and
+  `aria-hidden`; the heading and description carry the meaning, so the
+  zinc/red distinction is never the only signal (SC 1.4.1).
+- **Heading level.** Both render `h3`, so a panel nested inside a section's
+  `h2` does not skip a level (SC 1.3.1).
+- **Visible focus.** `StatePanelAction` carries a `focus-visible` ring with a
+  tone-matched offset colour (SC 2.4.7). Neither button had any focus styling
+  before this change. The Report issue link gained the same treatment.
+- **Form safety.** The CTA is explicitly `type="button"`, so a panel dropped
+  inside a form cannot submit it.
+- **Disabled state.** The in-flight retry sets both `disabled` and
+  `aria-disabled`, and swaps its accessible name to "Retrying…" so the state
+  change is announced.
+- **Icon contrast.** The neutral icon moved from `text-zinc-400` to
+  `text-zinc-500 dark:text-zinc-400`, and the danger icon to
+  `text-red-600 dark:text-red-500`, improving contrast against the light
+  surfaces without changing the dark treatment.
+
+### Responsive
+
+Padding steps once, at `sm`: `px-4 py-8` below 640px, `px-8 py-10` from 640px
+up. The description is capped at `max-w-md` so long copy wraps rather than
+stretching the panel at lg 1024 and xl 1280. Verified at sm 640, md 768,
+lg 1024 and xl 1280.
+
+### Testing
+
+```bash
+npx vitest run components/ui/empty-state.test.tsx components/ui/error-state.test.tsx
+```
+
+`empty-state.test.tsx` carries the cross-component regression guard: it renders
+both panels and asserts they share element order, heading level, layout
+classes, responsive padding, icon sizing and CTA geometry, while asserting the
+tone and live-region semantics stay distinct. That suite is what stops the two
+from drifting apart again.
