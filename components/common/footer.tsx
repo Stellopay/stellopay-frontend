@@ -278,12 +278,12 @@ export default function Footer() {
             {/* Navigation Columns */}
             {Object.entries(footerLinks).map(([category, links]) => (
               <div key={category}>
-                <h4
+                <p
                   className="text-[#1a1a1a] dark:text-white font-semibold text-sm mb-4 tracking-wide"
                   style={{ fontFamily: "General Sans, sans-serif" }}
                 >
                   {category}
-                </h4>
+                </p>
                 <ul className="space-y-3">
                   {links.map((link) => (
                     <li key={link.label}>
@@ -304,12 +304,12 @@ export default function Footer() {
           {/* Newsletter Section */}
           <div className="mt-16 pt-12">
             <div className="max-w-[600px] mx-auto text-center">
-              <h3
+              <p
                 className="text-[#1a1a1a] dark:text-white text-2xl font-semibold mb-3"
                 style={{ fontFamily: "General Sans, sans-serif" }}
               >
                 {messages.footer.newsletter.heading}
-              </h3>
+              </p>
               <p
                 className="text-[#666666] dark:text-[#a1a1aa] text-sm mb-6"
                 style={{ fontFamily: "General Sans, sans-serif" }}

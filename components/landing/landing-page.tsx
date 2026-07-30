@@ -114,6 +114,16 @@ const FAQSection = dynamic(() => import("@/components/landing/faq-section"), {
  * to reduce the initial load bundle size and optimize LCP/TBT metrics.
  * The statistics are loaded from a centralized demo-data configuration (ILLUSTRATIVE_STATS)
  * and marked as illustrative.
+ *
+ * Heading Tree Structure (WCAG 2.1 AA / SEO Audit):
+ * - H1: Hero Page Headline (hero.tsx)
+ * - H2: Features Introductory Section (features-intro.tsx) -> H3 cards
+ * - H2: How It Works Steps (how-it-works.tsx) -> H3 steps
+ * - H2: Value Propositions (value-propositions.tsx) -> H3 cards
+ * - H2: Enterprise Solution Section (enterprise-section.tsx)
+ * - H2: Product Benefits Section (benefits.tsx) -> H3 cards
+ * - H2: Frequently Asked Questions (faq-section.tsx) -> H3 questions (W3C standard Accordion)
+ * - H2: Get Started Call-To-Action (get-started-cta.tsx)
  */
 export default function LandingPage() {
   return (
