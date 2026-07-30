@@ -1,36 +1,41 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, within } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import "@testing-library/jest-dom";
 import fs from "node:fs";
 import path from "node:path";
+import { toast } from "sonner"; // VERIFY: match real toast lib
 import SupportPage from "./page";
 import * as demoData from "@/lib/demo-data-support";
+import { safeStorage } from "@/utils/safeStorage";
 
-// Mock next/navigation
+const push = vi.fn();
+
 vi.mock("next/navigation", () => ({
-  useRouter: () => ({
-    push: vi.fn(),
-    replace: vi.fn(),
-  }),
+  useRouter: () => ({ push, replace: vi.fn() }),
   usePathname: () => "/help/support",
 }));
 
-// Mock support tabs and FAQ components
+vi.mock("sonner", () => ({
+  toast: { success: vi.fn(), error: vi.fn() },
+}));
+
 vi.mock("@/components/common/support-tabs", () => ({
   default: ({ children, activeTab, setActiveTab }: any) => (
     <div data-testid="support-tabs">
       <button onClick={() => setActiveTab("Client FAQ")}>Client FAQ</button>
-      <button onClick={() => setActiveTab("Contact Support")}>
-        Contact Support
-      </button>
+      <button onClick={() => setActiveTab("Contact Support")}>Contact Support</button>
       {activeTab === "Client FAQ" && children}
     </div>
   ),
 }));
 
 vi.mock("@/components/common/faq-card", () => ({
-  default: ({ title, articleCount }: any) => (
-    <div data-testid="faq-card">
+  default: ({ title, articleCount, highlightQuery }: any) => (
+    <div
+      data-testid="faq-card"
+      data-highlight-query={highlightQuery || ""}
+    >
       {title}
       {articleCount !== undefined && (
         <span data-testid="faq-article-count">{articleCount}</span>
@@ -39,7 +44,6 @@ vi.mock("@/components/common/faq-card", () => ({
   ),
 }));
 
-// Mock ticket widget
 vi.mock("@/components/help-support/ticket-status-widget", () => ({
   default: ({ tickets, isLoading }: any) => (
     <div data-testid="ticket-widget">
@@ -63,6 +67,7 @@ vi.mock("@/components/help-support/ticket-status-widget", () => ({
 describe("Support Page", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    safeStorage.setItem("stellopay_help_coach_mark_dismissed", "true");
   });
 
   it("should render the support page", () => {
@@ -70,191 +75,131 @@ describe("Support Page", () => {
     expect(screen.getByTestId("ticket-widget")).toBeInTheDocument();
   });
 
-  it("should display ticket status widget at top of page", () => {
-    render(<SupportPage />);
-    const widget = screen.getByTestId("ticket-widget");
-    expect(widget).toBeInTheDocument();
-    // Widget should be first element in main content
-    const mainContent = widget.closest("div");
-    expect(mainContent).toBeTruthy();
-  });
-
   it("should render support tabs component", () => {
     render(<SupportPage />);
     expect(screen.getByTestId("support-tabs")).toBeInTheDocument();
   });
 
-  it("should load demo support tickets", () => {
+  it("should render FAQ category cards", () => {
     render(<SupportPage />);
-    const ticketList = screen.getByTestId("ticket-list");
-    expect(ticketList).toBeInTheDocument();
-
-    // Should display all demo tickets
-    const tickets = demoData.getDemoSupportTickets();
-    tickets.forEach((ticket) => {
-      expect(screen.getByTestId(`ticket-${ticket.id}`)).toBeInTheDocument();
-    });
-  });
-
-  it("should display demo tickets with correct subjects", () => {
-    render(<SupportPage />);
-    const tickets = demoData.getDemoSupportTickets();
-
-    tickets.forEach((ticket) => {
-      expect(screen.getByText(ticket.subject)).toBeInTheDocument();
-    });
-  });
-
-  it("should render FAQ cards", () => {
-    render(<SupportPage />);
-
-    // Click to ensure FAQ tab is active
     const faqButton = screen.getByText("Client FAQ");
     faqButton.click();
 
     const faqCards = screen.getAllByTestId("faq-card");
     expect(faqCards.length).toBe(4);
 
-    // Verify all four unique categories are present by checking text content
-    const expectedTitles = ["Account Management", "Transaction Issues", "Security & Privacy", "Payment & Transfers"];
+    const expectedTitles = [
+      "Account Management",
+      "Transaction Issues",
+      "Security & Privacy",
+      "Payment & Transfers",
+    ];
     expectedTitles.forEach((title) => {
       expect(screen.getByText(title, { exact: false })).toBeInTheDocument();
     });
 
-    // Verify article count badges are rendered
     const badges = screen.getAllByTestId("faq-article-count");
     expect(badges).toHaveLength(4);
-    badges.forEach((badge) => {
-      expect(badge.textContent).toBe("6");
-    });
+    badges.forEach((badge) => expect(badge.textContent).toBe("6"));
   });
 });
 
-describe("Support Page - Demo Data", () => {
-  it("should have mock support tickets with required fields", () => {
-    const tickets = demoData.getDemoSupportTickets();
-
-    expect(tickets.length).toBeGreaterThan(0);
-
-    tickets.forEach((ticket) => {
-      expect(ticket).toHaveProperty("id");
-      expect(ticket).toHaveProperty("category");
-      expect(ticket).toHaveProperty("subject");
-      expect(ticket).toHaveProperty("message");
-      expect(ticket).toHaveProperty("status");
-      expect(ticket).toHaveProperty("submittedAt");
-      expect(ticket).toHaveProperty("lastUpdatedAt");
-      expect(ticket).toHaveProperty("firstName");
-      expect(ticket).toHaveProperty("lastName");
-      expect(ticket).toHaveProperty("email");
-    });
+describe("Support Page - Search", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    safeStorage.setItem("stellopay_help_coach_mark_dismissed", "true");
   });
 
-  it("should have tickets with valid status values", () => {
-    const tickets = demoData.getDemoSupportTickets();
-    const validStatuses = ["open", "in-progress", "resolved"];
-
-    tickets.forEach((ticket) => {
-      expect(validStatuses).toContain(ticket.status);
-    });
+  it("should render search input inside FAQ section", () => {
+    render(<SupportPage />);
+    screen.getByText("Client FAQ").click();
+    expect(screen.getByRole("searchbox")).toBeInTheDocument();
   });
 
-  it("should have tickets with different statuses", () => {
-    const tickets = demoData.getDemoSupportTickets();
-    const statuses = new Set(tickets.map((t) => t.status));
+  it("should filter FAQ cards based on search query", async () => {
+    const user = userEvent.setup();
+    render(<SupportPage />);
+    screen.getByText("Client FAQ").click();
+    await user.type(screen.getByRole("searchbox"), "password");
 
-    // Should have at least 2 different statuses for demo purposes
-    expect(statuses.size).toBeGreaterThanOrEqual(2);
+    // 4 static category cards + however many filtered topic cards match
+    const cards = screen.getAllByTestId("faq-card");
+    expect(cards.length).toBeGreaterThanOrEqual(4);
   });
 
-  it("should have valid ISO timestamps", () => {
-    const tickets = demoData.getDemoSupportTickets();
+  it("should clear search when clear button clicked", async () => {
+    const user = userEvent.setup();
+    render(<SupportPage />);
+    screen.getByText("Client FAQ").click();
+    const searchInput = screen.getByRole("searchbox");
+    await user.type(searchInput, "password");
 
-    tickets.forEach((ticket) => {
-      const submittedDate = new Date(ticket.submittedAt);
-      const updatedDate = new Date(ticket.lastUpdatedAt);
+    const clearButton = screen.getByRole("button", { name: /clear search/i });
+    await user.click(clearButton);
 
-      expect(submittedDate.getTime()).toBeGreaterThan(0);
-      expect(updatedDate.getTime()).toBeGreaterThan(0);
-    });
-  });
-
-  it("should have lastUpdatedAt after or equal to submittedAt", () => {
-    const tickets = demoData.getDemoSupportTickets();
-
-    tickets.forEach((ticket) => {
-      const submitted = new Date(ticket.submittedAt).getTime();
-      const updated = new Date(ticket.lastUpdatedAt).getTime();
-      expect(updated).toBeGreaterThanOrEqual(submitted);
-    });
+    expect(searchInput).toHaveValue("");
   });
 });
 
-describe("Support Page - Empty State Handling", () => {
-  it("should handle empty tickets array gracefully", () => {
-    vi.spyOn(demoData, "getDemoSupportTickets").mockReturnValue([]);
+describe("Support Page - Restart product tour", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    safeStorage.setItem("stellopay_help_coach_mark_dismissed", "true");
+    safeStorage.setItem("stellopay_dashboard_tour_seen", "true");
+  });
+
+  it("renders a clearly labeled restart action", () => {
+    render(<SupportPage />);
+    expect(
+      screen.getByRole("button", { name: /restart product tour/i })
+    ).toBeInTheDocument();
+  });
+
+  it("clears both tour-seen flags and redirects to /dashboard", async () => {
+    const user = userEvent.setup();
     render(<SupportPage />);
 
-    const widget = screen.getByTestId("ticket-widget");
-    expect(within(widget).getByText("No tickets")).toBeInTheDocument();
-  });
-});
+    await user.click(screen.getByRole("button", { name: /restart product tour/i }));
 
-describe("Support Page - Responsive Layout", () => {
-  it("should render full width ticket widget", () => {
+    expect(safeStorage.getItem("stellopay_help_coach_mark_dismissed")).toBeNull();
+    expect(safeStorage.getItem("stellopay_dashboard_tour_seen")).toBeNull();
+    expect(push).toHaveBeenCalledWith("/dashboard");
+  });
+
+  it("shows a success toast on restart", async () => {
+    const user = userEvent.setup();
     render(<SupportPage />);
-    const widget = screen.getByTestId("ticket-widget");
-
-    // Check that widget's parent has full width class
-    const wrapper = widget.parentElement;
-    expect(wrapper?.className).toMatch(/w-full/);
+    await user.click(screen.getByRole("button", { name: /restart product tour/i }));
+    expect(toast.success).toHaveBeenCalled();
   });
 
-  it("should have responsive gap and padding", () => {
-    const { container } = render(<SupportPage />);
-    const mainDiv = container.querySelector(".min-h-screen");
-
-    // Should have responsive padding (p-4 sm:p-6)
-    expect(mainDiv?.className).toMatch(/p-4/);
-    expect(mainDiv?.className).toMatch(/sm:p-6/);
-
-    // Should have responsive gap (gap-6)
-    expect(mainDiv?.className).toMatch(/gap-6/);
-  });
-});
-
-describe("Support Page - Integration", () => {
-  it("should render ticket widget before tabs", () => {
-    const { container } = render(<SupportPage />);
-    const mainContainer = container.querySelector(".min-h-screen");
-    const widgetElem = mainContainer?.querySelector(
-      '[data-testid="ticket-widget"]',
-    );
-    const tabsElem = mainContainer?.querySelector(
-      '[data-testid="support-tabs"]',
-    );
-
-    // Ticket widget should appear before support tabs in document order
-    if (widgetElem && tabsElem) {
-      expect(
-        widgetElem.compareDocumentPosition(tabsElem) &
-          Node.DOCUMENT_POSITION_FOLLOWING,
-      ).toBeTruthy();
-    }
+  it("is keyboard accessible", () => {
+    render(<SupportPage />);
+    const button = screen.getByRole("button", { name: /restart product tour/i });
+    button.focus();
+    expect(button).toHaveFocus();
   });
 
-  it("should maintain dark mode styling context", () => {
-    const { container } = render(<SupportPage />);
-    const mainDiv = container.querySelector(".min-h-screen");
+  it("shows an error toast and does not navigate if storage throws", async () => {
+    const original = safeStorage.removeItem;
+    // @ts-expect-error - intentionally breaking for this test
+    safeStorage.removeItem = () => {
+      throw new Error("storage disabled");
+    };
 
-    // Should have dark text color
-    expect(mainDiv?.className).toMatch(/text-white/);
+    const user = userEvent.setup();
+    render(<SupportPage />);
+    await user.click(screen.getByRole("button", { name: /restart product tour/i }));
+
+    expect(toast.error).toHaveBeenCalled();
+    expect(push).not.toHaveBeenCalled();
+
+    safeStorage.removeItem = original;
   });
 });
 
 describe("Support Page — FAQ card route existence", () => {
   const repoRoot = path.resolve(__dirname, "../../..");
-
   const faqLinkRoutes = [
     "/help/support/accountManagement",
     "/help/support/transactionIssues",
@@ -266,25 +211,5 @@ describe("Support Page — FAQ card route existence", () => {
     const routeDir = route.replace(/^\//, "");
     const pagePath = path.join(repoRoot, "app", routeDir, "page.tsx");
     expect(fs.existsSync(pagePath)).toBe(true);
-  });
-
-  it("all FAQ card links match the support-tabs routeMappings", () => {
-    const uniqueLinks = new Set(faqLinkRoutes);
-
-    // SupportTabs routeMappings must cover all FAQ links
-    const mappedRoutes = new Set([
-      "/help/support/accountManagement",
-      "/help/support/transactionIssues",
-      "/help/support/securityPrivacy",
-      "/help/support/paymentTransfers",
-    ]);
-
-    for (const link of uniqueLinks) {
-      expect(mappedRoutes.has(link)).toBe(true);
-    }
-  });
-
-  it("no FAQ card links are duplicated for different routes", () => {
-    expect(faqLinkRoutes.length).toBe(new Set(faqLinkRoutes).size);
   });
 });

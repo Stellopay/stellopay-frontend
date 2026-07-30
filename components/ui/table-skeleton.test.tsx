@@ -12,7 +12,6 @@ describe("TableSkeleton", () => {
 
   it("renders the default number of rows (6)", () => {
     const { container } = render(<TableSkeleton />);
-    // Each data row is a direct child of the divide-y container
     const rows = container.querySelector(".divide-y")?.children;
     expect(rows).toHaveLength(6);
   });
@@ -43,10 +42,15 @@ describe("TableSkeleton", () => {
     const { container } = render(<TableSkeleton columns={4} rows={2} />);
     const rows = container.querySelectorAll(".divide-y > div");
     rows.forEach((row) => {
-      // Each cell in a row
       const cells = row.querySelectorAll(".bg-\\[\\#2D2D2D\\]");
       expect(cells).toHaveLength(4);
     });
+  });
+
+  it("uses skeleton-shimmer on all cells (shared animation timing)", () => {
+    const { container } = render(<TableSkeleton columns={3} rows={2} />);
+    const shimmers = container.querySelectorAll(".skeleton-shimmer");
+    expect(shimmers.length).toBeGreaterThanOrEqual(6);
   });
 });
 
@@ -78,5 +82,11 @@ describe("TransactionTableSkeleton", () => {
     const { container } = render(<TransactionTableSkeleton rows={1} />);
     const avatars = container.querySelectorAll(".rounded-full");
     expect(avatars.length).toBeGreaterThan(0);
+  });
+
+  it("uses skeleton-shimmer on all placeholders (shared animation timing)", () => {
+    const { container } = render(<TransactionTableSkeleton rows={2} />);
+    const shimmers = container.querySelectorAll(".skeleton-shimmer");
+    expect(shimmers.length).toBeGreaterThanOrEqual(12);
   });
 });

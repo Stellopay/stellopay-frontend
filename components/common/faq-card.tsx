@@ -3,14 +3,22 @@ import { SquareArrowOutUpRight } from "lucide-react";
 import React from "react";
 import { useRouter } from "next/navigation";
 import { FaqCardProps } from "@/types/ui";
+ feat/help-support-search-first
+import { HighlightText } from "@/components/common/highlight-text";
+
 import { cn } from "@/utils/commonUtils";
+ main
 
 const FaqCard: React.FC<FaqCardProps> = ({
   title,
   subtitle,
   link,
+ feat/help-support-search-first
+  highlightQuery,
+
   icon,
   articleCount,
+ main
 }) => {
   const router = useRouter();
 
@@ -44,6 +52,15 @@ const FaqCard: React.FC<FaqCardProps> = ({
       className="w-full bg-[#121212] border border-[#2E2E2E] rounded-xl p-4 sm:p-5 md:p-6 hover:shadow-2xl hover:scale-105 transition-all duration-300 ease-in-out cursor-pointer"
     >
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+ feat/help-support-search-first
+        <div className="flex-1">
+          <h3 className="text-base  font-semibold text-white mb-1">
+            <HighlightText text={title} query={highlightQuery || ""} />
+          </h3>
+          <p className="line-clamp-2 text-sm  text-[#707070]">
+            <HighlightText text={subtitle} query={highlightQuery || ""} />
+          </p>
+
         <div className="flex items-start gap-3 flex-1 min-w-0">
           {icon && (
             <div
@@ -59,6 +76,7 @@ const FaqCard: React.FC<FaqCardProps> = ({
             </h3>
             <p className="line-clamp-2 text-sm text-[#707070]">{subtitle}</p>
           </div>
+ main
         </div>
 
         <div className="flex items-center gap-2 flex-shrink-0">

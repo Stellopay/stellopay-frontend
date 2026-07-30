@@ -266,11 +266,192 @@ Registration failure is non-fatal — a `.catch()` handler logs a warning and th
 
 ## Metadata & Viewport
 
-BASE_URL // "https://stellopay.com"
-PUBLIC_ROUTES // MetadataRoute.Sitemap — array of public route entries
-DISALLOWED_PATHS // string[] — private route prefixes
-Verifying locally
-After starting the dev server (npm run dev) or after a production build (npm run build && npm run start), inspect the generated files directly:
+Following Next.js 15 conventions, global metadata (titles, descriptions, OpenGraph) and viewport configurations are exported as separate objects in `app/layout.tsx`.
+
+- **`metadata`**: Contains SEO tags, OpenGraph data, and Twitter cards.
+- **`viewport`**: Contains responsive design parameters (e.g., `width`, `initialScale`) and theme colors for dark/light modes.
+
+## Structured Data (JSON-LD)
+
+The landing page (`app/page.tsx`) includes a JSON-LD `@graph` block that describes three schema.org entities, improving how StelloPay surfaces in search results:
+
+| Entity         | @type                                       | Purpose                                                |
+| -------------- | ------------------------------------------- | ------------------------------------------------------ |
+| Organization   | `Organization`                              | Describes StelloPay as a company / provider            |
+| WebSite        | `WebSite`                                   | Enables sitelinks searchbox and website identification |
+| WebApplication | `WebApplication`, `SoftwareApplication`     | Describes the StelloPay payroll/payments software product |
+
+### Why `WebApplication`?
+
+StelloPay is a **web-based software product** delivered as a SaaS — not a physical financial institution. `WebApplication` (a subtype of `SoftwareApplication`) is the most accurate schema.org type for describing a browser-based payroll and payments platform. It captures the application category (`FinanceApplication`), operating system requirements (`Web`), and pricing model — all signals that search engines use to understand software products.
+
+### Validation
+
+- The structured data validates against [Google's Rich Results Test](https://search.google.com/test/rich-results) and the [Schema.org Validator](https://validator.schema.org/).
+- All URLs use HTTPS.
+- No personally identifiable information (PII) or Stellar secret keys are included.
+- The `@graph` pattern keeps all three entities in a single `<script>` tag, minimizing HTML payload size.
+
+### Testing
+
+Structured data is tested in `app/metadata.test.ts`. The tests verify:
+
+- The `@graph` shape and entity count
+- Required properties for each `@type` (`name`, `url`, `applicationCategory`, etc.)
+- The `Offer` freemium pricing model
+- No sensitive data leaks (secret keys, template interpolation)
+- All URLs use HTTPS
+
+```bash
+npm test -- app/metadata.test.ts
+```
+
+### Updating
+
+When the product description, pricing model, or feature list changes, update the `landingStructuredData` object in `app/page.tsx` and adjust the corresponding tests.
+
+## Landing Page Code Splitting
+
+`components/landing/landing-page.tsx` eagerly imports only what is above the
+fold. Everything below it is deferred with `next/dynamic`.
+
+### What is eager, and why
+
+| Section | Loading | Reason |
+| --- | --- | --- |
+| `Navbar` | eager | Immediately visible; needed for first interaction |
+| `Hero` | eager | Above the fold and the LCP element |
+| everything else | `next/dynamic` | Below the fold on first paint |
+
+Deferred sections: `stats-cards`, `features-intro`, `how-it-works`,
+`testimonials-section`, `value-propositions`, `enterprise-section`, `benefits`,
+`faq-section`, `get-started-cta`, `footer`.
+
+This matters most for the framer-motion sections. `hero`, `how-it-works` and
+`faq-section` are the only landing modules importing `framer-motion`; two of
+those three are now deferred, so the animation runtime is no longer on the
+critical path to hero interactivity.
+
+### `ssr: true` is deliberate
+
+Every deferred section sets `ssr: true`. The server still renders their markup
+into the initial HTML — only the client JS is split out. This keeps SEO
+crawlability and no-JS rendering intact, and makes the skeleton fallbacks a
+hydration-time state rather than a blank first paint.
+
+Do not switch these to `ssr: false` to chase a smaller bundle. It would remove
+the sections from the server-rendered HTML entirely.
+
+### Adding a new landing section
+
+1. Decide whether it is above the fold. If yes, import it normally.
+2. If not, wrap it in `dynamic(() => import(...), { loading, ssr: true })`.
+3. Build the fallback with the exported `SectionFallback` helper so the busy
+   state stays consistent:
+
+```tsx
+const NewSection = dynamic(() => import("@/components/landing/new-section"), {
+  loading: () => (
+    <SectionFallback
+      label="Loading new section..."
+      className="w-full py-16 sm:py-20 lg:py-24 bg-white dark:bg-[#0D0D0D]"
+    >
+      <Skeleton className="h-64 rounded-3xl" shade="dark" />
+    </SectionFallback>
+  ),
+  ssr: true,
+});
+```
+
+4. Add the module path to `DEFERRED_SECTIONS` in
+   `components/landing/landing-page.test.tsx`.
+
+For a named export, resolve it in the importer:
+`dynamic(() => import("...").then((m) => m.NamedExport), { ... })`.
+
+### Accessibility (WCAG 2.1 AA)
+
+`SectionFallback` renders every skeleton with:
+
+- `role="status"` and `aria-live="polite"` — the pending state is announced
+  without interrupting a screen reader mid-sentence (SC 4.1.3). Deliberately
+  polite, not assertive; a routine section load is not an alert.
+- `aria-busy="true"` — assistive tech can tell the region is incomplete.
+- an `sr-only` label naming the specific section ("Loading testimonials...")
+  rather than a generic "Loading", so the announcement is meaningful out of
+  context (SC 2.4.6).
+- the section's own vertical rhythm classes on the fallback wrapper, so
+  swapping the skeleton for real content does not shift layout (SC 2.2.2).
+
+Deferring does not change heading order. `landing-page.test.tsx` asserts the
+full H1 → H2 → H3 outline with no skipped levels once all sections resolve
+(SC 1.3.1).
+
+Keyboard navigation is unaffected: `ssr: true` means deferred sections exist in
+the DOM in source order, so tab order matches visual order.
+
+### Responsive
+
+Fallbacks reuse the same `py-16 sm:py-20 lg:py-24` rhythm and the same grid
+breakpoints as the sections they stand in for, so the skeleton occupies
+comparable space at sm 640, md 768, lg 1024 and xl 1280.
+
+### Testing
+
+```bash
+npx vitest run components/landing/landing-page.test.tsx
+```
+
+`next/dynamic` is mocked to resolve the real module asynchronously, so tests
+exercise the actual deferred path and assert against real components rather
+than stand-ins. The mock records each importer's source text, which is how the
+suite verifies a section is deferred and that Hero and Navbar are not.
+
+## Project Structure
+
+```
+stellopay-frontend
+├─ app/                  # Next.js App Router routes, layouts, and segment metadata
+│  ├─ account-summary/
+│  ├─ analytics-view/
+│  ├─ auth/              # login, sign-up
+│  ├─ dashboard/
+│  ├─ help/support/
+│  ├─ settings/          # preferences, profile
+│  ├─ transactions/
+│  ├─ layout.tsx
+│  └─ page.tsx           # landing page
+├─ components/           # Reusable UI, grouped by feature
+│  ├─ analytics/
+│  ├─ auth/
+│  ├─ common/            # navbar, sidebar, shared inputs
+│  ├─ dashboard/
+│  ├─ landing/
+│  ├─ transactions/
+│  └─ ui/                # shadcn/Radix-based primitives (button, dialog, table, ...)
+├─ context/              # React context providers (sidebar, theme)
+├─ hooks/                # Custom hooks (e.g. useTransactions, usePaymentHistory)
+├─ lib/                  # API client, demo data, shared non-UI logic
+│  └─ api/
+├─ public/               # Static assets
+│  └─ data/              # Mock data used by the UI in the absence of a real backend
+├─ types/                # Shared TypeScript types
+├─ utils/                # Pure utility functions (formatting, pagination, auth, dates, ...)
+├─ tests/                # Playwright E2E specs
+├─ e2e/                  # Additional Playwright specs
+└─ pages/                # Legacy Pages Router landing page assets
+```
+
+## Design Resources
+
+- **Main Figma Design Workspace**: See [design/figma-design.txt](design/figma-design.txt) for all page-specific layouts (Dashboard, Settings, Help/Support, etc.)
+- **Landing Page Redesign Figma Link**: [Figma Link](https://www.figma.com/design/J4X2XvMo8knspQEEQbHoDN/Stellopay-Landing-page?node-id=0-1&t=edynl8rBO0dXUrXp-1)
+
+## Theme System & Dark Mode
+
+The application uses a context-based theme system with Tailwind CSS and local storage persistence.
+
+### Architecture & Usage
 
 Bash
 
@@ -604,6 +785,10 @@ We maintain a CI-enforced bundle budget for key routes to ensure fast first-load
 Route Budget Current First Load JS
 / (Landing) 225 kB 213 kB
 /dashboard 180 kB 165 kB
+/auth/login 200 kB TBD
+/auth/sign-up 200 kB TBD
+These budgets are enforced in CI by `scripts/check-bundle-size.js`. The auth routes are intentionally kept at or below 200 kB first-load JS because they are conversion-critical pages that must load quickly for users arriving from marketing campaigns.
+
 To run the bundle analyzer locally:
 
 Bash

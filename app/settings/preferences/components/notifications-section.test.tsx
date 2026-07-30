@@ -1,17 +1,54 @@
 import React from "react";
-import { render, screen, waitFor } from "@testing-library/react";
+import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { useForm, FormProvider } from "react-hook-form";
 import NotificationsSection, {
   DEFAULT_NOTIFICATION_SETTINGS,
+ ui/notifications-section-channel-matrix
+  type NotificationSettingsState,
+
   DIGEST_FREQUENCY_LABELS,
+ main
 } from "./notifications-section";
 
 const TestWrapper = ({ children }: { children: React.ReactNode }) => {
   const methods = useForm();
   return <FormProvider {...methods}>{children}</FormProvider>;
 };
+
+function getDesktopMatrix() {
+  return within(screen.getByTestId("notif-matrix-desktop"));
+}
+
+const TYPE_LABELS: Record<keyof NotificationSettingsState, string> = {
+  transactionAlerts: "Transaction alerts",
+  securityAlerts: "Security notifications",
+  productUpdates: "Product updates",
+  marketing: "Marketing and announcements",
+};
+
+function desktopCheckbox(
+  typeKey: keyof NotificationSettingsState,
+  channel: string,
+) {
+  const label = TYPE_LABELS[typeKey];
+  const pattern = new RegExp(`${label}.*${channel}`, "i");
+  return getDesktopMatrix().getByRole("checkbox", { name: pattern });
+}
+
+function queryDesktopCheckbox(
+  typeKey: keyof NotificationSettingsState,
+  channel: string,
+) {
+  const label = TYPE_LABELS[typeKey];
+  const pattern = new RegExp(`${label}.*${channel}`, "i");
+  return getDesktopMatrix().queryByRole("checkbox", { name: pattern });
+}
+
+function allDesktopCheckboxes() {
+  return getDesktopMatrix().getAllByRole("checkbox");
+}
 
 describe("NotificationsSection", () => {
   beforeEach(() => {
@@ -24,11 +61,21 @@ describe("NotificationsSection", () => {
     vi.restoreAllMocks();
   });
 
+  it("renders 12 checkboxes (4 types x 3 channels) in the matrix", () => {
+    render(
+      <TestWrapper>
+        <NotificationsSection />
+      </TestWrapper>,
+    );
+
+    const checkboxes = allDesktopCheckboxes();
+    expect(checkboxes).toHaveLength(12);
+  });
+
   it("hydrates from localStorage on mount", () => {
-    const customSettings = {
+    const customSettings: NotificationSettingsState = {
       ...DEFAULT_NOTIFICATION_SETTINGS,
-      marketing: true, // Not default
-      emailChannel: false, // Not default
+      marketing: { email: true, push: false, sms: true },
     };
     localStorage.setItem(
       "notification_preferences",
@@ -41,15 +88,17 @@ describe("NotificationsSection", () => {
       </TestWrapper>,
     );
 
-    // In many UI libraries, a toggle is a switch or checkbox.
-    // If this fails to find by role "switch", we might need "checkbox"
-    const marketingToggle = screen.getByRole("switch", {
-      name: /Marketing and announcements/i,
-    });
-    expect(marketingToggle).toBeChecked();
+    // Marketing email should now be checked (default: false → true)
+    const marketingEmail = desktopCheckbox("marketing", "email");
+    expect(marketingEmail).toBeChecked();
 
-    const emailToggle = screen.getByRole("switch", { name: /Email/i });
-    expect(emailToggle).not.toBeChecked();
+    // Marketing push should be unchecked (default: false, set to false)
+    const marketingPush = desktopCheckbox("marketing", "push");
+    expect(marketingPush).not.toBeChecked();
+
+    // Marketing SMS should be checked (default: false → true)
+    const marketingSms = desktopCheckbox("marketing", "sms");
+    expect(marketingSms).toBeChecked();
   });
 
   it("merges new digest frequency defaults when loading older stored payloads", () => {
@@ -82,7 +131,6 @@ describe("NotificationsSection", () => {
   it("handles successful save via mock API", async () => {
     process.env.NEXT_PUBLIC_API_BASE_URL = "http://localhost:3000";
 
-    // Mock fetch to succeed with a slight delay so we can observe 'Saving...'
     const fetchSpy = vi.spyOn(global, "fetch").mockImplementation(() => {
       return new Promise((resolve) => {
         setTimeout(
@@ -103,13 +151,11 @@ describe("NotificationsSection", () => {
     });
     await userEvent.click(saveButton);
 
-    // Should show loading state
     expect(
       screen.getByRole("button", { name: /Saving.../i }),
     ).toBeInTheDocument();
     expect(saveButton).toBeDisabled();
 
-    // Wait for success
     await waitFor(
       () => {
         expect(
@@ -129,7 +175,6 @@ describe("NotificationsSection", () => {
       }),
     );
 
-    // Verify localStorage was updated
     expect(localStorage.getItem("notification_preferences")).toEqual(
       JSON.stringify(DEFAULT_NOTIFICATION_SETTINGS),
     );
@@ -138,7 +183,6 @@ describe("NotificationsSection", () => {
   it("handles failed save via mock API", async () => {
     process.env.NEXT_PUBLIC_API_BASE_URL = "http://localhost:3000";
 
-    // Mock fetch to fail with a slight delay
     vi.spyOn(global, "fetch").mockImplementation(() => {
       return new Promise((resolve) => {
         setTimeout(() => resolve({ ok: false } as Response), 100);
@@ -156,7 +200,6 @@ describe("NotificationsSection", () => {
     });
     await userEvent.click(saveButton);
 
-    // Wait for error
     await waitFor(
       () => {
         expect(
@@ -168,7 +211,6 @@ describe("NotificationsSection", () => {
   });
 
   it("falls back to timer mock if no BASE_URL", async () => {
-    // No BASE_URL set
     render(
       <TestWrapper>
         <NotificationsSection />
@@ -179,11 +221,9 @@ describe("NotificationsSection", () => {
       name: /Save notification settings/i,
     });
 
-    // Change a toggle so we can test the object saved
-    const marketingToggle = screen.getByRole("switch", {
-      name: /Marketing and announcements/i,
-    });
-    await userEvent.click(marketingToggle);
+    // Toggle marketing email checkbox on
+    const marketingEmail = desktopCheckbox("marketing", "email");
+    await userEvent.click(marketingEmail);
 
     await userEvent.click(saveButton);
 
@@ -198,7 +238,38 @@ describe("NotificationsSection", () => {
     const stored = JSON.parse(
       localStorage.getItem("notification_preferences") || "{}",
     );
-    expect(stored.marketing).toBe(true);
+    expect(stored.marketing.email).toBe(true);
+  });
+
+  it("updates setting when a checkbox is clicked", async () => {
+    render(
+      <TestWrapper>
+        <NotificationsSection />
+      </TestWrapper>,
+    );
+
+    // Transaction alerts SMS is off by default
+    const smsCheckbox = desktopCheckbox("transactionAlerts", "sms");
+    expect(smsCheckbox).not.toBeChecked();
+
+    await userEvent.click(smsCheckbox);
+    expect(smsCheckbox).toBeChecked();
+
+    // Click again to toggle off
+    await userEvent.click(smsCheckbox);
+    expect(smsCheckbox).not.toBeChecked();
+  });
+
+  it("renders mobile stacked layout with correct checkboxes", () => {
+    render(
+      <TestWrapper>
+        <NotificationsSection />
+      </TestWrapper>,
+    );
+
+    const mobileContainer = screen.getByTestId("notif-matrix-mobile");
+    const mobileCheckboxes = within(mobileContainer).getAllByRole("checkbox");
+    expect(mobileCheckboxes).toHaveLength(12);
   });
 });
 

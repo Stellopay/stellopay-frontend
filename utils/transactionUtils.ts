@@ -296,6 +296,8 @@ export const sortAndFilterTransactions = memoizeLast(
     return sortTransactionsMulti(filtered, sortConfigs);
   },
 );
+
+/**
  * Mapping each known transaction status to a distinct lucide-react icon.
  * These icons are paired with color badges so the status is communicated
  * through shape + label, not color alone (WCAG 1.4.1 Use of Color).

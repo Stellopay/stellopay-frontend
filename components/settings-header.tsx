@@ -15,7 +15,7 @@ interface SettingsHeaderProps {
   pageDescription: string;
   sections: SettingsHeaderSection[];
   activeSection: string;
-  onSectionChange?: (section: string) => void;
+  onSectionChange?: (section: string, label?: string) => void;
 }
 
 export default function SettingsHeader({
@@ -31,10 +31,9 @@ export default function SettingsHeader({
   const currentSection =
     sections.find((section) => section.value === activeSection) ?? sections[0];
 
-  const handleSearchResultSelect = (section: string) => {
-    onSectionChange?.(section);
-    setHighlightedControl(section);
-    // Clear highlight after a brief delay
+  const handleSearchResultSelect = (section: string, label: string) => {
+    onSectionChange?.(section, label);
+    setHighlightedControl(label);
     setTimeout(() => setHighlightedControl(null), 2000);
   };
 

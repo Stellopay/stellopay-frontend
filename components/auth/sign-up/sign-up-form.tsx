@@ -16,6 +16,7 @@ import { AuthSocialButtons } from "../auth-social-buttons";
 import { passwordPolicy, signUpSchema, SignUpFormValues } from "@/types/auth";
 import { checkPasswordRequirements, calculatePasswordStrength, PasswordStrengthResult } from "@/utils/authUtils";
 import { PasswordStrengthIndicator } from "@/components/ui/password-strength-indicator";
+import { ErrorSummary } from "@/components/ui/error-summary";
 
 /**
  * Minimum time (ms) a human needs to reasonably fill out the form.
@@ -151,6 +152,7 @@ export function SignUpForm() {
           className="flex flex-col gap-4"
           noValidate
         >
+          <ErrorSummary errors={form.formState.errors} className="mb-2" />
           <AuthFormField
             control={form.control}
             name="fullName"

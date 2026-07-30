@@ -3,14 +3,10 @@ import { LoginFormValues } from "@/types/auth";
 /**
  * Custom error class for authentication failures.
  */
-export type AuthErrorKind = "invalid_credentials" | "network";
-
 export class AuthError extends Error {
-  kind: AuthErrorKind;
-  constructor(message: string, kind: AuthErrorKind = "invalid_credentials") {
+  constructor(message: string) {
     super(message);
     this.name = "AuthError";
-    this.kind = kind;
   }
 }
 
@@ -73,12 +69,6 @@ export async function login(credentials: LoginFormValues): Promise<void> {
     });
 
     if (!response.ok) {
-      if (response.status >= 500) {
-        throw new AuthError(
-          "We're having trouble reaching our servers. Please try again.",
-          "network"
-        );
-      }
       // Intentionally not exposing server response details
       throw new AuthError("Invalid email or password. Please try again.");
     }
@@ -86,10 +76,9 @@ export async function login(credentials: LoginFormValues): Promise<void> {
     if (error instanceof AuthError) {
       throw error;
     }
-    // Generic error for network issues (fetch throws TypeError on network failure), etc.
+    // Generic error for network issues, etc.
     throw new AuthError(
-      "Unable to connect. Please check your internet connection and try again.",
-      "network"
+      "An error occurred during login. Please try again later.",
     );
   }
 }
@@ -206,51 +195,6 @@ function getErrorMessage(code: OAuthCallbackError["code"]): string {
       return "This email is already registered with a password. Please sign in with your email and password instead.";
     default:
       return "Authentication failed. Please try again or use your password to sign in.";
-  }
-}
-/**
- * Sends a password-reset email to the given address (enumeration-safe).
- *
- * The function always returns successfully to the caller regardless of
- * whether the email matches an existing account. This prevents user
- * enumeration via the forgot-password flow. The server is responsible
- * for conditionally sending the email; the client must never know
- * whether an account exists.
- *
- * @param email - The email address to send the reset link to.
- * @throws {AuthError} If the request fails due to a network error.
- */
-export async function sendPasswordResetEmail(email: string): Promise<void> {
-  const baseUrl =
-    process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:3000/api";
-
-  try {
-    const response = await fetch(`${baseUrl}/auth/forgot-password`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ email }),
-    });
-
-    if (!response.ok) {
-      if (response.status >= 500) {
-        throw new AuthError(
-          "We're having trouble reaching our servers. Please try again.",
-          "network"
-        );
-      }
-    }
-    // Intentionally swallow 4xx responses — the client must never
-    // distinguish between "email exists" and "email not found".
-  } catch (error) {
-    if (error instanceof AuthError) {
-      throw error;
-    }
-    throw new AuthError(
-      "Unable to connect. Please check your internet connection and try again.",
-      "network"
-    );
   }
 }
 

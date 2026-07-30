@@ -23,6 +23,7 @@ This document maps every CSS custom property defined in [`app/globals.css`](../a
 | Disabled state    | `--disabled-opacity`      | `opacity-disabled`, `cursor-disabled`  |
 | Sidebar           | `--sidebar*`             | `bg-sidebar`, `text-sidebar-foreground`|
 | Border radius     | `--radius*`              | `rounded-sm`, `rounded-md`, `rounded-lg`, `rounded-xl` |
+| Skeleton / shimmer | `--shimmer-duration`, `--shimmer-easing` | `.skeleton-shimmer` (custom class) |
 
 ---
 
@@ -228,7 +229,7 @@ These are custom utility classes defined directly in `app/globals.css` and not b
 
 | Class              | Definition                              | Usage guidance                                                                                        |
 | ------------------ | --------------------------------------- | ----------------------------------------------------------------------------------------------------- |
-| `.skeleton-shimmer`| Left-to-right shimmer keyframe animation via `::after` pseudo-element | Add alongside `bg-[#3A3A3A]` or `bg-[#2D2D2D]` on skeleton loader elements. Used by `<Skeleton>` in `components/ui/skeleton.tsx`. |
+| `.skeleton-shimmer`| Left-to-right shimmer keyframe animation via `::after` pseudo-element, driven by `--shimmer-duration` and `--shimmer-easing` CSS custom properties in `:root`. | Add alongside `bg-[#3A3A3A]` or `bg-[#2D2D2D]` on skeleton loader elements. Used by `<Skeleton>` in `components/ui/skeleton.tsx` and composed by `CardSkeleton` / `TransactionTableSkeleton`. Respects `prefers-reduced-motion: reduce` by falling back to a static opacity pulse. |
 | `.scrollbar-hide`  | `scrollbar-width: none` + webkit override | Hides scrollbars on overflow containers (horizontal scroll carousels, analytics tab bars) while keeping the content scrollable. |
 
 ---
