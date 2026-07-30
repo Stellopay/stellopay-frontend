@@ -3,7 +3,6 @@ import bundleAnalyzer from "@next/bundle-analyzer";
 
 const nextConfig: NextConfig = {
   // ESLint now runs during `next build` so lint errors surface in CI.
-  // Remove ignoreDuringBuilds so the build gate is meaningful.
   experimental: {
     // The repo currently pins TypeScript 7. Next.js requires this flag to
     // delegate type checking to the TypeScript CLI until its compiler API is

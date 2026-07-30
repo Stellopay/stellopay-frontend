@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useMemo, useCallback, useEffect, useRef } from "react";
-import { FileText } from "lucide-react";
 import type {
   SortField,
   SortConfig,
@@ -9,8 +8,10 @@ import type {
   TransactionFilters,
   Transaction,
   TransactionProps,
+  SavedView,
 } from "@/types/transaction";
 import { useTransactions } from "@/hooks/useTransactions";
+import { getTransactions, MAX_TRANSACTION_PAGE_SIZE } from "@/lib/api";
 import { TransactionTableSkeleton } from "@/components/ui/table-skeleton";
 import TransactionsHeader from "./transactions-header";
 import TransactionsFilters from "./transactions-filters";
@@ -19,10 +20,21 @@ import TransactionsPagination from "./transactions-pagination";
 import { BulkActionBar } from "./bulk-action-bar";
 import { TransactionsStatement } from "./transactions-statement";
 import { ErrorState } from "@/components/ui/error-state";
+import AdvancedFilterPanel, {
+  type AdvancedFilterValues,
+} from "./advanced-filter-panel";
+import FilterChips, { type FilterChip } from "./filter-chips";
+import CsvExportToolbar from "./transactions-export-toolbar";
+import {
+  generateTransactionsCsv,
+  downloadCsvContent,
+} from "@/utils/csvUtils";
 import {
   TRANSACTIONS_PAGE_SIZE,
   getDefaultDateRange,
 } from "./transactions-config";
+import { safeStorage } from "@/utils/safeStorage";
+import { useWallet } from "@/context/wallet-context";
 
 const DEFAULT_SELECTED_FILTER = "All Transactions";
 const DEFAULT_SORT_CONFIGS: readonly SortConfig[] = [
@@ -261,8 +273,52 @@ const getTokenIcon = (token: string): string => {
   }
 };
 
+/** localStorage key prefix for saved views. Appended with the wallet address for per-account isolation. */
+const SAVED_VIEWS_KEY_PREFIX = "stellopay.transactions-saved-views";
+
+/** Maximum number of saved views per account. */
+const MAX_SAVED_VIEWS = 10;
+
+/** Maximum length for a saved view name. */
+const MAX_VIEW_NAME_LENGTH = 50;
+
+/** Build the per-account storage key. */
+function getSavedViewsKey(address: string | null): string {
+  if (!address) return `${SAVED_VIEWS_KEY_PREFIX}.default`;
+  return `${SAVED_VIEWS_KEY_PREFIX}.${address}`;
+}
+
+/** Load saved views from localStorage, returning an empty array on any failure. */
+function loadSavedViews(address: string | null): SavedView[] {
+  const stored = safeStorage.getItem(getSavedViewsKey(address));
+  if (!stored) return [];
+  try {
+    const parsed = JSON.parse(stored);
+    if (!Array.isArray(parsed)) return [];
+    return parsed.filter(
+      (v: unknown): v is SavedView =>
+        typeof v === "object" &&
+        v !== null &&
+        typeof (v as SavedView).id === "string" &&
+        typeof (v as SavedView).name === "string" &&
+        typeof (v as SavedView).createdAt === "string" &&
+        typeof (v as SavedView).filters === "object",
+    );
+  } catch {
+    return [];
+  }
+}
+
+/** Persist saved views to localStorage. */
+function persistSavedViews(address: string | null, views: SavedView[]): void {
+  safeStorage.setItem(getSavedViewsKey(address), JSON.stringify(views));
+}
+
 /** Convert internal Transaction → display TransactionProps */
-const toTransactionProps = (t: Transaction): TransactionProps => ({
+const toTransactionProps = (
+  t: Transaction,
+  getTagNames: (txId: string) => string[],
+): TransactionProps => ({
   id: t.id,
   type: t.type,
   txId: t.txId,
@@ -277,12 +333,22 @@ const toTransactionProps = (t: Transaction): TransactionProps => ({
   status: t.status as "Completed" | "Pending" | "Failed",
   tokenIcon: getTokenIcon(t.token),
   memo: t.memo,
+  tags: getTagNames(t.id),
 });
 
 export default function TransactionsContent() {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
+
+  const {
+    allTags,
+    tagAssignments: tagAssignmentsRaw,
+    assignTag,
+    unassignTag,
+    addTag,
+    getTagNamesForTransaction,
+  } = useTransactionTags();
 
   const defaultFiltersRef = useRef<TransactionFilters | null>(null);
   if (defaultFiltersRef.current === null) {
@@ -297,19 +363,35 @@ export default function TransactionsContent() {
     );
   }
 
-  const defaultFilters = defaultFiltersRef.current;
-  const initialUrlState = initialUrlStateRef.current;
-  const currentQueryString = searchParams.toString();
+export default function TransactionsContent() {
+  const { address } = useWallet();
 
   const [filters, setFilters] = useState<TransactionFilters>(() => ({
     ...initialUrlState.filters,
     sortConfigs: cloneSortConfigs(initialUrlState.filters.sortConfigs),
   }));
-  const [currentPage, setCurrentPage] = useState(initialUrlState.page);
-  const [statementRange, setStatementRange] = useState<{
-    fromDate: string;
-    toDate: string;
-  } | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [savedViews, setSavedViews] = useState<SavedView[]>([]);
+  const [hasHydratedViews, setHasHydratedViews] = useState(false);
+  const addressRef = useRef(address);
+
+  // Hydrate saved views from localStorage on mount
+  useEffect(() => {
+    setSavedViews(loadSavedViews(address));
+    setHasHydratedViews(true);
+  }, [address]);
+
+  // Persist saved views whenever they change (skip initial render before hydration)
+  useEffect(() => {
+    if (!hasHydratedViews) return;
+    persistSavedViews(address, savedViews);
+  }, [savedViews, address, hasHydratedViews]);
+
+  // Keep the address ref in sync so downstream effects can detect account switches.
+  useEffect(() => {
+    addressRef.current = address;
+  }, [address]);
+  const [advancedPanelOpen, setAdvancedPanelOpen] = useState(false);
   const itemsPerPage = TRANSACTIONS_PAGE_SIZE;
 
   // ── Selection state ─────────────────────────────────────────────────────────
@@ -433,10 +515,85 @@ export default function TransactionsContent() {
     };
   }, [data, isLoading, error]);
 
-  const paginatedTransactions: TransactionProps[] = useMemo(
-    () => (data?.data ?? []).map(toTransactionProps),
-    [data],
+  const paginatedTransactions: TransactionProps[] = useMemo(() => {
+    const transactions = (data?.data ?? []).map((t) =>
+      toTransactionProps(t, getTagNamesForTransaction),
+    );
+    if (tagFilter) {
+      return transactions.filter((t) => t.tags?.includes(tagFilter));
+    }
+    return transactions;
+  }, [data, tagFilter, getTagNamesForTransaction]);
+
+  // ── CSV Export state ────────────────────────────────────────────────────
+  const [exportPreviewCount, setExportPreviewCount] = useState<number | null>(
+    null,
   );
+  const [isLoadingPreview, setIsLoadingPreview] = useState(false);
+  const [isExporting, setIsExporting] = useState(false);
+
+  /** Fetch the count of rows matching a given date range (independent of pagination). */
+  const handlePreviewRequest = useCallback(
+    async (dateRange: { fromDate: string; toDate: string }) => {
+      setIsLoadingPreview(true);
+      try {
+        const result = await getTransactions({
+          filters: {
+            fromDate: dateRange.fromDate,
+            toDate: dateRange.toDate,
+            selectedFilter: "All Transactions",
+          },
+          page: 1,
+          pageSize: MAX_TRANSACTION_PAGE_SIZE,
+        });
+        setExportPreviewCount(result.total);
+      } catch (err) {
+        console.error("Failed to fetch export preview:", err);
+        setExportPreviewCount(null);
+      } finally {
+        setIsLoadingPreview(false);
+      }
+    },
+    [],
+  );
+
+  /** Fetch all matching rows for the date range and trigger CSV download. */
+  const handleExport = useCallback(
+    async (
+      selectedColumns: string[],
+      dateRange: { fromDate: string; toDate: string },
+    ) => {
+      setIsExporting(true);
+      try {
+        const result = await getTransactions({
+          filters: {
+            fromDate: dateRange.fromDate,
+            toDate: dateRange.toDate,
+            selectedFilter: "All Transactions",
+          },
+          page: 1,
+          pageSize: MAX_TRANSACTION_PAGE_SIZE,
+        });
+        const displayRows = result.data.map(toTransactionProps);
+        const csvContent = generateTransactionsCsv(
+          displayRows,
+          selectedColumns,
+        );
+        const filename = `transactions-${dateRange.fromDate}_to_${dateRange.toDate}.csv`;
+        downloadCsvContent(filename, csvContent);
+      } catch (err) {
+        console.error("Failed to export transactions:", err);
+      } finally {
+        setIsExporting(false);
+      }
+    },
+    [],
+  );
+
+  /** Reset export preview when the export toolbar dialog closes. */
+  const handleExportDialogClose = useCallback(() => {
+    setExportPreviewCount(null);
+  }, []);
 
   // ── Stable select-all that has access to current page ids ────────────────────
   const paginatedTransactionsRef = useRef(paginatedTransactions);
@@ -512,7 +669,67 @@ export default function TransactionsContent() {
       setCurrentPage(1);
       clearSelection();
     },
-    [clearSelection],
+    [],
+  );
+
+  // ── Saved views helpers ────────────────────────────────────────────────
+
+  /** Save the current filter/sort state as a named view. */
+  const handleSaveView = useCallback(
+    (name: string) => {
+      const trimmed = name.trim();
+      if (!trimmed || trimmed.length > MAX_VIEW_NAME_LENGTH) return;
+      if (savedViews.length >= MAX_SAVED_VIEWS) return;
+
+      const newView: SavedView = {
+        id: crypto.randomUUID?.() ?? `sv-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`,
+        name: trimmed,
+        filters: { ...filters },
+        createdAt: new Date().toISOString(),
+      };
+      setSavedViews((prev) => [...prev, newView]);
+    },
+    [filters, savedViews.length],
+  );
+
+  /** Load (apply) a saved view's filter/sort state. */
+  const handleLoadView = useCallback((view: SavedView) => {
+    setFilters(view.filters);
+    setCurrentPage(1);
+  }, []);
+
+  /** Rename a saved view. */
+  const handleRenameView = useCallback(
+    (view: SavedView, newName: string) => {
+      const trimmed = newName.trim();
+      if (!trimmed || trimmed.length > MAX_VIEW_NAME_LENGTH) return;
+      setSavedViews((prev) =>
+        prev.map((v) => (v.id === view.id ? { ...v, name: trimmed } : v)),
+      );
+    },
+    [],
+  );
+
+  /** Delete a saved view. */
+  const handleDeleteView = useCallback((view: SavedView) => {
+    setSavedViews((prev) => prev.filter((v) => v.id !== view.id));
+  }, []);
+
+  // ── Advanced filter panel helpers ──────────────────────────────────────
+
+  /** Draft values for the open panel (pre-apply). */
+  const advancedPanelValues: AdvancedFilterValues = useMemo(
+    () => ({
+      status: filters.selectedFilter,
+      minAmount:
+        filters.minAmount !== undefined ? String(filters.minAmount) : "",
+      maxAmount:
+        filters.maxAmount !== undefined ? String(filters.maxAmount) : "",
+      counterparty: filters.counterparty ?? "",
+      fromDate: filters.fromDate,
+      toDate: filters.toDate,
+    }),
+    [filters],
   );
 
   // ── Bulk action handlers ─────────────────────────────────────────────────────
@@ -539,6 +756,29 @@ export default function TransactionsContent() {
     clearSelection();
   }, [paginatedTransactions, selectedIds, clearSelection]);
 
+  return (
+    <div className="min-h-screen text-white mt-4">
+      <div className="w-full max-w-7xl mx-auto mb-4">
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between px-6 py-4 bg-[#1a0c1d] mb-4 rounded-lg">
+          <TransactionsHeader
+            fromDate={filters.fromDate}
+            toDate={filters.toDate}
+            onFromDateChange={(date) => updateFilter("fromDate", date)}
+            onToDateChange={(date) => updateFilter("toDate", date)}
+          />
+          <div className="flex items-center gap-3 mt-4 lg:mt-0">
+            <CsvExportToolbar
+              previewCount={exportPreviewCount}
+              isLoadingPreview={isLoadingPreview}
+              onPreviewRequest={handlePreviewRequest}
+              onExport={handleExport}
+              isExporting={isExporting}
+              defaultFromDate={filters.fromDate}
+              defaultToDate={filters.toDate}
+              onDialogClose={handleExportDialogClose}
+            />
+          </div>
+        </div>
   const handleBulkTag = useCallback(() => {
     // Stub: open a tag-assignment dialog.
     // Replace with real implementation once the tag feature is built.
@@ -571,7 +811,7 @@ export default function TransactionsContent() {
           : ""}
       </div>
 
-      <div className="w-full max-w-7xl mx-auto mb-4">
+      <div className="w-full max-w-7xl mx-auto mb-4 transactions-print-root">
         <TransactionsHeader
           fromDate={filters.fromDate}
           toDate={filters.toDate}
@@ -579,7 +819,7 @@ export default function TransactionsContent() {
           onToDateChange={(date) => updateFilter("toDate", date)}
         />
 
-        <div className="mb-4 flex justify-end px-4 sm:px-6 lg:px-8">
+        <div className="mb-4 flex justify-end px-4 sm:px-6 lg:px-8 print:hidden">
           <button
             type="button"
             onClick={() =>
@@ -588,23 +828,12 @@ export default function TransactionsContent() {
                 toDate: filters.toDate,
               })
             }
-            disabled={statementLedger.isLoading || !!statementLedger.error}
-            className="inline-flex items-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground shadow-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring disabled:cursor-not-allowed disabled:opacity-60"
-            aria-describedby="statement-help"
-          >
-            <FileText aria-hidden="true" size={16} />
-            Generate statement
-          </button>
-          <span id="statement-help" className="sr-only">
-            Creates a printable reconciliation statement for the selected date
-            range.
-          </span>
-          {statementLedger.error && (
-            <p role="status" className="ml-3 self-center text-sm text-red-300">
-              Statement data could not be loaded. Try again later.
-            </p>
-          )}
-        </div>
+            savedViews={hasHydratedViews ? savedViews : undefined}
+            onSaveView={handleSaveView}
+            onLoadView={handleLoadView}
+            onRenameView={handleRenameView}
+            onDeleteView={handleDeleteView}
+          />
 
         {statementRange && (
           <TransactionsStatement
@@ -628,14 +857,23 @@ export default function TransactionsContent() {
         </div>
 
         <div className="px-4 sm:px-6 lg:px-8 bg-[#160f17] pt-3 border-[#2D2D2D] border rounded-xl">
-          <TransactionsFilters
-            searchQuery={filters.searchQuery}
-            selectedFilter={filters.selectedFilter}
-            sortConfigs={filters.sortConfigs}
-            onSearchChange={(q) => updateFilter("searchQuery", q)}
-            onFilterChange={(f) => updateFilter("selectedFilter", f)}
-            onSort={handleSort}
-          />
+          <div className="print:hidden">
+            <TransactionsFilters
+              searchQuery={filters.searchQuery}
+              selectedFilter={filters.selectedFilter}
+              sortConfigs={filters.sortConfigs}
+              onSearchChange={(q) => updateFilter("searchQuery", q)}
+              onFilterChange={(f) => updateFilter("selectedFilter", f)}
+              onSort={handleSort}
+              tagFilter={tagFilter}
+              allTags={allTags}
+              onTagFilterChange={(tagName) => {
+                setTagFilter(tagName);
+                setCurrentPage(1);
+                clearSelection();
+              }}
+            />
+          </div>
 
           <div className="py-4">
             {/* Loading state */}
@@ -658,13 +896,20 @@ export default function TransactionsContent() {
                   selectedIds={selectedIds}
                   onSelectRow={handleSelectRow}
                   onSelectAll={handleSelectAllForPage}
+                  allTags={allTags}
+                  tagAssignments={tagAssignmentsRaw}
+                  onAssignTag={assignTag}
+                  onUnassignTag={unassignTag}
+                  onCreateTag={addTag}
                 />
-                <TransactionsPagination
-                  totalItems={data?.total ?? 0}
-                  currentPage={currentPage}
-                  itemsPerPage={itemsPerPage}
-                  onPageChange={handlePageChange}
-                />
+                <div className="print:hidden">
+                  <TransactionsPagination
+                    totalItems={data?.total ?? 0}
+                    currentPage={currentPage}
+                    itemsPerPage={itemsPerPage}
+                    onPageChange={handlePageChange}
+                  />
+                </div>
               </>
             )}
           </div>
@@ -673,13 +918,15 @@ export default function TransactionsContent() {
 
       {/* Floating bulk-action bar – rendered outside the scrollable content area
           so it always stays anchored to the viewport bottom */}
-      <BulkActionBar
-        selectedCount={selectedIds.size}
-        onExport={handleBulkExport}
-        onTag={handleBulkTag}
-        onArchive={handleBulkArchive}
-        onClearSelection={clearSelection}
-      />
+      <div className="print:hidden">
+        <BulkActionBar
+          selectedCount={selectedIds.size}
+          onExport={handleBulkExport}
+          onTag={handleBulkTag}
+          onArchive={handleBulkArchive}
+          onClearSelection={clearSelection}
+        />
+      </div>
     </div>
   );
 }

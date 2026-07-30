@@ -1,3 +1,4 @@
+import Image from "next/image";
 import { Shield, CreditCard, HeadphonesIcon } from "lucide-react";
 
 /**
@@ -172,6 +173,14 @@ export default function BenefitsSection() {
               style={{ border: "1px solid var(--color-brand-border)" }}
               data-testid={`benefits-card-${benefit.title.toLowerCase().replace(/\s+/g, "-")}`}
             >
+              <Image
+                src={benefit.imageSrc}
+                alt=""
+                width={120}
+                height={120}
+                className="mx-auto mb-4 w-30 h-30"
+                aria-hidden="true"
+              />
               <div className="w-15 h-15 mx-auto mb-6 flex items-center justify-center rounded-full bg-white">
                 {benefit.icon}
               </div>

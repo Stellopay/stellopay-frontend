@@ -528,6 +528,16 @@ WCAG 2.1 AA contrast, keyboard navigation, ARIA semantics, dark mode, RTL,
 long text, and responsive checks at `sm` 640px, `md` 768px, `lg` 1024px, and
 `xl` 1280px.
 
+### API Testing Coverage
+
+All files within `lib/api/` (such as `auth.ts`) must maintain a minimum 95% unit test coverage.
+Ensure that:
+- You mock `fetch` to cover successful (200) paths, server errors (4xx/5xx), and network rejection scenarios.
+- The functions throw or return the exact documented error shapes.
+- The unit tests verify edge cases for any API utility functions.
+
+When testing API utilities that map to UI elements, annotate accessibility requirements (WCAG 2.1 AA contrast, keyboard navigation, ARIA) and validate responsive behavior across breakpoints (sm 640, md 768, lg 1024, xl 1280) in the connected component test, as well as cover edge states like empty/error/loading, long text, RTL, and dark mode.
+
 ### Test Commands
 
 - **Unit Tests (Vitest):**
@@ -561,15 +571,92 @@ long text, and responsive checks at `sm` 640px, `md` 768px, `lg` 1024px, and
   ```
   Runs TypeScript compiler (`tsc --noEmit`) to verify types without building.
 
-### Integration Tests & Guards
+## Visual Regression Baselines
 
-When building components that combine UI behaviors (like tab-switching coupled with unsaved-changes guards), write **integration tests** that exercise the combined user flow. 
+The dashboard (and any other route covered by `toHaveScreenshot()`) has pixel-accurate baseline images committed to `__snapshots__/` (repo root). Playwright compares every screenshot assertion against these files in CI and fails if the pixel diff exceeds the configured tolerance.
 
-For example, when testing an unsaved changes guard, ensure the test:
-- Dirties the form state
-- Attempts the guarded action (e.g. switching tabs)
-- Asserts that the guard intercepts the action
-- Confirms both paths (Discard / Stay) to verify the state and UI accurately update.
+### Tolerance settings (playwright.config.ts)
+
+| Setting              | Value | Meaning |
+| -------------------- | ----- | ------- |
+| `maxDiffPixelRatio`  | 0.01  | At most 1 % of total pixels may differ before a test fails. Absorbs sub-pixel antialiasing variation across machines. |
+| `threshold`          | 0.15  | Per-pixel colour distance tolerance on a 0–1 scale. Forgives minor gamma / rendering differences between OS versions. |
+
+### Breakpoints covered
+
+| Name | Viewport width | Height |
+| ---- | -------------- | ------ |
+| sm   | 640 px         | 900 px |
+| md   | 768 px         | 900 px |
+| lg   | 1024 px        | 900 px |
+| xl   | 1280 px        | 900 px |
+
+Both light and dark modes are captured at each breakpoint, plus a third "skeleton / loading" snapshot that verifies the UI during the 1 500 ms simulated loading delay.
+
+### How to update baselines after an approved design change
+
+When a deliberate UI change causes screenshot assertions to fail, follow this workflow:
+
+1. **Get design sign-off first.** Baseline updates are permanent history — do not regenerate them to silence a failing test before the change is approved.
+
+2. **Run the update command** against the Chromium project only (the project used in CI):
+
+   ```bash
+   npx playwright test tests/dashboard.spec.ts --update-snapshots --project=chromium
+   ```
+
+   To update all snapshots across every browser project at once:
+
+   ```bash
+   npx playwright test --update-snapshots
+   ```
+
+3. **Review the diff before committing.** Playwright writes the new PNG files to `__snapshots__/`. Open the files side-by-side (or use `git diff --stat`) to confirm only the intended pixels changed.
+
+4. **Commit the updated baselines with the design change** in the same PR, not as a separate "fix screenshots" commit. Keeping the visual change and its baseline together makes git blame useful.
+
+   ```bash
+   git add tests/__snapshots__/
+   git commit -m "test: update dashboard visual baselines for <design-change>"
+   ```
+
+5. **Reference the design ticket** in the PR description so reviewers know the baseline change was expected.
+
+### Running visual regression tests locally
+
+```bash
+# Run only the visual regression suite (Chromium, fast):
+npx playwright test tests/dashboard.spec.ts --project=chromium
+
+# Run with the browser visible to inspect rendering:
+npx playwright test tests/dashboard.spec.ts --project=chromium --headed
+
+# Open the last HTML report (includes annotated diffs):
+npx playwright show-report
+```
+
+### Interpreting a CI failure
+
+When the `playwright` CI job fails because of a visual diff:
+
+1. Open the **`playwright-report`** artefact from the failed run (retained 7 days). The HTML report shows a three-panel diff: expected / actual / diff overlay.
+2. Download **`visual-regression-diffs`** for the raw `*-actual.png` and `*-diff.png` files if you need to inspect them locally.
+3. Download **`visual-regression-baselines`** for the committed `*-expected.png` files to compare side-by-side.
+4. If the diff is an unintended regression, revert the offending style change and re-push. If it is an intentional design change, follow the "How to update baselines" workflow above.
+
+### Adding visual regression to a new route
+
+1. Import and call `toHaveScreenshot()` in your spec file, following the pattern in `tests/dashboard.spec.ts`.
+2. Generate the initial baselines locally:
+
+   ```bash
+   npx playwright test tests/<your-spec>.spec.ts --update-snapshots --project=chromium
+   ```
+
+3. Commit the generated PNG files under `__snapshots__/`.
+4. Open a PR — CI will compare future runs against the committed baselines automatically.
+
+---
 
 ## Keyboard Navigation & Accessibility Expectations
 
@@ -771,9 +858,40 @@ The application navbar (`components/common/navbar.tsx`) derives active route sty
   - Color contrast (`bg-primary/10 text-primary`) meets minimum requirements across light/dark modes.
   - Mobile dropdown drawer includes complete `aria-expanded` and `aria-controls` bindings.
 
-## Navbar Active Route Management (#785)
 
-The application navbar (`components/common/navbar.tsx`) derives active route styling from `usePathname()` via `next/navigation`.
+## Notification Timestamps (#1096)
+
+The notification panel (`components/common/notification-panel.tsx`) renders each
+item's `timestamp` as **relative time** rather than a raw or absolute value, so a
+list of notifications stays scannable at a glance.
+
+Formatting is owned by `utils/date-utils.ts` — never format a notification date
+inline in a component.
+
+### Helpers
+
+| Helper | Purpose |
+| --- | --- |
+| `formatRelativeTime(dateLike, { now?, thresholdDays? })` | Short relative label (`"just now"`, `"5m ago"`, `"2h ago"`, `"yesterday"`, `"3d ago"`) |
+| `formatAbsoluteDateTime(dateLike)` | Precise `"Jul 29, 2026, 3:00 PM"` string for tooltips |
+| `toIsoDateTime(dateLike)` | ISO 8601 value for a `<time dateTime>` attribute, or `undefined` |
+
+### Standards & Guidelines
+
+- **Threshold**: past `RELATIVE_TIME_THRESHOLD_DAYS` (7), relative time gives way
+  to an absolute `MMM dd, yyyy` date — "47d ago" is noise, not information.
+- **Precision is never lost**: every relative label is rendered inside a `<time>`
+  element carrying the exact instant in both `title` (pointer tooltip) and
+  `dateTime` (machine-readable ISO).
+- **Deterministic tests**: pass the `now` prop (or the `now` option) instead of
+  relying on the system clock. Do not use `formatRelativeTime` without it in a
+  test that asserts on exact output.
+- **Clock skew**: future timestamps render as `"in 5m"` / `"tomorrow"`, never as
+  a negative age.
+- **Invalid input**: `null`, `undefined`, `""` and unparsable strings return `""`
+  and the `<time>` element is omitted entirely rather than rendered empty.
+
+### Accessibility (WCAG 2.1 AA)
 
 ### Standards & Guidelines
 - **Single Source of Truth**: Never persist active route state in local component state (`useState`).
@@ -783,14 +901,103 @@ The application navbar (`components/common/navbar.tsx`) derives active route sty
   - Color contrast (`bg-primary/10 text-primary`) meets minimum requirements across light/dark modes.
   - Mobile dropdown drawer includes complete `aria-expanded` and `aria-controls` bindings.
 
-## Navbar Active Route Management (#785)
+## Memoizing Row-Level Components (#1099)
 
-The application navbar (`components/common/navbar.tsx`) derives active route styling from `usePathname()` via `next/navigation`.
+`components/transactions/token-icon.tsx` renders once per transaction row. Any
+re-render of `transactions-table.tsx` for an unrelated reason — a sort-icon
+hover, a density change, a tag popover opening — used to re-render every icon
+on screen. With dozens of rows that churn is measurable.
 
-### Standards & Guidelines
-- **Single Source of Truth**: Never persist active route state in local component state (`useState`).
-- **In-Page Nav Sync**: Dynamic URL updates from inline links automatically re-render active navbar indicators.
-- **Accessibility (WCAG 2.1 AA)**:
-  - Active navigation links receive `aria-current="page"`.
-  - Color contrast (`bg-primary/10 text-primary`) meets minimum requirements across light/dark modes.
-  - Mobile dropdown drawer includes complete `aria-expanded` and `aria-controls` bindings.
+`TokenIcon` is now wrapped in `React.memo`.
+
+### When to reach for `React.memo`
+
+Apply it to a component that meets all three conditions:
+
+1. It renders many times on one screen (once per row, per cell, per chip).
+2. Its props are stable for the lifetime of that row.
+3. Its parent re-renders for reasons unrelated to those props.
+
+Do not memoize a component that renders once per page, or one whose props
+change on nearly every parent render. `React.memo` is not free — it adds a
+props comparison on every render — and applied indiscriminately it costs more
+than it saves.
+
+### Keep props shallow-comparable
+
+`React.memo`'s default comparison is shallow. `TokenIcon` takes only
+primitives (`token: string`, `src?: string`, `size?: number`), so the default
+is the correct equality check and no custom comparator is needed.
+
+Prefer restructuring props over writing a comparator. If you find yourself
+passing an object or an inline arrow, the memo will break silently because a
+fresh reference fails shallow equality on every render:
+
+```tsx
+// Breaks memoization — new object and new function every parent render
+<TokenIcon meta={{ token: t.token }} onClick={() => select(t.id)} />
+
+// Memoizes correctly — primitives only
+<TokenIcon token={t.token} src={t.tokenIcon} size={20} />
+```
+
+If a callback is genuinely required, hoist it with `useCallback` in the parent
+so its identity is stable.
+
+### Guard it with a render count, not a snapshot
+
+A memo regression is invisible to normal assertions: the component still
+renders the right output, just too often. Tests must count renders.
+
+The pattern in `token-icon.test.tsx` wraps the component in a counting shim,
+keyed by token so one row re-rendering cannot hide behind another:
+
+```tsx
+const CountingTokenIcon = React.memo(function CountingTokenIcon(props) {
+  renderCounts[props.token] = (renderCounts[props.token] ?? 0) + 1;
+  return <TokenIcon {...props} />;
+});
+```
+
+Then drive an unrelated state change in a parent harness and assert the counts
+did not move:
+
+```tsx
+render(<TableHarness tokens={["USDC", "XLM", "ETH"]} />);
+expect(renderCounts).toEqual({ USDC: 1, XLM: 1, ETH: 1 });
+
+fireEvent.click(screen.getByRole("button", { name: /toggle sort hover/i }));
+
+expect(renderCounts).toEqual({ USDC: 1, XLM: 1, ETH: 1 });
+```
+
+Always pair this with the inverse case — that the component *does* re-render
+when its own props genuinely change. A component that never re-renders is a
+bug, not a win, and a test suite that only checks the "stays flat" direction
+would pass for a component that is broken.
+
+### Accessibility (WCAG 2.1 AA)
+
+Memoization must not change what assistive tech sees.
+
+- `TokenIcon`'s `alt` is the token symbol plus "token icon", so the symbol is
+  never conveyed by the image alone (SC 1.1.1). Each row also renders the
+  symbol as adjacent text, so it survives images being disabled.
+- Unrecognised symbols render a generic coin rather than nothing, so a row
+  never collapses to a gap and column alignment holds (SC 1.3.2). The previous
+  implementation returned `undefined` for anything other than USDC or XLM.
+- The icon is presentational and not focusable, so it stays out of the tab
+  order and does not interrupt table keyboard navigation (SC 2.1.1).
+
+### Responsive
+
+`TokenIcon` takes an explicit `size` (16px in the mobile card view, 20px in the
+desktop table) and carries `shrink-0`, so it holds its dimensions in a flex row
+and adjacent text truncates instead of squashing the icon. Verified at sm 640,
+md 768, lg 1024 and xl 1280.
+
+### Testing
+
+```bash
+npx vitest run components/transactions/token-icon.test.tsx
+```

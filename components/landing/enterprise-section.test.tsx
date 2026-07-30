@@ -10,7 +10,7 @@ vi.mock("next/image", () => ({
 }));
 
 describe("EnterpriseSolutionSection", () => {
-  it("renders the enterprise section with heading and description", () => {
+  it("renders the enterprise section with heading", () => {
     render(<EnterpriseSolutionSection />);
 
     expect(
@@ -18,29 +18,86 @@ describe("EnterpriseSolutionSection", () => {
     ).toBeInTheDocument();
 
     expect(
-      screen.getByText(/blockchain solution/i),
-    ).toBeInTheDocument();
-
-    expect(
-      screen.getByText(/StelloPay is built for scale/i),
+      screen.getByText(/Stellar-powered payments/i),
     ).toBeInTheDocument();
   });
 
-  it("renders all four enterprise features", () => {
+  it("references the Stellar network in the description", () => {
     render(<EnterpriseSolutionSection />);
 
     expect(
-      screen.getByText(/Advanced API integration/i),
+      screen.getByText(/Stellar network/i),
+    ).toBeInTheDocument();
+  });
+
+  it("quotes concrete Stellar network metrics in the description", () => {
+    render(<EnterpriseSolutionSection />);
+
+    expect(
+      screen.getByText(/3–5 seconds/i),
+    ).toBeInTheDocument();
+
+    expect(
+      screen.getByText(/\$0\.001/),
+    ).toBeInTheDocument();
+  });
+
+  it("mentions multi-asset support in the description", () => {
+    render(<EnterpriseSolutionSection />);
+
+    const matches = screen.getAllByText(/USDC, XLM/i);
+    expect(matches.length).toBeGreaterThanOrEqual(1);
+  });
+
+  it("mentions Stellar anchors in the description", () => {
+    render(<EnterpriseSolutionSection />);
+
+    expect(
+      screen.getByText(/Stellar anchors/i),
+    ).toBeInTheDocument();
+  });
+
+  it("renders all four enterprise features with Stellar-specific copy", () => {
+    render(<EnterpriseSolutionSection />);
+
+    expect(
+      screen.getByText(/Horizon API/i),
     ).toBeInTheDocument();
     expect(
-      screen.getByText(/Custom payment workflows/i),
+      screen.getByText(/anchor rails/i),
     ).toBeInTheDocument();
     expect(
-      screen.getByText(/Dedicated account manager/i),
+      screen.getByText(/Multi-asset settlement/i),
     ).toBeInTheDocument();
     expect(
-      screen.getByText(/Priority support/i),
+      screen.getAllByText(/USDC, XLM/i)[0],
     ).toBeInTheDocument();
+    expect(
+      screen.getByText(/3-second transaction finality/i),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(/Dedicated enterprise support/i),
+    ).toBeInTheDocument();
+  });
+
+  it("does not contain the old generic copy", () => {
+    render(<EnterpriseSolutionSection />);
+
+    expect(
+      screen.queryByText(/built for scale/i),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByText(/Advanced API integration/i),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByText(/Custom payment workflows/i),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByText(/Dedicated account manager/i),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByText(/Priority support/i),
+    ).not.toBeInTheDocument();
   });
 
   it("renders all four stat cards with values", () => {

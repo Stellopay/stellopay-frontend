@@ -2,7 +2,11 @@ import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, it, expect, vi } from "vitest";
 import { useForm } from "react-hook-form";
-import { Form, AuthFormField } from "@/components/ui/form-field";
+import {
+  Form,
+  AuthFormField,
+  FormFieldPassword,
+} from "@/components/ui/form-field";
 
 interface TestFormValues {
   username: string;
@@ -49,6 +53,25 @@ function TestComponent({
         />
         <button type="submit">Submit</button>
       </form>
+    </Form>
+  );
+}
+
+function PasswordWithDescribedBy() {
+  const form = useForm<TestFormValues>({
+    defaultValues: { username: "", email: "", password: "" },
+  });
+
+  return (
+    <Form {...form}>
+      <p id="external-helper">External helper text</p>
+      <FormFieldPassword
+        control={form.control}
+        name="password"
+        label="Password"
+        placeholder="Enter password"
+        ariaDescribedBy="external-helper"
+      />
     </Form>
   );
 }
@@ -137,5 +160,14 @@ describe("AuthFormField Component", () => {
     expect(emailInput).toBeDisabled();
     expect(passwordInput).toBeDisabled();
     expect(toggleButton).toBeDisabled();
+  });
+
+  it("FormFieldPassword merges ariaDescribedBy into aria-describedby", () => {
+    render(<PasswordWithDescribedBy />);
+
+    const passwordInput = screen.getByPlaceholderText("Enter password");
+    const describedBy = passwordInput.getAttribute("aria-describedby");
+
+    expect(describedBy?.split(/\s+/)).toContain("external-helper");
   });
 });

@@ -4,6 +4,7 @@ import { ArrowRight } from "lucide-react";
 import Link from "next/link";
 import { motion } from "framer-motion";
 import { useReducedMotion } from "@/hooks/useReducedMotion";
+import { duration, easing } from "@/lib/motion";
 
 interface FeatureCardGridProps extends FeatureGridItem {
   className?: string;
@@ -26,9 +27,9 @@ export const FeatureCardGrid: FC<FeatureCardGridProps> = ({
       opacity: 1, 
       y: 0,
       transition: {
-        duration: 0.5,
+        duration: duration.slow,
         delay: index * 0.1,
-        ease: "easeOut"
+        ease: easing.easeOut
       }
     }
   };
@@ -51,10 +52,10 @@ export const FeatureCardGrid: FC<FeatureCardGridProps> = ({
       `}
     >
       <div className="bg-white dark:bg-[#1a1a1a] rounded-lg p-6 h-full ml-[2px]">
-        {/* Icon with gradient background */}
-        <div className="mb-4">
+        {/* Icon with gradient background — purely decorative */}
+        <div className="mb-4" aria-hidden="true">
           <div className="w-12 h-12 rounded-xl bg-gradient-to-r from-[#83A7FF] to-[#8B5CF6] flex items-center justify-center shadow-sm">
-            <Icon className="w-6 h-6 text-white" />
+            <Icon className="w-6 h-6 text-white" aria-hidden="true" />
           </div>
         </div>
 
@@ -74,7 +75,7 @@ export const FeatureCardGrid: FC<FeatureCardGridProps> = ({
           className="inline-flex items-center gap-1 text-sm font-medium text-gray-700 group dark:text-white hover:text-[#8B5CF6] dark:hover:text-[#8B5CF6]  transition-colors"
         >
           Learn more
-          <ArrowRight className="w-4 h-4 group-hover:translate-x-[5px] transition-all duration-300" />
+          <ArrowRight className="w-4 h-4 group-hover:translate-x-[5px] transition-all duration-300" aria-hidden="true" />
         </Link>
       </div>
     </motion.article>

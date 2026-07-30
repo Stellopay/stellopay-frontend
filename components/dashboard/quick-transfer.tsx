@@ -226,7 +226,7 @@ function QuickTransfer({
   return (
     <section
       className={cn(
-        "rounded-2xl border p-5 sm:p-6 transition-all bg-white dark:bg-[#111111] border-zinc-200 dark:border-zinc-800 shadow-sm",
+        "rounded-2xl border p-5 sm:p-6 transition-all bg-white dark:bg-[#111111] border-zinc-200 dark:border-zinc-800 shadow-elevation-1",
       )}
       aria-labelledby="quick-transfer-heading"
     >

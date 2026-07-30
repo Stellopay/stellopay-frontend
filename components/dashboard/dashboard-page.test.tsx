@@ -2,6 +2,32 @@ import React from "react";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { vi, describe, it, expect, beforeEach } from "vitest";
 
+vi.mock("next/dynamic", () => ({
+  default: () => {
+    const DynamicStub = () => (
+      <section data-testid="analytics-insights">Analytics insights</section>
+    );
+    return DynamicStub;
+  },
+}));
+
+vi.mock("next/link", () => ({
+  default: ({ href, children, className, "aria-label": ariaLabel }: {
+    href: string;
+    children: React.ReactNode;
+    className?: string;
+    "aria-label"?: string;
+  }) => (
+    <a href={href} className={className} aria-label={ariaLabel}>
+      {children}
+    </a>
+  ),
+}));
+
+vi.mock("@/hooks/useTransactions", () => ({
+  useTransactions: vi.fn(),
+}));
+
 import Dashboard from "./dashboard-page";
 
 vi.mock("@/components/dashboard/dashboard-navbar", () => ({

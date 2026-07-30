@@ -9,16 +9,16 @@ interface IFeature {
 
 const features: IFeature[] = [
   {
-    text: "Advanced API integration",
+    text: "Horizon API & anchor rails",
   },
   {
-    text: "Custom payment workflows",
+    text: "Multi-asset settlement (USDC, XLM)",
   },
   {
-    text: "Dedicated account manager",
+    text: "3-second transaction finality",
   },
   {
-    text: "Priority support",
+    text: "Dedicated enterprise support",
   },
 ];
 
@@ -57,17 +57,26 @@ const EnterpriseSolutionSection = () => {
       >
       <div className="flex flex-col items-start gap-5 flex-1">
         <div>
-          <h4 className="font-bold text-3xl lg:text-5xl leading-12 tracking-[0.35px] text-[#09090B] dark:text-[#FAFAFA] print:text-black">
+          <h2
+            id="enterprise-solution-title"
+            className="font-bold text-3xl lg:text-5xl leading-12 tracking-[0.35px] text-[#09090B] dark:text-[#FAFAFA] print:text-black"
+          >
             Enterprise-ready <br />
             <span className="bg-linear-to-r from-[#83A7FF] to-[#8B5CF6] bg-clip-text text-transparent print:bg-none print:text-[#09090B]">
-              blockchain solution
+              Stellar-powered payments
             </span>
-          </h4>
+          </h2>
         </div>
         <div className="w-full lg:w-[458.5px]">
-          <p className="text-[#52525B] dark:text-[#A1A1AA] text-start font-normal text-xl leading-[32.5px] print:text-black">
-            StelloPay is built for scale. Whether you&apos;re a startup or an
-            enterprise, our platform grows with your business needs.
+
+          <p
+            id="enterprise-solution-desc"
+            className="text-[#52525B] dark:text-[#A1A1AA] text-start font-normal text-xl leading-[32.5px] print:text-black"
+          >
+            StelloPay settles cross-border payments on the Stellar network in
+            3–5 seconds for less than $0.001 per transaction. Native multi-asset
+            support (USDC, XLM, and more) with built-in fiat on/off ramps via
+            Stellar anchors.
           </p>
         </div>
         <div aria-label="Enterprise features">

@@ -18,6 +18,37 @@ export default defineConfig({
     baseURL: process.env.BASE_URL ?? "http://127.0.0.1:3000",
     trace: "retain-on-failure",
   },
+
+  // ---------------------------------------------------------------------------
+  // Visual regression — snapshot path
+  //
+  // Snapshots are written to tests/__snapshots__/<testFilePath>/<project>/
+  // and are committed to the repo so every branch has a deterministic baseline.
+  //
+  // To regenerate all baselines after an approved design change, run:
+  //   npx playwright test --update-snapshots
+  // See CONTRIBUTING.md § "Visual Regression Baselines" for the full workflow.
+  // ---------------------------------------------------------------------------
+  snapshotPathTemplate:
+    "{testDir}/__snapshots__/{testFilePath}/{projectName}/{arg}{ext}",
+
+  // ---------------------------------------------------------------------------
+  // Visual regression — pixel-diff tolerance
+  //
+  // maxDiffPixelRatio: 0.01 — at most 1% of pixels may differ before a test
+  //   fails. Absorbs sub-pixel antialiasing variation across machines while
+  //   still catching real layout shifts.
+  //
+  // threshold: 0.15 — per-pixel colour distance tolerance on a 0–1 scale.
+  //   0.15 forgives minor gamma / rendering differences between OS versions.
+  // ---------------------------------------------------------------------------
+  expect: {
+    toHaveScreenshot: {
+      maxDiffPixelRatio: 0.01,
+      threshold: 0.15,
+    },
+  },
+
   projects: [
     {
       name: "chromium",

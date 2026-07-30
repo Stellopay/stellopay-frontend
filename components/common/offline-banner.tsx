@@ -2,14 +2,14 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Wifi, WifiOff, X } from "lucide-react";
+import { useOnlineStatus } from "@/hooks/useOnlineStatus";
 
 /**
  * Fixed banner that surfaces network-connectivity changes to the user.
  *
  * Behaviour
  * ---------
- * - Detects initial state from `navigator.onLine`.
- * - Subscribes to `online` / `offline` window events.
+ * - Detects initial state from `useOnlineStatus()` hook.
  * - Renders a persistent warning banner while offline.
  * - The banner is dismissible; it reappears on the next `offline` event.
  * - On reconnection, displays a brief success state that auto-dismisses
@@ -30,42 +30,31 @@ import { Wifi, WifiOff, X } from "lucide-react";
  * - All text is constrained to a reasonable measure for readability.
  */
 export function OfflineBanner() {
-  const [isOnline, setIsOnline] = useState<boolean>(true);
+  const isOnline = useOnlineStatus();
   const [dismissed, setDismissed] = useState<boolean>(false);
   const [showReconnected, setShowReconnected] = useState<boolean>(false);
   // Track whether we've ever transitioned offline so we only show the
   // reconnected banner after a genuine offline→online cycle.
   const wasOfflineRef = useRef<boolean>(false);
 
+  // Track online→offline→online transitions to gate reconnected state.
+  const prevOnlineRef = useRef(isOnline);
+
   useEffect(() => {
-    // Hydrate initial state from the browser.
-    setIsOnline(navigator.onLine);
-
-    function handleOffline() {
+    if (prevOnlineRef.current && !isOnline) {
+      // Transition: online → offline
       wasOfflineRef.current = true;
-      setIsOnline(false);
       setDismissed(false);
-      // Clear any lingering reconnected state.
       setShowReconnected(false);
-    }
-
-    function handleOnline() {
-      setIsOnline(true);
+    } else if (!prevOnlineRef.current && isOnline) {
+      // Transition: offline → online
       setDismissed(false);
-      // Only show the reconnected message when we were previously offline.
       if (wasOfflineRef.current) {
         setShowReconnected(true);
       }
     }
-
-    window.addEventListener("offline", handleOffline);
-    window.addEventListener("online", handleOnline);
-
-    return () => {
-      window.removeEventListener("offline", handleOffline);
-      window.removeEventListener("online", handleOnline);
-    };
-  }, []);
+    prevOnlineRef.current = isOnline;
+  }, [isOnline]);
 
   // Auto-dismiss the reconnected success state after a short delay.
   useEffect(() => {

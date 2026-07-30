@@ -19,6 +19,12 @@ import {
 interface FormFieldBaseProps {
   label?: React.ReactNode;
   description?: string;
+  /**
+   * Extra element id(s) to include in the input's `aria-describedby`
+   * (space-separated). Useful for associating external helper text such as
+   * password-requirement instructions without rendering a FormDescription.
+   */
+  ariaDescribedBy?: string;
   required?: boolean;
   placeholder?: string;
   disabled?: boolean;
@@ -49,6 +55,7 @@ export function FormFieldInput<
 >({
   label,
   description,
+  ariaDescribedBy,
   required,
   placeholder,
   disabled,
@@ -66,6 +73,10 @@ export function FormFieldInput<
   const fieldId = React.useId();
   const descriptionId = `${fieldId}-description`;
   const errorId = `${fieldId}-error`;
+  const describedByIds =
+    [description ? descriptionId : undefined, ariaDescribedBy]
+      .filter(Boolean)
+      .join(" ") || undefined;
 
   return (
     <FormField
@@ -99,7 +110,7 @@ export function FormFieldInput<
                 warning={warning}
                 loading={loading}
                 labelId={label ? `${fieldId}-label` : undefined}
-                descriptionId={description ? descriptionId : undefined}
+                descriptionId={describedByIds}
                 errorId={
                   fieldState.error || successMessage || warningMessage
                     ? errorId
@@ -318,6 +329,7 @@ export function FormFieldPassword<
 >({
   label,
   description,
+  ariaDescribedBy,
   required,
   placeholder,
   disabled,
@@ -335,6 +347,10 @@ export function FormFieldPassword<
   const fieldId = React.useId();
   const descriptionId = `${fieldId}-description`;
   const errorId = `${fieldId}-error`;
+  const describedByIds =
+    [description ? descriptionId : undefined, ariaDescribedBy]
+      .filter(Boolean)
+      .join(" ") || undefined;
 
   return (
     <FormField
@@ -356,31 +372,54 @@ export function FormFieldPassword<
               </FormLabel>
             )}
             <FormControl>
-              <PasswordFieldWrapper
-                fieldId={fieldId}
-                showPassword={showPassword}
-                setShowPassword={setShowPassword}
-                disabled={disabled}
-                placeholder={placeholder}
-                autoComplete={autoComplete}
-                inputMode={inputMode}
-                hasError={!!fieldState.error}
-                success={success}
-                warning={warning}
-                loading={loading}
-                label={label}
-                description={description}
-                descriptionId={descriptionId}
-                errorId={
-                  fieldState.error || successMessage || warningMessage
-                    ? errorId
-                    : undefined
-                }
-                successMessage={successMessage}
-                warningMessage={warningMessage}
-                field={field}
-                controllerProps={controllerProps}
-              />
+              <div className="relative">
+                <Input
+                  id={fieldId}
+                  type={showPassword ? "text" : "password"}
+                  placeholder={placeholder}
+                  disabled={disabled}
+                  autoComplete={autoComplete}
+                  inputMode={inputMode}
+                  error={!!fieldState.error}
+                  success={success}
+                  warning={warning}
+                  loading={loading}
+                  labelId={label ? `${fieldId}-label` : undefined}
+                  descriptionId={describedByIds}
+                  errorId={
+                    fieldState.error || successMessage || warningMessage
+                      ? errorId
+                      : undefined
+                  }
+                  className="pr-10"
+                  {...field}
+                  onChange={(e) => {
+                    field.onChange(e);
+                    // Pass to custom onChange if provided in controllerProps
+                    const props = controllerProps as {
+                      onChange?: (
+                        e: React.ChangeEvent<HTMLInputElement>,
+                      ) => void;
+                    };
+                    if (props.onChange) {
+                      props.onChange(e);
+                    }
+                  }}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  disabled={disabled}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground focus:outline-none"
+                  aria-label={showPassword ? "Hide password" : "Show password"}
+                >
+                  {showPassword ? (
+                    <EyeOff className="h-4 w-4" />
+                  ) : (
+                    <Eye className="h-4 w-4" />
+                  )}
+                </button>
+              </div>
             </FormControl>
             {description && (
               <FormDescription id={descriptionId}>

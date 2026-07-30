@@ -47,7 +47,7 @@ export default function TransactionsHeader({
   };
 
   return (
-    <div className="flex flex-col lg:flex-row lg:items-center justify-between px-6 py-4 bg-[#1a0c1d] mb-4">
+    <div className="flex flex-col lg:flex-row lg:items-center justify-between px-6 py-4 bg-card mb-4">
       <h1 className="text-2xl font-semibold mb-4 lg:mb-0 text-white">
         Transactions
       </h1>

@@ -1,6 +1,15 @@
 "use client";
 
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useRef, useMemo } from "react";
+import {
+  FileText,
+  Wallet,
+  Shield,
+  Settings,
+  Clock3,
+  ChevronRight,
+} from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 import DashboardNavbar from "@/components/dashboard/dashboard-navbar";
 import AccountOverview from "@/components/dashboard/account-overview";
 import { QuickActions } from "@/components/dashboard/quick-actions";
@@ -10,7 +19,44 @@ import Skeleton from "@/components/ui/skeleton";
 import { EmptyState } from "@/components/ui/empty-state";
 import { ErrorState } from "@/components/ui/error-state";
 import ClientAnalyticsView from "@/components/analytics/client-analytics-view";
-import { allTransactions } from "@/lib/transactions";
+import { DashboardTour } from "@/components/dashboard/dashboard-tour";
+import Link from "next/link";
+import dynamic from "next/dynamic";
+import { useTransactions } from "@/hooks/useTransactions";
+import type { Transaction } from "@/types/transaction";
+import { safeStorage } from "@/utils/safeStorage";
+import {
+  DndContext,
+  DragOverlay,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+} from "@dnd-kit/core";
+import {
+  SortableContext,
+  useSortable,
+  verticalListSortingStrategy,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
+import {
+  GripVertical,
+  ChevronUp,
+  ChevronDown,
+  FileText,
+  Wallet,
+  Shield,
+  Settings,
+  Clock3,
+  ChevronRight,
+  Rocket,
+  ArrowRight,
+  BarChart3,
+  ArrowUpRight,
+} from "lucide-react";
+import Link from "next/link";
+import { DashboardTour } from "@/components/dashboard/dashboard-tour";
+import { useTransactions } from "@/hooks/useTransactions";
 
 const AnalyticsInsights = dynamic(
   () =>
@@ -47,6 +93,29 @@ const AnalyticsInsights = dynamic(
     ssr: true,
   },
 );
+
+export type WidgetId =
+  | "account-overview"
+  | "quick-transfer"
+  | "quick-actions"
+  | "analytics-insights"
+  | "client-analytics";
+
+export const WIDGET_IDS: WidgetId[] = [
+  "account-overview",
+  "quick-transfer",
+  "quick-actions",
+  "analytics-insights",
+  "client-analytics",
+];
+
+export const WIDGET_LABELS: Record<WidgetId, string> = {
+  "account-overview": "Account overview",
+  "quick-transfer": "Quick transfer",
+  "quick-actions": "Quick actions",
+  "analytics-insights": "Analytics insights",
+  "client-analytics": "Client analytics",
+};
 
 export type RecentActivityType =
   "transaction" | "wallet" | "security" | "settings";
@@ -311,7 +380,7 @@ export function RecentActivityFeed({
   return (
     <section
       aria-labelledby="recent-activity-heading"
-      className={`w-full rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm transition-colors dark:border-zinc-800 dark:bg-[#111111] sm:p-6 ${className}`}
+      className={`w-full rounded-2xl border border-zinc-200 bg-white p-4 shadow-elevation-1 transition-colors dark:border-zinc-800 dark:bg-[#111111] sm:p-6 ${className}`}
     >
       <div className="flex flex-col gap-4 border-b border-zinc-100 pb-5 dark:border-zinc-800/70 sm:flex-row sm:items-start sm:justify-between">
         <div className="flex min-w-0 items-start gap-3">
@@ -445,12 +514,221 @@ export function RecentActivityFeed({
   );
 }
 
+function getWidgetLabel(id: WidgetId): string {
+  return WIDGET_LABELS[id];
+}
+
+function WidgetDragHandle({
+  listeners,
+  id,
+  index,
+  total,
+  onMove,
+}: {
+  listeners: Record<string, unknown>;
+  id: WidgetId;
+  index: number;
+  total: number;
+  onMove: (id: WidgetId, direction: "up" | "down") => void;
+}) {
+  return (
+    <div className="flex items-center justify-between border-b border-zinc-100 pb-2 mb-4 dark:border-zinc-800">
+      <button
+        {...listeners}
+        className="inline-flex items-center justify-center rounded-lg p-1 text-zinc-400 hover:bg-zinc-100 hover:text-zinc-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900 focus-visible:ring-offset-1 dark:hover:bg-zinc-800 dark:hover:text-zinc-300 dark:focus-visible:ring-white"
+        aria-label={`Drag ${getWidgetLabel(id)} to reorder`}
+        aria-roledescription="sortable"
+        type="button"
+      >
+        <GripVertical className="h-4 w-4" aria-hidden="true" />
+        <span className="ml-1.5 text-xs font-medium text-zinc-400 dark:text-zinc-500">
+          {getWidgetLabel(id)}
+        </span>
+      </button>
+      <div className="flex items-center gap-0.5" role="group" aria-label={`Reorder ${getWidgetLabel(id)}`}>
+        <button
+          type="button"
+          onClick={() => onMove(id, "up")}
+          disabled={index === 0}
+          aria-label={`Move ${getWidgetLabel(id)} up`}
+          className="inline-flex items-center justify-center rounded-md p-1 text-zinc-400 hover:bg-zinc-100 hover:text-zinc-600 disabled:cursor-not-allowed disabled:opacity-30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900 focus-visible:ring-offset-1 dark:hover:bg-zinc-800 dark:hover:text-zinc-300 dark:focus-visible:ring-white"
+        >
+          <ChevronUp className="h-3.5 w-3.5" aria-hidden="true" />
+        </button>
+        <button
+          type="button"
+          onClick={() => onMove(id, "down")}
+          disabled={index === total - 1}
+          aria-label={`Move ${getWidgetLabel(id)} down`}
+          className="inline-flex items-center justify-center rounded-md p-1 text-zinc-400 hover:bg-zinc-100 hover:text-zinc-600 disabled:cursor-not-allowed disabled:opacity-30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900 focus-visible:ring-offset-1 dark:hover:bg-zinc-800 dark:hover:text-zinc-300 dark:focus-visible:ring-white"
+        >
+          <ChevronDown className="h-3.5 w-3.5" aria-hidden="true" />
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function SortableWidget({
+  id,
+  index,
+  total,
+  onMove,
+  tourRef,
+  children,
+}: {
+  id: WidgetId;
+  index: number;
+  total: number;
+  onMove: (id: WidgetId, direction: "up" | "down") => void;
+  tourRef?: React.RefObject<HTMLDivElement | null>;
+  children: React.ReactNode;
+}) {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id });
+
+  const style: React.CSSProperties = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+  };
+
+  return (
+    <div
+      ref={setNodeRef}
+      style={style}
+      className={`relative ${isDragging ? "z-10" : ""}`}
+      role="listitem"
+      aria-label={`${getWidgetLabel(id)} widget`}
+      {...attributes}
+    >
+      <div className={`${isDragging ? "opacity-60" : ""}`}>
+        <WidgetDragHandle
+          listeners={listeners}
+          id={id}
+          index={index}
+          total={total}
+          onMove={onMove}
+        />
+        <div ref={tourRef}>{children}</div>
+      </div>
+    </div>
+  );
+}
+
+function DashboardDragOverlay({ id }: { id: WidgetId }) {
+  return (
+    <div className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-xl dark:border-zinc-700 dark:bg-[#1A1A1A]">
+      <div className="flex items-center gap-2 pb-2 mb-3 border-b border-zinc-100 dark:border-zinc-800">
+        <GripVertical className="h-4 w-4 text-zinc-400" aria-hidden="true" />
+        <span className="text-sm font-medium text-zinc-600 dark:text-zinc-300">
+          {getWidgetLabel(id)}
+        </span>
+      </div>
+      <p className="text-sm text-zinc-500 dark:text-zinc-400">
+        {getWidgetLabel(id)}
+      </p>
+    </div>
+  );
+}
+
 /**
  * Dashboard component displaying the main user analytics, quick actions,
  * recent account activity, and account overview. Dynamically imports
  * AnalyticsInsights below-the-fold to speed up initial route execution and
  * loading metrics.
  */
+/**
+ * Checks whether the account has any data by looking at available transactions
+ * and other data sources. This is the single source of truth for determining
+ * whether to show the onboarding empty state vs the regular dashboard.
+ */
+function hasAccountData(): boolean {
+  return allTransactions.length > 0;
+}
+
+/**
+ * Welcoming empty-state component shown on the dashboard's first paint when
+ * the account is confirmed to have no data. Provides clear next-step guidance
+ * so new users know what to do rather than seeing a blank dashboard.
+ */
+function DashboardOnboardingEmptyState() {
+  const steps = [
+    {
+      icon: Wallet,
+      title: "Connect a wallet",
+      description:
+        "Link your Stellar wallet to start sending and receiving payments.",
+    },
+    {
+      icon: ArrowUpRight,
+      title: "Make your first transfer",
+      description:
+        "Send funds to any Stellar address instantly with zero fees.",
+    },
+    {
+      icon: BarChart3,
+      title: "Explore analytics",
+      description:
+        "Track your transactions and account activity in real time.",
+    },
+  ];
+
+  return (
+    <section
+      role="status"
+      aria-live="polite"
+      className="w-full rounded-2xl border border-zinc-200 bg-white p-8 shadow-elevation-1 transition-colors dark:border-zinc-800 dark:bg-[#111111] sm:p-12"
+    >
+      <div className="mx-auto max-w-2xl text-center">
+        <div className="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-r from-[#83A7FF] to-[#8B5CF6] shadow-sm">
+          <Rocket className="h-8 w-8 text-white" aria-hidden="true" />
+        </div>
+        <h2 className="mb-2 text-2xl font-bold text-zinc-900 dark:text-white">
+          Welcome to Stellopay
+        </h2>
+        <p className="mb-8 text-sm text-zinc-600 dark:text-zinc-400">
+          Your dashboard is ready. Connect a wallet and make your first
+          transaction to see your account activity, analytics, and more.
+        </p>
+        <div className="mb-8 grid gap-4 text-left sm:grid-cols-3">
+          {steps.map((step, index) => {
+            const StepIcon = step.icon;
+            return (
+              <div
+                key={step.title}
+                className="rounded-xl border border-zinc-100 bg-zinc-50 p-4 dark:border-zinc-800 dark:bg-zinc-900/50"
+              >
+                <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-lg bg-gradient-to-r from-[#83A7FF] to-[#8B5CF6]">
+                  <StepIcon className="h-5 w-5 text-white" aria-hidden="true" />
+                </div>
+                <p className="mb-1 text-sm font-semibold text-zinc-900 dark:text-white">
+                  {index + 1}. {step.title}
+                </p>
+                <p className="text-xs text-zinc-600 dark:text-zinc-400">
+                  {step.description}
+                </p>
+              </div>
+            );
+          })}
+        </div>
+        <Link
+          href="/help/support"
+          className="inline-flex items-center gap-2 rounded-xl border border-zinc-200 bg-zinc-50 px-5 py-2.5 text-sm font-semibold text-zinc-800 transition-colors hover:bg-zinc-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900 focus-visible:ring-offset-2 dark:border-zinc-800 dark:bg-zinc-900/70 dark:text-zinc-100 dark:hover:bg-zinc-800 dark:focus-visible:ring-white dark:focus-visible:ring-offset-[#111111]"
+        >
+          Get started guide
+          <ArrowRight className="h-4 w-4" aria-hidden="true" />
+        </Link>
+      </div>
+    </section>
+  );
+}
+
 export default function Dashboard() {
   const [isLoading, setIsLoading] = useState(true);
   const accountSummaryRef = useRef<HTMLDivElement>(null);
@@ -458,24 +736,74 @@ export default function Dashboard() {
   const analyticsInsightsRef = useRef<HTMLDivElement>(null);
   const clientAnalyticsRef = useRef<HTMLDivElement>(null);
 
-  const recentRecipients = useMemo(() => {
-    const seen = new Map<string, { address: string; label?: string }>();
-    for (const tx of allTransactions) {
-      const addr = tx.address;
-      if (!seen.has(addr)) {
-        seen.set(addr, { address: addr, label: tx.type });
-      }
-    }
-    return Array.from(seen.values());
-  }, []);
-
-  // Simulate loading for demo purposes
   useEffect(() => {
     const timer = setTimeout(() => {
       setIsLoading(false);
+      // Check if the account genuinely has no data after the initial load
+      if (!hasAccountData()) {
+        setIsDataConfirmedEmpty(true);
+      }
     }, 1500);
     return () => clearTimeout(timer);
   }, []);
+
+  const handleDragEnd = useCallback((event: DragEndEvent) => {
+    setActiveDragId(null);
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+    setWidgetOrder((items) => {
+      const oldIndex = items.indexOf(active.id as WidgetId);
+      const newIndex = items.indexOf(over.id as WidgetId);
+      if (oldIndex === -1 || newIndex === -1) return items;
+      const result = [...items];
+      const [moved] = result.splice(oldIndex, 1);
+      result.splice(newIndex, 0, moved);
+      return result;
+    });
+  }, []);
+
+  const handleMove = useCallback(
+    (id: WidgetId, direction: "up" | "down") => {
+      setWidgetOrder((items) => {
+        const index = items.indexOf(id);
+        if (index === -1) return items;
+        const targetIndex = direction === "up" ? index - 1 : index + 1;
+        if (targetIndex < 0 || targetIndex >= items.length) return items;
+        const result = [...items];
+        const [moved] = result.splice(index, 1);
+        result.splice(targetIndex, 0, moved);
+        return result;
+      });
+    },
+    [],
+  );
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: { distance: 8 },
+    }),
+  );
+
+  const renderWidget = (id: WidgetId) => {
+    switch (id) {
+      case "account-overview":
+        return <AccountOverview />;
+      case "quick-transfer":
+        return <QuickTransfer recentRecipients={recentRecipients} />;
+      case "quick-actions":
+        return <QuickActions />;
+      case "analytics-insights":
+        return <AnalyticsInsights />;
+      case "client-analytics":
+        return (
+          <ClientAnalyticsView
+            isLoading={isLoading}
+            showNotifications={true}
+            showDropdown={true}
+          />
+        );
+    }
+  };
 
   return (
     <div className="w-full min-h-screen bg-white dark:bg-[#0D0D0D] transition-colors duration-200">
@@ -486,9 +814,9 @@ export default function Dashboard() {
           <AccountOverview />
         </div>
 
-        <QuickTransfer recentRecipients={recentRecipients} />
-
-        <QuickActions />
+        <div ref={quickActionsRef}>
+          <QuickActions />
+        </div>
 
         <div ref={analyticsInsightsRef}>
           <AnalyticsInsights />

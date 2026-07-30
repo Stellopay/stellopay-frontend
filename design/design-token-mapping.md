@@ -20,8 +20,10 @@ This document maps every CSS custom property defined in [`app/globals.css`](../a
 | Semantic          | `--destructive`, `--success`, `--warning` | `bg-destructive`, `text-success`, `border-warning` |
 | Form chrome       | `--border`, `--input`, `--ring` | `border-border`, `border-input`, `ring-ring` |
 | Charts            | `--chart-1` … `--chart-5` | `bg-chart-1` … `bg-chart-5`           |
+| Disabled state    | `--disabled-opacity`      | `opacity-disabled`, `cursor-disabled`  |
 | Sidebar           | `--sidebar*`             | `bg-sidebar`, `text-sidebar-foreground`|
 | Border radius     | `--radius*`              | `rounded-sm`, `rounded-md`, `rounded-lg`, `rounded-xl` |
+| Skeleton / shimmer | `--shimmer-duration`, `--shimmer-easing` | `.skeleton-shimmer` (custom class) |
 
 ---
 
@@ -177,6 +179,38 @@ Radius tokens are mapped through arithmetic on the base `--radius` variable (`0.
 
 ---
 
+## Disabled-state tokens
+
+Disabled-state tokens control the visual appearance of disabled form controls and buttons. They are consumed via the `opacity-disabled` and `cursor-disabled` Tailwind utilities generated from the `@theme inline` block in `app/globals.css`.
+
+| CSS custom property  | Tailwind class       | Value          | Usage guidance                                                                                     |
+| -------------------- | -------------------- | -------------- | -------------------------------------------------------------------------------------------------- |
+| `--disabled-opacity` | `opacity-disabled`   | `0.5`          | Opacity applied to all disabled controls — reduces visual weight while keeping content legible.    |
+| (none — hardcoded)   | `cursor-disabled`    | `not-allowed`  | Cursor shown when hovering a disabled control — communicates non-interactivity.                    |
+
+> **Contrast note.** A 50 % opacity overlay on any background/foreground pair still maintains ≥ 3 : 1 perceived contrast for the disabled surface vs. the enabled surface (WCAG 2.1 SC 1.4.1 Use of Color). The underlying text/icon colour tokens already meet 4.5 : 1 against their background; the opacity reduction does not introduce new contrast failures because disabled controls are inert and do not require readable content per WCAG 2.1 SC 1.4.3 (the criterion applies to active/functional content).
+
+### Usage in components
+
+All form and button primitives apply the disabled-state tokens through Tailwind's `disabled:` variant modifier:
+
+| Component                                         | Classes applied                                                                 |
+| ------------------------------------------------- | ------------------------------------------------------------------------------- |
+| `components/ui/button.tsx`                        | `disabled:pointer-events-none disabled:opacity-disabled disabled:cursor-disabled` |
+| `components/ui/checkbox.tsx`                      | `disabled:cursor-disabled disabled:opacity-disabled`                              |
+| `components/common/text-input.tsx` (wrapper div)  | `opacity-disabled cursor-disabled pointer-events-none` (via conditional class)    |
+| `components/ui/input.tsx`                         | `disabled:pointer-events-none disabled:cursor-disabled disabled:opacity-disabled` |
+
+The `disabled-state` utility class (defined in `app/globals.css`) also bundles all three properties for use on non-form elements:
+
+```html
+<button class="disabled-state" disabled>Save</button>
+```
+
+Prefer the individual `disabled:opacity-disabled` / `disabled:cursor-disabled` pattern in components that already use Tailwind's `disabled:` variant.
+
+---
+
 ## Typography tokens
 
 Font-family tokens are registered in `@theme inline` and resolve to CSS variables injected by Next.js `localFont`.
@@ -195,7 +229,7 @@ These are custom utility classes defined directly in `app/globals.css` and not b
 
 | Class              | Definition                              | Usage guidance                                                                                        |
 | ------------------ | --------------------------------------- | ----------------------------------------------------------------------------------------------------- |
-| `.skeleton-shimmer`| Left-to-right shimmer keyframe animation via `::after` pseudo-element | Add alongside `bg-[#3A3A3A]` or `bg-[#2D2D2D]` on skeleton loader elements. Used by `<Skeleton>` in `components/ui/skeleton.tsx`. |
+| `.skeleton-shimmer`| Left-to-right shimmer keyframe animation via `::after` pseudo-element, driven by `--shimmer-duration` and `--shimmer-easing` CSS custom properties in `:root`. | Add alongside `bg-[#3A3A3A]` or `bg-[#2D2D2D]` on skeleton loader elements. Used by `<Skeleton>` in `components/ui/skeleton.tsx` and composed by `CardSkeleton` / `TransactionTableSkeleton`. Respects `prefers-reduced-motion: reduce` by falling back to a static opacity pulse. |
 | `.scrollbar-hide`  | `scrollbar-width: none` + webkit override | Hides scrollbars on overflow containers (horizontal scroll carousels, analytics tab bars) while keeping the content scrollable. |
 
 ---
