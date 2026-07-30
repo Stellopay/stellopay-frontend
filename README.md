@@ -310,6 +310,103 @@ npm test -- app/metadata.test.ts
 
 When the product description, pricing model, or feature list changes, update the `landingStructuredData` object in `app/page.tsx` and adjust the corresponding tests.
 
+## Landing Page Code Splitting
+
+`components/landing/landing-page.tsx` eagerly imports only what is above the
+fold. Everything below it is deferred with `next/dynamic`.
+
+### What is eager, and why
+
+| Section | Loading | Reason |
+| --- | --- | --- |
+| `Navbar` | eager | Immediately visible; needed for first interaction |
+| `Hero` | eager | Above the fold and the LCP element |
+| everything else | `next/dynamic` | Below the fold on first paint |
+
+Deferred sections: `stats-cards`, `features-intro`, `how-it-works`,
+`testimonials-section`, `value-propositions`, `enterprise-section`, `benefits`,
+`faq-section`, `get-started-cta`, `footer`.
+
+This matters most for the framer-motion sections. `hero`, `how-it-works` and
+`faq-section` are the only landing modules importing `framer-motion`; two of
+those three are now deferred, so the animation runtime is no longer on the
+critical path to hero interactivity.
+
+### `ssr: true` is deliberate
+
+Every deferred section sets `ssr: true`. The server still renders their markup
+into the initial HTML — only the client JS is split out. This keeps SEO
+crawlability and no-JS rendering intact, and makes the skeleton fallbacks a
+hydration-time state rather than a blank first paint.
+
+Do not switch these to `ssr: false` to chase a smaller bundle. It would remove
+the sections from the server-rendered HTML entirely.
+
+### Adding a new landing section
+
+1. Decide whether it is above the fold. If yes, import it normally.
+2. If not, wrap it in `dynamic(() => import(...), { loading, ssr: true })`.
+3. Build the fallback with the exported `SectionFallback` helper so the busy
+   state stays consistent:
+
+```tsx
+const NewSection = dynamic(() => import("@/components/landing/new-section"), {
+  loading: () => (
+    <SectionFallback
+      label="Loading new section..."
+      className="w-full py-16 sm:py-20 lg:py-24 bg-white dark:bg-[#0D0D0D]"
+    >
+      <Skeleton className="h-64 rounded-3xl" shade="dark" />
+    </SectionFallback>
+  ),
+  ssr: true,
+});
+```
+
+4. Add the module path to `DEFERRED_SECTIONS` in
+   `components/landing/landing-page.test.tsx`.
+
+For a named export, resolve it in the importer:
+`dynamic(() => import("...").then((m) => m.NamedExport), { ... })`.
+
+### Accessibility (WCAG 2.1 AA)
+
+`SectionFallback` renders every skeleton with:
+
+- `role="status"` and `aria-live="polite"` — the pending state is announced
+  without interrupting a screen reader mid-sentence (SC 4.1.3). Deliberately
+  polite, not assertive; a routine section load is not an alert.
+- `aria-busy="true"` — assistive tech can tell the region is incomplete.
+- an `sr-only` label naming the specific section ("Loading testimonials...")
+  rather than a generic "Loading", so the announcement is meaningful out of
+  context (SC 2.4.6).
+- the section's own vertical rhythm classes on the fallback wrapper, so
+  swapping the skeleton for real content does not shift layout (SC 2.2.2).
+
+Deferring does not change heading order. `landing-page.test.tsx` asserts the
+full H1 → H2 → H3 outline with no skipped levels once all sections resolve
+(SC 1.3.1).
+
+Keyboard navigation is unaffected: `ssr: true` means deferred sections exist in
+the DOM in source order, so tab order matches visual order.
+
+### Responsive
+
+Fallbacks reuse the same `py-16 sm:py-20 lg:py-24` rhythm and the same grid
+breakpoints as the sections they stand in for, so the skeleton occupies
+comparable space at sm 640, md 768, lg 1024 and xl 1280.
+
+### Testing
+
+```bash
+npx vitest run components/landing/landing-page.test.tsx
+```
+
+`next/dynamic` is mocked to resolve the real module asynchronously, so tests
+exercise the actual deferred path and assert against real components rather
+than stand-ins. The mock records each importer's source text, which is how the
+suite verifies a section is deferred and that Hero and Navbar are not.
+
 ## Project Structure
 
 ```
