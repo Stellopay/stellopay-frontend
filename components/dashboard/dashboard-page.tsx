@@ -1,12 +1,15 @@
 "use client";
 
-import React, {
-  useState,
-  useEffect,
-  useMemo,
-  useRef,
-  useCallback,
-} from "react";
+import React, { useState, useEffect, useRef, useMemo } from "react";
+import {
+  FileText,
+  Wallet,
+  Shield,
+  Settings,
+  Clock3,
+  ChevronRight,
+} from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 import DashboardNavbar from "@/components/dashboard/dashboard-navbar";
 import AccountOverview from "@/components/dashboard/account-overview";
 import { QuickActions } from "@/components/dashboard/quick-actions";
@@ -16,7 +19,10 @@ import Skeleton from "@/components/ui/skeleton";
 import { EmptyState } from "@/components/ui/empty-state";
 import { ErrorState } from "@/components/ui/error-state";
 import ClientAnalyticsView from "@/components/analytics/client-analytics-view";
-import { allTransactions } from "@/lib/transactions";
+import { DashboardTour } from "@/components/dashboard/dashboard-tour";
+import Link from "next/link";
+import dynamic from "next/dynamic";
+import { useTransactions } from "@/hooks/useTransactions";
 import type { Transaction } from "@/types/transaction";
 import { safeStorage } from "@/utils/safeStorage";
 import {
@@ -725,52 +731,10 @@ function DashboardOnboardingEmptyState() {
 
 export default function Dashboard() {
   const [isLoading, setIsLoading] = useState(true);
-  const [isDataConfirmedEmpty, setIsDataConfirmedEmpty] = useState(false);
-  const [widgetOrder, setWidgetOrder] = useState<WidgetId[]>([...WIDGET_IDS]);
-  const [hasHydrated, setHasHydrated] = useState(false);
-  const [activeDragId, setActiveDragId] = useState<WidgetId | null>(null);
   const accountSummaryRef = useRef<HTMLDivElement>(null);
   const quickActionsRef = useRef<HTMLDivElement>(null);
   const analyticsInsightsRef = useRef<HTMLDivElement>(null);
   const clientAnalyticsRef = useRef<HTMLDivElement>(null);
-
-  const refMap: Partial<Record<WidgetId, React.RefObject<HTMLDivElement | null>>> = useMemo(
-    () => ({
-      "account-overview": accountSummaryRef,
-      "quick-actions": quickActionsRef,
-      "analytics-insights": analyticsInsightsRef,
-      "client-analytics": clientAnalyticsRef,
-    }),
-    [],
-  );
-
-  const recentRecipients = useMemo(() => {
-    const seen = new Map<string, { address: string; label?: string }>();
-    for (const tx of allTransactions) {
-      const addr = tx.address;
-      if (!seen.has(addr)) {
-        seen.set(addr, { address: addr, label: tx.type });
-      }
-    }
-    return Array.from(seen.values());
-  }, []);
-
-  useEffect(() => {
-    const saved = safeStorage.getWidgetOrder();
-    if (
-      saved &&
-      saved.length === WIDGET_IDS.length &&
-      saved.every((id) => WIDGET_IDS.includes(id as WidgetId))
-    ) {
-      setWidgetOrder(saved as WidgetId[]);
-    }
-    setHasHydrated(true);
-  }, []);
-
-  useEffect(() => {
-    if (!hasHydrated) return;
-    safeStorage.setWidgetOrder(widgetOrder);
-  }, [widgetOrder, hasHydrated]);
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -845,111 +809,29 @@ export default function Dashboard() {
     <div className="w-full min-h-screen bg-white dark:bg-[#0D0D0D] transition-colors duration-200">
       <DashboardNavbar />
 
-      {isLoading ? (
-        /* ── Loading skeleton (first paint) ──────────────────────
-         * Visually distinct from the empty state. Uses a shimmer
-         * animation so the user knows data is on the way.
-         */
-        <div
-          role="status"
-          aria-label="Loading dashboard"
-          aria-busy="true"
-          aria-live="polite"
-          className="flex-1 p-6 lg:p-10 max-w-[1600px] mx-auto w-full space-y-6"
-        >
-          <span className="sr-only">Loading your dashboard...</span>
-
-          {/* Header skeleton */}
-          <div className="rounded-2xl border border-zinc-200 bg-white p-6 dark:border-zinc-800 dark:bg-[#111111]">
-            <div className="flex items-center gap-4">
-              <Skeleton className="h-12 w-12 rounded-xl" shade="dark" />
-              <div className="space-y-2 flex-1">
-                <Skeleton className="h-5 w-48" shade="dark" />
-                <Skeleton className="h-4 w-72" shade="dark" />
-              </div>
-            </div>
-          </div>
-
-          {/* Cards skeleton */}
-          <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
-            {Array.from({ length: 3 }).map((_, i) => (
-              <div
-                key={i}
-                className="rounded-2xl border border-zinc-200 bg-white p-6 dark:border-zinc-800 dark:bg-[#111111]"
-              >
-                <Skeleton className="h-4 w-24 mb-4" shade="dark" />
-                <Skeleton className="h-8 w-36 mb-2" shade="dark" />
-                <Skeleton className="h-4 w-48" shade="dark" />
-              </div>
-            ))}
-          </div>
-
-          {/* Activity skeleton */}
-          <div className="rounded-2xl border border-zinc-200 bg-white p-6 dark:border-zinc-800 dark:bg-[#111111]">
-            <Skeleton className="h-5 w-36 mb-6" shade="dark" />
-            <div className="space-y-4">
-              {Array.from({ length: 4 }).map((_, i) => (
-                <div key={i} className="flex items-center gap-4">
-                  <Skeleton className="h-10 w-10 rounded-xl" shade="dark" />
-                  <div className="space-y-2 flex-1">
-                    <Skeleton className="h-4 w-2/3" shade="dark" />
-                    <Skeleton className="h-3 w-full" shade="dark" />
-                  </div>
-                  <Skeleton className="h-3 w-20" shade="dark" />
-                </div>
-              ))}
-            </div>
-          </div>
+      <div className="flex-1 p-6 lg:p-10 max-w-[1600px] mx-auto w-full space-y-10">
+        <div ref={accountSummaryRef}>
+          <AccountOverview />
         </div>
-      ) : isDataConfirmedEmpty ? (
-        /* ── Confirmed-empty state ─────────────────────────────────
-         * Only shown after loading is confirmed complete AND the
-         * account has genuinely no data. Provides welcoming guidance.
-         */
-        <div className="flex-1 p-6 lg:p-10 max-w-[1600px] mx-auto w-full">
-          <DashboardOnboardingEmptyState />
+
+        <div ref={quickActionsRef}>
+          <QuickActions />
         </div>
-      ) : (
-        /* ── Normal dashboard with data ─────────────────────────── */
-        <div className="flex-1 p-6 lg:p-10 max-w-[1600px] mx-auto w-full">
-          <DndContext
-            onDragStart={(event) =>
-              setActiveDragId(event.active.id as WidgetId)
-            }
-            onDragEnd={handleDragEnd}
-            sensors={sensors}
-          >
-            <SortableContext
-              items={widgetOrder}
-              strategy={verticalListSortingStrategy}
-            >
-              <div
-                className="space-y-10"
-                role="list"
-                aria-label="Dashboard widgets"
-              >
-                {widgetOrder.map((id, index) => (
-                  <SortableWidget
-                    key={id}
-                    id={id}
-                    index={index}
-                    total={widgetOrder.length}
-                    onMove={handleMove}
-                    tourRef={refMap[id]}
-                  >
-                    {renderWidget(id)}
-                  </SortableWidget>
-                ))}
-              </div>
-            </SortableContext>
-            <DragOverlay>
-              {activeDragId ? (
-                <DashboardDragOverlay id={activeDragId} />
-              ) : null}
-            </DragOverlay>
-          </DndContext>
+
+        <div ref={analyticsInsightsRef}>
+          <AnalyticsInsights />
         </div>
-      )}
+
+        <div ref={clientAnalyticsRef}>
+          <ClientAnalyticsView
+            isLoading={isLoading}
+            showNotifications={true}
+            showDropdown={true}
+          />
+        </div>
+
+        {/* <TransactionHistory /> */}
+      </div>
 
       <DashboardTour
         accountSummaryRef={accountSummaryRef}

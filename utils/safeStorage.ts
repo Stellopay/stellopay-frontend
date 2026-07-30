@@ -5,8 +5,6 @@
  */
 export const STORAGE_KEYS = {
   DASHBOARD_TOUR_COMPLETED: "stellopay_dashboard_tour_completed",
-  DASHBOARD_WIDGET_ORDER: "stellopay_dashboard_widget_order",
-  TIMEZONE: "stellopay_timezone",
 } as const;
 
 export const safeStorage = {
@@ -68,31 +66,6 @@ export const safeStorage = {
    */
   setDashboardTourCompleted: (): boolean => {
     return safeStorage.setItem(STORAGE_KEYS.DASHBOARD_TOUR_COMPLETED, "true");
-  },
-
-  /**
-   * Retrieves the persisted dashboard widget order from localStorage.
-   * Returns null when no order is saved or the stored value is invalid.
-   */
-  getWidgetOrder: (): string[] | null => {
-    const raw = safeStorage.getItem(STORAGE_KEYS.DASHBOARD_WIDGET_ORDER);
-    if (!raw) return null;
-    try {
-      const parsed = JSON.parse(raw);
-      return Array.isArray(parsed) ? parsed : null;
-    } catch {
-      return null;
-    }
-  },
-
-  /**
-   * Persists the dashboard widget order to localStorage.
-   */
-  setWidgetOrder: (order: string[]): boolean => {
-    return safeStorage.setItem(
-      STORAGE_KEYS.DASHBOARD_WIDGET_ORDER,
-      JSON.stringify(order),
-    );
   },
 };
 
