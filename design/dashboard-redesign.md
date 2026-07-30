@@ -244,107 +244,108 @@ The `resolveVariants(prefersReduced, delay?)` helper returns `fadeOnly` (zero-du
 
 ### Accessibility (WCAG 2.1 AA)
 
- design-system/mini-bar-chart-dark-tokens
----
+| File | Purpose |
+|------|---------|
+| `components/transactions/advanced-filter-panel.tsx` | Togglable drawer with status radio, min/max amount inputs, counterparty text input, Apply/Clear All buttons |
+| `components/transactions/filter-chips.tsx` | Removable chips showing active filter state with individual remove and bulk clear |
+| `components/transactions/transactions-filters.tsx` | Updated with Advanced filter toggle button (indicator dot when active) |
+| `components/transactions/transactions-content.tsx` | Orchestrates panel open/close, draft state, apply/commit, chip removal, and passes values to API |
 
-## RechartsMiniBarChart — Theme-Aware Design Tokens (#821)
+### State Model
 
-### Overview
-`components/dashboard/RechartsMiniBarChart.tsx` previously passed hardcoded Tailwind class strings (e.g. `"bg-blue-500"`) to Recharts' `fill` prop, which Recharts does not interpret as a valid CSS color — effectively leaving bars unfilled. The tooltip referenced an undefined `--chart-tooltip-bg` variable that silently defaulted to `transparent`.
+- Draft state lives in `transactions-content.tsx` — panel inputs modify draft values; committed filters flow through `TransactionFilters` (which gained `minAmount`, `maxAmount`, and `counterparty` fields).
+- The API layer (`lib/api/transactions.ts` → `utils/transactionUtils.ts`) applies `counterparty` filtering as a case-insensitive partial match on the transaction address field.
 
-The component now reads colour values from the CSS custom properties defined in `app/globals.css`, so bar and tooltip colours respond to theme changes (light/dark) without a page reload.
+### Accessibility Notes (WCAG 2.1 AA)
 
-### What changed
+#### Advanced Filter Panel (`advanced-filter-panel.tsx`)
 
-| File | Change |
-|------|--------|
-| `app/globals.css` | Added `--chart-1` through `--chart-5` and `--chart-tooltip-*` tokens in both `:root` (light) and `.dark` (dark) blocks |
-| `components/dashboard/RechartsMiniBarChart.tsx` | Added `"use client"`; introduced `cssVar` prop for CSS variable names; added empty-state rendering; wired tooltip to `--chart-tooltip-bg/text/border` |
-| `components/dashboard/summary-data.tsx` | Changed `chartColor` values from `"bg-blue-500"` / `"bg-emerald-500"` / `"bg-amber-500"` to `"--chart-1"` / `"--chart-2"` / `"--chart-3"` |
-| `components/dashboard/account-summary-card.tsx` | Changed prop from `color={chartColor}` to `cssVar={chartColor}` |
-| `components/dashboard/RechartsMiniBarChart.test.tsx` | New file — 22 tests covering render states, props, edge cases, tooltip CSS variables, and aria |
+- **Role & Label**: Panel uses `role="dialog"` with `aria-modal="true"` and `aria-label="Advanced transaction filters"`.
+- **Focus Trap**: When the panel opens, focus is moved to the first focusable element after a 150ms animation delay. Tab/Shift+Tab cycles within the panel. Focus is restored to the triggering element on close.
+- **Escape to Close**: Pressing Escape closes the panel and returns focus.
+- **Backdrop Click**: Clicking the backdrop overlay closes the panel.
+- **Body Scroll Lock**: `document.body.style.overflow = "hidden"` is set while the panel is open; restored on close/unmount.
+- **Validation Errors**: Amount range validation uses `role="alert"` with `aria-live="polite"` for non-intrusive screen reader announcement.
+- **Contrast**: 
+  - Status radio labels: white text on dark background (#160f17) — passes AA.
+  - Selected status: `border-[#04842E]` (green) on `bg-[#04842E]/10` background.
+  - Inputs: white text on `bg-[#1A1A1A]` with `border-[#2D2D2D]`.
+  - Apply button: white text on `bg-[#04842E]` (green) background.
+  - Clear All button: gray-400 text on transparent, darkens on hover.
+- **Keyboard Navigation**: All buttons, inputs, and radio controls are fully keyboard-accessible with visible `focus-visible:ring-2` focus indicators.
+- **Disabled State**: When `disabled={true}`, all inputs and buttons receive `disabled` attribute, preventing interaction during loading states.
 
-### Design tokens added to `app/globals.css`
+#### Filter Chips (`filter-chips.tsx`)
 
-```css
-:root {
-  --chart-1: #4f6fff;           /* blue — first data series */
-  --chart-2: #10b981;           /* emerald — second data series */
-  --chart-3: #f59e0b;           /* amber — third data series */
-  --chart-4: #8b5cf6;           /* purple — fourth data series */
-  --chart-5: #ef4444;           /* red — fifth data series (use sparingly) */
-  --chart-tooltip-bg: #ffffff;
-  --chart-tooltip-text: #09090b;
-  --chart-tooltip-border: #e4e4e7;
-}
+- **Region Role**: Chips container uses `role="region"` with `aria-label="Active filters"` (customizable).
+- **Remove Buttons**: Each chip's remove button has a descriptive `aria-label` (e.g., "Remove Status filter: Payment Sent").
+- **Clear All**: When multiple chips are present, a "Clear all" button with `aria-label="Clear all active filters"` is shown.
+- **Focus Indicators**: Remove buttons and Clear all link use `focus-visible:ring-2` outlines.
 
-.dark {
-  --chart-1: #6b8aff;
-  --chart-2: #34d399;
-  --chart-3: #fbbf24;
-  --chart-4: #a78bfa;
-  --chart-5: #f87171;
-  --chart-tooltip-bg: #18181b;
-  --chart-tooltip-text: #fafafa;
-  --chart-tooltip-border: #27272a;
-}
-```
+#### Responsive Behavior
 
-### How it works
+- **Panel Width**: Full width on mobile, `sm:w-[420px]` on small screens, `lg:w-[480px]` on large screens.
+- **Amount Range**: Two-column grid (`grid-cols-2`) adapts well at all breakpoints.
+- **Advanced Toggle Button**: Label text is hidden on mobile (`hidden sm:inline`) to conserve space; the sliders icon remains visible.
+- **Chips**: Use `flex-wrap` for natural wrapping on narrow viewports.
 
-The `fill` attribute on Recharts' `<Bar>` component is set to `var(--chart-1)` (or whichever variable the consumer passes). Since SVG `fill` supports CSS custom properties, the browser re-evaluates the variable whenever the `.dark` class toggles on `<html>`, and the chart repaints immediately without a React re-render.
+## CSV Export Toolbar (Added: feature/transactions-export-toolbar-options)
 
-### CSS variable reference (live cascade)
+The CSV Export Toolbar is a dialog-based export interface that lets power users choose which columns to include in a CSV export and scope the export to an arbitrary date range independent of on-screen pagination. Users see a live row-count preview before committing the download.
 
-| CSS variable | Used in | Light value | Dark value | WCAG 2.1 AA contrast |
-|---|---|---|---|---|
-| `--chart-tooltip-bg` | Tooltip background | `#ffffff` | `#18181b` | — |
-| `--chart-tooltip-text` | Tooltip text | `#09090b` | `#fafafa` | >15:1 (light), ~14.5:1 (dark) |
-| `--chart-tooltip-border` | Tooltip border | `#e4e4e7` | `#27272a` | >3:1 non-text |
+### Components
 
-### Accessibility annotations (WCAG 2.1 AA)
+| File | Purpose |
+|------|---------|
+| `components/transactions/transactions-export-toolbar.tsx` | Dialog with column checkboxes, from/to date pickers, row-count preview, and Export button |
+| `utils/csvUtils.ts` | New `generateTransactionsCsv()` and `downloadCsvContent()` for column-aware export; `TRANSACTION_CSV_COLUMNS` constant defines exportable columns |
+| `components/transactions/transactions-content.tsx` | Orchestrates preview fetching (via `getTransactions` with max page size) and full-data export download |
 
-- **Contrast**: Tooltip text on background exceeds 4.5:1 in both modes (15:1 light, 14.5:1 dark). Bar colours use the chart tokens which provide sufficient contrast against both the light (`#fff`) and dark (`#111`) card surfaces.
-- **Keyboard**: The chart is purely decorative/illustrative — it receives no interactive focus. Navigation proceeds to adjacent interactive elements (buttons, links) with no interruption.
-- **ARIA**: The wrapper `div` has `role="img"` and `aria-label` (customisable via `ariaLabel` prop, defaults to `"Mini bar chart"`). Empty state renders `aria-label="No chart data available"` on the placeholder. The empty-state text uses `text-muted-foreground` for adequate contrast.
+### State Model
 
-### Responsive behaviour
+- The export toolbar maintains its own local date range and column selection, completely independent of the on-screen transaction filters.
+- When the dialog opens, a preview request is fired to `getTransactions` with `pageSize = MAX_TRANSACTION_PAGE_SIZE` (100) to count matching rows.
+- Changing either date picker triggers a new preview fetch.
+- The Export button fetches all matching rows (again using max page size) and streams them through `generateTransactionsCsv` → `downloadCsvContent`.
 
-- The chart container uses `height` as a CSS `style` prop (default `3rem`) and `width: 100%` via `ResponsiveContainer`. No breakpoint-specific overrides are needed — the chart reflows with its parent container.
-- At `sm: 640px`, `md: 768px`, `lg: 1024px`, and `xl: 1280px`, the card grid that hosts the chart uses the existing `grid-cols-1 md:grid-cols-2 lg:grid-cols-3` responsive layout; the mini chart scales down fluidly inside each card.
+### Features
 
-### Testing
+- **Column Selection**: Six toggleable columns (Transaction Type, Address, Date, Token, Amount, Status). All selected by default. "Select all" / "Deselect all" quick toggle.
+- **Date Range Picker**: Reuses the `Date` component (`components/transactions/date.tsx`) which wraps the `Calendar` from `components/ui/calendar.tsx`. Dates are independent of the on-screen filter range.
+- **Row-Count Preview**: Shows a live count of matching rows so users can sanity-check the export scope before downloading.
+- **Export Button**: Disabled when no columns are selected or when an export is already in flight. Shows a loading spinner during export.
 
-```bash
-# Unit tests (22 tests covering render, props, edge cases, tooltip, aria)
-npm test -- --run components/dashboard/RechartsMiniBarChart.test.tsx
-```
+### Accessibility Notes (WCAG 2.1 AA)
 
-| Test group | Tests | Covers |
-|---|---|---|
-| Basic rendering | 3 | Renders chart, empty state, default fill |
-| cssVar prop | 2 | Custom CSS variable, cssVar overrides color |
-| color prop | 1 | Static fill fallback |
-| height prop | 2 | Default 3rem, custom height |
-| ariaLabel prop | 3 | Default label, custom label, role="img" |
-| Data transformation | 2 | Index labels, zero margins |
-| Bar props | 2 | dataKey, radius |
-| XAxis props | 1 | Data key and hidden |
-| Tooltip props | 3 | cursor, CSS variable references, percentage formatter |
-| Edge cases | 4 | Single point, zero value, empty array, empty state aria |
+#### CSV Export Toolbar (`transactions-export-toolbar.tsx`)
 
-### Files changed
+- **Role & Label**: Uses the `Dialog` primitive which provides `role="dialog"` with `aria-modal="true"`. The title is "Export Transactions".
+- **Column Checkboxes**: Each checkbox is labelled via `aria-labelledby` linked to a `<Label>` with the column header text.
+- **Row-Count Region**: The preview uses `role="status"` with `aria-live="polite"` so screen readers announce count updates without interrupting the user.
+- **Loading States**: The preview spinner uses `aria-hidden="true"`. The export button shows "Exporting…" text and a spinning icon when in progress.
+- **Focus Management**: The dialog traps focus. The trigger button has `aria-label="Open CSV export options"`.
+- **Disabled States**: The Export button is disabled with descriptive `aria-label` when no columns are selected ("Select at least one column to export") or while exporting ("Exporting CSV...").
+- **Contrast**:
+  - Trigger button: white text on `bg-[#1a0c1d]` with `border-[#2D2D2D]`.
+  - Dialog: white text on `bg-[#160f17]` background.
+  - Export button: white text on `bg-[#04842E]` (green) — passes AA.
+  - Column labels: `text-gray-200` on dark background.
+  - Row count: white `text-lg font-semibold` on `bg-[#1a0c1d]`.
+- **Keyboard Navigation**: All checkboxes, buttons, and the Select/Deselect all toggle are fully keyboard-accessible with `focus-visible:ring-2` outlines.
+- **Zero-Row Warning**: When no transactions match the date range, an amber warning text ("No transactions match this date range.") is shown.
 
-| File | Status |
-|------|--------|
-| `app/globals.css` | Modified — added chart token block |
-| `components/dashboard/RechartsMiniBarChart.tsx` | Modified — CSS variable fill, tooltip tokens, empty state |
-| `components/dashboard/summary-data.tsx` | Modified — updated chartColor values |
-| `components/dashboard/account-summary-card.tsx` | Modified — `cssVar` prop |
-| `components/dashboard/RechartsMiniBarChart.test.tsx` | New |
-| `design/dashboard-redesign.md` | This section |
+#### Responsive Behavior
 
+- **Dialog Width**: `max-w-lg` on mobile, `sm:max-w-xl` on wider screens.
+- **Date Pickers**: Stack vertically on mobile (`flex-col`), side-by-side on `sm:` with a "to" label between them.
+- **Column Grid**: Single column on mobile, two columns (`sm:grid-cols-2`) on wider screens.
+- **Trigger Button**: Label text ("Export CSV") is hidden on mobile (`hidden sm:inline`); the spreadsheet icon remains visible.
+- **Footer Buttons**: Stack on mobile, side-by-side on `sm:` breakpoint with proper gap spacing.
 
+### Test Coverage
+
+- `utils/csvUtils.test.ts` — escapeCsvField, TRANSACTION_CSV_COLUMNS validation, generateTransactionsCsv with various column selections, downloadCsv/downloadCsvContent DOM interactions.
+- `components/transactions/transactions-export-toolbar.test.tsx` — Dialog open/close, column toggle, select/deselect all, row-count preview states (count, null, zero, loading), export callback payload, accessibility attributes (roles, labels, aria-live).
 - **Reduced Motion**: All motion-enabled components check `useReducedMotion()` and disable non-essential movement when the OS-level `prefers-reduced-motion: reduce` is set.
 - **No Content Loss**: Hidden decorative elements (gradient orbs, rotating cards) remain visually hidden without animation; all content stays accessible and functional.
 - **Focus Management**: Sidebar open/close preserves focus order and returns focus to `#main-content` on close (handled in `AppLayout`).
