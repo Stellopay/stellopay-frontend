@@ -4,10 +4,6 @@ import { render, screen, fireEvent } from "@testing-library/react";
 import SortControl from "./sort";
 import type { SortConfig } from "@/types/transaction";
 
-// ─── Mock Radix UI DropdownMenu ─────────────────────────────────────────
-// jsdom does not implement the Portal API that Radix DropdownMenu depends
-// on, so we mock the primitives with plain div/button wrappers to test
-// render logic and click handlers.
 vi.mock("@/components/ui/dropdown-menu", () => ({
   DropdownMenu: ({ children }: { children: React.ReactNode }) => (
     <div data-testid="dropdown-menu">{children}</div>
@@ -17,32 +13,51 @@ vi.mock("@/components/ui/dropdown-menu", () => ({
       {children}
     </button>
   ),
-  DropdownMenuContent: ({ children }: { children: React.ReactNode }) => (
-    <div data-testid="dropdown-content">{children}</div>
+  DropdownMenuContent: ({
+    children,
+    role,
+    "aria-label": ariaLabel,
+  }: {
+    children: React.ReactNode;
+    role?: string;
+    "aria-label"?: string;
+  }) => (
+    <div data-testid="dropdown-content" role={role} aria-label={ariaLabel}>
+      {children}
+    </div>
   ),
   DropdownMenuItem: ({
     children,
     onClick,
+    onKeyDown,
     className,
+    role,
+    "aria-checked": ariaChecked,
+    "data-testid": testid,
     ...props
   }: {
     children: React.ReactNode;
     onClick?: (e: React.MouseEvent) => void;
+    onKeyDown?: (e: React.KeyboardEvent<HTMLDivElement>) => void;
     className?: string;
+    role?: string;
+    "aria-checked"?: boolean | "mixed" | undefined;
+    "data-testid"?: string;
   }) => (
     <div
-      data-testid="dropdown-item"
+      data-testid={testid ?? "dropdown-item"}
       className={className}
       onClick={onClick}
-      role="menuitem"
+      onKeyDown={onKeyDown}
+      role={role ?? "menuitem"}
+      aria-checked={ariaChecked}
+      tabIndex={0}
       {...props}
     >
       {children}
     </div>
   ),
 }));
-
-// ─── Test data ───────────────────────────────────────────────────────────
 
 const defaultSortConfigs: SortConfig[] = [
   { field: "date", direction: "desc" },
@@ -65,7 +80,7 @@ describe("SortControl", () => {
     const trigger = screen.getByTestId("dropdown-trigger");
     expect(trigger).toBeInTheDocument();
     expect(trigger).toHaveTextContent("Date");
-    expect(trigger).toHaveTextContent("↓");
+    expect(trigger).toHaveTextContent("\u2193");
   });
 
   it("renders 'Sort' as default label when no sort configs are set", () => {
@@ -88,12 +103,10 @@ describe("SortControl", () => {
         onClearSecondarySort={vi.fn()}
       />,
     );
-    const items = screen.getAllByTestId("dropdown-item");
-    expect(items).toHaveLength(4);
-    expect(items[0]).toHaveTextContent("Date");
-    expect(items[1]).toHaveTextContent("Amount");
-    expect(items[2]).toHaveTextContent("Type");
-    expect(items[3]).toHaveTextContent("Status");
+    expect(screen.getByTestId("sort-item-date")).toBeInTheDocument();
+    expect(screen.getByTestId("sort-item-amount")).toBeInTheDocument();
+    expect(screen.getByTestId("sort-item-type")).toBeInTheDocument();
+    expect(screen.getByTestId("sort-item-status")).toBeInTheDocument();
   });
 
   it("shows sort order indicator (#2) for secondary sort item", () => {
@@ -104,12 +117,11 @@ describe("SortControl", () => {
         onClearSecondarySort={vi.fn()}
       />,
     );
-    const items = screen.getAllByTestId("dropdown-item");
-    // Status (primary) should show arrow
-    expect(items[3]).toHaveTextContent("↑");
-    // Amount (secondary) should show arrow and #2 indicator
-    expect(items[1]).toHaveTextContent("↓");
-    expect(items[1]).toHaveTextContent("#2");
+    const statusItem = screen.getByTestId("sort-item-status");
+    const amountItem = screen.getByTestId("sort-item-amount");
+    expect(statusItem).toHaveTextContent("\u2191");
+    expect(amountItem).toHaveTextContent("\u2193");
+    expect(amountItem).toHaveTextContent("#2");
   });
 
   it("calls onSort with the field and shiftKey=false on normal click", () => {
@@ -121,8 +133,7 @@ describe("SortControl", () => {
         onClearSecondarySort={vi.fn()}
       />,
     );
-    const items = screen.getAllByTestId("dropdown-item");
-    fireEvent.click(items[1]!); // Click "Amount"
+    fireEvent.click(screen.getByTestId("sort-item-amount"));
     expect(handleSort).toHaveBeenCalledWith("amount", { shiftKey: false });
   });
 
@@ -135,8 +146,9 @@ describe("SortControl", () => {
         onClearSecondarySort={vi.fn()}
       />,
     );
-    const items = screen.getAllByTestId("dropdown-item");
-    fireEvent.click(items[2]!, { shiftKey: true }); // Shift-click "Type"
+    fireEvent.click(screen.getByTestId("sort-item-type"), {
+      shiftKey: true,
+    });
     expect(handleSort).toHaveBeenCalledWith("type", { shiftKey: true });
   });
 
@@ -148,9 +160,8 @@ describe("SortControl", () => {
         onClearSecondarySort={vi.fn()}
       />,
     );
-    // The secondary chip text includes "then Amount ↓"
     expect(screen.getByText(/then Amount/i)).toBeInTheDocument();
-    expect(screen.getByText(/↓/)).toBeInTheDocument();
+    expect(screen.getByText(/\u2193/)).toBeInTheDocument();
   });
 
   it("does NOT show secondary sort chip when only primary is set", () => {
@@ -173,7 +184,7 @@ describe("SortControl", () => {
         onClearSecondarySort={handleClear}
       />,
     );
-    const closeBtn = screen.getByLabelText("Clear secondary sort");
+    const closeBtn = screen.getByLabelText(/clear secondary sort/i);
     expect(closeBtn).toBeInTheDocument();
     fireEvent.click(closeBtn);
     expect(handleClear).toHaveBeenCalledTimes(1);
@@ -187,7 +198,7 @@ describe("SortControl", () => {
         onClearSecondarySort={vi.fn()}
       />,
     );
-    const trigger = screen.getByLabelText("Sort transactions");
+    const trigger = screen.getByLabelText(/sort transactions/i);
     expect(trigger).toBeInTheDocument();
   });
 
@@ -199,7 +210,259 @@ describe("SortControl", () => {
         onClearSecondarySort={vi.fn()}
       />,
     );
-    const closeBtn = screen.getByLabelText("Clear secondary sort");
-    expect(closeBtn).toBeInTheDocument();
+    expect(screen.getByLabelText(/clear secondary sort/i)).toBeInTheDocument();
+  });
+});
+
+describe("SortControl — aria-sort on columnheaders", () => {
+  it("sets aria-sort='descending' on the primary sort columnheader", () => {
+    render(
+      <SortControl
+        sortConfigs={[{ field: "date", direction: "desc" }]}
+        onSort={vi.fn()}
+      />,
+    );
+    const dateHeader = screen.getByTestId("sort-columnheader-date");
+    const amountHeader = screen.getByTestId("sort-columnheader-amount");
+    expect(dateHeader).toHaveAttribute("aria-sort", "descending");
+    expect(amountHeader).not.toHaveAttribute("aria-sort");
+  });
+
+  it("sets aria-sort='ascending' on the primary sort columnheader when direction=asc", () => {
+    render(
+      <SortControl
+        sortConfigs={[{ field: "amount", direction: "asc" }]}
+        onSort={vi.fn()}
+      />,
+    );
+    expect(screen.getByTestId("sort-columnheader-amount")).toHaveAttribute(
+      "aria-sort",
+      "ascending",
+    );
+    expect(screen.getByTestId("sort-columnheader-date")).not.toHaveAttribute(
+      "aria-sort",
+    );
+  });
+
+  it("sets aria-sort='other' on the secondary sort columnheader", () => {
+    render(
+      <SortControl
+        sortConfigs={[
+          { field: "status", direction: "asc" },
+          { field: "amount", direction: "desc" },
+        ]}
+        onSort={vi.fn()}
+      />,
+    );
+    expect(screen.getByTestId("sort-columnheader-status")).toHaveAttribute(
+      "aria-sort",
+      "ascending",
+    );
+    expect(screen.getByTestId("sort-columnheader-amount")).toHaveAttribute(
+      "aria-sort",
+      "other",
+    );
+  });
+
+  it("omits aria-sort on all columnheaders when no sort is active", () => {
+    render(<SortControl sortConfigs={[]} onSort={vi.fn()} />);
+    for (const field of ["date", "amount", "type", "status"]) {
+      expect(
+        screen.getByTestId(`sort-columnheader-${field}`),
+      ).not.toHaveAttribute("aria-sort");
+    }
+  });
+});
+
+describe("SortControl — aria-live announcements", () => {
+  it("announces the new sort order through the aria-live region after onSort triggers a re-render", () => {
+    const { rerender } = render(
+      <SortControl
+        sortConfigs={[{ field: "date", direction: "desc" }]}
+        onSort={vi.fn()}
+      />,
+    );
+    const live = screen.getByTestId("sort-announcement");
+    expect(live).toHaveAttribute("aria-live", "polite");
+    expect(live).toHaveAttribute("aria-atomic", "true");
+    expect(live).toHaveTextContent("");
+
+    rerender(
+      <SortControl
+        sortConfigs={[{ field: "amount", direction: "asc" }]}
+        onSort={vi.fn()}
+      />,
+    );
+    expect(live).toHaveTextContent(
+      "Sorted by Amount ascending.",
+      { exact: false },
+    );
+  });
+
+  it("announces both primary and secondary sort in the live region", () => {
+    const { rerender } = render(
+      <SortControl
+        sortConfigs={[{ field: "date", direction: "desc" }]}
+        onSort={vi.fn()}
+      />,
+    );
+
+    rerender(
+      <SortControl
+        sortConfigs={[
+          { field: "status", direction: "asc" },
+          { field: "amount", direction: "desc" },
+        ]}
+        onSort={vi.fn()}
+      />,
+    );
+    const live = screen.getByTestId("sort-announcement");
+    expect(live).toHaveTextContent(/Sorted by Status ascending/i);
+    expect(live).toHaveTextContent(/then by Amount descending/i);
+  });
+
+  it("does not announce on the initial mount", () => {
+    render(
+      <SortControl
+        sortConfigs={[{ field: "date", direction: "desc" }]}
+        onSort={vi.fn()}
+      />,
+    );
+    expect(screen.getByTestId("sort-announcement")).toHaveTextContent("");
+  });
+});
+
+describe("SortControl — Enter / Space operability", () => {
+  it("activates a sort item with the Enter key", () => {
+    const handleSort = vi.fn();
+    render(
+      <SortControl
+        sortConfigs={defaultSortConfigs}
+        onSort={handleSort}
+        onClearSecondarySort={vi.fn()}
+      />,
+    );
+    const item = screen.getByTestId("sort-item-status");
+    fireEvent.keyDown(item, { key: "Enter", code: "Enter" });
+    expect(handleSort).toHaveBeenCalledWith("status", { shiftKey: false });
+  });
+
+  it("activates a sort item with the Space key and preventDefault is called", () => {
+    const handleSort = vi.fn();
+    render(
+      <SortControl
+        sortConfigs={defaultSortConfigs}
+        onSort={handleSort}
+        onClearSecondarySort={vi.fn()}
+      />,
+    );
+    const item = screen.getByTestId("sort-item-amount");
+    const preventDefault = vi.fn();
+    fireEvent.keyDown(item, {
+      key: " ",
+      code: "Space",
+      preventDefault,
+    } as unknown as React.KeyboardEvent);
+    expect(preventDefault).toHaveBeenCalled();
+    expect(handleSort).toHaveBeenCalledWith("amount", { shiftKey: false });
+  });
+
+  it("does NOT call onSort when a non-Enter/Space key (e.g. ArrowDown) is pressed", () => {
+    const handleSort = vi.fn();
+    render(
+      <SortControl
+        sortConfigs={defaultSortConfigs}
+        onSort={handleSort}
+        onClearSecondarySort={vi.fn()}
+      />,
+    );
+    const item = screen.getByTestId("sort-item-type");
+    fireEvent.keyDown(item, { key: "ArrowDown", code: "ArrowDown" });
+    expect(handleSort).not.toHaveBeenCalled();
+  });
+
+  it("clears the secondary sort chip with Enter on the close button", () => {
+    const handleClear = vi.fn();
+    render(
+      <SortControl
+        sortConfigs={multiSortConfigs}
+        onSort={vi.fn()}
+        onClearSecondarySort={handleClear}
+      />,
+    );
+    const closeBtn = screen.getByLabelText(/clear secondary sort/i);
+    fireEvent.keyDown(closeBtn, { key: "Enter", code: "Enter" });
+    expect(handleClear).toHaveBeenCalledTimes(1);
+  });
+
+  it("clears the secondary sort chip with Space on the close button", () => {
+    const handleClear = vi.fn();
+    render(
+      <SortControl
+        sortConfigs={multiSortConfigs}
+        onSort={vi.fn()}
+        onClearSecondarySort={handleClear}
+      />,
+    );
+    const closeBtn = screen.getByLabelText(/clear secondary sort/i);
+    const preventDefault = vi.fn();
+    fireEvent.keyDown(closeBtn, {
+      key: " ",
+      code: "Space",
+      preventDefault,
+    } as unknown as React.KeyboardEvent);
+    expect(preventDefault).toHaveBeenCalled();
+    expect(handleClear).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe("SortControl — menu-item ARIA state", () => {
+  it("marks the primary sort item as aria-checked=true", () => {
+    render(
+      <SortControl
+        sortConfigs={[{ field: "date", direction: "desc" }]}
+        onSort={vi.fn()}
+      />,
+    );
+    expect(screen.getByTestId("sort-item-date")).toHaveAttribute(
+      "aria-checked",
+      "true",
+    );
+    expect(screen.getByTestId("sort-item-amount")).toHaveAttribute(
+      "aria-checked",
+      "false",
+    );
+  });
+
+  it("marks the secondary sort item as aria-checked=mixed", () => {
+    render(
+      <SortControl
+        sortConfigs={[
+          { field: "status", direction: "asc" },
+          { field: "amount", direction: "desc" },
+        ]}
+        onSort={vi.fn()}
+      />,
+    );
+    expect(screen.getByTestId("sort-item-status")).toHaveAttribute(
+      "aria-checked",
+      "true",
+    );
+    expect(screen.getByTestId("sort-item-amount")).toHaveAttribute(
+      "aria-checked",
+      "mixed",
+    );
+  });
+
+  it("uses role=menuitemcheckbox on each sort item", () => {
+    render(
+      <SortControl sortConfigs={[]} onSort={vi.fn()} />,
+    );
+    for (const field of ["date", "amount", "type", "status"]) {
+      expect(screen.getByTestId(`sort-item-${field}`)).toHaveAttribute(
+        "role",
+        "menuitemcheckbox",
+      );
+    }
   });
 });
