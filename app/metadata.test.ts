@@ -1,4 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
+import { readFileSync } from "fs";
+import { resolve } from "path";
 
 vi.mock("next/font/google", () => ({
   Inter: () => ({ variable: "font-inter" }),
@@ -8,7 +10,10 @@ vi.mock("next/font/local", () => ({
   default: () => ({ variable: "font-local" }),
 }));
 
-import { metadata as rootMetadata, viewport as rootViewport } from "@/app/layout";
+import {
+  metadata as rootMetadata,
+  viewport as rootViewport,
+} from "@/app/layout";
 import { metadata as dashboardMetadata } from "@/app/dashboard/layout";
 import { metadata as transactionsMetadata } from "@/app/transactions/layout";
 import { metadata as settingsMetadata } from "@/app/settings/preferences/layout";
@@ -113,5 +118,68 @@ describe("Route Metadata Exports", () => {
       expect(titleStr).not.toContain("${");
       expect(descStr).not.toContain("${");
     });
+  });
+
+  // ── Design Token Migration Matrix ────────────────────────────────────────────
+
+  it("design-token migration matrix document exists and is non-empty", () => {
+    const matrixPath = resolve(
+      __dirname,
+      "../design/token-migration-matrix.md",
+    );
+    const content = readFileSync(matrixPath, "utf-8");
+    expect(content.length).toBeGreaterThan(100);
+    expect(content).toContain("# Design Token Migration Matrix");
+    expect(content).toContain("Migration Status Overview");
+  });
+
+  it("design-token migration matrix covers all major component categories", () => {
+    const matrixPath = resolve(
+      __dirname,
+      "../design/token-migration-matrix.md",
+    );
+    const content = readFileSync(matrixPath, "utf-8");
+
+    // Verify each priority tier is represented
+    expect(content).toContain("High");
+    expect(content).toContain("Medium");
+    expect(content).toContain("Low");
+
+    // Verify status indicators are present
+    expect(content).toContain("Done");
+    expect(content).toContain("In Progress");
+    expect(content).toContain("Not Started");
+  });
+
+  it("design-token migration matrix prioritizes landing and dashboard surfaces", () => {
+    const matrixPath = resolve(
+      __dirname,
+      "../design/token-migration-matrix.md",
+    );
+    const content = readFileSync(matrixPath, "utf-8");
+
+    expect(content).toContain("Landing Hero");
+    expect(content).toContain("Dashboard Account Summary");
+    expect(content).toContain("Settings Preferences");
+    expect(content).toContain("https://github.com/stellopay/frontend/issues/");
+  });
+
+  it("design-token migration matrix inventories representative app and component surfaces", () => {
+    const matrixPath = resolve(
+      __dirname,
+      "../design/token-migration-matrix.md",
+    );
+    const content = readFileSync(matrixPath, "utf-8");
+
+    expect(content).toContain("app/account-summary/page.tsx");
+    expect(content).toContain("components/common/footer.tsx");
+    expect(content).toContain("components/common/navbar.tsx");
+  });
+
+  it("globals.css contains design token documentation comment", () => {
+    const cssPath = resolve(__dirname, "globals.css");
+    const content = readFileSync(cssPath, "utf-8");
+    expect(content).toContain("Design Token Migration Reference");
+    expect(content).toContain("token-migration-matrix.md");
   });
 });

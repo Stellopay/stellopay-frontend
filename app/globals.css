@@ -1,6 +1,24 @@
 @import "tailwindcss";
 @import "tw-animate-css";
 
+/**
+ * Design Token Migration Reference
+ *
+ * This file defines the shared design tokens used across the Stellopay frontend.
+ * Components should reference these tokens instead of hardcoded hex colors.
+ *
+ * Migration Status: See design/token-migration-matrix.md for the current inventory and rollout order.
+ *
+ * Token Categories:
+ * - Colors: background, foreground, semantic (primary, destructive, success, warning)
+ * - Typography: font families (sans, clash, general)
+ * - Spacing: border-radius scale (sm, md, lg, xl)
+ * - Effects: focus ring and shadows
+ *
+ * Usage: Reference via CSS custom properties (--color-*, --font-*, --radius-*)
+ * or via Tailwind classes (bg-primary, text-foreground, rounded-lg, etc.).
+ */
+
 @custom-variant dark (&:is(.dark *));
 
 html {
