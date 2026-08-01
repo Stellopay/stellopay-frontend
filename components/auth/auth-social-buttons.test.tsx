@@ -281,6 +281,12 @@ describe("AuthSocialButtons", () => {
     expect(appleBtn).not.toBeDisabled();
   });
 
+  // ── OAuth callback error states ────────────────────────────────────────────
+
+  describe("OAuth callback error states", () => {
+    const mockSimulateOAuth = vi.mocked(
+      await import("@/lib/api/auth")
+    ).simulateOAuth;
   // ── Divider accessibility ──────────────────────────────────────────────────
 
   it("renders a sr-only separator with role='separator' and an accessible label", () => {
@@ -345,7 +351,7 @@ describe("AuthSocialButtons", () => {
 
       await userEvent.click(googleBtn);
 
-      expect(screen.getAllByText(/denied permission/i).length).toBeGreaterThanOrEqual(1);
+      expect(screen.getByText(/denied permission/i)).toBeInTheDocument();
       expect(screen.getByText(/user has denied permission/i)).toBeInTheDocument();
       expect(screen.getByRole("button", { name: /retry/i })).toBeInTheDocument();
       expect(screen.getByRole("button", { name: /use email instead/i })).toBeInTheDocument();
@@ -366,8 +372,8 @@ describe("AuthSocialButtons", () => {
 
       await userEvent.click(googleBtn);
 
-      expect(screen.getAllByText(/temporarily unavailable/i).length).toBeGreaterThanOrEqual(1);
-      expect(screen.getAllByText(/authentication provider is temporarily unavailable/i).length).toBeGreaterThanOrEqual(1);
+      expect(screen.getByText(/temporarily unavailable/i)).toBeInTheDocument();
+      expect(screen.getByText(/authentication provider is temporarily unavailable/i)).toBeInTheDocument();
       expect(screen.getByRole("button", { name: /retry/i })).toBeInTheDocument();
       expect(screen.getByRole("button", { name: /use email instead/i })).toBeInTheDocument();
     });

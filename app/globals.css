@@ -1,99 +1,24 @@
 @import "tailwindcss";
 
-@layer base {
-  :root {
-    --font-clash: "Clash Display", sans-serif;
-    --font-general-sans: "General Sans", sans-serif;
-    --font-inter: "Inter", sans-serif;
+/**
+ * Design Token Migration Reference
+ *
+ * This file defines the shared design tokens used across the Stellopay frontend.
+ * Components should reference these tokens instead of hardcoded hex colors.
+ *
+ * Migration Status: See design/token-migration-matrix.md for the current inventory and rollout order.
+ *
+ * Token Categories:
+ * - Colors: background, foreground, semantic (primary, destructive, success, warning)
+ * - Typography: font families (sans, clash, general)
+ * - Spacing: border-radius scale (sm, md, lg, xl)
+ * - Effects: focus ring and shadows
+ *
+ * Usage: Reference via CSS custom properties (--color-*, --font-*, --radius-*)
+ * or via Tailwind classes (bg-primary, text-foreground, rounded-lg, etc.).
+ */
 
-    /* ── Elevation / shadow scale (light) ────────────────────────────────
-     * Four-step hierarchy that every card-like surface must use.
-     *
-     *   1 — Static / default cards
-     *   2 — Hoverable / interactive cards
-     *   3 — Floating panels (popovers, dropdowns)
-     *   4 — Modals / dialogs
-     *
-     * Dark-mode values are swapped via the .dark variant below.
-     * Usage: shadow-elevation-1 … shadow-elevation-4
-     */
-    --elevation-1: 0 1px 2px 0 rgb(0 0 0 / 0.03), 0 1px 1px 0 rgb(0 0 0 / 0.02);
-    --elevation-2: 0 4px 6px -1px rgb(0 0 0 / 0.05), 0 2px 4px -2px rgb(0 0 0 / 0.03);
-    --elevation-3: 0 10px 15px -3px rgb(0 0 0 / 0.08), 0 4px 6px -4px rgb(0 0 0 / 0.04);
-    --elevation-4: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.05);
-
-    /* Disabled state token — single source of truth for all disabled controls
-     * Applied via the cursor-disabled and opactiy-disabled utilities below.
-     * Used across Button, Checkbox, TextInput, and Input.
-     */
-    --disabled-opacity: 0.5;
-
-    /* ── Skeleton / shimmer loading tokens ───────────────────────────────
-     * Single source of truth for all skeleton animation timing across the
-     * entire application.  Every skeleton primitive (Skeleton, SkeletonLine,
-     * SkeletonAvatar, etc.) reads these tokens via the .skeleton-shimmer
-     * class so that a card skeleton, a table skeleton, and any other
-     * loading placeholder all pulse / shimmer at exactly the same rate.
-     *
-     *   --shimmer-duration   How long one full animation cycle lasts (2s).
-     *   --shimmer-easing     The easing curve for the shimmer sweep (ease-in-out).
-     *
-     * These tokens are consumed by the `.skeleton-shimmer::after` animation
-     * below and respected by the prefers-reduced-motion fallback.
-     * Change these two values to retime every loading placeholder at once.
-     */
-    --shimmer-duration: 2s;
-    --shimmer-easing: ease-in-out;
-
-    /* Section vertical-rhythm spacing tokens
-     * Applied as py-section-sm / py-section-md / py-section-lg via
-     * the @utility helpers below, or directly via Tailwind responsive
-     * classes: py-16 sm:py-20 lg:py-24. These tokens document the
-     * canonical three-step scale used across every landing section.
-     */
-    --section-py-sm: 4rem;   /* 64 px  — mobile  (≤ 639 px)  */
-    --section-py-md: 5rem;   /* 80 px  — tablet  (≥ 640 px)  */
-    --section-py-lg: 6rem;   /* 96 px  — desktop (≥ 1024 px) */
-
-    /* Clash Display (Display & Headings) Token Scale */
-    --font-display-2xl: 4.5rem;
-    --leading-display-2xl: 1.05;
-    --tracking-display-2xl: -0.03em;
-
-    --font-display-xl: 3.75rem;
-    --leading-display-xl: 1.1;
-    --tracking-display-xl: -0.025em;
-
-    --font-heading-lg: 2.25rem;
-    --leading-heading-lg: 1.2;
-    --tracking-heading-lg: -0.02em;
-
-    --font-heading-md: 1.5rem;
-    --leading-heading-md: 1.25;
-    --tracking-heading-md: -0.015em;
-
-    /* General Sans / Inter (Body Copy & UI) Token Scale */
-    --font-body-lg: 1.125rem;
-    --leading-body-lg: 1.6;
-    --tracking-body-lg: -0.01em;
-
-    --font-body-md: 1rem;
-    --leading-body-md: 1.5;
-    --tracking-body-md: 0em;
-
-    --font-caption-sm: 0.875rem;
-    --leading-caption-sm: 1.43;
-    --tracking-caption-sm: 0.01em;
-
- design-system/mini-bar-chart-dark-tokens
-    /* Chart tokens — used by Recharts components */
-    --chart-1: #4f6fff;
-    --chart-2: #10b981;
-    --chart-3: #f59e0b;
-    --chart-4: #8b5cf6;
-    --chart-5: #ef4444;
-    --chart-tooltip-bg: #ffffff;
-    --chart-tooltip-text: #09090b;
+@custom-variant dark (&:is(.dark *));
 
     /* Chart colors — light mode
      * Used by RechartsMiniBarChart and other chart components.

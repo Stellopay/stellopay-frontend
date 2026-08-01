@@ -7,27 +7,18 @@ import { Input } from "@/components/ui/input";
 import { DestructiveActionDialog } from "./destructive-action-dialog";
 import { OAuthCallbackError } from "@/lib/api/auth";
 
-export interface ProfileState {
-  firstName: string;
-  lastName: string;
-  displayName: string;
-  email: string;
-  timezone: string;
-  currency: string;
+interface DeletionFlowState {
+  reason: string | null;
+  dataExported: boolean;
+  isDeleting: boolean;
+  countdown: number;
 }
 
-/**
- * Default profile values seeded from demo data. Exported so a parent surface
- * (e.g. the settings summary cards) can own the same initial state when it
- * lifts this section into a controlled component.
- */
-export const DEFAULT_PROFILE: ProfileState = {
-  firstName: DEMO_PROFILE.firstName,
-  lastName: DEMO_PROFILE.lastName,
-  displayName: DEMO_PROFILE.displayName,
-  email: DEMO_PROFILE.email,
-  timezone: DEMO_PROFILE.timezone,
-  currency: DEMO_PROFILE.currency,
+const DEFAULT_DELETION_FLOW: DeletionFlowState = {
+  reason: null,
+  dataExported: false,
+  isDeleting: false,
+  countdown: 14
 };
 
 /** Number of profile fields that have a non-empty value. */
