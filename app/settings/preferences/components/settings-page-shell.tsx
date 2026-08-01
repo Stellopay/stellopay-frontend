@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Bell, FileText, Shield, UserRound, Wallet } from "lucide-react";
 import { usePathname, useRouter } from "next/navigation";
 import SettingsHeader, {
@@ -13,6 +13,15 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent } from "@/components/ui/tabs";
 import { DEMO_WALLETS } from "@/lib/demo-data";
 import AccountSection, {
@@ -31,6 +40,8 @@ import TaxDocumentsSection, {
   type TaxDocument,
 } from "./tax-documents-section";
 import WalletsSection from "./wallets-section";
+import { useUnsavedChangesGuard } from "@/hooks/useUnsavedChangesGuard";
+import { isShallowEqual } from "@/utils/objectUtils";
 
 /**
  * Number of wallets currently linked. Sourced from the wallets data the
@@ -104,6 +115,22 @@ export default function SettingsPageShell({
     DEFAULT_TWO_FACTOR_ENABLED,
   );
 
+  // Snapshots of the two sections that have an explicit "Save" step
+  // (Account, Notifications) as of their last successful save. Security's
+  // two-factor toggle applies immediately (no draft to lose) and Wallets
+  // manages its own unlifted state, so neither contributes to the dirty
+  // flag below. Compared against the live state to know whether either
+  // section has an edit that hasn't been saved yet.
+  const [savedProfile, setSavedProfile] = useState(DEFAULT_PROFILE);
+  const [savedNotificationSettings, setSavedNotificationSettings] = useState(
+    DEFAULT_NOTIFICATION_SETTINGS,
+  );
+  const hasUnsavedChanges =
+    !isShallowEqual(profile, savedProfile) ||
+    !isShallowEqual(notificationSettings, savedNotificationSettings);
+
+  const { confirmDiscard } = useUnsavedChangesGuard(hasUnsavedChanges);
+
   // Summary card values, derived from live state rather than hardcoded copy.
   const profileReadiness = isProfileComplete(profile)
     ? "Complete"
@@ -115,11 +142,50 @@ export default function SettingsPageShell({
   const walletCoverage = `${linkedWalletCount} linked`;
   const statementCoverage = `${statements.length} ready`;
 
-  const handleSectionChange = (nextSection: string) => {
+  const [pendingSection, setPendingSection] = useState<string | null>(null);
+  const [highlightedSearchLabel, setHighlightedSearchLabel] = useState<string | null>(null);
+
+  // Determine if there are unsaved edits. We use a simple deep comparison
+  // against the initial defaults since this shell tracks the state.
+  const isProfileDirty = JSON.stringify(profile) !== JSON.stringify(DEFAULT_PROFILE);
+  const isDirty = isProfileDirty;
+
+  const handleSectionChange = (nextSection: string, searchLabel?: string) => {
+    if (nextSection === activeSection && !searchLabel) return;
+    if (!confirmDiscard()) return;
     setActiveSection(nextSection);
+    if (searchLabel) {
+      setHighlightedSearchLabel(searchLabel);
+    }
     router.replace(`${pathname}?section=${nextSection}`, {
       scroll: false,
     });
+  };
+
+  // Clear the search highlight after the next render cycle so the
+  // section component can pick it up and scroll to the control.
+  const prevHighlighted = useRef(highlightedSearchLabel);
+  useEffect(() => {
+    if (prevHighlighted.current && highlightedSearchLabel) {
+      prevHighlighted.current = null;
+      const timer = setTimeout(() => setHighlightedSearchLabel(null), 4000);
+      return () => clearTimeout(timer);
+    }
+    prevHighlighted.current = highlightedSearchLabel;
+  }, [highlightedSearchLabel]);
+
+  const handleDiscardChanges = () => {
+    // Reset state to clear the dirty flag
+    setProfile(DEFAULT_PROFILE);
+    
+    if (pendingSection) {
+      commitSectionChange(pendingSection);
+      setPendingSection(null);
+    }
+  };
+
+  const handleStay = () => {
+    setPendingSection(null);
   };
 
   return (
@@ -173,13 +239,20 @@ export default function SettingsPageShell({
         </section>
 
         <TabsContent value="account" className="mt-0">
-          <AccountSection profile={profile} onProfileChange={setProfile} />
+          <AccountSection
+            profile={profile}
+            onProfileChange={setProfile}
+            onSaved={setSavedProfile}
+            highlightedSearchLabel={highlightedSearchLabel}
+          />
         </TabsContent>
 
         <TabsContent value="notifications" className="mt-0">
           <NotificationsSection
             settings={notificationSettings}
             onSettingsChange={setNotificationSettings}
+            onSaved={setSavedNotificationSettings}
+            highlightedSearchLabel={highlightedSearchLabel}
           />
         </TabsContent>
 
@@ -187,17 +260,37 @@ export default function SettingsPageShell({
           <SecurityTab
             twoFactorEnabled={twoFactorEnabled}
             onTwoFactorEnabledChange={setTwoFactorEnabled}
+            highlightedSearchLabel={highlightedSearchLabel}
           />
         </TabsContent>
 
         <TabsContent value="wallets" className="mt-0">
-          <WalletsSection />
+          <WalletsSection highlightedSearchLabel={highlightedSearchLabel} />
         </TabsContent>
 
         <TabsContent value="documents" className="mt-0">
           <TaxDocumentsSection statements={statements} />
         </TabsContent>
       </div>
+
+      <Dialog open={pendingSection !== null} onOpenChange={(open) => !open && handleStay()}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Unsaved changes</DialogTitle>
+            <DialogDescription>
+              You have unsaved edits in the current tab. If you switch tabs now, those changes will be lost.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={handleStay}>
+              Stay
+            </Button>
+            <Button variant="destructive" onClick={handleDiscardChanges}>
+              Discard changes
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </Tabs>
   );
 }

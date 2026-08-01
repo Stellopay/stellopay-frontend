@@ -1,8 +1,24 @@
 import React from 'react';
 import { render, screen } from '@testing-library/react';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import AccountSummaryCard from './account-summary-card';
 import { AccountSummaryCardProps } from './summary-data';
+
+vi.mock("next/link", () => ({
+  default: ({
+    children,
+    href,
+    ...props
+  }: {
+    children: React.ReactNode;
+    href: string;
+    [key: string]: unknown;
+  }) => (
+    <a href={href} {...props}>
+      {children}
+    </a>
+  ),
+}));
 
 const defaultProps: AccountSummaryCardProps = {
   title: "Total Balance",
@@ -24,6 +40,45 @@ describe('AccountSummaryCard', () => {
     expect(screen.getByText("Across all chains")).toBeInTheDocument();
     expect(screen.getByTestId("card-icon")).toBeInTheDocument();
     expect(screen.getByTestId("account-summary-card-value")).toHaveTextContent("$847,500.00");
+  });
+
+  describe('Drill-down navigation', () => {
+    it('renders as a link when filterQuery is provided', () => {
+      render(
+        <AccountSummaryCard {...defaultProps} filterQuery="Payment Sent" />,
+      );
+
+      const link = screen.getByTestId("account-summary-card-link");
+      expect(link).toBeInTheDocument();
+      expect(link).toHaveAttribute(
+        "href",
+        `/transactions?filter=${encodeURIComponent("Payment Sent")}`,
+      );
+      expect(link).toHaveAttribute(
+        "aria-label",
+        "View Total Balance transactions",
+      );
+    });
+
+    it('renders as a plain div (no link) when filterQuery is undefined', () => {
+      render(<AccountSummaryCard {...defaultProps} />);
+
+      expect(
+        screen.queryByTestId("account-summary-card-link"),
+      ).not.toBeInTheDocument();
+      // the value is still rendered
+      expect(
+        screen.getByTestId("account-summary-card-value"),
+      ).toBeInTheDocument();
+    });
+
+    it('navigates with empty filterQuery when value is empty string', () => {
+      render(<AccountSummaryCard {...defaultProps} filterQuery="" />);
+
+      const link = screen.getByTestId("account-summary-card-link");
+      expect(link).toBeInTheDocument();
+      expect(link).toHaveAttribute("href", "/transactions?filter=");
+    });
   });
 
   describe('Currency Formatting Edge Cases', () => {
@@ -112,6 +167,84 @@ describe('AccountSummaryCard', () => {
       expect(screen.getByText("-3.1%")).toBeInTheDocument();
       expect(screen.getByText("vs last month")).toBeInTheDocument();
       expect(container.querySelector('.text-rose-700')).toBeInTheDocument();
+    });
+  });
+
+  describe('Zero-balance empty state', () => {
+    const zeroDataProps = {
+      ...defaultProps,
+      value: 0,
+      change: "0% vs last month",
+    };
+
+    it('shows "No activity yet" when value=0 and chartData is all zeros', () => {
+      render(
+        <AccountSummaryCard
+          {...zeroDataProps}
+          chartData={[{ value: 0 }, { value: 0 }]}
+        />
+      );
+
+      expect(screen.getByText("No activity yet")).toBeInTheDocument();
+    });
+
+    it('shows "No activity yet" when value=0 and chartData is empty', () => {
+      render(
+        <AccountSummaryCard
+          {...zeroDataProps}
+          chartData={[]}
+        />
+      );
+
+      expect(screen.getByText("No activity yet")).toBeInTheDocument();
+    });
+
+    it('renders normal chart when value=0 but chartData has non-zero values', () => {
+      render(
+        <AccountSummaryCard
+          {...zeroDataProps}
+          chartData={[{ value: 40 }, { value: 70 }]}
+        />
+      );
+
+      expect(screen.queryByText("No activity yet")).not.toBeInTheDocument();
+    });
+
+    it('renders normal chart when value is pre-formatted "$0.00" string with all-zero chartData', () => {
+      render(
+        <AccountSummaryCard
+          {...defaultProps}
+          value="$0.00"
+          chartData={[{ value: 0 }, { value: 0 }]}
+        />
+      );
+
+      expect(screen.queryByText("No activity yet")).not.toBeInTheDocument();
+    });
+
+    it('empty-state container has role="img" with aria-label', () => {
+      render(
+        <AccountSummaryCard
+          {...zeroDataProps}
+          chartData={[]}
+        />
+      );
+
+      const emptyState = screen.getByRole("img", { name: /no activity yet/i });
+      expect(emptyState).toBeInTheDocument();
+      expect(emptyState).toHaveStyle({ height: "3rem" });
+    });
+
+    it('renders normal chart when value is non-zero number with empty chartData', () => {
+      render(
+        <AccountSummaryCard
+          {...defaultProps}
+          value={500}
+          chartData={[]}
+        />
+      );
+
+      expect(screen.queryByText("No activity yet")).not.toBeInTheDocument();
     });
   });
 });

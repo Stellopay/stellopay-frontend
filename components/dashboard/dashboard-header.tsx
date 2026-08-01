@@ -1,23 +1,109 @@
-export default function DashboardHeader(_props: { pageTitle: string }) {
-  return null;
-  /*
-  return (
-    <div className="w-full px-4 md:px-10 pt-6 pb-4 border-b border-[#1A1A1A]">
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-        <h1 className="text-white text-2xl font-semibold">{pageTitle}</h1>
+"use client";
+import React, { useState } from "react";
+import { MoreVertical, X } from "lucide-react";
 
-        <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 w-full sm:w-auto">
-          <button className="flex items-center justify-center gap-2 bg-black text-white px-4 py-2 rounded-md border border-[#2C2C2C] hover:bg-[#111] transition w-full sm:w-auto">
-            <Send className="h-4 w-4" />
-            Send Payment
-          </button>
-          <button className="flex items-center justify-center gap-2 bg-white text-black px-4 py-2 rounded-md border border-[#E5E5E5]/10 hover:bg-[#f3f3f3] transition w-full sm:w-auto">
-            <ArrowDownToLine className="h-4 w-4" />
-            Request Payment
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-  */
+interface DashboardHeaderProps {
+  primaryAction?: React.ReactNode;
+  secondaryControls?: React.ReactNode[];
+  title?: string;
 }
+
+export const DashboardHeader: React.FC<DashboardHeaderProps> = ({
+  primaryAction,
+  secondaryControls = [],
+  title = "Dashboard",
+}) => {
+  const [menuOpen, setMenuOpen] = useState(false);
+
+  return (
+    <header className="flex items-center justify-between p-4 bg-white border-b border-gray-200 relative">
+      {/* Left: Title (always visible) */}
+      <div className="flex items-center space-x-4">
+        <h1 className="text-xl font-semibold text-gray-800">{title}</h1>
+      </div>
+
+      {/* Right: Controls */}
+      <div className="flex items-center space-x-2">
+        {/* Primary action always visible */}
+        {primaryAction && (
+          <div data-testid="primary-action">{primaryAction}</div>
+        )}
+
+        {/* Secondary controls visible on md+ screens */}
+        {secondaryControls.length > 0 && (
+          <>
+            <div
+              className="hidden md:flex items-center space-x-2"
+              data-testid="secondary-controls-desktop"
+            >
+              {secondaryControls.map((control, index) => (
+                <div key={index}>{control}</div>
+              ))}
+            </div>
+
+            {/* Kebab menu for mobile */}
+            <div className="md:hidden">
+              <button
+                aria-label="More options"
+                aria-expanded={menuOpen}
+                onClick={() => setMenuOpen((prev) => !prev)}
+                className="p-2 rounded-lg text-gray-500 hover:bg-gray-100 transition-colors"
+                data-testid="kebab-menu-button"
+              >
+                {menuOpen ? (
+                  <X size={20} strokeWidth={2} />
+                ) : (
+                  <MoreVertical size={20} strokeWidth={2} />
+                )}
+              </button>
+
+              {/* Dropdown menu */}
+              {menuOpen && (
+                <div
+                  data-testid="kebab-menu"
+                  className="absolute right-4 top-full mt-1 w-48 bg-white border border-gray-200 rounded-lg shadow-lg z-50 py-1"
+                >
+                  {secondaryControls.map((control, index) => (
+                    <div
+                      key={index}
+                      className="px-4 py-2 hover:bg-gray-50 transition-colors"
+                    >
+                      {control}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </>
+        )}
+      </div>
+
+      <div
+        className="flex shrink-0 items-center gap-1"
+        aria-label="Dashboard actions"
+      >
+        <button
+          type="button"
+          aria-label="Search dashboard"
+          className="inline-flex size-11 items-center justify-center rounded-lg text-gray-600 transition-colors hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+        >
+          <Search aria-hidden="true" size={20} strokeWidth={2} />
+        </button>
+        <button
+          type="button"
+          aria-label="View notifications"
+          className="inline-flex size-11 items-center justify-center rounded-lg text-gray-600 transition-colors hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+        >
+          <Bell aria-hidden="true" size={20} strokeWidth={2} />
+        </button>
+        <button
+          type="button"
+          aria-label="Open dashboard settings"
+          className="inline-flex size-11 items-center justify-center rounded-lg text-gray-600 transition-colors hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+        >
+          <Settings aria-hidden="true" size={20} strokeWidth={2} />
+        </button>
+      </div>
+    </header>
+  );
+};

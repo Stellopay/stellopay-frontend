@@ -51,6 +51,31 @@ export const DEMO_WALLETS = [
 ] as const;
 
 /**
+ * Demo connected third-party OAuth applications, marked as illustrative
+ * placeholder data pending real OAuth-provider integration.
+ */
+export const DEMO_CONNECTED_APPS = [
+  {
+    id: "app-budgeting-buddy",
+    name: "Budgeting Buddy",
+    scopes: ["Read account balance", "Read transaction history"],
+    authorizedAt: "2026-03-14",
+  },
+  {
+    id: "app-tax-helper",
+    name: "TaxHelper Pro",
+    scopes: ["Read transaction history", "Export statements"],
+    authorizedAt: "2026-05-02",
+  },
+  {
+    id: "app-ledger-sync",
+    name: "LedgerSync",
+    scopes: ["Read account balance", "Read-only reporting"],
+    authorizedAt: "2026-06-21",
+  },
+] as const;
+
+/**
  * Landing page marketing metrics, marked as illustrative placeholder statistics.
  */
 export const ILLUSTRATIVE_STATS: StatCardItem[] = [

@@ -1,16 +1,36 @@
 "use client";
-import { Search, Check } from "lucide-react";
+import { ArrowLeft, Search, Check } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useState } from "react";
+import Link from "next/link";
 import SupportTabs from "@/components/common/support-tabs";
+import { WasThisHelpful } from "@/components/common/was-this-helpful";
 
 export default function AccountManagement() {
   const [activeTab, setActiveTab] = useState("Client FAQ");
 
+  /**
+   * Switches the parent SupportTabs to the "Contact Support" tab.
+   * Used by the WasThisHelpful widget when the user says the article
+   * was not helpful.
+   */
+  const handleContactSupport = useCallback(() => {
+    setActiveTab("Contact Support");
+  }, []);
+
   return (
     <>
       <div className=" min-h-screen p-4 sm:p-6 flex flex-col gap-4 md:gap-6">
+        <Link
+          href="/help/support"
+          className="inline-flex items-center gap-1.5 text-sm text-[#A0A0A0] hover:text-white transition-colors w-fit"
+          aria-label="Back to Help Center"
+        >
+          <ArrowLeft className="h-4 w-4" aria-hidden="true" />
+          <span>Back to Help Center</span>
+        </Link>
+
         <SupportTabs activeTab={activeTab} setActiveTab={setActiveTab}>
           {/* FAQ Content - only shows when "Client FAQ" tab is active */}
           <div className="min-h-screen flex">
@@ -221,6 +241,12 @@ export default function AccountManagement() {
                           </p>
                         </div>
                       </div>
+
+                      {/* Was this helpful? feedback widget */}
+                      <WasThisHelpful
+                        articleId="password-security"
+                        onContactSupport={handleContactSupport}
+                      />
                     </div>
                   </TabsContent>
 

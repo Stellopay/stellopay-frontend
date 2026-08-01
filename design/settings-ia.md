@@ -1,14 +1,28 @@
+ ui/notifications-section-channel-matrix
 # Settings Information Architecture
 
 ## Overview
 
-This pass restructures the settings surface around five primary sections:
+`app/settings/preferences` is a single-page tabbed shell (`SettingsPageShell`)
+that organises all user-facing settings into sections. The active section is
+driven by the `?section=<value>` query-string parameter so deep links and
+browser history work correctly.
 
-- Account
-- Notifications
-- Security
-- Wallets
-- Statements
+Five tabs are live as of this writing:
+
+| Tab value     | Label        | Purpose                                                    |
+| ------------- | ------------ | ---------------------------------------------------------- |
+| `account`     | Account      | Profile fields, identity verification, and locale defaults |
+| `notifications` | Notifications | Transaction alerts and delivery-channel toggles          |
+| `security`    | Security     | Password change, 2-FA setup, active sessions, API keys     |
+| `wallets`     | Wallets      | Connected Stellar wallets and transfer-limit safeguards    |
+| `documents`   | Statements   | Periodic statements and downloadable tax summaries         |
+
+> **Updating tab count?** If you add or remove a tab, update this table, the
+> `buildSections()` function in `settings-page-shell.tsx`, and the summary
+> below.
+
+---
 
 The goal is to keep frequent tasks obvious, reduce visual overload, and separate destructive actions from routine edits.
 

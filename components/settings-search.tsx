@@ -168,7 +168,7 @@ export interface SettingsSearchResult {
 }
 
 interface SettingsSearchProps {
-  onResultSelect?: (section: string) => void;
+  onResultSelect?: (section: string, label: string) => void;
 }
 
 /**
@@ -250,8 +250,8 @@ export default function SettingsSearch({ onResultSelect }: SettingsSearchProps) 
     setIsOpen(false);
   };
 
-  const handleSelectResult = (section: string) => {
-    onResultSelect?.(section);
+  const handleSelectResult = (section: string, label: string) => {
+    onResultSelect?.(section, label);
     handleClear();
   };
 
@@ -277,7 +277,10 @@ export default function SettingsSearch({ onResultSelect }: SettingsSearchProps) 
       case "Enter":
         event.preventDefault();
         if (highlightedIndex >= 0 && results[highlightedIndex]) {
-          handleSelectResult(results[highlightedIndex].control.section);
+          handleSelectResult(
+            results[highlightedIndex].control.section,
+            results[highlightedIndex].control.label,
+          );
         }
         break;
       default:
@@ -304,6 +307,9 @@ export default function SettingsSearch({ onResultSelect }: SettingsSearchProps) 
           aria-label="Search settings controls"
           aria-expanded={isOpen && hasResults}
           aria-controls="settings-search-results"
+          aria-activedescendant={
+            highlightedIndex >= 0 ? `search-result-${highlightedIndex}` : undefined
+          }
           role="combobox"
         />
         {query && (
@@ -338,10 +344,14 @@ export default function SettingsSearch({ onResultSelect }: SettingsSearchProps) 
               {results.map((result, index) => (
                 <li
                   key={`${result.control.section}-${result.control.label}`}
+                  id={`search-result-${index}`}
                   role="option"
                   aria-selected={index === highlightedIndex}
                   onClick={() =>
-                    handleSelectResult(result.control.section)
+                    handleSelectResult(
+                      result.control.section,
+                      result.control.label,
+                    )
                   }
                   onMouseEnter={() => setHighlightedIndex(index)}
                   className={cn(
@@ -380,6 +390,20 @@ export default function SettingsSearch({ onResultSelect }: SettingsSearchProps) 
           aria-hidden="true"
         />
       )}
+
+      {/* Screen-reader announcement of search results */}
+      <div
+        role="status"
+        aria-live="polite"
+        aria-atomic="true"
+        className="sr-only"
+      >
+        {hasResults
+          ? `${results.length} setting${results.length === 1 ? "" : "s"} found`
+          : noResults
+            ? `No settings found for "${query}"`
+            : ""}
+      </div>
     </div>
   );
 }

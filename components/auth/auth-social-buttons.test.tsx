@@ -287,6 +287,54 @@ describe("AuthSocialButtons", () => {
     const mockSimulateOAuth = vi.mocked(
       await import("@/lib/api/auth")
     ).simulateOAuth;
+  // ── Divider accessibility ──────────────────────────────────────────────────
+
+  it("renders a sr-only separator with role='separator' and an accessible label", () => {
+    render(<AuthSocialButtons />);
+    const separator = screen.getByRole("separator");
+    expect(separator).toBeInTheDocument();
+    expect(separator).toHaveAttribute("aria-label", "or continue with email");
+  });
+
+  it("hides the visual 'Or' text from screen readers via aria-hidden", () => {
+    render(<AuthSocialButtons />);
+    const visualText = screen.getByText("Or");
+    expect(visualText).toBeInTheDocument();
+    expect(visualText).toHaveAttribute("aria-hidden", "true");
+  });
+
+  it("renders the divider with decorative separator lines", () => {
+    const { container } = render(<AuthSocialButtons />);
+    // The Radix Separator primitives, when decorative (the default), render
+    // with role="none", aria-hidden="true", and data-orientation="horizontal".
+    // Scope to the divider wrapper to avoid false positives from other elements.
+    const dividerWrapper = container.querySelector(
+      '.my-6',
+    ) as HTMLElement | null;
+    expect(dividerWrapper).not.toBeNull();
+    const separatorLines =
+      dividerWrapper!.querySelectorAll('[role="none"]');
+    expect(separatorLines.length).toBe(2);
+  });
+
+  it("matches the divider markup snapshot", () => {
+    const { container } = render(<AuthSocialButtons />);
+    const dividerWrapper = container.querySelector(
+      '.my-6',
+    ) as HTMLElement | null;
+    expect(dividerWrapper).not.toBeNull();
+    expect(dividerWrapper!.outerHTML).toMatchSnapshot();
+  });
+
+  // ── OAuth callback error states ────────────────────────────────────────────
+
+  describe("OAuth callback error states", () => {
+    let mockSimulateOAuth: ReturnType<typeof vi.fn>;
+
+    beforeEach(async () => {
+      const authModule = await import("@/lib/api/auth");
+      mockSimulateOAuth = vi.mocked(authModule.simulateOAuth);
+    });
 
     it("shows access_denied error with retry and use email instead actions", async () => {
       mockSimulateOAuth.mockRejectedValueOnce(

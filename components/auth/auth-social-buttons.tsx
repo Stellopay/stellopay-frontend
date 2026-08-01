@@ -2,9 +2,10 @@
 
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
+import { Separator } from "@/components/ui/separator";
 import Image from "next/image";
 import { Loader2 } from "lucide-react";
-import { OAuthCallbackError } from "@/lib/api/auth";
+import { OAuthCallbackError, simulateOAuth } from "@/lib/api/auth";
 
 type Provider = "google" | "apple";
 

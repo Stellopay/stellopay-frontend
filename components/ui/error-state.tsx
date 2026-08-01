@@ -2,6 +2,7 @@
 
 import React from "react";
 import { AlertCircle, Loader2 } from "lucide-react";
+import { StatePanel, StatePanelAction } from "@/components/ui/state-panel";
 
 export interface ErrorStateProps {
   /** The icon to display. Defaults to an alert circle. */
@@ -34,6 +35,16 @@ export interface ErrorStateProps {
    * Defaults to `false`.
    */
   retrying?: boolean;
+  /**
+   * A Sentry-style event reference (e.g. `digest`) to display as a
+   * user-facing placeholder. When omitted, a dash placeholder is shown
+   * so the UI contract remains consistent.
+   */
+  eventId?: string;
+  /**
+   * URL for the "Report issue" link. Defaults to `/help/support`.
+   */
+  reportLink?: string;
 }
 
 /**
@@ -45,6 +56,12 @@ export interface ErrorStateProps {
  * An optional retry button is rendered when `onRetry` is supplied.
  * Pass `retrying={true}` while the retry is in-flight to show a spinner
  * and prevent the user from triggering a second concurrent request.
+ *
+ * Layout is delegated to {@link StatePanel}, the pattern shared with
+ * `EmptyState`, so the two stay visually aligned. Only the semantic
+ * differences live here: the alert icon, the danger tone, the assertive
+ * live-region urgency, and the recovery affordances (retry, reference ID,
+ * report link) that have no counterpart in an empty state.
  */
 export function ErrorState({
   icon,
@@ -52,32 +69,55 @@ export function ErrorState({
   description,
   onRetry,
   retrying = false,
+  eventId,
+  reportLink = "/help/support",
 }: ErrorStateProps) {
   return (
-    <div
+    <StatePanel
+      tone="danger"
       role="alert"
-      aria-live="assertive"
-      className="flex flex-col items-center justify-center p-8 text-center border border-red-900/20 bg-red-900/10 rounded-xl"
+      live="assertive"
+      icon={icon || <AlertCircle />}
+      title={title}
+      description={description}
     >
-      <div className="text-red-500 mb-4">
-        {icon || <AlertCircle className="w-10 h-10" aria-hidden="true" />}
-      </div>
-      <h3 className="text-lg font-semibold text-white mb-2">{title}</h3>
-      <p className="text-sm text-zinc-400 max-w-md mb-6">{description}</p>
       {onRetry && (
-        <button
+        <StatePanelAction
+          tone="danger"
           onClick={onRetry}
           disabled={retrying}
           aria-disabled={retrying}
           aria-label={retrying ? "Retrying…" : "Try Again"}
-          className="inline-flex items-center gap-2 px-4 py-2 bg-[#2D2D2D] hover:bg-[#3A3A3A] transition-colors text-white text-sm font-medium rounded-lg disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-[#2D2D2D]"
         >
           {retrying && (
             <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
           )}
           {retrying ? "Retrying…" : "Try Again"}
-        </button>
+        </StatePanelAction>
       )}
-    </div>
+
+      {/* Sentry-ready event ID placeholder */}
+      <div
+        className="text-xs text-zinc-500 dark:text-zinc-500"
+        aria-label="Event reference ID"
+      >
+        <span className="font-medium">Reference ID:</span>{" "}
+        <code
+          className="bg-zinc-100 dark:bg-black/20 px-1.5 py-0.5 rounded text-zinc-600 dark:text-zinc-300 font-mono"
+          aria-label={`Event reference ${eventId ?? "not available"}`}
+        >
+          {eventId ?? "—"}
+        </code>
+      </div>
+
+      {/* Report-issue link */}
+      <a
+        href={reportLink}
+        className="rounded text-xs text-zinc-500 underline underline-offset-2 transition-colors hover:text-zinc-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900 focus-visible:ring-offset-2 focus-visible:ring-offset-red-50 dark:text-zinc-400 dark:hover:text-white dark:focus-visible:ring-[#D7E0EF] dark:focus-visible:ring-offset-[#170d0d]"
+        aria-label="Report this issue"
+      >
+        Report issue
+      </a>
+    </StatePanel>
   );
 }
