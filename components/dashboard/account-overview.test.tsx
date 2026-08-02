@@ -78,24 +78,31 @@ describe("AccountOverview", () => {
   it("renders correctly when wallet is disconnected", async () => {
     renderWithWallet(null);
 
+    // There are now two connect buttons: header and CTA card
+    const connectButtons = screen.getAllByRole("button", { name: /connect wallet/i });
+    expect(connectButtons.length).toBeGreaterThanOrEqual(1);
+
     expect(
-      screen.getByRole("button", { name: /connect wallet/i }),
+      screen.getByTestId("account-overview-connect-cta-card"),
     ).toBeInTheDocument();
+
     expect(
       screen.queryByTestId("account-overview-address"),
     ).not.toBeInTheDocument();
+    
     expect(
       screen.getByText(
         "Connect your Stellar wallet to view balances and send payments.",
       ),
     ).toBeInTheDocument();
 
-    // Cards load asynchronously — wait for the skeleton to be replaced.
-    await waitFor(() => {
-      expect(screen.getByText("Total Balance")).toBeInTheDocument();
-      expect(screen.getByText("Paid This Month")).toBeInTheDocument();
-      expect(screen.getByText("To Be Paid")).toBeInTheDocument();
-    });
+    expect(
+      screen.getByText("No Wallet Connected"),
+    ).toBeInTheDocument();
+    
+    // Cards and skeleton are NOT rendered when disconnected
+    expect(screen.queryByTestId("summary-cards-grid")).not.toBeInTheDocument();
+    expect(screen.queryByRole("status", { name: /loading account summary/i })).not.toBeInTheDocument();
   });
 
   it("renders correctly when wallet is connected", () => {
@@ -118,7 +125,7 @@ describe("AccountOverview", () => {
   it("connects from the disconnected state using the wallet context handler", () => {
     renderWithWallet(null);
 
-    fireEvent.click(screen.getByRole("button", { name: /connect wallet/i }));
+    fireEvent.click(screen.getByTestId("account-overview-connect-cta-card"));
 
     expect(screen.getByTestId("account-overview-address")).toHaveTextContent(
       /^G[A-Z0-9]{3}\.\.\.[A-Z0-9]{4}$/,
@@ -183,7 +190,7 @@ describe("AccountOverview – loading state", () => {
     );
 
     render(
-      <WalletProvider initialAddress={null}>
+      <WalletProvider initialAddress={PUBLIC_ADDRESS}>
         <AccountOverview />
       </WalletProvider>,
     );
@@ -201,7 +208,7 @@ describe("AccountOverview – loading state", () => {
     );
 
     render(
-      <WalletProvider initialAddress={null}>
+      <WalletProvider initialAddress={PUBLIC_ADDRESS}>
         <AccountOverview />
       </WalletProvider>,
     );
@@ -219,7 +226,7 @@ describe("AccountOverview – loading state", () => {
     );
 
     render(
-      <WalletProvider initialAddress={null}>
+      <WalletProvider initialAddress={PUBLIC_ADDRESS}>
         <AccountOverview />
       </WalletProvider>,
     );
@@ -236,7 +243,7 @@ describe("AccountOverview – loading state", () => {
     );
 
     render(
-      <WalletProvider initialAddress={null}>
+      <WalletProvider initialAddress={PUBLIC_ADDRESS}>
         <AccountOverview />
       </WalletProvider>,
     );
@@ -261,7 +268,7 @@ describe("AccountOverview – success state", () => {
 
   it("renders the cards grid after data resolves", async () => {
     render(
-      <WalletProvider initialAddress={null}>
+      <WalletProvider initialAddress={PUBLIC_ADDRESS}>
         <AccountOverview />
       </WalletProvider>,
     );
@@ -273,7 +280,7 @@ describe("AccountOverview – success state", () => {
 
   it("removes the skeleton after data resolves", async () => {
     render(
-      <WalletProvider initialAddress={null}>
+      <WalletProvider initialAddress={PUBLIC_ADDRESS}>
         <AccountOverview />
       </WalletProvider>,
     );
@@ -287,7 +294,7 @@ describe("AccountOverview – success state", () => {
 
   it("renders all three summary card titles after load", async () => {
     render(
-      <WalletProvider initialAddress={null}>
+      <WalletProvider initialAddress={PUBLIC_ADDRESS}>
         <AccountOverview />
       </WalletProvider>,
     );
@@ -301,7 +308,7 @@ describe("AccountOverview – success state", () => {
 
   it("does not show the error state after a successful load", async () => {
     render(
-      <WalletProvider initialAddress={null}>
+      <WalletProvider initialAddress={PUBLIC_ADDRESS}>
         <AccountOverview />
       </WalletProvider>,
     );
@@ -343,7 +350,7 @@ describe("AccountOverview – error state", () => {
     forceLoadError();
 
     render(
-      <WalletProvider initialAddress={null}>
+      <WalletProvider initialAddress={PUBLIC_ADDRESS}>
         <AccountOverview />
       </WalletProvider>,
     );
@@ -357,7 +364,7 @@ describe("AccountOverview – error state", () => {
     forceLoadError();
 
     render(
-      <WalletProvider initialAddress={null}>
+      <WalletProvider initialAddress={PUBLIC_ADDRESS}>
         <AccountOverview />
       </WalletProvider>,
     );
@@ -371,7 +378,7 @@ describe("AccountOverview – error state", () => {
     forceLoadError("Failed to load account summary.");
 
     render(
-      <WalletProvider initialAddress={null}>
+      <WalletProvider initialAddress={PUBLIC_ADDRESS}>
         <AccountOverview />
       </WalletProvider>,
     );
@@ -387,7 +394,7 @@ describe("AccountOverview – error state", () => {
     forceLoadError();
 
     render(
-      <WalletProvider initialAddress={null}>
+      <WalletProvider initialAddress={PUBLIC_ADDRESS}>
         <AccountOverview />
       </WalletProvider>,
     );
@@ -405,7 +412,7 @@ describe("AccountOverview – error state", () => {
     forceLoadError();
 
     render(
-      <WalletProvider initialAddress={null}>
+      <WalletProvider initialAddress={PUBLIC_ADDRESS}>
         <AccountOverview />
       </WalletProvider>,
     );
@@ -422,7 +429,7 @@ describe("AccountOverview – error state", () => {
     forceLoadError();
 
     render(
-      <WalletProvider initialAddress={null}>
+      <WalletProvider initialAddress={PUBLIC_ADDRESS}>
         <AccountOverview />
       </WalletProvider>,
     );
@@ -444,7 +451,7 @@ describe("AccountOverview – error state", () => {
       .mockReturnValue(summaryDataModule.summaryCardsData);
 
     render(
-      <WalletProvider initialAddress={null}>
+      <WalletProvider initialAddress={PUBLIC_ADDRESS}>
         <AccountOverview />
       </WalletProvider>,
     );
