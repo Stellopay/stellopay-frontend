@@ -22,6 +22,25 @@ describe("TableSkeleton", () => {
     expect(rows).toHaveLength(3);
   });
 
+  it("renders a larger custom row count", () => {
+    const { container } = render(<TableSkeleton rows={10} />);
+    const rows = container.querySelector(".divide-y")?.children;
+    expect(rows).toHaveLength(10);
+  });
+
+  it("renders zero body rows when rows={0}", () => {
+    const { container } = render(<TableSkeleton rows={0} />);
+    const rows = container.querySelector(".divide-y")?.children;
+    expect(rows).toHaveLength(0);
+  });
+
+  it("keeps the header unaffected by the rows prop", () => {
+    const { container } = render(<TableSkeleton rows={2} />);
+    const headerCells = container.querySelector(".border-b")?.children;
+    expect(headerCells).toHaveLength(6);
+    expect(container.querySelector(".divide-y")?.children).toHaveLength(2);
+  });
+
   it("renders the header by default", () => {
     const { container } = render(<TableSkeleton />);
     const headerCells = container.querySelectorAll(".border-b .bg-\\[\\#2D2D2D\\]");
@@ -70,6 +89,18 @@ describe("TransactionTableSkeleton", () => {
     const { container } = render(<TransactionTableSkeleton rows={3} />);
     const rows = container.querySelectorAll(".divide-y > div");
     expect(rows).toHaveLength(3);
+  });
+
+  it("renders a larger custom row count", () => {
+    const { container } = render(<TransactionTableSkeleton rows={10} />);
+    const rows = container.querySelectorAll(".divide-y > div");
+    expect(rows).toHaveLength(10);
+  });
+
+  it("renders zero body rows when rows={0}", () => {
+    const { container } = render(<TransactionTableSkeleton rows={0} />);
+    const rows = container.querySelectorAll(".divide-y > div");
+    expect(rows).toHaveLength(0);
   });
 
   it("renders a header row", () => {

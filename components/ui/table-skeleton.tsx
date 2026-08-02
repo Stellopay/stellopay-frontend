@@ -2,12 +2,28 @@ import { SkeletonAvatar, SkeletonLine } from "./skeleton";
 import { cn } from "@/utils/commonUtils";
 
 interface TableSkeletonProps {
+  /** Number of grid columns per row. Defaults to `6`. */
   columns?: number;
+  /** Number of skeleton body rows. Defaults to `6` for backward compatibility. */
   rows?: number;
+  /** Whether to render the header row. Defaults to `true`. */
   showHeader?: boolean;
   className?: string;
 }
 
+/**
+ * TableSkeleton - generic table-shaped loading placeholder.
+ *
+ * Renders an optional header row followed by `rows` skeleton body rows, each
+ * split into `columns` cells. Pass a context-appropriate `rows` value so the
+ * placeholder matches the real loaded content (e.g. a paginated transactions
+ * table vs. a short notifications list).
+ *
+ * @example
+ * ```tsx
+ * <TableSkeleton columns={4} rows={8} />
+ * ```
+ */
 export function TableSkeleton({
   columns = 6,
   rows = 6,
@@ -52,6 +68,17 @@ export function TableSkeleton({
   );
 }
 
+/**
+ * TransactionTableSkeleton - transaction-specific table loading placeholder.
+ *
+ * Uses the transaction column layout (asset, counterparty, amount, token,
+ * date, status) and renders `rows` skeleton body rows. Defaults to `6` rows.
+ *
+ * @example
+ * ```tsx
+ * <TransactionTableSkeleton rows={TRANSACTIONS_PAGE_SIZE} />
+ * ```
+ */
 export function TransactionTableSkeleton({ rows = 6 }: { rows?: number }) {
   return (
     <div className="w-full">
