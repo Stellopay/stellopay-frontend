@@ -110,6 +110,26 @@ npx vitest run components/dashboard/account-overview.test.tsx --coverage.enabled
 
 ---
 
+## Disconnected State CTA
+
+**Branch:** `feat/account-overview-connect-cta`
+
+### What was added
+
+The `AccountOverview` component now displays a "Connect Wallet" call-to-action (CTA) card in place of the balance summary cards when no wallet is connected. This explicitly prompts users to connect, rather than showing a skeleton loader or empty data.
+
+### Accessibility (WCAG 2.1 AA)
+
+- **Contrast**: The CTA utilizes `bg-zinc-900` (`dark:bg-white`) for the button with `text-white` (`dark:text-zinc-900`), ensuring high contrast across both themes.
+- **Keyboard Nav**: The "Connect Wallet" button inside the card uses native `<button>` functionality and applies the standard `focus-visible:ring-2 focus-visible:ring-zinc-400 focus-visible:ring-offset-2 dark:focus-visible:ring-zinc-500` ring, ensuring clear focus states.
+- **ARIA**: Icons inside the card (e.g., `Wallet`) are marked with `aria-hidden="true"` since they are purely decorative and the action is described by text.
+
+### Responsive behaviour
+
+The card dynamically adjusts its padding (`p-8 sm:p-12`), heading text size (`text-xl md:text-2xl`), and description text size (`text-base md:text-lg`) based on viewport breakpoints. It uses `min-h-[300px]` to maintain structural integrity of the dashboard even when disconnected.
+
+---
+
 ## Drag-and-Drop Widget Reordering
 
 **Branch:** `feature/dashboard-widget-reordering`

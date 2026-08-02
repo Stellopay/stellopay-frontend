@@ -279,26 +279,51 @@ export default function AccountOverview() {
       </div>
 
       {/* Cards Grid — loading / error / success */}
-      {summaryState.status === "loading" && (
-        <SummaryCardsSkeleton shade="dark" />
-      )}
+      {isConnected ? (
+        <>
+          {summaryState.status === "loading" && (
+            <SummaryCardsSkeleton shade="dark" />
+          )}
 
-      {summaryState.status === "error" && (
-        <ErrorState
-          title="Failed to Load"
-          description={summaryState.message}
-          onRetry={loadSummary}
-        />
-      )}
+          {summaryState.status === "error" && (
+            <ErrorState
+              title="Failed to Load"
+              description={summaryState.message}
+              onRetry={loadSummary}
+            />
+          )}
 
-      {summaryState.status === "success" && (
-        <div
-          data-testid="summary-cards-grid"
-          className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
-        >
-          {summaryState.cards.map((card) => (
-            <AccountSummaryCard key={card.title} {...card} />
-          ))}
+          {summaryState.status === "success" && (
+            <div
+              data-testid="summary-cards-grid"
+              className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
+            >
+              {summaryState.cards.map((card) => (
+                <AccountSummaryCard key={card.title} {...card} />
+              ))}
+            </div>
+          )}
+        </>
+      ) : (
+        <div className="bg-zinc-100 dark:bg-zinc-800/50 rounded-xl p-8 sm:p-12 flex flex-col items-center justify-center text-center border border-zinc-200 dark:border-zinc-700/50 min-h-[300px]">
+          <div className="w-16 h-16 bg-zinc-200 dark:bg-zinc-800 rounded-full flex items-center justify-center mb-6">
+            <Wallet className="w-8 h-8 text-zinc-500 dark:text-zinc-400" aria-hidden="true" />
+          </div>
+          <h3 className="text-xl md:text-2xl font-bold text-zinc-900 dark:text-white mb-3">
+            No Wallet Connected
+          </h3>
+          <p className="text-zinc-500 dark:text-zinc-400 mb-8 max-w-md text-base md:text-lg">
+            Connect your Stellar wallet to view your balances, manage assets, and securely sign transactions.
+          </p>
+          <button
+            type="button"
+            onClick={handleConnect}
+            data-testid="account-overview-connect-cta-card"
+            className="flex items-center gap-3 px-8 py-4 bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 rounded-xl font-semibold hover:opacity-90 transition-opacity focus:outline-none focus-visible:ring-2 focus-visible:ring-zinc-400 focus-visible:ring-offset-2 dark:focus-visible:ring-zinc-500 cursor-pointer shadow-lg"
+          >
+            <Wallet className="w-5 h-5" aria-hidden="true" />
+            Connect Wallet
+          </button>
         </div>
       )}
 
