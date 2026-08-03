@@ -23,6 +23,7 @@ import type {
   WalletProviderProps,
 } from "@/types/wallet";
 import { isWalletAddress, isWalletConnectionResult } from "@/types/wallet";
+import type { WatchlistItem } from "@/types/watchlist";
 
 // Networks exposed to the UI. Stellar is the only network the product is
 // actually built on, so it is the sole supported entry. The placeholder EVM
@@ -76,6 +77,82 @@ function writeNetworkToStorage(network: Network): void {
     // still functions in memory, just without persistence.
   }
 }
+
+// ─── Watchlist persistence helpers ───────────────────────────────────────────
+
+/**
+ * Returns the localStorage key used to persist the watchlist for the given
+ * account address. Using a per-address key means each connected account gets
+ * its own independent watchlist.
+ */
+function watchlistStorageKey(address: string): string {
+  return `stellopay.watchlist.${address}`;
+}
+
+/**
+ * Read the persisted watchlist for a given account address.
+ * Returns an empty array if none is found or the stored value is malformed.
+ */
+function readWatchlistFromStorage(address: string | null): WatchlistItem[] {
+  if (!address || typeof window === "undefined") return [];
+  try {
+    const storage = window.localStorage;
+    if (!storage || typeof storage.getItem !== "function") return [];
+    const raw = storage.getItem(watchlistStorageKey(address));
+    if (!raw) return [];
+    const parsed: unknown = JSON.parse(raw);
+    if (!Array.isArray(parsed)) return [];
+    // Basic structural guard: each entry must have an id and address string.
+    return parsed.filter(
+      (item): item is WatchlistItem =>
+        typeof item === "object" &&
+        item !== null &&
+        typeof (item as WatchlistItem).id === "string" &&
+        typeof (item as WatchlistItem).address === "string" &&
+        typeof (item as WatchlistItem).pinnedAt === "string",
+    );
+  } catch {
+    return [];
+  }
+}
+
+/**
+ * Persist the watchlist for a given account address to localStorage.
+ * Silently swallows quota or access errors.
+ */
+function writeWatchlistToStorage(
+  address: string | null,
+  items: WatchlistItem[],
+): void {
+  if (!address || typeof window === "undefined") return;
+  try {
+    const storage = window.localStorage;
+    if (!storage || typeof storage.setItem !== "function") return;
+    storage.setItem(watchlistStorageKey(address), JSON.stringify(items));
+  } catch {
+    // Storage unavailable — watchlist still works in memory for the session.
+  }
+}
+
+// ─── Watchlist context ────────────────────────────────────────────────────────
+
+export interface WatchlistContextValue {
+  items: WatchlistItem[];
+  isLoading: boolean;
+  /**
+   * Pin a new address or asset to the watchlist.
+   * Duplicate addresses (case-insensitive) are silently ignored.
+   */
+  addItem: (address: string, label?: string) => void;
+  /** Remove a pinned item by its stable id. */
+  removeItem: (id: string) => void;
+  /** Update mutable fields (label, balance, lastActivity …) for an item. */
+  updateItem: (id: string, patch: Partial<Omit<WatchlistItem, "id" | "pinnedAt">>) => void;
+}
+
+const WatchlistContext = createContext<WatchlistContextValue | undefined>(
+  undefined,
+);
 
 export const WalletProvider: React.FC<WalletProviderProps> = ({
   children,
@@ -200,6 +277,96 @@ export const WalletProvider: React.FC<WalletProviderProps> = ({
   );
 };
 
+// ─── WatchlistProvider ────────────────────────────────────────────────────────
+
+/**
+ * Provides watchlist state (pinned items) scoped to the currently-connected
+ * wallet address.  Wrap this *inside* WalletProvider so it can read the
+ * active address and load the right per-account storage key.
+ *
+ * In the app layout both providers are composed as:
+ *   <WalletProvider>
+ *     <WatchlistProvider>
+ *       …app…
+ *     </WatchlistProvider>
+ *   </WalletProvider>
+ */
+export const WatchlistProvider: React.FC<{ children: React.ReactNode }> = ({
+  children,
+}) => {
+  const { address } = useWallet();
+  const [items, setItems] = useState<WatchlistItem[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  // Re-hydrate whenever the connected address changes.
+  useEffect(() => {
+    setIsLoading(true);
+    const stored = readWatchlistFromStorage(address);
+    setItems(stored);
+    setIsLoading(false);
+  }, [address]);
+
+  const addItem = useCallback(
+    (addr: string, label?: string) => {
+      setItems((prev) => {
+        // Deduplicate by address (case-insensitive).
+        const alreadyPinned = prev.some(
+          (item) => item.address.toLowerCase() === addr.toLowerCase(),
+        );
+        if (alreadyPinned) return prev;
+        const newItem: WatchlistItem = {
+          id:
+            typeof crypto !== "undefined" && crypto.randomUUID
+              ? crypto.randomUUID()
+              : `${Date.now()}-${Math.random().toString(36).slice(2)}`,
+          address: addr,
+          label,
+          pinnedAt: new Date().toISOString(),
+        };
+        const next = [...prev, newItem];
+        writeWatchlistToStorage(address, next);
+        return next;
+      });
+    },
+    [address],
+  );
+
+  const removeItem = useCallback(
+    (id: string) => {
+      setItems((prev) => {
+        const next = prev.filter((item) => item.id !== id);
+        writeWatchlistToStorage(address, next);
+        return next;
+      });
+    },
+    [address],
+  );
+
+  const updateItem = useCallback(
+    (id: string, patch: Partial<Omit<WatchlistItem, "id" | "pinnedAt">>) => {
+      setItems((prev) => {
+        const next = prev.map((item) =>
+          item.id === id ? { ...item, ...patch } : item,
+        );
+        writeWatchlistToStorage(address, next);
+        return next;
+      });
+    },
+    [address],
+  );
+
+  const value = useMemo<WatchlistContextValue>(
+    () => ({ items, isLoading, addItem, removeItem, updateItem }),
+    [items, isLoading, addItem, removeItem, updateItem],
+  );
+
+  return (
+    <WatchlistContext.Provider value={value}>
+      {children}
+    </WatchlistContext.Provider>
+  );
+};
+
 // Read the wallet context. Throws a clear error when called outside of a
 // WalletProvider, which is the contract the issue calls out explicitly.
 export function useWallet(): WalletContextValue {
@@ -219,4 +386,18 @@ export function formatAddress(address: string | null): string {
   if (!address) return "";
   if (address.length <= 9) return address;
   return `${address.slice(0, 4)}...${address.slice(-4)}`;
+}
+
+/**
+ * Read the watchlist context. Throws a clear error when called outside of a
+ * WatchlistProvider.
+ */
+export function useWatchlist(): WatchlistContextValue {
+  const ctx = useContext(WatchlistContext);
+  if (!ctx) {
+    throw new Error(
+      "useWatchlist must be used within a WatchlistProvider. Wrap the tree in <WatchlistProvider> (see app/layout.tsx).",
+    );
+  }
+  return ctx;
 }

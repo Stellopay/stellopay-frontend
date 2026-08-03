@@ -14,6 +14,7 @@ import DashboardNavbar from "@/components/dashboard/dashboard-navbar";
 import AccountOverview from "@/components/dashboard/account-overview";
 import { QuickActions } from "@/components/dashboard/quick-actions";
 import QuickTransfer from "@/components/dashboard/quick-transfer";
+import { WatchlistPanel } from "@/components/dashboard/watchlist-panel";
 import dynamic from "next/dynamic";
 import Skeleton from "@/components/ui/skeleton";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -821,6 +822,8 @@ export default function Dashboard() {
         <div ref={analyticsInsightsRef}>
           <AnalyticsInsights />
         </div>
+
+        <WatchlistPanel />
 
         <div ref={clientAnalyticsRef}>
           <ClientAnalyticsView
