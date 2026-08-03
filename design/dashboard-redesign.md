@@ -1,11 +1,6 @@
 # Dashboard Redesign
 
 Main Figma Design Workspace:
-
-https://www.figma.com/design/TzFU3lyfPfsM4Jzh6rXGzl/Stellopay-Dashboard-Redesign?node-id=2067-1817&t=PZ6D5lwLGX9gwnOJ-1
-
----
-
 ## Account Overview — Copy Address Affordance
 
 **Branch:** `feat/account-overview-copy-address-feedback`
@@ -229,3 +224,200 @@ A 5-step spotlight overlay (`DashboardTour`) highlights one dashboard widget per
 | **lg** (1024px) | 1024px | Multi-column widget layout supported; target element spotlight dynamically recalculates on resize/scroll events. |
 | **xl** (1280px+) | 1280px+ | Full desktop layout (`max-w-[1600px]`); smooth scroll-into-view centers active target before spotlight calculation. |
 
+
+---
+
+## Watchlist Panel — Design & Spec
+
+> Issue: [#891](https://github.com/Stellopay/stellopay-frontend/issues/891) | Status: Implemented
+
+## Overview
+
+Users who transact repeatedly with the same counterparties or hold specific
+assets have no quick way to reference them on the dashboard. The **Watchlist
+Panel** lets users pin a small set of addresses or token assets and see their
+latest balance or last-activity timestamp at a glance — without scrolling
+through the full transaction or asset list.
+
+---
+
+## Component location
+
+| File | Purpose |
+|---|---|
+| `components/dashboard/watchlist-panel.tsx` | Main panel + sub-components |
+| `components/dashboard/watchlist-panel.test.tsx` | Vitest unit tests |
+| `types/watchlist.ts` | `WatchlistItem` TypeScript type |
+| `context/wallet-context.tsx` | `WatchlistProvider`, `useWatchlist`, persistence helpers |
+| `app/layout.tsx` | `WatchlistProvider` added inside `WalletProvider` |
+| `components/dashboard/dashboard-page.tsx` | `<WatchlistPanel />` placed between Analytics Insights and Client Analytics View |
+
+---
+
+## Data model
+
+```ts
+interface WatchlistItem {
+  id: string;           // crypto.randomUUID() — stable across re-renders
+  address: string;      // Stellar G-address or token key
+  label?: string;       // User-supplied friendly name (≤ 40 chars)
+  token?: string;       // e.g. "XLM", "USDC"
+  balance?: string;     // Formatted display string, e.g. "$1,234.56"
+  lastAmount?: number;  // +/- numeric value of most recent tx
+  lastActivity?: string;// Human-readable date, e.g. "Apr 12, 2023"
+  lastStatus?: string;  // "Completed" | "Pending" | "Failed"
+  lastStatusColor?: "success" | "warning" | "destructive";
+  pinnedAt: string;     // ISO 8601 timestamp set on pin
+}
+```
+
+---
+
+## State & persistence
+
+Watchlist state lives in `WatchlistContext` (exported from
+`context/wallet-context.tsx`). The provider:
+
+1. Reads the persisted list from `localStorage` under the key
+   `stellopay.watchlist.<walletAddress>` on mount and whenever the connected
+   address changes.
+2. Writes back on every mutation (`addItem`, `removeItem`, `updateItem`).
+3. Scopes the key per account — each Stellar address has its own list.
+4. Returns an empty array for a disconnected wallet (`address === null`).
+5. Silently handles corrupted or missing localStorage data (returns `[]`).
+
+The `WatchlistProvider` is composed *inside* `WalletProvider` in
+`app/layout.tsx` so it can read the active address:
+
+```tsx
+<WalletProvider>
+  <WatchlistProvider>
+    <SidebarProvider>{children}</SidebarProvider>
+  </WatchlistProvider>
+</WalletProvider>
+```
+
+Consume it anywhere with:
+
+```tsx
+import { useWatchlist } from "@/context/wallet-context";
+
+const { items, addItem, removeItem, updateItem } = useWatchlist();
+```
+
+---
+
+## Component API
+
+```tsx
+<WatchlistPanel className?: string />
+```
+
+| Prop | Type | Default | Description |
+|---|---|---|---|
+| `className` | `string` | — | Appended to the outer `<section>` — useful for tests and Storybook overrides |
+
+The panel reads all state from `useWatchlist()` — no data props are needed.
+
+---
+
+## UX flows
+
+### Pin a new item
+1. Click **Pin Item** in the panel header.
+2. An inline form expands below the header.
+3. Enter the address (required, ≥ 8 chars) and an optional label.
+4. Click **Pin** — the form closes, the card appears in the grid.
+5. Duplicate addresses (case-insensitive) are silently ignored.
+
+### Unpin an item
+Click the **PinOff** icon on the top-right of any item card. The card is
+immediately removed and localStorage is updated.
+
+### Search / filter
+When one or more items are pinned, a search input appears above the grid.
+It filters by address, label, or token symbol (case-insensitive substring
+match). Clearing the input restores the full list.
+
+### Empty state
+When no items are pinned, a centred empty-state panel invites the user to
+pin their first item (same flow as the header button).
+
+---
+
+## Responsive behaviour
+
+| Breakpoint | Layout |
+|---|---|
+| `< md` (< 768 px) | Single-column item grid |
+| `≥ md` (≥ 768 px) | Two-column item grid |
+| `sm` (≥ 640 px) | Header row becomes flex-row (title left, button right) |
+
+The panel itself respects the dashboard's `max-w-[1600px]` container and
+inherits the full-width `space-y-10` vertical rhythm.
+
+---
+
+## Design tokens
+
+Follows the project's existing token convention — no new colours introduced:
+
+| Token (light) | Token (dark) | Usage |
+|---|---|---|
+| `bg-white` | `dark:bg-[#111111]` | Panel background |
+| `border-zinc-200` | `dark:border-zinc-800` | Panel border |
+| `text-zinc-900` | `dark:text-white` | Heading / primary text |
+| `text-zinc-500` | `dark:text-zinc-400` | Secondary / subtitle text |
+| `bg-zinc-50/50` | `dark:bg-zinc-900/30` | Item card background |
+| `border-zinc-100` | `dark:border-zinc-800/50` | Item card border |
+| `text-emerald-600` | `dark:text-emerald-400` | Positive amount / success status |
+| `text-rose-600` | `dark:text-rose-400` | Negative amount / destructive status |
+| `text-amber-600` | `dark:text-amber-400` | Warning status |
+| `focus-visible:ring-2 focus-visible:ring-blue-500` | (same) | Focus ring on all interactive elements |
+
+---
+
+## Accessibility (WCAG 2.1 AA)
+
+| Criterion | Implementation |
+|---|---|
+| **1.3.1 Info and Relationships** | Panel is `<section aria-labelledby>` tied to the `<h2>`. Items list is `<ul aria-label="N pinned items">`. Each card is `<article aria-label="Watchlist item: …">`. |
+| **1.4.3 Contrast** | All text/background pairs use the project's zinc palette, which meets 4.5:1 contrast at AA. |
+| **2.1.1 Keyboard** | All interactive elements are native `<button>` or `<input>` — fully keyboard-reachable with no custom `tabindex`. |
+| **2.4.6 Headings and Labels** | Every input has a `<label>` with `htmlFor`. The search input has an `aria-label` in addition to the visually-hidden `<label>`. |
+| **2.4.7 Focus Visible** | `focus-visible:ring-2 focus-visible:ring-blue-500` applied to all buttons and inputs. |
+| **3.3.1 Error Identification** | Validation errors use `role="alert"` and set `aria-invalid="true"` on the input, with `aria-describedby` pointing to the error message. |
+| **4.1.2 Name, Role, Value** | The **Pin Item / Cancel** toggle button uses `aria-expanded`. The address input uses `aria-required`. |
+| **Live regions** | The loading skeleton carries `role="status" aria-busy="true" aria-live="polite"`. |
+
+---
+
+## Test coverage
+
+The test file (`components/dashboard/watchlist-panel.test.tsx`) covers:
+
+1. Render & structure (panel mounts, heading, subtitle, section role, `aria-labelledby`)
+2. Empty state (shown on mount, CTA button, disappears after first pin)
+3. Loading state (skeleton present/absent)
+4. Add-item form (toggle open/close, `aria-expanded`, validation errors, successful pin with and without label, duplicate guard, cancel)
+5. Remove / unpin (button label, item removed, empty state reappears, label in button name)
+6. Search / filter (by address, label, token; no-results message; clear button)
+7. Item card display (address, label, balance, last-amount ±, last-activity, status, token badge)
+8. Persistence (reads from localStorage, writes on pin, removes on unpin, per-account scoping, null-address guard, malformed JSON guard)
+9. `useWatchlist` outside-provider error guard
+10. Accessibility spot-checks (no `tabindex="-1"`, all inputs labelled, `role="alert"`, heading level)
+
+Run with:
+
+```bash
+npm test -- watchlist-panel
+```
+
+---
+
+## Future work
+
+- **Live balance refresh** — `updateItem` is already exposed from the context; a `useWatchlistEnrich` hook can call the Horizon API and patch `balance` / `lastActivity` on a polling interval.
+- **Drag-to-reorder** — the `items` array order is preserved in localStorage; drag-and-drop can be added as a progressive enhancement.
+- **Pin from transaction row** — a `Pin` icon can be added to each transaction row in `transaction-history.tsx`, calling `addItem(transaction.address)` directly.
+- **E2E coverage** — add a Playwright spec to `tests/dashboard.spec.ts` covering the full pin → view → unpin flow on `/dashboard`.
