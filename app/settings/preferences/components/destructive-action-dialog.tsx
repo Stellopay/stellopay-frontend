@@ -16,6 +16,13 @@ import { Input } from "@/components/ui/input";
 
 interface DestructiveActionDialogProps {
   triggerLabel: string;
+  /**
+   * Accessible name for the trigger button. Use when several dialogs share the
+   * same visible `triggerLabel` (e.g. a "Sign out" button per session) so
+   * screen-reader users can tell the controls apart. Falls back to the visible
+   * label when omitted.
+   */
+  triggerAriaLabel?: string;
   title: string;
   description: string;
   impactItems: string[];
@@ -81,6 +88,7 @@ function getConfirmationError(value: string, token: string): string | null {
  */
 export default function DestructiveActionDialog({
   triggerLabel,
+  triggerAriaLabel,
   title,
   description,
   impactItems,
@@ -122,7 +130,9 @@ export default function DestructiveActionDialog({
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogTrigger asChild>
-        <Button variant="destructive">{triggerLabel}</Button>
+        <Button variant="destructive" aria-label={triggerAriaLabel}>
+          {triggerLabel}
+        </Button>
       </DialogTrigger>
 
       <DialogContent
