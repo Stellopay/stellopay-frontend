@@ -18,6 +18,7 @@ import {
   Loader2,
   Link2,
   ShieldOff,
+  LogOut,
 } from "lucide-react";
 import { ErrorSummary } from "@/components/ui/error-summary";
 import ToggleCard from "@/components/common/toggle-card";
@@ -41,22 +42,48 @@ import {
 } from "@/utils/authUtils";
 import DestructiveActionDialog from "./destructive-action-dialog";
 import { DEMO_SECURITY, DEMO_CONNECTED_APPS } from "@/lib/demo-data";
-import { DEMO_SECURITY } from "@/lib/demo-data";
 import { generateTotpSecret, verifyTotpCode } from "@/lib/totp";
 import QRCode from "qrcode";
 
-const sessions = [
+/** A single signed-in device/session shown in the "Active sessions" card. */
+interface SessionRecord {
+  id: string;
+  name: string;
+  location: string;
+  status: string;
+  icon: typeof Monitor;
+  /**
+   * Marks the browser the user is currently viewing this page from. The current
+   * session is deliberately excluded from every revoke action so a user can
+   * never accidentally sign themselves out of the device they are on.
+   */
+  isCurrent: boolean;
+}
+
+const initialSessions: SessionRecord[] = [
   {
+    id: "session-chrome-windows",
     name: "Chrome on Windows",
     location: "Lagos, Nigeria",
     status: "Current session",
     icon: Monitor,
+    isCurrent: true,
   },
   {
+    id: "session-iphone",
     name: "iPhone 15 Pro",
     location: "Mobile app",
     status: "Last active 2 hours ago",
     icon: Smartphone,
+    isCurrent: false,
+  },
+  {
+    id: "session-firefox-macos",
+    name: "Firefox on macOS",
+    location: "Berlin, Germany",
+    status: "Last active yesterday",
+    icon: Monitor,
+    isCurrent: false,
   },
 ];
 
@@ -336,6 +363,47 @@ export default function SecurityTab({
   const [connectedApps, setConnectedApps] = useState(() => [
     ...DEMO_CONNECTED_APPS,
   ]);
+
+  // --- Active sessions -----------------------------------------------------
+  // The current session (the device the user is on) is never removable, so
+  // both the per-session revoke and the bulk "sign out all other sessions"
+  // action operate only on sessions where `isCurrent` is false.
+  const [sessions, setSessions] = useState<SessionRecord[]>(initialSessions);
+
+  const otherSessions = useMemo(
+    () => sessions.filter((session) => !session.isCurrent),
+    [sessions],
+  );
+
+  /** Signs out a single non-current session. The current session is a no-op. */
+  const handleRevokeSession = (sessionId: string) => {
+    const target = sessions.find((session) => session.id === sessionId);
+    if (!target || target.isCurrent) {
+      return;
+    }
+
+    setSessions((current) =>
+      current.filter((session) => session.id !== sessionId),
+    );
+    setStatus({
+      message: `Signed out of ${target.name}. That device must log in again to regain access.`,
+      type: "success",
+    });
+  };
+
+  /**
+   * Signs out every session except the current one. The current session is
+   * preserved explicitly so the user is never logged out of the device they
+   * are actively using — this is stated in the confirmation dialog copy.
+   */
+  const handleRevokeAllOtherSessions = () => {
+    setSessions((current) => current.filter((session) => session.isCurrent));
+    setStatus({
+      message:
+        "Signed out of all other sessions. Only this device stays signed in.",
+      type: "success",
+    });
+  };
 
   const handleRevokeApp = (appId: string) => {
     setConnectedApps((current) => current.filter((app) => app.id !== appId));
@@ -1518,53 +1586,116 @@ export default function SecurityTab({
             </div>
           </CardHeader>
           <CardContent className="space-y-4 pt-6">
-            {sessions.map((session) => {
-              const SessionIcon = session.icon;
+            <ul className="space-y-4" aria-label="Signed-in sessions">
+              {sessions.map((session) => {
+                const SessionIcon = session.icon;
 
-              return (
-                <div
-                  key={session.name}
-                  className="flex items-start gap-3 rounded-2xl border border-zinc-200 bg-zinc-50 px-4 py-3 dark:border-white/10 dark:bg-white/5"
-                >
-                  <span className="mt-0.5 flex h-10 w-10 items-center justify-center rounded-2xl bg-zinc-900 text-white dark:bg-white dark:text-zinc-900">
-                    <SessionIcon className="size-4" />
-                  </span>
-                  <div className="space-y-1">
-                    <p className="font-medium text-zinc-900 dark:text-white">
-                      {session.name}
-                    </p>
-                    <p className="text-sm text-zinc-500 dark:text-zinc-400">
-                      {session.location}
-                    </p>
-                    <p className="text-xs text-zinc-400 dark:text-zinc-500">
-                      {session.status}
-                    </p>
+                return (
+                  <li
+                    key={session.id}
+                    className="flex flex-col gap-3 rounded-2xl border border-zinc-200 bg-zinc-50 px-4 py-3 dark:border-white/10 dark:bg-white/5 sm:flex-row sm:items-start sm:justify-between"
+                  >
+                    <div className="flex items-start gap-3">
+                      <span className="mt-0.5 flex h-10 w-10 items-center justify-center rounded-2xl bg-zinc-900 text-white dark:bg-white dark:text-zinc-900">
+                        <SessionIcon className="size-4" aria-hidden="true" />
+                      </span>
+                      <div className="space-y-1">
+                        <p className="flex flex-wrap items-center gap-2 font-medium text-zinc-900 dark:text-white">
+                          {session.name}
+                          {session.isCurrent && (
+                            <Badge
+                              variant="outline"
+                              className="border-emerald-500/20 bg-emerald-500/10 text-xs font-medium text-emerald-700 dark:text-emerald-300"
+                            >
+                              This device
+                            </Badge>
+                          )}
+                        </p>
+                        <p className="text-sm text-zinc-500 dark:text-zinc-400">
+                          {session.location}
+                        </p>
+                        <p className="text-xs text-zinc-400 dark:text-zinc-500">
+                          {session.status}
+                        </p>
+                      </div>
+                    </div>
+
+                    {session.isCurrent ? (
+                      <p className="text-xs text-zinc-500 dark:text-zinc-400 sm:max-w-[9rem] sm:text-right">
+                        You&apos;re signed in here. This session can&apos;t be
+                        signed out remotely.
+                      </p>
+                    ) : (
+                      <DestructiveActionDialog
+                        triggerLabel="Sign out"
+                        triggerAriaLabel={`Sign out ${session.name}`}
+                        title={`Sign out ${session.name}`}
+                        description={`This signs out ${session.name} (${session.location}). It will need to log in again to regain access.`}
+                        impactItems={[
+                          `${session.name} will be signed out immediately.`,
+                          "Any in-progress actions on that device will be interrupted.",
+                          "You can sign in again on that device at any time.",
+                        ]}
+                        confirmationToken="REVOKE"
+                        confirmationLabel='Type "REVOKE" to continue'
+                        confirmLabel="Sign out session"
+                        onConfirm={() => handleRevokeSession(session.id)}
+                      />
+                    )}
+                  </li>
+                );
+              })}
+            </ul>
+
+            <div
+              data-search-label="Sign out all sessions"
+              className="rounded-2xl border border-zinc-200 bg-zinc-50 p-4 dark:border-white/10 dark:bg-white/5"
+            >
+              {otherSessions.length > 0 ? (
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                  <div className="flex items-start gap-3">
+                    <span className="mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-red-500/10 text-red-500">
+                      <LogOut className="size-4" aria-hidden="true" />
+                    </span>
+                    <div className="space-y-1">
+                      <p className="text-sm font-medium text-zinc-900 dark:text-white">
+                        Sign out all other sessions
+                      </p>
+                      <p className="text-xs text-zinc-600 dark:text-zinc-400">
+                        Ends {otherSessions.length} other{" "}
+                        {otherSessions.length === 1 ? "session" : "sessions"} in
+                        one step. This device stays signed in.
+                      </p>
+                    </div>
+                  </div>
+                  <div className="shrink-0">
+                    <DestructiveActionDialog
+                      triggerLabel="Sign out all other sessions"
+                      title="Sign out all other sessions"
+                      description={`This signs out ${otherSessions.length} other ${
+                        otherSessions.length === 1 ? "session" : "sessions"
+                      } and keeps this device signed in.`}
+                      impactItems={[
+                        "Your current session on this device stays signed in.",
+                        "Every other signed-in browser or mobile app will need to log in again.",
+                        "Pending high-risk actions on those devices are interrupted until re-authentication.",
+                      ]}
+                      confirmationToken="LOGOUT"
+                      confirmationLabel='Type "LOGOUT" to continue'
+                      confirmLabel="Sign out other sessions"
+                      onConfirm={handleRevokeAllOtherSessions}
+                    />
                   </div>
                 </div>
-              );
-            })}
-
-            <div data-search-label="Sign out all sessions">
-              <DestructiveActionDialog
-                triggerLabel="Sign out all sessions"
-                title="Sign out every other session"
-                description="This will invalidate every session except the current browser."
-                impactItems={[
-                  "Every signed-in mobile or web session will need to log in again.",
-                  "Pending high-risk actions will be interrupted until re-authentication.",
-                  "This action should only be used if you suspect account access issues.",
-                ]}
-                confirmationToken="LOGOUT"
-                confirmationLabel='Type "LOGOUT" to continue'
-                confirmLabel="Force sign-out"
-                onConfirm={() =>
-                  setStatus({
-                    message:
-                      "Session reset requested. All other devices would be signed out.",
-                    type: "success",
-                  })
-                }
-              />
+              ) : (
+                <p
+                  className="text-sm text-zinc-600 dark:text-zinc-400"
+                  role="status"
+                >
+                  You&apos;re only signed in on this device. There are no other
+                  sessions to sign out.
+                </p>
+              )}
             </div>
           </CardContent>
         </Card>

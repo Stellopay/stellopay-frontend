@@ -80,7 +80,10 @@ Credential and session management.
   special char, matching confirm)
 - Two-factor authentication (TOTP): toggle with guided setup panel,
   6-digit code verification
-- Active sessions list with selective revocation
+- Active sessions list with two revoke paths:
+  - Per-session sign-out for each non-current device
+  - Bulk "Sign out all other sessions" that ends every session except the
+    current one (the current device is always excluded)
 - Recovery methods (collapsible disclosure)
 - API key management: create, rotate, revoke with destructive confirmation
 
@@ -89,9 +92,16 @@ Accessibility notes:
   inline error paragraphs.
 - The 2-FA setup panel is a `role="form"` region with a labelled `aria-label`;
   inline errors use `role="alert"`.
-- The sign-out-all-sessions and API key rotate/revoke actions both pass through
-  `DestructiveActionDialog`, which traps focus and requires a typed keyword
-  confirmation before enabling the destructive button.
+- The sessions list is a `<ul>` labelled "Signed-in sessions". The current
+  session is marked with a "This device" badge and exposes no revoke control;
+  each other session's trigger has a unique accessible name
+  (`Sign out <device name>`) so screen-reader users can tell them apart.
+- The per-session sign-out, bulk "Sign out all other sessions", and API key
+  rotate/revoke actions all pass through `DestructiveActionDialog`, which traps
+  focus and requires a typed keyword confirmation before enabling the
+  destructive button. The bulk dialog copy states explicitly that the current
+  device stays signed in. When no other sessions remain, the bulk action is
+  replaced by a `role="status"` empty-state message.
 
 ### Wallets (`wallets`)
 

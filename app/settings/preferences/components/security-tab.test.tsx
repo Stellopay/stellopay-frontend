@@ -5,6 +5,7 @@ import {
   fireEvent,
   waitFor,
   act,
+  within,
 } from "@testing-library/react";
 import { describe, expect, it, vi, afterEach, beforeEach } from "vitest";
 
@@ -127,10 +128,10 @@ describe("SecurityTab — initial render", () => {
     expect(screen.getByText("Large transfer approval")).toBeInTheDocument();
   });
 
-  it("renders the sign-out-all-sessions trigger", () => {
+  it("renders the sign-out-all-other-sessions trigger", () => {
     render(<SecurityTab />);
     expect(
-      screen.getByRole("button", { name: /sign out all sessions/i }),
+      screen.getByRole("button", { name: /sign out all other sessions/i }),
     ).toBeInTheDocument();
   });
 
@@ -1426,5 +1427,145 @@ describe("SecurityTab — 2FA verification security", () => {
     const err = getVerificationCodeError("12345678");
     expect(err).not.toContain("12345678");
     expect(err).not.toContain("12345");
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Active sessions — per-session revoke + bulk "sign out all other sessions"
+// ---------------------------------------------------------------------------
+
+describe("SecurityTab — active sessions revocation", () => {
+  /**
+   * Drives a `DestructiveActionDialog` to completion: opens it via its trigger,
+   * types the confirmation token, and clicks the confirm button.
+   */
+  function confirmDestructiveAction(
+    triggerName: RegExp,
+    token: string,
+    confirmName: RegExp,
+  ) {
+    fireEvent.click(screen.getByRole("button", { name: triggerName }));
+    const input = screen.getByPlaceholderText(token);
+    fireEvent.change(input, { target: { value: token } });
+    fireEvent.click(screen.getByRole("button", { name: confirmName }));
+  }
+
+  const getBulkTrigger = () =>
+    screen.getByRole("button", { name: /^sign out all other sessions$/i });
+
+  it("marks the current session with a 'This device' badge and no sign-out control", () => {
+    render(<SecurityTab />);
+
+    const currentRow = screen
+      .getByText("Chrome on Windows")
+      .closest("li") as HTMLElement;
+    expect(currentRow).not.toBeNull();
+    expect(within(currentRow).getByText(/this device/i)).toBeInTheDocument();
+    // The current session must NOT expose a revoke control.
+    expect(
+      within(currentRow).queryByRole("button", { name: /sign out/i }),
+    ).not.toBeInTheDocument();
+  });
+
+  it("renders a distinctly-labelled sign-out control for each non-current session", () => {
+    render(<SecurityTab />);
+
+    expect(
+      screen.getByRole("button", { name: /sign out iphone 15 pro/i }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: /sign out firefox on macos/i }),
+    ).toBeInTheDocument();
+  });
+
+  it("bulk trigger is distinct from the per-session controls", () => {
+    render(<SecurityTab />);
+
+    const bulk = getBulkTrigger();
+    const perSession = screen.getByRole("button", {
+      name: /sign out iphone 15 pro/i,
+    });
+    expect(bulk).not.toBe(perSession);
+  });
+
+  it("bulk confirmation copy explicitly says the current device stays signed in", () => {
+    render(<SecurityTab />);
+
+    fireEvent.click(getBulkTrigger());
+
+    // The dialog spells out that the current session is excluded.
+    expect(
+      screen.getByText(/your current session on this device stays signed in/i),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(/keeps this device signed in/i),
+    ).toBeInTheDocument();
+  });
+
+  it("revoking a single session removes only that session and keeps the rest", () => {
+    render(<SecurityTab />);
+
+    confirmDestructiveAction(
+      /sign out iphone 15 pro/i,
+      "REVOKE",
+      /sign out session/i,
+    );
+
+    expect(screen.queryByText("iPhone 15 Pro")).not.toBeInTheDocument();
+    // Current session and the other device remain.
+    expect(screen.getByText("Chrome on Windows")).toBeInTheDocument();
+    expect(screen.getByText("Firefox on macOS")).toBeInTheDocument();
+  });
+
+  it("the bulk action signs out every other session but keeps the current one", () => {
+    render(<SecurityTab />);
+
+    confirmDestructiveAction(
+      /^sign out all other sessions$/i,
+      "LOGOUT",
+      /sign out other sessions/i,
+    );
+
+    expect(screen.getByText("Chrome on Windows")).toBeInTheDocument();
+    expect(screen.queryByText("iPhone 15 Pro")).not.toBeInTheDocument();
+    expect(screen.queryByText("Firefox on macOS")).not.toBeInTheDocument();
+  });
+
+  it("shows an empty-state message and hides the bulk action once no other sessions remain", () => {
+    render(<SecurityTab />);
+
+    confirmDestructiveAction(
+      /^sign out all other sessions$/i,
+      "LOGOUT",
+      /sign out other sessions/i,
+    );
+
+    expect(
+      screen.getByText(/only signed in on this device/i),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: /^sign out all other sessions$/i }),
+    ).not.toBeInTheDocument();
+  });
+
+  it("announces a success status after the bulk sign-out", () => {
+    render(<SecurityTab />);
+
+    confirmDestructiveAction(
+      /^sign out all other sessions$/i,
+      "LOGOUT",
+      /sign out other sessions/i,
+    );
+
+    expect(
+      screen.getByText(/signed out of all other sessions/i),
+    ).toBeInTheDocument();
+  });
+
+  it("the sessions list is exposed as an accessible list", () => {
+    render(<SecurityTab />);
+    expect(
+      screen.getByRole("list", { name: /signed-in sessions/i }),
+    ).toBeInTheDocument();
   });
 });
