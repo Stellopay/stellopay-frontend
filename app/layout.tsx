@@ -5,6 +5,7 @@ import "./globals.css";
 import { SidebarProvider } from "@/context/sidebar-context";
 import { ThemeProvider } from "@/context/theme-context";
 import { WalletProvider } from "@/context/wallet-context";
+import { ShortcutHelpModal } from "@/components/common/shortcut-help-modal";
 
 const inter = Inter({
   variable: "--font-inter",
@@ -112,6 +113,7 @@ export default function RootLayout({
             <SidebarProvider>{children}</SidebarProvider>
           </WalletProvider>
         </ThemeProvider>
+        <ShortcutHelpModal />
       </body>
     </html>
   );
