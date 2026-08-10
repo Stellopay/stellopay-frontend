@@ -127,16 +127,81 @@ describe("SecurityTab — initial render", () => {
     expect(screen.getByText("Large transfer approval")).toBeInTheDocument();
   });
 
-  it("renders the sign-out-all-sessions trigger", () => {
+  it("renders the sign-out-all-other-sessions trigger", () => {
     render(<SecurityTab />);
     expect(
-      screen.getByRole("button", { name: /sign out all sessions/i }),
+      screen.getByRole("button", { name: /sign out all other sessions/i }),
     ).toBeInTheDocument();
   });
 
   it("renders the recovery-methods disclosure element", () => {
     render(<SecurityTab />);
     expect(screen.getByText(/show recovery methods/i)).toBeInTheDocument();
+  });
+
+  it("renders a per-session sign-out button for non-current sessions", () => {
+    render(<SecurityTab />);
+    const signOutButton = screen.getByRole("button", { name: /sign out iphone 15 pro/i });
+    expect(signOutButton).toBeInTheDocument();
+  });
+
+  it("does not render a per-session sign-out button for the current session", () => {
+    render(<SecurityTab />);
+    expect(
+      screen.queryByRole("button", { name: /sign out chrome on windows/i }),
+    ).not.toBeInTheDocument();
+  });
+
+  it("shows the correct session count in the badge", () => {
+    render(<SecurityTab />);
+    expect(screen.getByText("2 devices")).toBeInTheDocument();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Session management — per-session revoke + bulk sign-out
+// ---------------------------------------------------------------------------
+
+describe("SecurityTab — session management", () => {
+  it("removes a single session when its sign-out button is clicked", () => {
+    render(<SecurityTab />);
+    fireEvent.click(
+      screen.getByRole("button", { name: /sign out iphone 15 pro/i }),
+    );
+
+    expect(screen.queryByText("iPhone 15 Pro")).not.toBeInTheDocument();
+    expect(screen.getByText("Chrome on Windows")).toBeInTheDocument();
+    expect(screen.getByText("1 devices")).toBeInTheDocument();
+  });
+
+  it("keeps the current session after a single session is revoked", () => {
+    render(<SecurityTab />);
+    fireEvent.click(
+      screen.getByRole("button", { name: /sign out iphone 15 pro/i }),
+    );
+
+    expect(screen.getByText("Chrome on Windows")).toBeInTheDocument();
+    expect(screen.getByText("Current session")).toBeInTheDocument();
+  });
+
+  it("signs out every other session while keeping the current device", async () => {
+    render(<SecurityTab />);
+
+    fireEvent.click(
+      screen.getByRole("button", { name: /sign out all other sessions/i }),
+    );
+
+    // The confirmation dialog requires typing "LOGOUT" exactly.
+    const confirmInput = await screen.findByPlaceholderText("LOGOUT");
+    fireEvent.change(confirmInput, { target: { value: "LOGOUT" } });
+
+    fireEvent.click(
+      screen.getByRole("button", { name: /sign out all other sessions/i }),
+    );
+
+    expect(screen.queryByText("iPhone 15 Pro")).not.toBeInTheDocument();
+    expect(screen.getByText("Chrome on Windows")).toBeInTheDocument();
+    expect(screen.getByText("1 devices")).toBeInTheDocument();
   });
 });
 

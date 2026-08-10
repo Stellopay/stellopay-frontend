@@ -11,6 +11,7 @@ import {
   Download,
   EyeOff,
   KeyRound,
+  LogOut,
   Monitor,
   Plus,
   ShieldCheck,
@@ -41,24 +42,8 @@ import {
 } from "@/utils/authUtils";
 import DestructiveActionDialog from "./destructive-action-dialog";
 import { DEMO_SECURITY, DEMO_CONNECTED_APPS } from "@/lib/demo-data";
-import { DEMO_SECURITY } from "@/lib/demo-data";
 import { generateTotpSecret, verifyTotpCode } from "@/lib/totp";
 import QRCode from "qrcode";
-
-const sessions = [
-  {
-    name: "Chrome on Windows",
-    location: "Lagos, Nigeria",
-    status: "Current session",
-    icon: Monitor,
-  },
-  {
-    name: "iPhone 15 Pro",
-    location: "Mobile app",
-    status: "Last active 2 hours ago",
-    icon: Smartphone,
-  },
-];
 
 const initialApiKeys = [
   {
@@ -336,6 +321,41 @@ export default function SecurityTab({
   const [connectedApps, setConnectedApps] = useState(() => [
     ...DEMO_CONNECTED_APPS,
   ]);
+
+  const [sessions, setSessions] = useState([
+    {
+      id: "session-chrome-windows",
+      name: "Chrome on Windows",
+      location: "Lagos, Nigeria",
+      status: "Current session",
+      icon: Monitor,
+    },
+    {
+      id: "session-iphone",
+      name: "iPhone 15 Pro",
+      location: "Mobile app",
+      status: "Last active 2 hours ago",
+      icon: Smartphone,
+    },
+  ]);
+
+  const handleRevokeSession = (sessionId: string) => {
+    setSessions((current) => current.filter((s) => s.id !== sessionId));
+    setStatus({
+      message: "Session signed out. The device will need to re-authenticate.",
+      type: "success",
+    });
+    setTimeout(() => setStatus({ message: "", type: null }), 5000);
+  };
+
+  const handleRevokeAllOtherSessions = () => {
+    setSessions((current) => current.filter((s) => s.status === "Current session"));
+    setStatus({
+      message: "All other sessions signed out. You remain signed in on this device.",
+      type: "success",
+    });
+    setTimeout(() => setStatus({ message: "", type: null }), 5000);
+  };
 
   const handleRevokeApp = (appId: string) => {
     setConnectedApps((current) => current.filter((app) => app.id !== appId));
@@ -1523,13 +1543,13 @@ export default function SecurityTab({
 
               return (
                 <div
-                  key={session.name}
+                  key={session.id}
                   className="flex items-start gap-3 rounded-2xl border border-zinc-200 bg-zinc-50 px-4 py-3 dark:border-white/10 dark:bg-white/5"
                 >
                   <span className="mt-0.5 flex h-10 w-10 items-center justify-center rounded-2xl bg-zinc-900 text-white dark:bg-white dark:text-zinc-900">
                     <SessionIcon className="size-4" />
                   </span>
-                  <div className="space-y-1">
+                  <div className="min-w-0 flex-1 space-y-1">
                     <p className="font-medium text-zinc-900 dark:text-white">
                       {session.name}
                     </p>
@@ -1540,30 +1560,38 @@ export default function SecurityTab({
                       {session.status}
                     </p>
                   </div>
+                  {session.status !== "Current session" && (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleRevokeSession(session.id)}
+                      aria-label={`Sign out ${session.name}`}
+                      className="shrink-0 gap-1.5"
+                    >
+                      <LogOut className="h-4 w-4" />
+                      <span className="sr-only sm:not-sr-only">Sign out</span>
+                    </Button>
+                  )}
                 </div>
               );
             })}
 
-            <div data-search-label="Sign out all sessions">
+            <div data-search-label="Sign out all other sessions">
               <DestructiveActionDialog
-                triggerLabel="Sign out all sessions"
+                triggerLabel="Sign out all other sessions"
                 title="Sign out every other session"
-                description="This will invalidate every session except the current browser."
+                description="This will invalidate every session except the current browser. You will remain signed in on this device."
                 impactItems={[
-                  "Every signed-in mobile or web session will need to log in again.",
-                  "Pending high-risk actions will be interrupted until re-authentication.",
-                  "This action should only be used if you suspect account access issues.",
+                  "Every signed-in mobile or web session except this browser will need to log in again.",
+                  "The current session on this device is not affected.",
+                  "Pending high-risk actions on other devices will be interrupted until re-authentication.",
+                  "You can sign back in from any device at any time.",
                 ]}
                 confirmationToken="LOGOUT"
                 confirmationLabel='Type "LOGOUT" to continue'
-                confirmLabel="Force sign-out"
-                onConfirm={() =>
-                  setStatus({
-                    message:
-                      "Session reset requested. All other devices would be signed out.",
-                    type: "success",
-                  })
-                }
+                confirmLabel="Sign out all other sessions"
+                onConfirm={handleRevokeAllOtherSessions}
               />
             </div>
           </CardContent>
