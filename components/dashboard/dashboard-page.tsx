@@ -1,13 +1,20 @@
 "use client";
 
-import React, { useState, useEffect, useRef, useMemo } from "react";
+import React, { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import {
+  ChevronDown,
+  ChevronRight,
+  ChevronUp,
+  Clock3,
   FileText,
-  Wallet,
+  GripVertical,
   Shield,
   Settings,
-  Clock3,
-  ChevronRight,
+  Wallet,
+  Rocket,
+  ArrowRight,
+  BarChart3,
+  ArrowUpRight,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import DashboardNavbar from "@/components/dashboard/dashboard-navbar";
@@ -21,10 +28,10 @@ import { ErrorState } from "@/components/ui/error-state";
 import ClientAnalyticsView from "@/components/analytics/client-analytics-view";
 import { DashboardTour } from "@/components/dashboard/dashboard-tour";
 import Link from "next/link";
-import dynamic from "next/dynamic";
 import { useTransactions } from "@/hooks/useTransactions";
 import type { Transaction } from "@/types/transaction";
 import { safeStorage } from "@/utils/safeStorage";
+import { WatchlistPanel } from "@/components/dashboard/watchlist-panel";
 import {
   DndContext,
   DragOverlay,
@@ -39,24 +46,6 @@ import {
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import {
-  GripVertical,
-  ChevronUp,
-  ChevronDown,
-  FileText,
-  Wallet,
-  Shield,
-  Settings,
-  Clock3,
-  ChevronRight,
-  Rocket,
-  ArrowRight,
-  BarChart3,
-  ArrowUpRight,
-} from "lucide-react";
-import Link from "next/link";
-import { DashboardTour } from "@/components/dashboard/dashboard-tour";
-import { useTransactions } from "@/hooks/useTransactions";
 
 const AnalyticsInsights = dynamic(
   () =>
@@ -828,6 +817,10 @@ export default function Dashboard() {
             showNotifications={true}
             showDropdown={true}
           />
+        </div>
+
+        <div className="mt-10">
+          <WatchlistPanel />
         </div>
 
         {/* <TransactionHistory /> */}

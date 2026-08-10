@@ -54,6 +54,12 @@ vi.mock("@/components/dashboard/dashboard-tour", () => ({
   DashboardTour: () => <div data-testid="dashboard-tour">Tour Overlay</div>,
 }));
 
+vi.mock("@/components/dashboard/watchlist-panel", () => ({
+  WatchlistPanel: () => (
+    <section data-testid="watchlist-panel">Watchlist Panel</section>
+  ),
+}));
+
 describe("Dashboard", () => {
   it("renders the dashboard navbar", () => {
     render(<Dashboard />);
