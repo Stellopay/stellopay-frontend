@@ -225,6 +225,56 @@ describe("TransactionsTable — ARIA roles", () => {
       document.querySelector("caption")?.textContent,
     ).toMatch(/transaction history/i);
   });
+
+  it("sets aria-sort='descending' on the Date header when sorted by date desc", () => {
+    render(
+      <TransactionsTable
+        transactions={THREE_ROWS}
+        sortConfigs={[{ field: "date", direction: "desc" }]}
+      />,
+    );
+    const dateHeader = screen.getByRole("columnheader", { name: /date/i });
+    expect(dateHeader).toHaveAttribute("aria-sort", "descending");
+  });
+
+  it("sets aria-sort='ascending' on the Amount header when sorted by amount asc", () => {
+    render(
+      <TransactionsTable
+        transactions={THREE_ROWS}
+        sortConfigs={[{ field: "amount", direction: "asc" }]}
+      />,
+    );
+    const amountHeader = screen.getByRole("columnheader", { name: /amount/i });
+    expect(amountHeader).toHaveAttribute("aria-sort", "ascending");
+  });
+
+  it("sets aria-sort='none' on non-sorted column headers", () => {
+    render(
+      <TransactionsTable
+        transactions={THREE_ROWS}
+        sortConfigs={[{ field: "date", direction: "desc" }]}
+      />,
+    );
+    const amountHeader = screen.getByRole("columnheader", { name: /amount/i });
+    expect(amountHeader).toHaveAttribute("aria-sort", "none");
+  });
+
+  it("sets aria-sort='none' on all headers when no sort configs provided", () => {
+    render(<TransactionsTable transactions={THREE_ROWS} />);
+    // Only sortable columns (Date, Amount, Status) get aria-sort="none".
+    // Non-sortable columns (Transaction Type, Address, Token) do not set aria-sort.
+    const headers = screen.getAllByRole("columnheader");
+    const sortableHeaders = headers.filter(
+      (h) =>
+        h.textContent?.trim() === "Date" ||
+        h.textContent?.trim() === "Amount" ||
+        h.textContent?.trim() === "Status",
+    );
+    expect(sortableHeaders.length).toBe(3);
+    sortableHeaders.forEach((h) => {
+      expect(h).toHaveAttribute("aria-sort", "none");
+    });
+  });
 });
 
 describe("TransactionsTable — tooltip and truncation", () => {

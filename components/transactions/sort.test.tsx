@@ -150,7 +150,9 @@ describe("SortControl", () => {
     );
     // The secondary chip text includes "then Amount ↓"
     expect(screen.getByText(/then Amount/i)).toBeInTheDocument();
-    expect(screen.getByText(/↓/)).toBeInTheDocument();
+    // Use getAllByText because the secondary chip and the dropdown item
+    // both render the direction arrow; at least one is in the chip.
+    expect(screen.getAllByText(/↓/).length).toBeGreaterThanOrEqual(1);
   });
 
   it("does NOT show secondary sort chip when only primary is set", () => {
@@ -187,7 +189,7 @@ describe("SortControl", () => {
         onClearSecondarySort={vi.fn()}
       />,
     );
-    const trigger = screen.getByLabelText("Sort transactions");
+    const trigger = screen.getByLabelText(/Sort transactions/i);
     expect(trigger).toBeInTheDocument();
   });
 
@@ -201,5 +203,58 @@ describe("SortControl", () => {
     );
     const closeBtn = screen.getByLabelText("Clear secondary sort");
     expect(closeBtn).toBeInTheDocument();
+  });
+
+  it("includes current sort info in the trigger aria-label", () => {
+    render(
+      <SortControl
+        sortConfigs={defaultSortConfigs}
+        onSort={vi.fn()}
+        onClearSecondarySort={vi.fn()}
+      />,
+    );
+    const trigger = screen.getByLabelText(/Sorted by Date descending/i);
+    expect(trigger).toBeInTheDocument();
+  });
+
+  it("renders a visually-hidden aria-live sort announcement region", () => {
+    render(
+      <SortControl
+        sortConfigs={defaultSortConfigs}
+        onSort={vi.fn()}
+        onClearSecondarySort={vi.fn()}
+      />,
+    );
+    const region = screen.getByTestId("sort-announcement");
+    expect(region).toBeInTheDocument();
+    expect(region).toHaveAttribute("aria-live", "polite");
+    expect(region).toHaveAttribute("role", "status");
+    expect(region).toHaveTextContent("Sorted by Date descending.");
+  });
+
+  it("announces multi-column sort in the aria-live region", () => {
+    render(
+      <SortControl
+        sortConfigs={multiSortConfigs}
+        onSort={vi.fn()}
+        onClearSecondarySort={vi.fn()}
+      />,
+    );
+    const region = screen.getByTestId("sort-announcement");
+    expect(region).toHaveTextContent(
+      /Sorted by Status ascending, then by Amount descending/i,
+    );
+  });
+
+  it("announces 'No sort applied' when sortConfigs is empty", () => {
+    render(
+      <SortControl
+        sortConfigs={[]}
+        onSort={vi.fn()}
+        onClearSecondarySort={vi.fn()}
+      />,
+    );
+    const region = screen.getByTestId("sort-announcement");
+    expect(region).toHaveTextContent("No sort applied.");
   });
 });

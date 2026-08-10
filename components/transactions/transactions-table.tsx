@@ -50,7 +50,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { TransactionsTableProps, TransactionProps, Tag } from "@/types/transaction";
+import { TransactionsTableProps, TransactionProps, Tag, SortConfig, SortField } from "@/types/transaction";
 import { Badge } from "@/components/ui/badge";
 import TokenIcon from "@/components/transactions/token-icon";
 import { getStatusColor } from "@/utils/transactionUtils";
@@ -76,6 +76,8 @@ import { TransactionTableSkeleton } from "@/components/ui/table-skeleton";
 
 interface TransactionsTablePropsExtended extends TransactionsTableProps {
   isLoading?: boolean;
+  /** Ordered sort criteria for the transactions table. */
+  sortConfigs?: SortConfig[];
   /** Set of transaction ids that are currently selected. */
   selectedIds?: Set<string>;
   /**
@@ -288,6 +290,7 @@ function TransactionQuickViewDialog({
 export function TransactionsTable({
   transactions,
   isLoading = false,
+  sortConfigs = [],
   selectedIds = new Set(),
   onSelectRow,
   onSelectAll,
@@ -298,6 +301,14 @@ export function TransactionsTable({
   onCreateTag,
 }: TransactionsTablePropsExtended) {
   const isEmpty = !isLoading && transactions.length === 0;
+
+  /** Map a table column to the aria-sort value for its header. */
+  const getAriaSort = (field: SortField): "ascending" | "descending" | "none" => {
+    if (sortConfigs.length === 0) return "none";
+    const config = sortConfigs[0];
+    if (config.field !== field) return "none";
+    return config.direction === "asc" ? "ascending" : "descending";
+  };
   
   // State for quick-view dialog
   const [selectedTransaction, setSelectedTransaction] = React.useState<TransactionProps | null>(null);
@@ -405,74 +416,81 @@ function TableHead({ className, ...props }: React.ComponentProps<"th">) {
       )}
       {...props}
     />
-    <>
-      {/* Desktop Table */}
-      <div
-        ref={tableWrapperRef}
-        className="hidden md:block w-full rounded-[12px] overflow-auto border border-[#2D2D2D]"
-      >
-        <Table>
-          {/* caption is visually hidden but announced by screen readers */}
-          <caption className="sr-only">Transaction history. Click a row to view transaction details.</caption>
-          <TableHeader>
-            <TableRow className="bg-[#191919]">
-              {isSelectable && (
-                <TableHead
-                  scope="col"
-                  className="text-white font-bold border-[#2D2D2D] border-y-2 border-t-0 py-4 px-4 w-12"
-                >
-                  <Checkbox
-                    aria-label={
-                      allSelected
-                        ? "Deselect all transactions on this page"
-                        : "Select all transactions on this page"
-                    }
-                    checked={headerCheckedState}
-                    onCheckedChange={(checked) =>
-                      onSelectAll?.(checked === true)
-                    }
-                    className="border-[#555] data-[state=checked]:border-white data-[state=indeterminate]:border-white"
-                  />
-                </TableHead>
-              )}
+  );
+}
+
+return (
+  <>
+    {/* Desktop Table */}
+    <div
+      ref={tableWrapperRef}
+      className="hidden md:block w-full rounded-[12px] overflow-auto border border-[#2D2D2D]"
+    >
+      <Table>
+        {/* caption is visually hidden but announced by screen readers */}
+        <caption className="sr-only">Transaction history. Click a row to view transaction details.</caption>
+        <TableHeader>
+          <TableRow className="bg-[#191919]">
+            {isSelectable && (
               <TableHead
                 scope="col"
-                className="text-white font-bold border-[#2D2D2D] border-y-2 border-t-0 py-4 px-6"
+                className="text-white font-bold border-[#2D2D2D] border-y-2 border-t-0 py-4 px-4 w-12"
               >
-                Transaction Type
+                <Checkbox
+                  aria-label={
+                    allSelected
+                      ? "Deselect all transactions on this page"
+                      : "Select all transactions on this page"
+                  }
+                  checked={headerCheckedState}
+                  onCheckedChange={(checked) =>
+                    onSelectAll?.(checked === true)
+                  }
+                  className="border-[#555] data-[state=checked]:border-white data-[state=indeterminate]:border-white"
+                />
               </TableHead>
-              <TableHead
-                scope="col"
-                className="text-white font-bold border-[#2D2D2D] border-y-2 border-t-0 py-4 px-6 w-[200px]"
-              >
-                Address
-              </TableHead>
-              <TableHead
-                scope="col"
-                className="text-white font-bold border-[#2D2D2D] border-y-2 border-t-0 py-4 px-6"
-              >
-                Date
-              </TableHead>
-              <TableHead
-                scope="col"
-                className="text-white font-bold border-[#2D2D2D] border-y-2 border-t-0 py-4 px-6"
-              >
-                Token
-              </TableHead>
-              <TableHead
-                scope="col"
-                className="text-white font-bold border-[#2D2D2D] border-y-2 border-t-0 py-4 px-6 w-[140px]"
-              >
-                Amount
-              </TableHead>
-              <TableHead
-                scope="col"
-                className="text-white font-bold border-[#2D2D2D] border-y-2 border-t-0 py-4 px-6 w-[120px]"
-              >
-                Status
-              </TableHead>
-            </TableRow>
-          </TableHeader>
+            )}
+            <TableHead
+              scope="col"
+              className="text-white font-bold border-[#2D2D2D] border-y-2 border-t-0 py-4 px-6"
+            >
+              Transaction Type
+            </TableHead>
+            <TableHead
+              scope="col"
+              className="text-white font-bold border-[#2D2D2D] border-y-2 border-t-0 py-4 px-6 w-[200px]"
+            >
+              Address
+            </TableHead>
+            <TableHead
+              scope="col"
+              className="text-white font-bold border-[#2D2D2D] border-y-2 border-t-0 py-4 px-6"
+              aria-sort={getAriaSort("date")}
+            >
+              Date
+            </TableHead>
+            <TableHead
+              scope="col"
+              className="text-white font-bold border-[#2D2D2D] border-y-2 border-t-0 py-4 px-6"
+            >
+              Token
+            </TableHead>
+            <TableHead
+              scope="col"
+              className="text-white font-bold border-[#2D2D2D] border-y-2 border-t-0 py-4 px-6 w-[140px]"
+              aria-sort={getAriaSort("amount")}
+            >
+              Amount
+            </TableHead>
+            <TableHead
+              scope="col"
+              className="text-white font-bold border-[#2D2D2D] border-y-2 border-t-0 py-4 px-6 w-[120px]"
+              aria-sort={getAriaSort("status")}
+            >
+              Status
+            </TableHead>
+          </TableRow>
+        </TableHeader>
           <TableBody>
             {isLoading ? (
               Array.from({ length: TRANSACTIONS_PAGE_SIZE }).map((_, index) => (

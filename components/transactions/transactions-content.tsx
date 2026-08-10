@@ -893,6 +893,7 @@ export default function TransactionsContent() {
               <>
                 <TransactionsTable
                   transactions={paginatedTransactions}
+                  sortConfigs={filters.sortConfigs}
                   selectedIds={selectedIds}
                   onSelectRow={handleSelectRow}
                   onSelectAll={handleSelectAllForPage}

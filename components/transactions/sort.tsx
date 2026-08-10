@@ -67,15 +67,42 @@ const SortControl = ({
     return idx >= 0 ? idx + 1 : null;
   };
 
+  /** Build a human-readable description of the active sort(s) for screen readers. */
+  function renderSortDescription(configs: SortConfig[]): string {
+    if (configs.length === 0) return "No sort applied.";
+    const parts = configs.map((c, i) => {
+      const dir = c.direction === "asc" ? "ascending" : "descending";
+      return i === 0
+        ? `Sorted by ${SORT_LABELS[c.field]} ${dir}`
+        : `then by ${SORT_LABELS[c.field]} ${dir}`;
+    });
+    return parts.join(", ") + ".";
+  }
+
+  /** Human-readable description of the active sort(s) for screen readers. */
+  const liveSortDescription = renderSortDescription(sortConfigs);
+
   return (
     <div className="flex items-center gap-1">
+      {/* Visually-hidden live region that announces sort changes to screen
+          readers. aria-live="polite" keeps announcements from interrupting
+          the user's current task. */}
+      <div
+        role="status"
+        aria-live="polite"
+        aria-atomic="true"
+        className="sr-only"
+        data-testid="sort-announcement"
+      >
+        {liveSortDescription}
+      </div>
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <Button
             variant="ghost"
             size="default"
             className="text-gray-400 hover:text-white hover:bg-[#1a0c1d]"
-            aria-label="Sort transactions"
+            aria-label={`Sort transactions. ${liveSortDescription}`}
           >
             <ChevronsUpDown
               size={20}
