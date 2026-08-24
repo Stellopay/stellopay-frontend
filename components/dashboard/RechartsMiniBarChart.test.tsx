@@ -1,7 +1,6 @@
 import React from "react";
 import { render, screen } from "@testing-library/react";
- design-system/mini-bar-chart-dark-tokens
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { RechartsMiniBarChart } from "./RechartsMiniBarChart";
 
 vi.mock("recharts", () => {
@@ -46,7 +45,13 @@ vi.mock("recharts", () => {
     />
   );
 
-  const MockXAxis = ({ dataKey, hide }: { dataKey: string; hide?: boolean }) => (
+  const MockXAxis = ({
+    dataKey,
+    hide,
+  }: {
+    dataKey: string;
+    hide?: boolean;
+  }) => (
     <div data-testid="x-axis" data-key={dataKey} data-hide={String(hide)} />
   );
 
@@ -76,14 +81,14 @@ vi.mock("recharts", () => {
   };
 });
 
-describe("RechartsMiniBarChart", () => {
-  const sampleData = [
-    { value: 40 },
-    { value: 70 },
-    { value: 45 },
-  ];
+const sampleData = [{ value: 40 }, { value: 70 }, { value: 45 }];
 
-  // ── Basic rendering ───────────────────────────────────────────────────
+describe("RechartsMiniBarChart", () => {
+  afterEach(() => {
+    document.documentElement.classList.remove("dark");
+  });
+
+  // ── Basic rendering ────────────────────────────────────────────────────
 
   it("renders a chart when data is provided", () => {
     render(<RechartsMiniBarChart data={sampleData} />);
@@ -98,9 +103,7 @@ describe("RechartsMiniBarChart", () => {
     render(<RechartsMiniBarChart data={[]} />);
 
     expect(screen.queryByTestId("bar-chart")).not.toBeInTheDocument();
-    expect(
-      screen.getByText("No data")
-    ).toBeInTheDocument();
+    expect(screen.getByText("No data")).toBeInTheDocument();
   });
 
   it("uses default fill when no cssVar or color is provided", () => {
@@ -110,7 +113,7 @@ describe("RechartsMiniBarChart", () => {
     expect(bar).toHaveAttribute("data-fill", "var(--chart-1)");
   });
 
-  // ── cssVar prop ───────────────────────────────────────────────────────
+  // ── cssVar prop ────────────────────────────────────────────────────────
 
   it("uses the cssVar prop to build var(--<name>) fill", () => {
     render(<RechartsMiniBarChart data={sampleData} cssVar="--chart-2" />);
@@ -125,14 +128,14 @@ describe("RechartsMiniBarChart", () => {
         data={sampleData}
         cssVar="--chart-3"
         color="#ff0000"
-      />
+      />,
     );
 
     const bar = screen.getByTestId("bar");
     expect(bar).toHaveAttribute("data-fill", "var(--chart-3)");
   });
 
-  // ── color prop ────────────────────────────────────────────────────────
+  // ── color prop ─────────────────────────────────────────────────────────
 
   it("uses the color prop as static fill when cssVar is not set", () => {
     render(<RechartsMiniBarChart data={sampleData} color="#4f6fff" />);
@@ -141,7 +144,32 @@ describe("RechartsMiniBarChart", () => {
     expect(bar).toHaveAttribute("data-fill", "#4f6fff");
   });
 
-  // ── height prop ───────────────────────────────────────────────────────
+  it("accepts CSS variable string via color prop", () => {
+    render(
+      <RechartsMiniBarChart data={sampleData} color="var(--chart-blue)" />,
+    );
+
+    const bar = screen.getByTestId("bar");
+    expect(bar).toHaveAttribute("data-fill", "var(--chart-blue)");
+  });
+
+  it("renders with all three semantic chart color tokens via color prop", () => {
+    const colors = [
+      "var(--chart-blue)",
+      "var(--chart-green)",
+      "var(--chart-amber)",
+    ];
+
+    for (const color of colors) {
+      const { unmount } = render(
+        <RechartsMiniBarChart data={sampleData} color={color} />,
+      );
+      expect(screen.getByTestId("bar")).toHaveAttribute("data-fill", color);
+      unmount();
+    }
+  });
+
+  // ── height prop ────────────────────────────────────────────────────────
 
   it("renders with default height of 3rem", () => {
     const { container } = render(<RechartsMiniBarChart data={sampleData} />);
@@ -152,14 +180,14 @@ describe("RechartsMiniBarChart", () => {
 
   it("renders with custom height", () => {
     const { container } = render(
-      <RechartsMiniBarChart data={sampleData} height="6rem" />
+      <RechartsMiniBarChart data={sampleData} height="6rem" />,
     );
 
     const wrapper = container.firstElementChild as HTMLElement;
     expect(wrapper.style.height).toBe("6rem");
   });
 
-  // ── ariaLabel prop ────────────────────────────────────────────────────
+  // ── ariaLabel prop ─────────────────────────────────────────────────────
 
   it("uses default aria label", () => {
     render(<RechartsMiniBarChart data={sampleData} />);
@@ -173,7 +201,7 @@ describe("RechartsMiniBarChart", () => {
       <RechartsMiniBarChart
         data={sampleData}
         ariaLabel="Revenue mini chart"
-      />
+      />,
     );
 
     const wrapper = screen.getByLabelText("Revenue mini chart");
@@ -187,7 +215,7 @@ describe("RechartsMiniBarChart", () => {
     expect(wrapper).toHaveAttribute("role", "img");
   });
 
-  // ── Chart data transformation ─────────────────────────────────────────
+  // ── Chart data transformation ──────────────────────────────────────────
 
   it("transforms data with index-based name for XAxis", () => {
     render(<RechartsMiniBarChart data={sampleData} />);
@@ -209,7 +237,7 @@ describe("RechartsMiniBarChart", () => {
     expect(margin).toEqual({ top: 0, right: 0, left: 0, bottom: 0 });
   });
 
-  // ── Bar props ─────────────────────────────────────────────────────────
+  // ── Bar props ──────────────────────────────────────────────────────────
 
   it("bars use dataKey='value'", () => {
     render(<RechartsMiniBarChart data={sampleData} />);
@@ -226,7 +254,7 @@ describe("RechartsMiniBarChart", () => {
     expect(radius).toEqual([4, 4, 0, 0]);
   });
 
-  // ── XAxis props ───────────────────────────────────────────────────────
+  // ── XAxis props ────────────────────────────────────────────────────────
 
   it("XAxis uses dataKey='name' and is hidden", () => {
     render(<RechartsMiniBarChart data={sampleData} />);
@@ -236,7 +264,7 @@ describe("RechartsMiniBarChart", () => {
     expect(xAxis).toHaveAttribute("data-hide", "true");
   });
 
-  // ── Tooltip props ─────────────────────────────────────────────────────
+  // ── Tooltip props ──────────────────────────────────────────────────────
 
   it("tooltip uses cursor={false}", () => {
     render(<RechartsMiniBarChart data={sampleData} />);
@@ -250,7 +278,7 @@ describe("RechartsMiniBarChart", () => {
 
     const tooltip = screen.getByTestId("tooltip");
     const style = JSON.parse(
-      tooltip.getAttribute("data-contentstyle") || "{}"
+      tooltip.getAttribute("data-contentstyle") || "{}",
     );
 
     expect(style.background).toBe("var(--chart-tooltip-bg)");
@@ -268,7 +296,7 @@ describe("RechartsMiniBarChart", () => {
     expect(tooltip).toHaveAttribute("data-formatter-result", "42%");
   });
 
-  // ── Edge cases ────────────────────────────────────────────────────────
+  // ── Edge cases ─────────────────────────────────────────────────────────
 
   it("handles single data point", () => {
     render(<RechartsMiniBarChart data={[{ value: 100 }]} />);
@@ -289,131 +317,29 @@ describe("RechartsMiniBarChart", () => {
   it("does not render chart content when data is empty", () => {
     render(<RechartsMiniBarChart data={[]} />);
 
-    expect(screen.queryByTestId("responsive-container")).not.toBeInTheDocument();
+    expect(
+      screen.queryByTestId("responsive-container"),
+    ).not.toBeInTheDocument();
     expect(screen.queryByTestId("bar-chart")).not.toBeInTheDocument();
     expect(screen.queryByTestId("bar")).not.toBeInTheDocument();
     expect(screen.queryByTestId("tooltip")).not.toBeInTheDocument();
   });
 
-  it("renders aria-label on empty state", () => {
+  it("renders aria-label on empty state wrapper", () => {
     render(<RechartsMiniBarChart data={[]} />);
 
     const wrapper = screen.getByLabelText("Mini bar chart");
     expect(wrapper).toBeInTheDocument();
   });
 
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { RechartsMiniBarChart } from "./RechartsMiniBarChart";
-
-const defaultData = [
-  { value: 40 },
-  { value: 70 },
-  { value: 30 },
-  { value: 60 },
-];
-
-describe("RechartsMiniBarChart", () => {
-  afterEach(() => {
-    document.documentElement.classList.remove("dark");
-  });
-
-  it("renders with basic data", () => {
-    const { container } = render(
-      <RechartsMiniBarChart data={defaultData} color="var(--chart-blue)" />,
-    );
-
-    expect(
-      container.querySelector(".recharts-responsive-container"),
-    ).toBeInTheDocument();
-    expect(screen.getByRole("img")).toHaveAttribute(
-      "aria-label",
-      "Mini bar chart",
-    );
-  });
-
-  it("renders with custom aria label and height", () => {
-    render(
-      <RechartsMiniBarChart
-        data={defaultData}
-        color="var(--chart-green)"
-        height="5rem"
-        ariaLabel="Revenue mini chart"
-      />,
-    );
-
-    const chart = screen.getByRole("img");
-    expect(chart).toHaveAttribute("aria-label", "Revenue mini chart");
-    expect(chart).toHaveStyle("height: 5rem");
-  });
-
-  it("renders with empty data without crashing", () => {
-    const { container } = render(
-      <RechartsMiniBarChart data={[]} color="var(--chart-blue)" />,
-    );
-
-    expect(
-      container.querySelector(".recharts-responsive-container"),
-    ).toBeInTheDocument();
-  });
-
-  it("renders with single data point", () => {
-    render(
-      <RechartsMiniBarChart
-        data={[{ value: 100 }]}
-        color="var(--chart-blue)"
-      />,
-    );
-
-    expect(screen.getByRole("img")).toBeInTheDocument();
-  });
-
-  it("renders with aria attributes for accessibility", () => {
-    render(
-      <RechartsMiniBarChart data={defaultData} color="var(--chart-blue)" />,
-    );
-
-    const chart = screen.getByRole("img");
-    expect(chart).toHaveAttribute("aria-label", "Mini bar chart");
-  });
-
-  it("renders with css variable color and produces a responsive container", () => {
-    const { container } = render(
-      <RechartsMiniBarChart
-        data={defaultData}
-        color="var(--chart-amber)"
-      />,
-    );
-
-    expect(
-      container.querySelector(".recharts-responsive-container"),
-    ).toBeInTheDocument();
-  });
-
-  it("renders with all three semantic chart color tokens", () => {
-    const colors = [
-      "var(--chart-blue)",
-      "var(--chart-green)",
-      "var(--chart-amber)",
-    ];
-
-    for (const color of colors) {
-      const { container, unmount } = render(
-        <RechartsMiniBarChart data={defaultData} color={color} />,
-      );
-
-      expect(
-        container.querySelector(".recharts-responsive-container"),
-      ).toBeInTheDocument();
-      unmount();
-    }
-  });
+  // ── Dark mode ──────────────────────────────────────────────────────────
 
   it("renders correctly in dark mode context", () => {
     document.documentElement.classList.add("dark");
 
     render(
       <RechartsMiniBarChart
-        data={defaultData}
+        data={sampleData}
         color="var(--chart-blue)"
         ariaLabel="Dark mode chart"
       />,
@@ -423,7 +349,4 @@ describe("RechartsMiniBarChart", () => {
     expect(chart).toHaveAttribute("aria-label", "Dark mode chart");
     expect(document.documentElement.classList.contains("dark")).toBe(true);
   });
-
-
- main
 });
