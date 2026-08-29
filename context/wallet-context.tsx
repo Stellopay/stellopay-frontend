@@ -26,6 +26,7 @@ import type {
   WalletProviderProps,
 } from "@/types/wallet";
 import { isWalletAddress, isWalletConnectionResult } from "@/types/wallet";
+import { createAccountScope, realtimeRegistry } from "@/lib/realtime-registry";
 
 // Networks exposed to the UI. Stellar is the only network the product is
 // actually built on, so it is the sole supported entry. The placeholder EVM
@@ -99,6 +100,25 @@ export const WalletProvider: React.FC<WalletProviderProps> = ({
     initialNetwork ?? DEFAULT_NETWORK,
   );
   const [isUnsupportedNetwork, setIsUnsupportedNetwork] = useState(false);
+
+  // Account scope of the currently active wallet context. All realtime
+  // subscriptions opened by views are owned by this scope, so the provider
+  // can tear them down when the account (or network) is replaced.
+  const scope = createAccountScope(network.id, address);
+
+  // Tear down realtime channels owned by the *previous* account scope before
+  // the new account context takes over. React runs this cleanup (which closes
+  // over the old scope) whenever the scope changes — account switch, logout,
+  // network switch — and on provider unmount. Combined with the registry's
+  // ownership guard, this guarantees no previous-account event can ever reach
+  // a listener opened for the current account (issue #1179).
+  useEffect(() => {
+    return () => {
+      if (scope) {
+        realtimeRegistry.unsubscribeScope(scope);
+      }
+    };
+  }, [scope]);
 
   const capabilities = useMemo<WalletCapabilities>(() => {
     const base = {

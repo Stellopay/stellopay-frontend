@@ -1,6 +1,12 @@
-import { act, render, renderHook, screen } from "@testing-library/react";
+import {
+  act,
+  fireEvent,
+  render,
+  renderHook,
+  screen,
+} from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import React from "react";
+import React, { useEffect } from "react";
 
 import {
   DEFAULT_NETWORK,
@@ -9,6 +15,7 @@ import {
   formatAddress,
   useWallet,
 } from "@/context/wallet-context";
+import { createAccountScope, realtimeRegistry } from "@/lib/realtime-registry";
 import { WALLET_NETWORK_STORAGE_KEY } from "@/types/wallet";
 import {
   INVALID_SECRET_SEED,
@@ -577,6 +584,132 @@ describe("WalletProvider – network-change event handling", () => {
       });
       unmount();
     }).not.toThrow();
+  });
+});
+
+// ─── Realtime subscription teardown (issue #1179) ────────────────────────────
+//
+// The WalletProvider owns the account scope, so it is responsible for tearing
+// down every realtime channel of the previous account before the new account
+// context takes over. These tests drive a probe component that opens a channel
+// through the shared registry and verify the provider closes it on account
+// switch, logout, and unmount.
+
+describe("WalletProvider – realtime subscription teardown", () => {
+  const SECOND_VALID_WALLET_ADDRESS = "G" + "B".repeat(55);
+
+  /**
+   * Probe that opens a realtime channel for the current wallet scope, the
+   * same way a view using useAccountScopedSubscription would.
+   */
+  function RealtimeProbe() {
+    const { address, network } = useWallet();
+    const scope = createAccountScope(network.id, address);
+
+    useEffect(() => {
+      if (!scope) return;
+      return realtimeRegistry.subscribe(scope, "probe-channel", () => {
+        // no-op listener; presence on the registry is what we assert
+      });
+    }, [scope]);
+
+    return null;
+  }
+
+  function Harness() {
+    const wallet = useWallet();
+    return (
+      <div>
+        <button
+          type="button"
+          data-testid="connect-a"
+          onClick={() => wallet.connect(VALID_WALLET_ADDRESS)}
+        >
+          connect A
+        </button>
+        <button
+          type="button"
+          data-testid="connect-b"
+          onClick={() => wallet.connect(SECOND_VALID_WALLET_ADDRESS)}
+        >
+          connect B
+        </button>
+        <button
+          type="button"
+          data-testid="disconnect"
+          onClick={() => wallet.disconnect()}
+        >
+          disconnect
+        </button>
+        <RealtimeProbe />
+      </div>
+    );
+  }
+
+  function renderHarness() {
+    return render(
+      <WalletProvider>
+        <Harness />
+      </WalletProvider>,
+    );
+  }
+
+  beforeEach(() => {
+    window.localStorage.clear();
+    realtimeRegistry.clear();
+  });
+
+  afterEach(() => {
+    window.localStorage.clear();
+    realtimeRegistry.clear();
+  });
+
+  it("opens a channel scoped to the connected account", () => {
+    renderHarness();
+    fireEvent.click(screen.getByTestId("connect-a"));
+
+    expect(realtimeRegistry.getActiveChannelCount("probe-channel")).toBe(1);
+    expect(realtimeRegistry.getChannelScope("probe-channel")).toBe(
+      `stellar:${VALID_WALLET_ADDRESS}`,
+    );
+  });
+
+  it("tears down the previous account's channels before the new account subscribes", () => {
+    renderHarness();
+    fireEvent.click(screen.getByTestId("connect-a"));
+    expect(realtimeRegistry.getChannelScope("probe-channel")).toBe(
+      `stellar:${VALID_WALLET_ADDRESS}`,
+    );
+
+    // Rapid account switch: B replaces A in the same commit.
+    fireEvent.click(screen.getByTestId("connect-b"));
+
+    expect(realtimeRegistry.getActiveChannelCount("probe-channel")).toBe(1);
+    expect(realtimeRegistry.getChannelScope("probe-channel")).toBe(
+      `stellar:${SECOND_VALID_WALLET_ADDRESS}`,
+    );
+  });
+
+  it("removes all listeners on logout (disconnect)", () => {
+    renderHarness();
+    fireEvent.click(screen.getByTestId("connect-a"));
+    expect(realtimeRegistry.getActiveChannelCount("probe-channel")).toBe(1);
+
+    fireEvent.click(screen.getByTestId("disconnect"));
+
+    expect(realtimeRegistry.getActiveChannelCount("probe-channel")).toBe(0);
+    expect(realtimeRegistry.getListenerCount("probe-channel")).toBe(0);
+  });
+
+  it("removes all listeners on provider unmount", () => {
+    const { unmount } = renderHarness();
+    fireEvent.click(screen.getByTestId("connect-a"));
+    expect(realtimeRegistry.getActiveChannelCount("probe-channel")).toBe(1);
+
+    unmount();
+
+    expect(realtimeRegistry.getActiveChannelCount("probe-channel")).toBe(0);
+    expect(realtimeRegistry.getListenerCount("probe-channel")).toBe(0);
   });
 });
 
