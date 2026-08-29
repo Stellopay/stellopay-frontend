@@ -67,7 +67,7 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { ExternalLink } from "lucide-react";
+import { ExternalLink, RotateCw } from "lucide-react";
 import Link from "next/link";
 import { Skeleton } from "@/components/ui/skeleton";
 import { DownloadReceiptButton } from "@/components/transactions/download-receipt-button";
@@ -98,6 +98,17 @@ interface TransactionsTablePropsExtended extends TransactionsTableProps {
   onUnassignTag?: (txId: string, tagId: string) => void;
   /** Create a new tag and return it */
   onCreateTag?: (name: string) => Tag;
+  /** Retry a failed or timed-out transaction. */
+  onRetryTransaction?: (id: string) => void;
+}
+
+const RETRYABLE_STATUSES = new Set(["Rejected", "Timeout", "Failed", "Retry"]);
+
+function getTransactionStatusState(status: string): "completed" | "current" | "error" | undefined {
+  if (status === "Pending" || status === "Retry") return "current";
+  if (status === "Completed" || status === "Success") return "completed";
+  if (status === "Rejected" || status === "Timeout" || status === "Failed") return "error";
+  return undefined;
 }
 
 /**
@@ -296,6 +307,7 @@ export function TransactionsTable({
   onAssignTag,
   onUnassignTag,
   onCreateTag,
+  onRetryTransaction,
 }: TransactionsTablePropsExtended) {
   const isEmpty = !isLoading && transactions.length === 0;
   
@@ -304,6 +316,21 @@ export function TransactionsTable({
   const [isDialogOpen, setIsDialogOpen] = React.useState(false);
   const triggerRef = React.useRef<HTMLButtonElement | null>(null);
   const tableWrapperRef = React.useRef<HTMLDivElement | null>(null);
+
+  const [liveAnnouncement, setLiveAnnouncement] = React.useState("");
+  const previousStatusesRef = React.useRef<Record<string, string>>({});
+
+  React.useEffect(() => {
+    transactions.forEach((transaction) => {
+      const previousStatus = previousStatusesRef.current[transaction.id];
+      if (previousStatus && previousStatus !== transaction.status) {
+        setLiveAnnouncement(
+          `Transaction ${transaction.id} status changed from ${previousStatus} to ${transaction.status}.`,
+        );
+      }
+      previousStatusesRef.current[transaction.id] = transaction.status;
+    });
+  }, [transactions]);
 
   const handleRowClick = (transaction: TransactionProps, event: React.MouseEvent<HTMLButtonElement>) => {
     triggerRef.current = event.currentTarget;
@@ -406,6 +433,9 @@ function TableHead({ className, ...props }: React.ComponentProps<"th">) {
       {...props}
     />
     <>
+      <span role="status" aria-live="polite" className="sr-only">
+        {liveAnnouncement}
+      </span>
       {/* Desktop Table */}
       <div
         ref={tableWrapperRef}
@@ -563,7 +593,13 @@ function TableHead({ className, ...props }: React.ComponentProps<"th">) {
                   <TableCell className="py-4 px-6">
                     <Badge
                       aria-label={`Status: ${transaction.status}`}
+                      aria-current={
+                        transaction.status === "Pending" || transaction.status === "Retry"
+                          ? "step"
+                          : undefined
+                      }
                       className={getStatusColor(transaction.status)}
+                      data-state={getTransactionStatusState(transaction.status)}
                     >
                       <span className="text-sm">{transaction.status}</span>
                     </Badge>
@@ -592,6 +628,16 @@ function TableHead({ className, ...props }: React.ComponentProps<"th">) {
                         <circle cx="12" cy="12" r="3" />
                       </svg>
                     </button>
+                    {onRetryTransaction && RETRYABLE_STATUSES.has(transaction.status) && (
+                      <button
+                        type="button"
+                        onClick={() => onRetryTransaction(transaction.id)}
+                        className="p-2 rounded-md hover:bg-[#2D2D2D] focus:outline-none focus:ring-2 focus:ring-[#D7E0EF] transition-colors"
+                        aria-label={`Retry transaction ${transaction.id}`}
+                      >
+                        <RotateCw className="h-4 w-4" aria-hidden="true" />
+                      </button>
+                    )}
                     <DownloadReceiptButton
                       transaction={{
                         id: transaction.id,
@@ -647,6 +693,12 @@ function TableHead({ className, ...props }: React.ComponentProps<"th">) {
                   </p>
                 </div>
                 <Badge
+                  aria-current={
+                    transaction.status === "Pending" || transaction.status === "Retry"
+                      ? "step"
+                      : undefined
+                  }
+                  data-state={getTransactionStatusState(transaction.status)}
                   variant={
                     transaction.status === "Completed"
                       ? "default"
