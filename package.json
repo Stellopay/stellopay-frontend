@@ -16,7 +16,8 @@
     "test:e2e": "playwright test --project=chromium",
     "test:a11y": "playwright test tests/a11y.spec.ts",
     "type-check": "tsc --noEmit",
-    "test:e2e:settings": "playwright test tests/settings.spec.ts"
+    "test:e2e:settings": "playwright test tests/settings.spec.ts",
+    "test:security-headers": "playwright test tests/security-headers.spec.ts"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",

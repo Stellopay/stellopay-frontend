@@ -751,6 +751,12 @@ playwright Install Playwright browsers npx playwright install --with-deps chromi
 E2E + accessibility npx playwright test Full Playwright suite, including the axe-core a11y scans described in Accessibility testing — a serious/critical violation fails this job
 On failure, the playwright job uploads the HTML report as a build artifact (playwright-report, retained 7 days) so violations and traces can be inspected without re-running locally.
 
+Security headers
+The repo ships a strict security policy (CSP, X-Frame-Options, HSTS, Referrer-Policy, X-Content-Type-Options) defined once in `lib/security-headers.ts` and applied to every route via `next.config.ts`. The same module drives two regression checks:
+
+- `lib/security-headers.test.ts` — Vitest unit coverage asserting the policy rejects unsafe inline scripts and cross-origin framing.
+- `tests/security-headers.spec.ts` — a Playwright preview check that asserts the headers on representative routes and a hashed static asset. Point it at a deployed preview with `BASE_URL=https://<preview> npx playwright test tests/security-headers.spec.ts --project=chromium`, or run it locally against the prod build with `npm run test:security-headers`. See `design/security-headers-check.md`.
+
 Running a single browser locally
 Pass --project=<name> to target one browser:
 
