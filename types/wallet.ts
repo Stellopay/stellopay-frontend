@@ -25,6 +25,23 @@ export interface Network {
   passphrase?: string;
 }
 
+export interface WalletCapabilities {
+  canSignTransaction: boolean;
+  canSignMessage: boolean;
+  canSwitchNetwork: boolean;
+}
+
+export type WalletActionName =
+  | "signTransaction"
+  | "signMessage"
+  | "switchNetwork";
+
+export interface WalletActionState {
+  enabled: boolean;
+  reason: string;
+  alternative: string;
+}
+
 export interface WalletContextValue {
   // Public Stellar G-address of the currently connected account, or null
   // when no wallet is connected.
@@ -38,6 +55,23 @@ export interface WalletContextValue {
    * than silently continuing with potentially wrong chain data.
    */
   isUnsupportedNetwork: boolean;
+  /**
+   * Current provider capability matrix. The values are calculated from:
+   * - whether a wallet is connected,
+   * - whether the active network is supported, and
+   * - the wallet provider's advertised capabilities.
+   */
+  capabilities: WalletCapabilities;
+  /**
+   * Back-compat alias for the same capability matrix exposed under the older
+   * wallet-capability naming pattern in issue tests.
+   */
+  walletCapabilities: WalletCapabilities;
+  /**
+   * Returns the UI-ready disabled/enabled state for an action with a
+   * recovery message and alternative-path guidance.
+   */
+  getActionState: (action: WalletActionName) => WalletActionState;
   // Switch the active network and persist the choice.
   setNetwork: (network: Network) => void;
   // Simulate a wallet connection by populating a synthetic Stellar address.
@@ -77,6 +111,19 @@ export interface WalletProviderProps {
    */
   subscribeToNetworkChanges?: (
     onNetworkChanged: (networkId: string) => void,
+  ) => (() => void) | void;
+  /**
+   * Optional provider capability flags advertised by the wallet integration.
+   * These are evaluated alongside the app's connection and network state to
+   * decide whether actions should be disabled before prompting the wallet.
+   */
+  providerCapabilities?: Partial<WalletCapabilities>;
+  /**
+   * Optional external account-change subscription hook used to keep capability
+   * state in sync when a wallet reconnects or switches addresses.
+   */
+  subscribeToAccountChanges?: (
+    onAccountChanged: (address: string | null) => void,
   ) => (() => void) | void;
 }
 
