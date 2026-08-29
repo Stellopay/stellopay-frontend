@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import { Check, Pencil, Trash2, Wallet as WalletIcon, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -49,11 +49,19 @@ export function WalletsSection({
     editingValue.trim() !==
       (walletList.find((w) => w.id === editingId)?.nickname ?? "").trim();
 
+  const confirmDiscardChanges = useCallback(() => {
+    if (!isDirty) return true;
+    return window.confirm(
+      "You have unsaved changes. Are you sure you want to leave?",
+    );
+  }, [isDirty]);
+
   useEffect(() => {
     if (!isDirty) return;
 
     const handleBeforeUnload = (e: BeforeUnloadEvent) => {
       e.preventDefault();
+      e.returnValue = "";
     };
 
     const originalPushState = window.history.pushState;
@@ -62,7 +70,7 @@ export function WalletsSection({
     window.history.pushState = function (
       ...args: Parameters<typeof originalPushState>
     ) {
-      if (!window.confirm("You have unsaved changes. Are you sure you want to leave?")) {
+      if (!confirmDiscardChanges()) {
         return;
       }
       originalPushState.apply(this, args);
@@ -71,7 +79,7 @@ export function WalletsSection({
     window.history.replaceState = function (
       ...args: Parameters<typeof originalReplaceState>
     ) {
-      if (!window.confirm("You have unsaved changes. Are you sure you want to leave?")) {
+      if (!confirmDiscardChanges()) {
         return;
       }
       originalReplaceState.apply(this, args);
@@ -84,9 +92,10 @@ export function WalletsSection({
       window.history.pushState = originalPushState;
       window.history.replaceState = originalReplaceState;
     };
-  }, [isDirty]);
+  }, [isDirty, confirmDiscardChanges]);
 
   const startEditing = (wallet: WalletItem) => {
+    if (!confirmDiscardChanges()) return;
     setEditingId(wallet.id);
     setEditingValue(wallet.nickname);
   };
@@ -118,6 +127,11 @@ export function WalletsSection({
   const handleConfirmRemove = () => {
     if (!walletToRemove) return;
     const { id } = walletToRemove;
+    if (editingId === id) {
+      if (!confirmDiscardChanges()) return;
+      setEditingId(null);
+      setEditingValue("");
+    }
     setWalletList((prev) => prev.filter((w) => w.id !== id));
     onRemoveWallet?.(id);
     setWalletToRemove(null);
