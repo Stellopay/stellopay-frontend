@@ -15,3 +15,11 @@ if (typeof globalThis.ResizeObserver === "undefined") {
   globalThis.ResizeObserver =
     ResizeObserverStub as unknown as typeof ResizeObserver;
 }
+
+if (typeof document !== "undefined" && !document.execCommand) {
+  Object.defineProperty(document, "execCommand", {
+    value: () => false,
+    configurable: true,
+    writable: true,
+  });
+}

@@ -1,11 +1,13 @@
 "use client";
 
 import React from "react";
-import { AccountSummaryCardProps } from './summary-data';
-import dynamic from 'next/dynamic';
-import { Skeleton } from '@/components/ui/skeleton';
-import { formatCurrency } from '@/utils/formatUtils';
-import { StatCard } from '@/components/ui/stat-card';
+import Link from "next/link";
+import dynamic from "next/dynamic";
+import { TrendingUp, TrendingDown } from "lucide-react";
+import { AccountSummaryCardProps } from "./summary-data";
+import { Skeleton } from "@/components/ui/skeleton";
+import { formatCurrency } from "@/utils/formatUtils";
+import { StatCard } from "@/components/ui/stat-card";
 
 const RechartsMiniBarChart = dynamic(
   () => import('./RechartsMiniBarChart').then(mod => mod.RechartsMiniBarChart),
@@ -51,6 +53,20 @@ export default function AccountSummaryCard({
     filterQuery !== undefined
       ? `/transactions?filter=${encodeURIComponent(filterQuery)}`
       : undefined;
+
+  if (isZeroBalance) {
+    return (
+      <div
+        role="img"
+        aria-label="No activity yet"
+        data-testid="account-summary-card-empty-state"
+        className="flex items-center justify-center rounded-xl border border-dashed border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900/30 text-sm font-medium text-zinc-500 dark:text-zinc-400"
+        style={{ height: "3rem" }}
+      >
+        No activity yet
+      </div>
+    );
+  }
 
   const cardContent = (
     <>

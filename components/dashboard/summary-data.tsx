@@ -33,11 +33,7 @@ export const summaryCardsData: AccountSummaryCardProps[] = [
     change: "+12.5% vs last month",
     isPositive: true,
     iconBgColor: "bg-blue-500/10",
-design-system/mini-bar-chart-dark-tokens
-    chartColor: "--chart-1",
-
     chartColor: "var(--chart-blue)",
- main
     icon: null, // Will be replaced with actual icon component
     filterQuery: "",
     chartData: [
@@ -60,11 +56,7 @@ design-system/mini-bar-chart-dark-tokens
     change: "+8.2% vs last month",
     isPositive: true,
     iconBgColor: "bg-emerald-500/10",
- design-system/mini-bar-chart-dark-tokens
-    chartColor: "--chart-2",
-
     chartColor: "var(--chart-green)",
- main
     icon: null,
     filterQuery: "Payment Sent",
     chartData: [
@@ -87,11 +79,7 @@ design-system/mini-bar-chart-dark-tokens
     change: "-3.1% vs last month",
     isPositive: false,
     iconBgColor: "bg-amber-500/10",
- design-system/mini-bar-chart-dark-tokens
-    chartColor: "--chart-3",
-
     chartColor: "var(--chart-amber)",
- main
     icon: null,
     filterQuery: "Payment Received",
     chartData: [

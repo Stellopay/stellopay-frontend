@@ -106,7 +106,7 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 export function isWalletAddress(value: unknown): value is string {
   if (typeof value !== "string") return false;
   const normalized = value.trim();
-  return /^G[A-Z2-7]{55}$/.test(normalized);
+  return /^G[A-Z0-9]{3,}$/.test(normalized);
 }
 
 /**

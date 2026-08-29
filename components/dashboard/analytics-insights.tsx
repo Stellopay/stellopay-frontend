@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo, useRef } from "react";
+import { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import Link from "next/link";
 import {
   TrendingUp,
@@ -11,11 +11,13 @@ import {
   ArrowRight,
   Settings,
   Check,
+  RefreshCw,
   type LucideIcon,
 } from "lucide-react";
 import { cn } from "@/utils/commonUtils";
 import { safeStorage } from "@/utils/safeStorage";
 import { EmptyState } from "@/components/ui/empty-state";
+import { ErrorState } from "@/components/ui/error-state";
 import {
   Dialog,
   DialogContent,
@@ -24,6 +26,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import { useWidgetState } from "@/hooks/useWidgetState";
 
 export interface KPICardItem {
   id: string;
@@ -370,6 +373,8 @@ export function AnalyticsInsights({
     });
   }, [hasHydrated, selectedMetricIds]);
 
+  const hasExplicitKPIs = typeof kpisProp !== "undefined";
+
   // Determine which KPIs to render:
   // - If the parent explicitly passes kpis, use that (could be empty = empty state)
   // - Otherwise use the catalog-based visibleKPIs (always populated)
@@ -378,6 +383,8 @@ export function AnalyticsInsights({
   const handleMetricsChange = (ids: string[]) => {
     setSelectedMetricIds(ids);
   };
+
+  const hasNoVisibleKPIs = displayKPIs.length === 0;
 
   return (
     <section
@@ -468,54 +475,62 @@ export function AnalyticsInsights({
         </div>
       </div>
 
-      {/* KPI Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-        {visibleKPIs.map((item) => {
-          const Icon = item.icon;
-          return (
-            <div
-              key={item.id}
-              className={cn(
-                "rounded-2xl border p-5 flex flex-col group hover:shadow-md transition-all",
-                "bg-zinc-50/50 dark:bg-zinc-900/30 border-zinc-100 dark:border-zinc-800/50",
-              )}
-            >
-              <div className="flex items-start justify-between gap-2">
-                <div
-                  className={cn(
-                    "flex items-center justify-center w-12 h-12 rounded-xl shrink-0 transition-transform group-hover:scale-110",
-                    item.iconBg,
-                    item.iconColor,
-                  )}
-                >
-                  <Icon className="h-6 w-6" aria-hidden />
-                </div>
-                <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-emerald-50 dark:bg-emerald-500/10">
-                  <span
+      {hasNoVisibleKPIs ? (
+        <div aria-live="polite" aria-atomic="true">
+          <EmptyState
+            title="No analytics data yet"
+            description="Start accepting payments to see your transaction metrics."
+          />
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+          {displayKPIs.map((item) => {
+            const Icon = item.icon;
+            return (
+              <div
+                key={item.id}
+                className={cn(
+                  "rounded-2xl border p-5 flex flex-col group hover:shadow-md transition-all",
+                  "bg-zinc-50/50 dark:bg-zinc-900/30 border-zinc-100 dark:border-zinc-800/50",
+                )}
+              >
+                <div className="flex items-start justify-between gap-2">
+                  <div
                     className={cn(
-                      "text-xs font-bold",
-                      item.computedTrend.direction === "up" &&
-                        "text-emerald-600 dark:text-emerald-400",
-                      item.computedTrend.direction === "down" &&
-                        "text-red-600 dark:text-red-400",
-                      item.computedTrend.direction === "neutral" &&
-                        "text-zinc-500 dark:text-zinc-400",
+                      "flex items-center justify-center w-12 h-12 rounded-xl shrink-0 transition-transform group-hover:scale-110",
+                      item.iconBg,
+                      item.iconColor,
                     )}
                   >
-                    {item.computedTrend.formattedDelta}
-                  </span>
+                    <Icon className="h-6 w-6" aria-hidden />
+                  </div>
+                  <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-emerald-50 dark:bg-emerald-500/10">
+                    <span
+                      className={cn(
+                        "text-xs font-bold",
+                        item.computedTrend.direction === "up" &&
+                          "text-emerald-600 dark:text-emerald-400",
+                        item.computedTrend.direction === "down" &&
+                          "text-red-600 dark:text-red-400",
+                        item.computedTrend.direction === "neutral" &&
+                          "text-zinc-500 dark:text-zinc-400",
+                      )}
+                    >
+                      {item.computedTrend.formattedDelta}
+                    </span>
+                  </div>
                 </div>
+                <p className="text-3xl font-bold text-zinc-900 dark:text-white mt-4 tracking-tight">
+                  {item.value}
+                </p>
+                <p className="text-sm font-bold text-zinc-400 dark:text-zinc-500 mt-1 uppercase tracking-wider">
+                  {item.label}
+                </p>
               </div>
-              <p className="text-3xl font-bold text-zinc-900 dark:text-white mt-4 tracking-tight">
-                {item.value}
-              </p>
-              <p className="text-sm font-bold text-zinc-400 dark:text-zinc-500 mt-1 uppercase tracking-wider">
-                {item.label}
-              </p>
-            </div>
-          );
-        })}
-      </div>
+            );
+          })}
+        </div>
+      )}
     </section>
   );
 }
