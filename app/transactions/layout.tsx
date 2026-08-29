@@ -1,5 +1,6 @@
 import AppLayout from "@/components/common/app-layout";
 import { SidebarProvider } from "@/context/sidebar-context";
+import { ScopedErrorBoundary } from "@/components/common/scoped-error-boundary";
 import { Metadata } from "next";
 
 /**
@@ -56,7 +57,15 @@ export default function TransactionsLayout({
 }>) {
   return (
     <SidebarProvider>
-      <AppLayout>{children}</AppLayout>
+      <AppLayout>
+        <ScopedErrorBoundary
+          scope="transactions"
+          fallbackHref="/dashboard"
+          fallbackLabel="Back to dashboard"
+        >
+          {children}
+        </ScopedErrorBoundary>
+      </AppLayout>
     </SidebarProvider>
   );
 }

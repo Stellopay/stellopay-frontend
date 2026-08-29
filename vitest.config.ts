@@ -56,6 +56,7 @@ export default defineConfig({
         "components/common/notification-panel.tsx",
         "components/common/app-layout.tsx",
         "components/common/network-switcher.tsx",
+        "components/common/scoped-error-boundary.tsx",
         "components/common/search-bar.tsx",
         "components/ui/pagination.tsx",
        "components/dashboard/account-summary-card.tsx",

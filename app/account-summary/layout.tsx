@@ -1,6 +1,7 @@
 import type React from "react";
 import AppLayout from "@/components/common/app-layout";
 import { SidebarProvider } from "@/context/sidebar-context";
+import { ScopedErrorBoundary } from "@/components/common/scoped-error-boundary";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
@@ -20,7 +21,15 @@ export default function AccountSummaryLayout({
 }>) {
   return (
     <SidebarProvider>
-      <AppLayout>{children}</AppLayout>
+      <AppLayout>
+        <ScopedErrorBoundary
+          scope="account-summary"
+          fallbackHref="/dashboard"
+          fallbackLabel="Back to dashboard"
+        >
+          {children}
+        </ScopedErrorBoundary>
+      </AppLayout>
     </SidebarProvider>
   );
 }
