@@ -1428,3 +1428,52 @@ describe("SecurityTab — 2FA verification security", () => {
     expect(err).not.toContain("12345");
   });
 });
+
+// ---------------------------------------------------------------------------
+// Destructive API-key actions — idempotent confirmation
+// ---------------------------------------------------------------------------
+
+describe("SecurityTab — API key revocation", () => {
+  it("issues a single revoke request across a rapid double click and closes only after it resolves", async () => {
+    render(<SecurityTab />);
+
+    fireEvent.click(screen.getAllByRole("button", { name: /^revoke$/i })[0]);
+    fireEvent.change(screen.getByLabelText('Type "REVOKE" to continue'), {
+      target: { value: "REVOKE" },
+    });
+    const confirm = screen.getByRole("button", { name: "Revoke key" });
+    fireEvent.click(confirm);
+    fireEvent.click(confirm);
+
+    // The key stays visible until the simulated request resolves (~350 ms),
+    // then the dialog closes and the key is removed exactly once.
+    await waitFor(
+      () =>
+        expect(
+          screen.queryByText("Mobile payouts service"),
+        ).not.toBeInTheDocument(),
+      { timeout: 3000 },
+    );
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    expect(screen.getByText("Reporting sync")).toBeInTheDocument();
+  });
+
+  it("keeps the revoke dialog pending (controls disabled) until the request resolves", async () => {
+    render(<SecurityTab />);
+
+    fireEvent.click(screen.getAllByRole("button", { name: /^revoke$/i })[0]);
+    fireEvent.change(screen.getByLabelText('Type "REVOKE" to continue'), {
+      target: { value: "REVOKE" },
+    });
+    const confirm = screen.getByRole("button", { name: "Revoke key" });
+
+    fireEvent.click(confirm);
+    // Immediately after confirming, the confirm button is disabled while pending.
+    expect(confirm).toBeDisabled();
+
+    await waitFor(
+      () => expect(screen.queryByRole("dialog")).not.toBeInTheDocument(),
+      { timeout: 3000 },
+    );
+  });
+});

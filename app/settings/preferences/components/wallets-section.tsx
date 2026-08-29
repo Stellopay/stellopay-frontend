@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import { Check, Pencil, Trash2, Wallet as WalletIcon, X } from "lucide-react";
+import { Check, Loader2, Pencil, Trash2, Wallet as WalletIcon, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -13,6 +13,8 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { truncateStellarAddress } from "@/utils/stellarAddress";
+import { useSearchHighlight } from "@/hooks/useSearchHighlight";
+import { usePendingAction } from "@/hooks/usePendingAction";
 
 export interface WalletItem {
   id: string;
@@ -22,8 +24,11 @@ export interface WalletItem {
 
 interface WalletsSectionProps {
   wallets?: WalletItem[];
-  onRemoveWallet?: (id: string) => void;
+  /** May return a promise; the remove dialog stays pending until it resolves. */
+  onRemoveWallet?: (id: string) => void | Promise<void>;
   onUpdateNickname?: (id: string, nickname: string) => void;
+  /** When set, scrolls to and highlights the matching control. */
+  highlightedSearchLabel?: string | null;
 }
 
 const MAX_NICKNAME_LENGTH = 40;
@@ -37,12 +42,24 @@ export function WalletsSection({
   wallets = DEFAULT_WALLETS,
   onRemoveWallet,
   onUpdateNickname,
+  highlightedSearchLabel,
 }: WalletsSectionProps) {
   useSearchHighlight(highlightedSearchLabel ?? null);
   const [walletList, setWalletList] = useState<WalletItem[]>(wallets);
   const [walletToRemove, setWalletToRemove] = useState<WalletItem | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editingValue, setEditingValue] = useState("");
+  const {
+    isPending: isRemoving,
+    error: removeError,
+    run: runRemove,
+    reset: resetRemove,
+  } = usePendingAction({ genericErrorMessage: "Failed to remove the wallet." });
+
+  const openRemoveDialog = (wallet: WalletItem) => {
+    resetRemove();
+    setWalletToRemove(wallet);
+  };
 
   const startEditing = (wallet: WalletItem) => {
     setEditingId(wallet.id);
@@ -74,11 +91,13 @@ export function WalletsSection({
   };
 
   const handleConfirmRemove = () => {
-    if (!walletToRemove) return;
+    if (!walletToRemove || isRemoving) return;
     const { id } = walletToRemove;
-    setWalletList((prev) => prev.filter((w) => w.id !== id));
-    onRemoveWallet?.(id);
-    setWalletToRemove(null);
+    void runRemove(async () => {
+      setWalletList((prev) => prev.filter((w) => w.id !== id));
+      await onRemoveWallet?.(id);
+      setWalletToRemove(null);
+    });
   };
 
   return (
@@ -167,9 +186,10 @@ export function WalletsSection({
                 <Button
                   variant="ghost"
                   size="icon"
-                  onClick={() => setWalletToRemove(wallet)}
+                  onClick={() => openRemoveDialog(wallet)}
                   aria-label={`Remove ${displayName} (${wallet.address})`}
                   className="shrink-0 text-destructive hover:bg-destructive/10 hover:text-destructive"
+                  disabled={isRemoving}
                 >
                   <Trash2 className="h-4 w-4" />
                 </Button>
@@ -180,8 +200,18 @@ export function WalletsSection({
       )}
 
       {/* WCAG 2.1 AA – Remove Confirmation Dialog */}
-      <Dialog open={!!walletToRemove} onOpenChange={(open) => !open && setWalletToRemove(null)}>
-        <DialogContent className="sm:max-w-[425px]">
+      <Dialog
+        open={!!walletToRemove}
+        onOpenChange={(nextOpen) => {
+          // Never dismiss while the removal request is in flight.
+          if (isRemoving) return;
+          if (!nextOpen) setWalletToRemove(null);
+        }}
+      >
+        <DialogContent
+          className="sm:max-w-[425px]"
+          showCloseButton={!isRemoving}
+        >
           <DialogHeader>
             <DialogTitle>Remove Connected Wallet</DialogTitle>
             <DialogDescription className="pt-2 text-sm">
@@ -195,11 +225,37 @@ export function WalletsSection({
             </DialogDescription>
           </DialogHeader>
           <DialogFooter className="mt-4 gap-2 sm:gap-0">
-            <Button type="button" variant="outline" onClick={() => setWalletToRemove(null)}>
+            {removeError && (
+              <p
+                role="alert"
+                aria-live="polite"
+                className="w-full text-xs font-medium text-destructive"
+              >
+                {removeError}. You can retry.
+              </p>
+            )}
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setWalletToRemove(null)}
+              disabled={isRemoving}
+            >
               Cancel
             </Button>
-            <Button type="button" variant="destructive" onClick={handleConfirmRemove}>
-              Remove Wallet
+            <Button
+              type="button"
+              variant="destructive"
+              onClick={handleConfirmRemove}
+              disabled={isRemoving}
+            >
+              {isRemoving ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  Removing...
+                </>
+              ) : (
+                "Remove Wallet"
+              )}
             </Button>
           </DialogFooter>
         </DialogContent>

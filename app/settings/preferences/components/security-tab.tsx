@@ -41,7 +41,6 @@ import {
 } from "@/utils/authUtils";
 import DestructiveActionDialog from "./destructive-action-dialog";
 import { DEMO_SECURITY, DEMO_CONNECTED_APPS } from "@/lib/demo-data";
-import { DEMO_SECURITY } from "@/lib/demo-data";
 import { generateTotpSecret, verifyTotpCode } from "@/lib/totp";
 import QRCode from "qrcode";
 
@@ -635,7 +634,7 @@ export default function SecurityTab({
   };
 
   const handleRotateApiKey = (key: ApiKeyRecord) => {
-    void queueApiKeyAction(`rotate-${key.id}`, () => {
+    return queueApiKeyAction(`rotate-${key.id}`, () => {
       const secret = createApiKeySecret(key.name);
 
       setApiKeys((current) =>
@@ -661,7 +660,7 @@ export default function SecurityTab({
   };
 
   const handleRevokeApiKey = (key: ApiKeyRecord) => {
-    void queueApiKeyAction(`revoke-${key.id}`, () => {
+    return queueApiKeyAction(`revoke-${key.id}`, () => {
       setApiKeys((current) => current.filter((item) => item.id !== key.id));
       if (revealedApiSecret?.keyId === key.id) {
         setRevealedApiSecret(null);
