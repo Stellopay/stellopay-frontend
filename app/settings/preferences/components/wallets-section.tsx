@@ -85,10 +85,26 @@ export function WalletsSection({
       originalReplaceState.apply(this, args);
     };
 
+    let suppressingPopState = false;
+
+    const handlePopState = () => {
+      if (suppressingPopState) {
+        suppressingPopState = false;
+        return;
+      }
+
+      if (!confirmDiscardChanges()) {
+        suppressingPopState = true;
+        window.history.go(1);
+      }
+    };
+
     window.addEventListener("beforeunload", handleBeforeUnload);
+    window.addEventListener("popstate", handlePopState);
 
     return () => {
       window.removeEventListener("beforeunload", handleBeforeUnload);
+      window.removeEventListener("popstate", handlePopState);
       window.history.pushState = originalPushState;
       window.history.replaceState = originalReplaceState;
     };
