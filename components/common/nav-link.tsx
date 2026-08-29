@@ -59,7 +59,15 @@ function CollapsedNavLink({
   const { isDirty, confirmNavigation } = useDirtyGuard();
 
   const handleNavigation = (event: MouseEvent<HTMLAnchorElement>) => {
-    if (isDirty && !confirmNavigation()) {
+    if (
+      isDirty &&
+      event.button === 0 &&
+      !event.metaKey &&
+      !event.ctrlKey &&
+      !event.shiftKey &&
+      !event.altKey &&
+      !confirmNavigation()
+    ) {
       event.preventDefault();
       event.stopPropagation();
     }
@@ -174,7 +182,15 @@ export const NavLink = () => {
   }, [isDirty]);
 
   const handleNavigation = (event: MouseEvent<HTMLAnchorElement>) => {
-    if (isDirty && !confirmNavigation()) {
+    if (
+      isDirty &&
+      event.button === 0 &&
+      !event.metaKey &&
+      !event.ctrlKey &&
+      !event.shiftKey &&
+      !event.altKey &&
+      !confirmNavigation()
+    ) {
       event.preventDefault();
       event.stopPropagation();
     }
