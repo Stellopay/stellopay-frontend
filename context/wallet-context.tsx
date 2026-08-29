@@ -63,14 +63,6 @@ interface DirtyGuardContextValue {
 
 const DirtyGuardContext = createContext<DirtyGuardContextValue | undefined>(undefined);
 
-export function useDirtyGuard(): DirtyGuardContextValue {
-  const ctx = useContext(DirtyGuardContext);
-  if (!ctx) {
-    throw new Error("useDirtyGuard must be used within WalletProvider");
-  }
-  return ctx;
-}
-
 const DISCARD_WARNING =
   "You have unsaved changes. Discard them and continue?";
 
