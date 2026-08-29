@@ -236,3 +236,41 @@ export async function sendMagicLink(email: string): Promise<void> {
     );
   }
 }
+
+/**
+ * Refreshes an expired authorization or CSRF token using the backend refresh endpoint.
+ *
+ * @param refreshToken - Optional explicit refresh token string if not stored in cookies.
+ * @returns Object containing new accessToken and csrfToken if returned by the backend.
+ * @throws {AuthError} If token refresh fails (unrecoverable expiry/invalidation).
+ */
+export async function refreshToken(refreshToken?: string): Promise<{ accessToken?: string; csrfToken?: string }> {
+  const baseUrl =
+    process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:3000/api";
+
+  try {
+    const response = await fetch(`${baseUrl}/auth/refresh`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ refreshToken }),
+    });
+
+    if (!response.ok) {
+      throw new AuthError("Session expired. Please sign in again.");
+    }
+
+    const data = await response.json().catch(() => ({}));
+    return {
+      accessToken: data.accessToken || data.token,
+      csrfToken: data.csrfToken,
+    };
+  } catch (error) {
+    if (error instanceof AuthError) {
+      throw error;
+    }
+    throw new AuthError("Failed to refresh session token.");
+  }
+}
+
