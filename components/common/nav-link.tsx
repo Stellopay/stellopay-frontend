@@ -56,6 +56,13 @@ function CollapsedNavLink({
 }: CollapsedNavLinkProps) {
   const [isHovered, setIsHovered] = useState(false);
   const [isFocused, setIsFocused] = useState(false);
+  const { isDirty, confirmNavigation } = useDirtyGuard();
+
+  const handleNavigation = (event: MouseEvent<HTMLAnchorElement>) => {
+    if (isDirty && !confirmNavigation()) {
+      event.preventDefault();
+    }
+  };
   const tooltipId = useId();
   const isTooltipOpen = isHovered || isFocused;
 
@@ -85,6 +92,7 @@ function CollapsedNavLink({
             onMouseLeave={() => setIsHovered(false)}
             onFocus={() => setIsFocused(true)}
             onBlur={() => setIsFocused(false)}
+            onClick={handleNavigation}
             className={`cursor-pointer my-1.5 p-3 relative rounded-xl flex items-center justify-center transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background ${
               isActive
                 ? ""
