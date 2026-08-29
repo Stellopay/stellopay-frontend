@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useRef, useState } from "react";
 import { SupportTicket, SupportTicketStatus } from "@/types/support";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -39,6 +40,30 @@ interface TicketStatusWidgetProps {
   isLoading?: boolean;
 }
 
+const STATUS_STEPS: Array<{ value: SupportTicketStatus; label: string }> = [
+  { value: "open", label: "Open" },
+  { value: "in-progress", label: "In Progress" },
+  { value: "resolved", label: "Resolved" },
+];
+
+function getStepState(
+  step: SupportTicketStatus,
+  currentStatus: SupportTicketStatus,
+): "current" | "completed" | "upcoming" {
+  if (currentStatus === "resolved") return "completed";
+
+  const currentIndex = STATUS_STEPS.findIndex(
+    (statusStep) => statusStep.value === currentStatus,
+  );
+  const stepIndex = STATUS_STEPS.findIndex(
+    (statusStep) => statusStep.value === step,
+  );
+
+  if (stepIndex === currentIndex) return "current";
+  if (stepIndex < currentIndex) return "completed";
+  return "upcoming";
+}
+
 /**
  * Formats a timestamp to a human-readable relative time string.
  *
@@ -65,6 +90,26 @@ function formatRelativeTime(dateString: string): string {
   return `${months} month${months > 1 ? "s" : ""} ago`;
 }
 
+function StatusLiveRegion({ ticket }: { ticket: SupportTicket }) {
+  const previousStatus = useRef(ticket.status);
+  const [announcement, setAnnouncement] = useState("");
+
+  useEffect(() => {
+    if (previousStatus.current !== ticket.status) {
+      setAnnouncement(
+        `Ticket ${ticket.id} status changed to ${ticket.status.replace("-", " ")}`,
+      );
+      previousStatus.current = ticket.status;
+    }
+  }, [ticket.id, ticket.status]);
+
+  return (
+    <span role="status" aria-live="polite" aria-atomic="true" className="sr-only">
+      {announcement}
+    </span>
+  );
+}
+
 /**
  * Renders a single support ticket row with status badge, category, and timestamps.
  * Accessible via keyboard and screen readers.
@@ -74,10 +119,34 @@ function TicketRow({ ticket }: { ticket: SupportTicket }) {
   const statusStyle = STATUS_STYLES[ticket.status];
 
   return (
-    <div
+    <li
       className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4 p-4 rounded-lg border border-zinc-200 bg-white/50 hover:bg-white/70 transition-colors dark:border-white/10 dark:bg-white/5 dark:hover:bg-white/10"
-      role="listitem"
     >
+      {/* Screen reader status timeline */}
+      <ol
+        className="sr-only"
+        aria-label={`Status timeline for ticket ${ticket.id}`}
+      >
+        {STATUS_STEPS.map((step) => {
+          const state = getStepState(step.value, ticket.status);
+          return (
+            <li
+              key={step.value}
+              data-state={state}
+              aria-current={state === "current" ? "step" : undefined}
+            >
+              <span className="sr-only">
+                {state === "current"
+                  ? "Current step: "
+                  : state === "completed"
+                    ? "Completed step: "
+                    : "Upcoming step: "}
+              </span>
+              {step.label}
+            </li>
+          );
+        })}
+      </ol>
       {/* Left side: Ticket info */}
       <div className="flex-1 min-w-0">
         <div className="flex items-start gap-3">
@@ -109,6 +178,8 @@ function TicketRow({ ticket }: { ticket: SupportTicket }) {
             "inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap",
             statusStyle,
           )}
+          data-state={ticket.status === "resolved" ? "completed" : "current"}
+          aria-current={ticket.status === "resolved" ? undefined : "step"}
           aria-label={`Status: ${ticket.status.replace("-", " ")}`}
         >
           <StatusIcon className="h-3 w-3" />
@@ -123,7 +194,8 @@ function TicketRow({ ticket }: { ticket: SupportTicket }) {
           </time>
         </div>
       </div>
-    </div>
+      <StatusLiveRegion ticket={ticket} />
+    </li>
   );
 }
 
@@ -215,15 +287,14 @@ export default function TicketStatusWidget({
         </CardDescription>
       </CardHeader>
       <CardContent>
-        <div
+        <ul
           className="space-y-3"
-          role="list"
           aria-label="Support tickets list"
         >
           {tickets.map((ticket) => (
             <TicketRow key={ticket.id} ticket={ticket} />
           ))}
-        </div>
+        </ul>
 
         {/* Legend for status badges */}
         <div className="mt-6 pt-4 border-t border-zinc-200 dark:border-white/10">
