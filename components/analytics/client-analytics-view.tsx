@@ -7,6 +7,12 @@ import { Calendar } from "@/components/ui/calendar";
 import Skeleton from "@/components/ui/skeleton";
 import { cn } from "@/utils/commonUtils";
 import type { AnalyticsViewsProps, AnalyticsDataPoint } from "./analytics-view";
+import {
+  createUtcRangePredicate,
+  parseAnalyticsTimeWindow,
+  type AnalyticsDatePreset,
+  type TimeWindowError,
+} from "@/utils/analyticsTimeWindow";
 
 const AnalyticsViews = dynamic(() => import("./analytics-view"), {
   ssr: false,
@@ -29,22 +35,24 @@ const MONTH_NAMES: Record<string, number> = {
   dec: 11, december: 11,
 };
 
-function monthNameToDate(month: string): Date {
+/**
+ * Converts a month name (e.g. "Jan", "September") to a Date representing
+ * the 15th of that month in the current UTC year.
+ *
+ * Uses UTC to avoid DST-related day shifts when the month name is resolved
+ * to a concrete date.
+ */
+function monthNameToUtcDate(month: string): Date {
   const lower = month.toLowerCase();
   const monthIndex = MONTH_NAMES[lower] ?? 0;
-  const now = new Date();
-  const year = now.getFullYear();
-  // Use the 15th as a representative day for the month
-  return new Date(year, monthIndex, 15);
-}
-
-function toDateOnly(d: Date): Date {
-  return new Date(d.getFullYear(), d.getMonth(), d.getDate());
+  const year = new Date().getUTCFullYear();
+  // Use the 15th as a representative day for the month (UTC)
+  return new Date(Date.UTC(year, monthIndex, 15));
 }
 
 // ── date-range presets ─────────────────────────────────────────────────────
 
-export type DateRangePreset = "7d" | "30d" | "90d" | "custom";
+export type DateRangePreset = AnalyticsDatePreset;
 
 export interface DateRangeValue {
   preset: DateRangePreset;
@@ -140,44 +148,43 @@ function DateRangePicker({ value, onChange }: DateRangePickerProps) {
 
 // ── data filtering ─────────────────────────────────────────────────────────
 
-function getPresetStartDate(preset: DateRangePreset): Date {
-  const now = toDateOnly(new Date());
-  switch (preset) {
-    case "7d":
-      return new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-    case "30d":
-      return new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
-    case "90d":
-      return new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000);
-    default:
-      return now;
-  }
-}
-
+/**
+ * Filters analytics data points by the given date range.
+ *
+ * Uses the UTC-based {@link parseAnalyticsTimeWindow} pipeline so that:
+ * - DST transitions never shift the requested window.
+ * - Reversed / oversized / same-day ranges are rejected *before* filtering.
+ * - Month-name data points are normalised to UTC dates for deterministic
+ *   comparison.
+ *
+ * @returns An object with the filtered data and any validation error.
+ */
 function filterDataByRange(
   data: AnalyticsDataPoint[],
   range: DateRangeValue,
-): AnalyticsDataPoint[] {
-  const now = toDateOnly(new Date());
+): { filtered: AnalyticsDataPoint[]; error: TimeWindowError | null } {
+  const result = parseAnalyticsTimeWindow({
+    preset: range.preset,
+    from: range.from,
+    to: range.to,
+  });
 
-  let fromDate: Date;
-  let toDate: Date = now;
-
-  if (range.preset === "custom" && range.from && range.to) {
-    fromDate = range.from;
-    toDate = range.to;
-  } else {
-    fromDate = getPresetStartDate(range.preset);
+  if (!result.ok) {
+    // Validation failed — return all data with the error so the caller
+    // can surface the message.  Returning the unfiltered data avoids a
+    // blank screen; the error banner explains why filtering is skipped.
+    return { filtered: data, error: result.error };
   }
 
-  // Normalise bounds to midnight for day-level comparison
-  const fromNorm = toDateOnly(fromDate);
-  const toNorm = toDateOnly(toDate);
+  const { from, to } = result.window;
+  const predicate = createUtcRangePredicate(from, to);
 
-  return data.filter((point) => {
-    const pointDate = monthNameToDate(point.month);
-    return pointDate >= fromNorm && pointDate <= toNorm;
+  const filtered = data.filter((point) => {
+    const pointDate = monthNameToUtcDate(point.month);
+    return predicate(pointDate);
   });
+
+  return { filtered, error: null };
 }
 
 // ── component ──────────────────────────────────────────────────────────────
@@ -223,9 +230,10 @@ export default function ClientAnalyticsView(props: ClientAnalyticsViewProps) {
     [onDateRangeChange],
   );
 
-  // Filter data based on selected date range
-  const filteredData = useMemo(() => {
-    if (!viewProps.data || viewProps.data.length === 0) return viewProps.data;
+  // Validate and filter data based on selected date range
+  const { filtered: filteredData, error: timeWindowError } = useMemo(() => {
+    if (!viewProps.data || viewProps.data.length === 0)
+      return { filtered: viewProps.data, error: null };
     return filterDataByRange(viewProps.data, activeRange);
   }, [viewProps.data, activeRange]);
 
@@ -316,6 +324,14 @@ export default function ClientAnalyticsView(props: ClientAnalyticsViewProps) {
   return (
     <div className="flex flex-col gap-4">
       <DateRangePicker value={activeRange} onChange={handleRangeChange} />
+      {timeWindowError && (
+        <div
+          role="alert"
+          className="rounded-lg border border-amber-300 dark:border-amber-700 bg-amber-50 dark:bg-amber-900/20 px-4 py-3 text-sm text-amber-800 dark:text-amber-300"
+        >
+          {timeWindowError.message}
+        </div>
+      )}
       <AnalyticsViews {...viewProps} data={filteredData} />
     </div>
   );

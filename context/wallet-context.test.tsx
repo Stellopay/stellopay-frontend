@@ -356,6 +356,59 @@ describe("WalletProvider initial props", () => {
   });
 });
 
+describe("WalletProvider capability detection", () => {
+  it("disables unsupported actions while disconnected and explains the recovery path", () => {
+    const { result } = renderHook(() => useWallet(), {
+      wrapper: ({ children }) => wrap(children),
+    });
+
+    expect(result.current.capabilities.canSignTransaction).toBe(false);
+    expect(result.current.capabilities.canSignMessage).toBe(false);
+    expect(result.current.capabilities.canSwitchNetwork).toBe(false);
+
+    const signTx = result.current.getActionState("signTransaction");
+    expect(signTx.enabled).toBe(false);
+    expect(signTx.reason).toMatch(/connect|wallet/i);
+    expect(signTx.alternative).toMatch(/recover|alternative|compatible/i);
+  });
+
+  it("updates capability state when the wallet changes account or network", () => {
+    const subscribeToAccountChanges = vi.fn((cb: (address: string | null) => void) => {
+      return () => undefined;
+    });
+
+    const { result } = renderHook(() => useWallet(), {
+      wrapper: ({ children }) => (
+        <WalletProvider
+          providerCapabilities={{
+            canSignTransaction: true,
+            canSignMessage: true,
+            canSwitchNetwork: true,
+          }}
+          subscribeToAccountChanges={subscribeToAccountChanges}
+        >
+          {children}
+        </WalletProvider>
+      ),
+    });
+
+    act(() => {
+      result.current.connect(VALID_WALLET_ADDRESS);
+    });
+
+    expect(result.current.capabilities.canSignTransaction).toBe(true);
+    expect(result.current.capabilities.canSignMessage).toBe(true);
+
+    act(() => {
+      result.current.setNetwork({ id: "unsupported", name: "Unsupported Chain" });
+    });
+
+    expect(result.current.capabilities.canSignTransaction).toBe(false);
+    expect(result.current.capabilities.canSwitchNetwork).toBe(false);
+    expect(result.current.getActionState("signTransaction").reason).toMatch(/unsupported|network/i);
+  });
+});
+
 // ─── Network-change event handling ───────────────────────────────────────────
 //
 // WalletProvider accepts a subscribeToNetworkChanges prop so wallet SDKs
