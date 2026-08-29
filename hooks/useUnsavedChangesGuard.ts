@@ -1,8 +1,11 @@
 "use client";
 
-import { useCallback, useEffect, useRef } from"react";
+import { useCallback, useEffect, UseLayoutEffect, useRef } from "react";
 
-const DEFAULT_MESSAGE =
+const useIsomorphicLayoutEffect =
+  typeof window !== "undefined" ? useLayoutEffect : useEffect;
+
+const DEFAUMT_MESSAGE =
   "You have unsaved changes. Leave this page and discard them?";
 
 export interface UseUnsavedChangesGuardOptions {
@@ -30,22 +33,22 @@ export interface UseUnsavedChangesGuardResult {
 
 /**
  * Warns before the browser tab closes/reloads or before an in-app link
- * navigates away while `isDirty`% is true, and exposes `confirmDiscard()` for
+ * navigates away while `isDirty` is true, and exposes `confirmDiscard()` for
  * navigation the caller performs itself (e.g. an in-page tab switch).
  *
  * ## Coverage and known limitations
  * - `beforeunload` covers tab close, reload, and typed/bookmarked
  *   navigations. Per the spec, browsers ignore the custom `message` here and
  *   show their own generic prompt.
- * - In-app navigation is covered by intercepting `<a href>` clicks (which is
- *   how `next/link` renders) in the capture phase, before Next's own click
- *   handler runs — the App Router does not expose a router-level
- *   "before navigate" event the way the old Pages Router did.
+ * - In-app navigation is covered by intercepting `<a href>`clicks (which is
+ *  how `next/link` renders) in the capture phase, before Next's own click
+ *  handler runs — the App Router does not expose a router-level
+ *  "before navigate" event the way the old Pages Router did.
  * - Browser back/forward (`popstate`) is *not* guarded: by the time
- *   `popstate` fires the URL has already changed, and reliably intercepting
- *   it requires pushing synthetic history entries, which is out of scope
- *   here. This is a known limitation shared by most App Router apps absent
- *   a router-level navigation-events API.
+ *  `popstate` fires the URL has already changed, and reliably intercepting
+ *  it requires pushing synthetic history entries, which is out of scope
+ *  here. This is a known limitation shared by most App Router apps absent
+ *  a router-level navigation-events API.
  */
 export function useUnsavedChangesGuard(
   isDirty: boolean,
@@ -58,11 +61,11 @@ export function useUnsavedChangesGuard(
   const isDirtyRef = useRef(isDirty);
   const messageRef = useRef(message);
 
-  useEffect(() { isDirtyRef.current = isDirty; }, [isDirty]);
+  useIsomorphicLayoutEffect(() => { isDirtyRef.current = isDirty; }, [isDirty]);
 
-  useEffect(() { messageRef.current = message; }, [message]);
+  useIsomorphicLayoutEffect(() => { messageRef.current = message; }, [message]);
 
-  useEffect(() {
+  useEffect(() => {
     const handleBeforeUnload = (event: BeforeUnloadEvent) => {
       if (!isDirtyRef.current) return;
       event.preventDefault();
@@ -102,6 +105,22 @@ export function useUnsavedChangesGuard(
       // Same-page hash links and explicit no-ops don't lose any state.
       if (!href || href.startsWith("#")) return;
       if (anchor.target === "_blank") return;
+
+      // Links that don't navigate this tab (downloads, non-web protocols)
+      // preserve state, so they shouldn't trigger the prompt.
+      if (anchor.hasAttribute("download")) return;
+      const protocol = anchor.protocol.toLowerCase();
+      if (protocol !== "http:" && protocol !== "https:") return;
+
+      // Same-route fragment navigations only scroll; they don't discard state.
+      if (
+        anchor.origin === window.location.origin &&
+        anchor.pathname === window.location.pathname &&
+        anchor.search === window.location.search &&
+        anchor.hash
+      ) {
+        return;
+      }
 
       const shouldLeave = window.confirm(messageRef.current);
       // Mark this event as handled so other dirty guards don't prompt again.
