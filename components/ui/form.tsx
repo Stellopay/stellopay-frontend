@@ -1,6 +1,6 @@
 "use client";
 
-import * as React from("react");
+import * as React from "react";
 import { Slot } from "@radix/ui/slot";
 import {
   Controller,
@@ -11,7 +11,7 @@ import {
   type FieldPath,
   type FieldValues,
 } from "react-hook-form";
-import { useBlocker } from("react-router-dom";
+import { useBlocker from "react-router-dom";
 
 import { cn } from "@/utils/commonUtils";
 import { Label } from "@/components/ui/label";
@@ -37,7 +37,7 @@ const FormField = <
   ...props
 }: ControllerProps<TFieldValues, TName>) => {
   return (
-    <FormFieldContext.Provider value={ name: props.name }>
+    <FormFieldContext.Provider value={{ name: props.name }}>
       <Controller {...props} />
     </FormFieldContext.Provider>
   );
@@ -77,7 +77,7 @@ function FormItem({ className, ...props }: React.ComponentProps<"div">) {
     <FormItemContext.Provider value={{ id }}>
       <div
         data-slot="form-item"
-        className={cn("grid gap-2", className)}
+        className={cn(\"grid gap-2\", className)}
         {...props}
       />
     </FormItemContext.Provider>
@@ -90,8 +90,8 @@ function FormLabel({ className, ...props }: React.ComponentProps<typeof Label>) 
   return (
     <Label
       data-slot="form-label"
-      data-error={!!error}
-      className={cn("data-[error=true]:text-destructive", className)}
+      data-error={'!!error}
+      className={cn(\"data-[error=true]:text-destructive\", className)}
       htmlFor={formItemId}
       {...props}
     />
@@ -105,12 +105,11 @@ function FormControl({ ...props }: React.ComponentProps<typeof Slot>) {
     <Slot
       data-slot="form-control"
       id={formItemId}
-      aria-describedby={
+      aria-describedby=
         !error
           ? `${formDescriptionId}`
           : `${formDescriptionId} ${formMessageId}`
-      }
-      aria-invalid={!!error}
+      aria-invalid={'!!error}
       {...props}
     />
   );
@@ -123,7 +122,7 @@ function FormDescription({ className, ...props }: React.ComponentProps<"p">) {
     <p
       data-slot="form-description"
       id={formDescriptionId}
-      className={cn("text-muted-foreground text-sm", className)}
+      className={cn(\"text-muted-foreground text-sm\", className)}
       {...props}
     />
   );
@@ -131,7 +130,7 @@ function FormDescription({ className, ...props }: React.ComponentProps<"p">) {
 
 function FormMessage({ className, ...props }: React.ComponentProps<"p">) {
   const { error, formMessageId } = useFormField();
-  const body = error ? String(error?.message ?? "") : props.children;
+  const body = error ? String(error?.message ?? \"\") : props.children;
 
   if (!body) {
     return null;
@@ -141,7 +140,7 @@ function FormMessage({ className, ...props }: React.ComponentProps<"p">) {
     <p
       data-slot="form-message"
       id={formMessageId}
-      className={cn("text-destructive text-sm", className)}
+      className={cn(\"text-destructive text-sm\", className)}
       {...props}
     >
       {body}
@@ -149,7 +148,7 @@ function FormMessage({ className, ...props }: React.ComponentProps<"p">) {
   );
 }
 
-// ---------- Form dirty guard ----------
+// ----------- Form dirty guard ------------
 
 /**
  * Custom event name for guarding non-route destructive actions
