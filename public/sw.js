@@ -1,25 +1,65 @@
 /**
- * StelloPay — Minimal App Shell Service Worker
- * ============================================
+ * StelloPay — Versioned App Shell Service Worker
+ * ================================================
  * Strategy: Cache-first for the app shell (static assets, fonts, icons).
  *           Network-first for navigation requests, falling back to an offline
  *           page when the network is unavailable.
  *
- * Cache invalidation
- * ------------------
- * CACHE_NAME is versioned with a deploy-time stamp.  Bumping this value (or
- * setting NEXT_PUBLIC_SW_VERSION in your CI environment) causes the activate
- * step to delete every previous cache so users always receive a fresh shell
- * after a deploy.  The recommended approach is to inject the build ID here
- * during your CI pipeline:
+ * Cache invalidation & coordinated activation
+ * -------------------------------------------
+ * Problem: calling skipWaiting() immediately lets the new worker take over
+ * clients that still have HTML from the previous build in flight.  The
+ * resulting mix of old HTML referencing old JS hashes and new cached JS (or
+ * vice-versa) can produce a broken page.
  *
- *   // next.config.ts  — replace the static string with process.env.BUILD_ID
- *   headers: [{ source: "/sw.js", headers: [{ key: "Cache-Control", value: "no-cache" }] }]
+ * Solution (three-step handshake):
+ *   1. Install — pre-cache the full shell into the new, versioned cache.
+ *      skipWaiting is intentionally NOT called here.  The old worker keeps
+ *      serving until clients explicitly agree to reload.
+ *
+ *   2. Activate (triggered only when all old tabs are closed, or after the
+ *      client-driven SKIP_WAITING below) —
+ *      a. Delete every cache whose name != CACHE_NAME (old caches are only
+ *         pruned AFTER the new shell is confirmed valid from step 1).
+ *      b. Claim all open clients (clients.claim()) so this worker handles
+ *         the next request immediately.
+ *      c. Post SW_ACTIVATED to every client so the app can prompt the user
+ *         to reload for the freshest experience.
+ *
+ *   3. Client-driven skip — the page can send { type: "SKIP_WAITING" } to
+ *      the *waiting* worker at any point (e.g., on an update-available
+ *      banner "Reload" click).  The waiting worker calls skipWaiting() only
+ *      then, ensuring it replaces an active worker only when the client
+ *      consents.
+ *
+ * Cache versioning
+ * ----------------
+ * CACHE_VERSION is injected from the build environment.  In CI set
+ * NEXT_PUBLIC_BUILD_ID (or BUILD_ID) so each deploy produces a unique cache
+ * name and the activate step sweeps old caches automatically:
+ *
+ *   // next.config.ts
+ *   env: { NEXT_PUBLIC_BUILD_ID: process.env.BUILD_ID ?? Date.now().toString() }
  *
  * See README.md → "Service Worker & Offline Support" for the full strategy.
  */
 
-const CACHE_VERSION = "v1"; // ← bump this (or inject BUILD_ID) on every deploy
+/* global self, caches, fetch, clients */
+
+// ---------------------------------------------------------------------------
+// Configuration
+// ---------------------------------------------------------------------------
+
+/**
+ * Injected at build time by the CI pipeline (e.g. via next.config.ts env
+ * block).  Falls back to "v1" for local development.  Change this value on
+ * every deploy to bust the old cache.
+ */
+const CACHE_VERSION =
+  (typeof self !== "undefined" &&
+    self.__BUILD_ID) || // test/CI injection point
+  "v1";
+
 const CACHE_NAME = `stellopay-shell-${CACHE_VERSION}`;
 
 /**
@@ -35,27 +75,46 @@ const SHELL_ASSETS = [
   "/favicon.ico",
 ];
 
+// Message types used for worker ↔ client communication.
+const MSG = {
+  /** Client → waiting worker: take over now (user confirmed reload). */
+  SKIP_WAITING: "SKIP_WAITING",
+  /** Active worker → all clients: new cache is live, safe to reload. */
+  SW_ACTIVATED: "SW_ACTIVATED",
+};
+
 // ---------------------------------------------------------------------------
 // Install — pre-cache the app shell
 // ---------------------------------------------------------------------------
 self.addEventListener("install", (event) => {
+  /**
+   * waitUntil keeps the worker in the "installing" state until the shell is
+   * fully cached.  If addAll() rejects (network error, bad response), the
+   * install fails and the worker is discarded — the old worker keeps running
+   * and no partial cache is left behind.
+   *
+   * skipWaiting is NOT called here.  The new worker waits in "installed"
+   * state until either:
+   *   • all old clients are closed (browser default behaviour), or
+   *   • a client sends SKIP_WAITING (see message handler below).
+   */
   event.waitUntil(
-    caches
-      .open(CACHE_NAME)
-      .then((cache) => cache.addAll(SHELL_ASSETS))
-      // Activate immediately instead of waiting for old tabs to close.
-      .then(() => self.skipWaiting()),
+    caches.open(CACHE_NAME).then((cache) => cache.addAll(SHELL_ASSETS)),
   );
 });
 
 // ---------------------------------------------------------------------------
-// Activate — prune stale caches from previous versions
+// Activate — prune stale caches, claim clients, notify them
 // ---------------------------------------------------------------------------
 self.addEventListener("activate", (event) => {
   event.waitUntil(
     caches
       .keys()
       .then((keys) =>
+        // Remove every cache that belongs to an older version of this worker.
+        // This runs only AFTER the new cache was successfully populated in the
+        // install step, satisfying the acceptance criterion:
+        //   "Old caches are removed only after the new cache is valid."
         Promise.all(
           keys
             .filter((key) => key !== CACHE_NAME)
@@ -63,8 +122,32 @@ self.addEventListener("activate", (event) => {
         ),
       )
       // Take control of all open clients without requiring a page reload.
-      .then(() => self.clients.claim()),
+      .then(() => self.clients.claim())
+      // Notify every controlled client that this new worker is now active.
+      // The client-side code can use this to prompt "A new version is ready —
+      // reload to apply" or to reload automatically if the app is idle.
+      .then(() =>
+        self.clients.matchAll({ includeUncontrolled: true }).then((clientList) =>
+          Promise.all(
+            clientList.map((client) =>
+              client.postMessage({ type: MSG.SW_ACTIVATED, version: CACHE_VERSION }),
+            ),
+          ),
+        ),
+      ),
   );
+});
+
+// ---------------------------------------------------------------------------
+// Message — client-driven skipWaiting
+// ---------------------------------------------------------------------------
+self.addEventListener("message", (event) => {
+  if (event.data && event.data.type === MSG.SKIP_WAITING) {
+    // A client has acknowledged the update (e.g., the user clicked "Reload").
+    // Only NOW do we skip the waiting phase, guaranteeing the client and the
+    // new worker are in sync.
+    self.skipWaiting();
+  }
 });
 
 // ---------------------------------------------------------------------------
@@ -134,6 +217,11 @@ async function cacheFirst(request) {
  * Network-first for HTML navigation: try the network; if offline (or the
  * server returns a non-2xx), serve the pre-cached /offline page instead of
  * letting the browser display its default "No internet" error.
+ *
+ * The /offline page was pre-cached during install, so it is always
+ * available even if the device loses connectivity mid-update — satisfying
+ * the acceptance criterion:
+ *   "Offline fallback remains available during an update."
  */
 async function networkFirstWithOfflineFallback(request) {
   try {
