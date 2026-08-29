@@ -11,11 +11,11 @@ import {
   type FieldPath,
   type FieldValues,
 } from "react-hook-form";
-import { useBlocker from "react-router-dom";
 
 import { cn } from "@/utils/commonUtils";
 import { Label } from "@/components/ui/label";
-import { FormItemContextValue } from "@/types/ui";
+import { FormItemContextValue } from "@types/ui";
+import { useUnsavedChangesGuard } from "@/hooks/useUnsavedChangesGuard";
 
 const Form = FormProvider;
 
@@ -37,7 +37,7 @@ const FormField = <
   ...props
 }: ControllerProps<TFieldValues, TName>) => {
   return (
-    <FormFieldContext.Provider value={{ name: props.name }}>
+    <FormFieldContext.Provider value={ [ name: props.name ] }>
       <Controller {...props} />
     </FormFieldContext.Provider>
   );
@@ -46,13 +46,12 @@ const FormField = <
 const useFormField = () => {
   const fieldContext = React.useContext(FormFieldContext);
   const itemContext = React.useContext(FormItemContext);
-  const { getFieldState } = useFormContext();
-  const formState = useFormState({ name: fieldContext.name });
-  const fieldState = getFieldState(fieldContext.name, formState);
-
   if (!fieldContext) {
     throw new Error("useFormField should be used within <FormField>");
   }
+  const { getFieldState } = useFormContext();
+  const formState = useFormState({ name: fieldContext.name });
+  const fieldState = getFieldState(fieldContext.name, formState);
 
   const { id } = itemContext;
 
@@ -77,7 +76,7 @@ function FormItem({ className, ...props }: React.ComponentProps<"div">) {
     <FormItemContext.Provider value={{ id }}>
       <div
         data-slot="form-item"
-        className={cn(\"grid gap-2\", className)}
+        className={cn("grid gap-2", className)}
         {...props}
       />
     </FormItemContext.Provider>
@@ -90,8 +89,8 @@ function FormLabel({ className, ...props }: React.ComponentProps<typeof Label>) 
   return (
     <Label
       data-slot="form-label"
-      data-error={'!!error}
-      className={cn(\"data-[error=true]:text-destructive\", className)}
+      data-error={!!error}
+      className={cn("data-[error=true]:text-destructive", className)}
       htmlFor={formItemId}
       {...props}
     />
@@ -105,11 +104,12 @@ function FormControl({ ...props }: React.ComponentProps<typeof Slot>) {
     <Slot
       data-slot="form-control"
       id={formItemId}
-      aria-describedby=
+      aria-describedby={
         !error
           ? `${formDescriptionId}`
           : `${formDescriptionId} ${formMessageId}`
-      aria-invalid={'!!error}
+      }
+      aria-invalid={!!error}
       {...props}
     />
   );
@@ -122,7 +122,7 @@ function FormDescription({ className, ...props }: React.ComponentProps<"p">) {
     <p
       data-slot="form-description"
       id={formDescriptionId}
-      className={cn(\"text-muted-foreground text-sm\", className)}
+      className={cn("text-muted-foreground text-sm", className)}
       {...props}
     />
   );
@@ -130,7 +130,7 @@ function FormDescription({ className, ...props }: React.ComponentProps<"p">) {
 
 function FormMessage({ className, ...props }: React.ComponentProps<"p">) {
   const { error, formMessageId } = useFormField();
-  const body = error ? String(error?.message ?? \"\") : props.children;
+  const body = error ? String(error?.message ?? "") : props.children;
 
   if (!body) {
     return null;
@@ -140,7 +140,7 @@ function FormMessage({ className, ...props }: React.ComponentProps<"p">) {
     <p
       data-slot="form-message"
       id={formMessageId}
-      className={cn(\"text-destructive text-sm\", className)}
+      className={cn("text-destructive text-sm", className)}
       {...props}
     >
       {body}
@@ -148,13 +148,13 @@ function FormMessage({ className, ...props }: React.ComponentProps<"p">) {
   );
 }
 
-// ----------- Form dirty guard ------------
+// ------------ form dirty guard -------------
 
 /**
  * Custom event name for guarding non-route destructive actions
- * (e.g., switching wallet account).
- * Dispatch with `new Event(FORM_DIRTY_GUARD_EVENT, { cancelable: true })`.
- * If the event's `defaultPrevented` is `true`, the action should be aborted.
+* (e.g., switching wallet account).
+* Dispatch with `new Event(FORM_DIRTY_GUARD_EVENT, { cancelable: true })`.
+* If the event's `defaultPrevented` is `true`, the action should be aborted.
  */
 export const FORM_DIRTY_GUARD_EVENT = "form:dirty-guard";
 
@@ -174,7 +174,7 @@ export interface UseFormDirtyGuardOptions {
 /**
  * Shared dirty-state guard for React Hook Form.
  * Place inside a `<Form>` to prevent losing dirty state on:
- * - Client-side route changes (via `react-router`'s `useBlocker`)
+ * - Client-side route changes (via `useUnsavedChangesGuard`)
  * - Browser unload/reload
  * - Custom destructive actions dispatched with `FORM_DIRTY_GUARD_EVENT`
  */
@@ -185,26 +185,8 @@ export function useFormDirtyGuard(options: UseFormDirtyGuardOptions = {}) {
     enabled = true,
   } = options;
 
-  // Route change guard (router transition).
-  useBlocker(
-    React.useCallback(
-      () => enabled && isDirty && !window.confirm(message),
-      [enabled, isDirty, message]
-    )
-  );
-
-  // Browser unload guard.
-  React.useEffect(() => {
-    if (!enabled || !isDirty) return;
-
-    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
-      e.preventDefault();
-      e.returnValue = message;
-    };
-
-    window.addEventListener("beforeunload", handleBeforeUnload);
-    return () => window.removeEventListener("beforeunload", handleBeforeUnload);
-  }, [enabled, isDirty, message]);
+  const dirty = enabled && isDirty;
+  const { confirmDiscard, clearDirty } = useUnsavedChangesGuard(dirty, { message });
 
   // Custom destructive action guard (e.g., wallet account change).
   React.useEffect(() => {
@@ -226,11 +208,10 @@ export function useFormDirtyGuard(options: UseFormDirtyGuardOptions = {}) {
    * automatic guards. Returns `true` if the action may proceed.
    */
   const confirmLeave = React.useCallback(() => {
-    if (!enabled) return true;
-    return !isDirty || window.confirm(message);
-  }, [enabled, isDirty, message]);
+    return confirmDiscard();
+  }, [confirmDiscard]);
 
-  return { isDirty, confirmLeave };
+  return { isDirty, confirmLeave, clearDirty };
 }
 
 /**
