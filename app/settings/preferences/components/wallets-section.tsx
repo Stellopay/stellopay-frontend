@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { Check, Pencil, Trash2, Wallet as WalletIcon, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -43,6 +43,48 @@ export function WalletsSection({
   const [walletToRemove, setWalletToRemove] = useState<WalletItem | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editingValue, setEditingValue] = useState("");
+
+  const isDirty =
+    editingId !== null &&
+    editingValue.trim() !==
+      (walletList.find((w) => w.id === editingId)?.nickname ?? "").trim();
+
+  useEffect(() => {
+    if (!isDirty) return;
+
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      e.preventDefault();
+    };
+
+    const originalPushState = window.history.pushState;
+    const originalReplaceState = window.history.replaceState;
+
+    window.history.pushState = function (
+      ...args: Parameters<typeof originalPushState>
+    ) {
+      if (!window.confirm("You have unsaved changes. Are you sure you want to leave?")) {
+        return;
+      }
+      originalPushState.apply(this, args);
+    };
+
+    window.history.replaceState = function (
+      ...args: Parameters<typeof originalReplaceState>
+    ) {
+      if (!window.confirm("You have unsaved changes. Are you sure you want to leave?")) {
+        return;
+      }
+      originalReplaceState.apply(this, args);
+    };
+
+    window.addEventListener("beforeunload", handleBeforeUnload);
+
+    return () => {
+      window.removeEventListener("beforeunload", handleBeforeUnload);
+      window.history.pushState = originalPushState;
+      window.history.replaceState = originalReplaceState;
+    };
+  }, [isDirty]);
 
   const startEditing = (wallet: WalletItem) => {
     setEditingId(wallet.id);
