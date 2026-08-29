@@ -5,9 +5,12 @@ export {
   getAccountSummary,
   getPaymentHistory,
   getTransactions,
+  getTransactionsCursor,
 } from "./transactions";
 export type {
   AccountSummary,
+  CursorPaginatedTransactions,
+  GetTransactionsCursorParams,
   GetTransactionsParams,
   PaginatedTransactions,
   PaymentHistoryItem,

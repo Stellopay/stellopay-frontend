@@ -29,6 +29,7 @@ import {
   generateTransactionsCsv,
   downloadCsvContent,
 } from "@/utils/csvUtils";
+import { dedupeTransactionsById } from "@/utils/transactionUtils";
 import {
   TRANSACTIONS_PAGE_SIZE,
   getDefaultDateRange,
@@ -516,8 +517,10 @@ export default function TransactionsContent() {
   }, [data, isLoading, error]);
 
   const paginatedTransactions: TransactionProps[] = useMemo(() => {
-    const transactions = (data?.data ?? []).map((t) =>
-      toTransactionProps(t, getTagNamesForTransaction),
+    const transactions = dedupeTransactionsById(
+      (data?.data ?? []).map((t) =>
+        toTransactionProps(t, getTagNamesForTransaction),
+      ),
     );
     if (tagFilter) {
       return transactions.filter((t) => t.tags?.includes(tagFilter));

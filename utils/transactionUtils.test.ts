@@ -4,6 +4,7 @@ import type { SortField, SortConfig, Transaction } from "@/types/transaction";
 import { formatDate } from "@/utils/date-utils";
 import { formatCurrency } from "@/utils/formatUtils";
 import {
+  dedupeTransactionsById,
   filterTransactions,
   formatAmount,
   formatTransactionDate,
@@ -1325,5 +1326,47 @@ describe("sortAndFilterTransactions", () => {
     );
 
     expect(transactions.map((t) => t.id)).toEqual(originalOrder);
+  });
+});
+
+describe("dedupeTransactionsById", () => {
+  const tx = (id: string): Transaction =>
+    ({
+      id,
+      type: "Payment Sent",
+      txId: `#${id}`,
+      address: `A${id}`,
+      date: "2023-04-12",
+      time: "09:32AM",
+      token: "USDC",
+      amount: -10,
+      status: "Completed",
+      statusColor: "success",
+    }) as Transaction;
+
+  it("returns an empty array unchanged", () => {
+    expect(dedupeTransactionsById([])).toEqual([]);
+  });
+
+  it("keeps an already-unique list unchanged and preserves order", () => {
+    const input = [tx("1"), tx("2"), tx("3")];
+    expect(dedupeTransactionsById(input).map((t) => t.id)).toEqual([
+      "1",
+      "2",
+      "3",
+    ]);
+  });
+
+  it("removes duplicate ids, keeping the first occurrence", () => {
+    const input = [tx("1"), tx("2"), tx("1"), tx("3"), tx("2")];
+    const result = dedupeTransactionsById(input);
+    expect(result.map((t) => t.id)).toEqual(["1", "2", "3"]);
+  });
+
+  it("does not mutate the input array (adjacent-page overlap safety)", () => {
+    const input = [tx("1"), tx("1"), tx("2")];
+    const snapshot = input.map((t) => t.id);
+    dedupeTransactionsById(input);
+    expect(input.map((t) => t.id)).toEqual(snapshot);
   });
 });
