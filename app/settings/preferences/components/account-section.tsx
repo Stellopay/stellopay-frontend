@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
@@ -75,6 +75,48 @@ const sectionMap = [
   },
 ];
 
+export function useDirtyGuard(isDirty: boolean) {
+  useEffect(() => {
+    if (!isDirty) return;
+
+    const message = "You have unsaved changes. Discard them?";
+
+    const handleBeforeUnload = (event: BeforeUnloadEvent) => {
+      event.preventDefault();
+      event.returnValue = "";
+    };
+
+    const handleClick = (event: MouseEvent) => {
+      if (event.defaultPrevented || event.button !== 0) return;
+      if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+
+      const target = event.target as HTMLElement | null;
+      const anchor = target?.closest?.("a");
+      if (!anchor) return;
+      if (anchor.target === "_blank" || anchor.hasAttribute("download")) return;
+
+      const href = anchor.getAttribute("href");
+      if (!href || href.startsWith("#") || href.startsWith("javascript:")) return;
+
+      event.preventDefault();
+      event.stopPropagation();
+      if (window.confirm(message)) {
+        window.removeEventListener("beforeunload", handleBeforeUnload);
+        document.removeEventListener("click", handleClick, true);
+        anchor.click();
+      }
+    };
+
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    document.addEventListener("click", handleClick, true);
+
+    return () => {
+      window.removeEventListener("beforeunload", handleBeforeUnload);
+      document.removeEventListener("click", handleClick, true);
+    };
+  }, [isDirty]);
+}
+
 /**
  * AccountSection component.
  * Renders user profile information, identity details, and regional settings.
@@ -112,6 +154,13 @@ export default function AccountSection({
   const [isEmailTouched, setIsEmailTouched] = useState(false);
   const statusTimeoutRef = useRef<number | null>(null);
   const isMountedRef = useRef(true);
+  const savedProfileRef = useRef<ProfileState>(profile);
+  const isDirty = (Object.keys(profile) as (keyof ProfileState)[]).some((key) =>
+    key === "email"
+      ? profile[key].trim() !== savedProfileRef.current[key].trim()
+      : profile[key] !== savedProfileRef.current[key],
+  );
+  useDirtyGuard(isDirty);
 
   // Trim before validating so incidental whitespace can neither defeat
   // isValidEmail() nor end up persisted in a form the user never typed.
@@ -154,7 +203,9 @@ export default function AccountSection({
             "Account profile changes are staged and ready for backend save.",
           type: "success",
         });
-        onSaved?.({ ...profile, email: normalizedEmail });
+        const savedProfile = { ...profile, email: normalizedEmail };
+        savedProfileRef.current = savedProfile;
+        onSaved?.(savedProfile);
       }
     } catch {
       if (isMountedRef.current) {
