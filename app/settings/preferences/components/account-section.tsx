@@ -86,33 +86,73 @@ export function useDirtyGuard(isDirty: boolean) {
       event.returnValue = "";
     };
 
+    let discardConfirmed = false;
+
     const handleClick = (event: MouseEvent) => {
       if (event.defaultPrevented || event.button !== 0) return;
       if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
 
       const target = event.target as HTMLElement | null;
-      const anchor = target?.closest?.("a");
-      if (!anchor) return;
-      if (anchor.target === "_blank" || anchor.hasAttribute("download")) return;
+      const trigger = target?.closest?.(
+        "a, [data-dirty-guard], [data-account-change], [data-wallet-change]",
+      ) as HTMLElement | null;
+      if (!trigger) return;
 
-      const href = anchor.getAttribute("href");
-      if (!href || href.startsWith("#") || href.startsWith("javascript:")) return;
+      if (trigger instanceof HTMLAnchorElement) {
+        if (trigger.target === "_blank" || trigger.hasAttribute("download")) return;
+        const href = trigger.getAttribute("href");
+        if (!href || href.startsWith("#") || href.startsWith("javascript:")) return;
+      }
 
       event.preventDefault();
       event.stopPropagation();
-      if (window.confirm(message)) {
-        window.removeEventListener("beforeunload", handleBeforeUnload);
-        document.removeEventListener("click", handleClick, true);
-        anchor.click();
+      if (confirmDiscard()) {
+        trigger.click();
       }
+    };
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.defaultPrevented) return;
+      if (event.key !== "Enter" && event.key !== " ") return;
+      if (event.ctrlKey || event.metaKey || event.shiftKey || event.altKey) return;
+
+      const target = event.target as HTMLElement | null;
+      const trigger = target?.closest?.(
+        "a, [data-dirty-guard], [data-account-change], [data-wallet-change]",
+      ) as HTMLElement | null;
+      if (!trigger) return;
+
+      if (trigger instanceof HTMLAnchorElement) {
+        if (trigger.target === "_blank" || trigger.hasAttribute("download")) return;
+        const href = trigger.getAttribute("href");
+        if (!href || href.startsWith("#") || href.startsWith("javascript:")) return;
+      }
+
+      event.preventDefault();
+      event.stopPropagation();
+      if (confirmDiscard()) {
+        trigger.click();
+      }
+    };
+
+    const confirmDiscard = (): boolean => {
+      if (discardConfirmed) return true;
+      if (!window.confirm(message)) return false;
+      discardConfirmed = true;
+      window.removeEventListener("beforeunload", handleBeforeUnload);
+      document.removeEventListener("click", handleClick, true);
+      document.removeEventListener("keydown", handleKeyDown, true);
+      return true;
     };
 
     window.addEventListener("beforeunload", handleBeforeUnload);
     document.addEventListener("click", handleClick, true);
+    document.addEventListener("keydown", handleKeyDown, true);
 
     return () => {
       window.removeEventListener("beforeunload", handleBeforeUnload);
       document.removeEventListener("click", handleClick, true);
+      document.removeEventListener("keydown", handleKeyDown, true);
     };
   }, [isDirty]);
 }
@@ -268,7 +308,7 @@ export default function AccountSection({
       </div>
 
       <button
-        onClick={handleSave}
+        onClick={handleSaveProfile}
         className="mt-5 px-4 py-2 bg-black dark:bg-white text-white dark:text-black text-sm font-medium rounded-md hover:opacity-95 transition"
       >
         Save Preferences
