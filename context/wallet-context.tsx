@@ -18,6 +18,9 @@ import React, {
 } from "react";
 import type {
   Network,
+  WalletActionName,
+  WalletActionState,
+  WalletCapabilities,
   WalletConnectionResult,
   WalletContextValue,
   WalletProviderProps,
@@ -40,6 +43,12 @@ export const DEFAULT_NETWORK: Network = SUPPORTED_NETWORKS[0];
 export const WALLET_NETWORK_STORAGE_KEY = "stellopay.wallet.network";
 
 const STORAGE_KEY_NETWORK = WALLET_NETWORK_STORAGE_KEY;
+
+const DEFAULT_CAPABILITIES: WalletCapabilities = {
+  canSignTransaction: false,
+  canSignMessage: false,
+  canSwitchNetwork: false,
+};
 
 const WalletContext = createContext<WalletContextValue | undefined>(undefined);
 
@@ -82,12 +91,95 @@ export const WalletProvider: React.FC<WalletProviderProps> = ({
   initialAddress = null,
   initialNetwork,
   subscribeToNetworkChanges,
+  subscribeToAccountChanges,
+  providerCapabilities = {},
 }) => {
   const [address, setAddress] = useState<string | null>(initialAddress);
   const [network, setNetworkState] = useState<Network>(
     initialNetwork ?? DEFAULT_NETWORK,
   );
   const [isUnsupportedNetwork, setIsUnsupportedNetwork] = useState(false);
+
+  const capabilities = useMemo<WalletCapabilities>(() => {
+    const base = {
+      ...DEFAULT_CAPABILITIES,
+      ...providerCapabilities,
+    };
+
+    if (!address || address.trim().length === 0) {
+      return DEFAULT_CAPABILITIES;
+    }
+
+    if (isUnsupportedNetwork) {
+      return {
+        canSignTransaction: false,
+        canSignMessage: false,
+        canSwitchNetwork: false,
+      };
+    }
+
+    return {
+      canSignTransaction: Boolean(base.canSignTransaction),
+      canSignMessage: Boolean(base.canSignMessage),
+      canSwitchNetwork: Boolean(base.canSwitchNetwork),
+    };
+  }, [address, isUnsupportedNetwork, providerCapabilities]);
+
+  const getActionState = useCallback(
+    (action: WalletActionName): WalletActionState => {
+      if (!address) {
+        return {
+          enabled: false,
+          reason: "Connect a compatible wallet before trying this action.",
+          alternative:
+            "Use a supported, compatible wallet or reconnect to a wallet that supports Stellar signing.",
+        };
+      }
+
+      if (isUnsupportedNetwork) {
+        const unsupportedText =
+          "This wallet is on an unsupported network. Switch back to a supported Stellar network before continuing.";
+        return {
+          enabled: false,
+          reason:
+            action === "switchNetwork"
+              ? unsupportedText
+              : `${unsupportedText} ${action === "signTransaction" ? "Transactions cannot be signed until the network is corrected." : "Signing is unavailable until the wallet is on Stellar."}`,
+          alternative:
+            "Switch to Stellar or reconnect with a wallet that supports the required network configuration.",
+        };
+      }
+
+      const capabilityLookup: Record<WalletActionName, boolean> = {
+        signTransaction: capabilities.canSignTransaction,
+        signMessage: capabilities.canSignMessage,
+        switchNetwork: capabilities.canSwitchNetwork,
+      };
+
+      const enabled = capabilityLookup[action];
+      const actionLabels: Record<WalletActionName, string> = {
+        signTransaction: "sign transactions",
+        signMessage: "sign messages",
+        switchNetwork: "switch networks",
+      };
+
+      if (enabled) {
+        return {
+          enabled: true,
+          reason: "This action is available for the connected wallet.",
+          alternative: "No recovery step is required.",
+        };
+      }
+
+      return {
+        enabled: false,
+        reason: `This wallet does not currently support ${actionLabels[action]}.`,
+        alternative:
+          "Try a different compatible wallet or reconnect with a provider that exposes the required capability.",
+      };
+    },
+    [address, capabilities, isUnsupportedNetwork],
+  );
 
   // Hydrate the network on the client. Running this in an effect (rather than
   // in useState's initializer) keeps server and first client render in sync,
@@ -131,6 +223,18 @@ export const WalletProvider: React.FC<WalletProviderProps> = ({
       cleanup?.();
     };
   }, [subscribeToNetworkChanges]);
+
+  useEffect(() => {
+    if (!subscribeToAccountChanges) return;
+
+    const cleanup = subscribeToAccountChanges((nextAddress: string | null) => {
+      setAddress(nextAddress);
+    });
+
+    return () => {
+      cleanup?.();
+    };
+  }, [subscribeToAccountChanges]);
 
   const setNetwork = useCallback((next: Network) => {
     const supported = SUPPORTED_NETWORKS.some((n) => n.id === next.id);
@@ -188,11 +292,14 @@ export const WalletProvider: React.FC<WalletProviderProps> = ({
       isConnected: address !== null,
       network,
       isUnsupportedNetwork,
+      capabilities,
+      walletCapabilities: capabilities,
+      getActionState,
       setNetwork,
       connect,
       disconnect,
     }),
-    [address, network, isUnsupportedNetwork, setNetwork, connect, disconnect],
+    [address, network, isUnsupportedNetwork, capabilities, getActionState, setNetwork, connect, disconnect],
   );
 
   return (
