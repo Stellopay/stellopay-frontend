@@ -94,7 +94,8 @@ function QuickTransfer({
 
   const watchRecipient = form.watch("recipient");
   const watchAmount = form.watch("amount");
-  useDirtyGuard(form.formState.isDirty && !isSubmitting);
+  const isFormDirty = watchRecipient.trim().length > 0 || watchAmount.trim().length > 0;
+  useDirtyGuard(isFormDirty && !isSubmitting);
   const recipientError = form.formState.errors.recipient?.message;
   const amountError = form.formState.errors.amount?.message;
 
