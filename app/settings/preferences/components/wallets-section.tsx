@@ -115,6 +115,7 @@ export function WalletsSection({
   };
 
   const cancelEdit = () => {
+    if (!confirmDiscardChanges()) return;
     setEditingId(null);
     setEditingValue("");
   };
