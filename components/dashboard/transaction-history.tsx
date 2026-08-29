@@ -24,9 +24,53 @@ interface TransactionRowProps {
     status: string;
     statusColor: "success" | "warning" | "destructive";
   };
+  onRetry?: () => void;
 }
 
-const TransactionRow: React.FC<TransactionRowProps> = ({ transaction }) => {
+const isCurrentStatus = (status: string) =>
+  /pending|processing|confirming/i.test(status);
+
+const isCompletedStatus = (status: string) =>
+  /success|completed|complete/i.test(status);
+
+const isRetryStatus = (status: string) => /retry/i.test(status);
+
+const isFailureStatus = (status: string) =>
+  /fail|reject|timeout|timed out|error|cancel|retry/i.test(status);
+
+const getStatusLabel = (status: string) => {
+  if (isCurrentStatus(status)) return `Current step: ${status}`;
+  if (isCompletedStatus(status)) return `Completed: ${status}`;
+  if (isRetryStatus(status)) return `Action needed: ${status}`;
+  if (isFailureStatus(status)) return `Failed: ${status}`;
+  return `Status: ${status}`;
+};
+
+const getStatusState = (status: string) => {
+  if (isCurrentStatus(status)) return "current";
+  if (isCompletedStatus(status)) return "completed";
+  if (isRetryStatus(status)) return "retry";
+  return "failed";
+};
+
+const getStatusAnnouncement = (
+  transaction: TransactionRowProps["transaction"],
+) => {
+  const status = transaction.status;
+  if (isCurrentStatus(status)) return `${transaction.type} ${transaction.txId} pending`;
+  if (isCompletedStatus(status)) return `${transaction.type} ${transaction.txId} completed`;
+  if (isRetryStatus(status)) return `${transaction.type} ${transaction.txId} retry`;
+  if (status.toLowerCase().includes("reject"))
+    return `${transaction.type} ${transaction.txId} rejected`;
+  if (status.toLowerCase().includes("timeout"))
+    return `${transaction.type} ${transaction.txId} timed out`;
+  return `${transaction.type} ${transaction.txId} ${status}`;
+};
+
+const TransactionRow: React.FC<TransactionRowProps> = ({
+  transaction,
+  onRetry,
+}) => {
   const statusColorMap = {
     success:
       "bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400",
@@ -82,11 +126,33 @@ const TransactionRow: React.FC<TransactionRowProps> = ({ transaction }) => {
         </span>
       </td>
       <td className="py-4 px-4 whitespace-nowrap">
-        <span
-          className={`inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${statusColorMap[transaction.statusColor]}`}
-        >
-          {transaction.status}
-        </span>
+        <div className="flex items-center gap-2">
+          <span
+            className={`inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${statusColorMap[transaction.statusColor]}`}
+            aria-label={getStatusLabel(transaction.status)}
+            aria-current={isCurrentStatus(transaction.status) ? "step" : undefined}
+            data-state={getStatusState(transaction.status)}
+          >
+            {transaction.status}
+          </span>
+          {isFailureStatus(transaction.status) && (
+            <button
+              type="button"
+              onClick={onRetry}
+              aria-label={`Retry ${transaction.type} ${transaction.txId}`}
+              className="text-[10px] font-bold text-blue-600 dark:text-blue-400 underline underline-offset-2 rounded hover:text-blue-700 dark:hover:text-blue-300"
+            >
+              Retry
+            </button>
+          )}
+          <a
+            href={`/transactions/${transaction.id}`}
+            aria-label={`View details for ${transaction.type} ${transaction.txId}`}
+            className="text-[10px] font-bold text-zinc-400 dark:text-zinc-500 underline underline-offset-2 rounded hover:text-zinc-600 dark:hover:text-zinc-300"
+          >
+            Details
+          </a>
+        </div>
       </td>
     </tr>
   );
@@ -95,19 +161,46 @@ const TransactionRow: React.FC<TransactionRowProps> = ({ transaction }) => {
 const TransactionHistory: React.FC = () => {
   const { data, isLoading, error, refetch } = useTransactions();
   const wasLoadingRef = useRef(true);
+  const previousCountRef = useRef<number | null>(null);
+  const previousStatusesRef = useRef<Record<string, string>>({});
   const [announcement, setAnnouncement] = useState("");
 
   useEffect(() => {
     if (wasLoadingRef.current && !isLoading && data) {
       const count = data.data.length;
-      setAnnouncement(
-        count === 0
-          ? "No transactions loaded"
-          : `${count} transaction${count === 1 ? "" : "s"} loaded`,
-      );
+      if (
+        previousCountRef.current === null ||
+        previousCountRef.current !== count
+      ) {
+        setAnnouncement(
+          count === 0
+            ? "No transactions loaded"
+            : `${count} transaction${count === 1 ? "" : "s"} loaded`,
+        );
+      }
+      previousCountRef.current = count;
     }
     wasLoadingRef.current = isLoading;
   }, [isLoading, data]);
+
+  useEffect(() => {
+    if (!data) return;
+    const currentStatuses: Record<string, string> = {};
+    const announcements: string[] = [];
+
+    for (const transaction of data.data) {
+      currentStatuses[transaction.id] = transaction.status;
+      const previousStatus = previousStatusesRef.current[transaction.id];
+      if (previousStatus && previousStatus !== transaction.status) {
+        announcements.push(getStatusAnnouncement(transaction));
+      }
+    }
+
+    if (announcements.length > 0) {
+      setAnnouncement(announcements.join(". "));
+    }
+    previousStatusesRef.current = currentStatuses;
+  }, [data]);
 
   if (isLoading) {
     return (
@@ -213,10 +306,12 @@ const TransactionHistory: React.FC = () => {
               Transaction History
             </h2>
           </div>
-          <a href="/">
-            <button className="h-10 px-4 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900/50 text-zinc-700 dark:text-zinc-300 text-sm font-medium hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors flex items-center gap-2">
-              View All
-            </button>
+          <a
+            href="/"
+            aria-label="View all transactions"
+            className="h-10 px-4 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900/50 text-zinc-700 dark:text-zinc-300 text-sm font-medium hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors inline-flex items-center gap-2"
+          >
+            View All
           </a>
         </div>
 
@@ -249,6 +344,7 @@ const TransactionHistory: React.FC = () => {
                 <TransactionRow
                   key={transaction.id}
                   transaction={transaction}
+                  onRetry={() => refetch()}
                 />
               ))}
             </tbody>
