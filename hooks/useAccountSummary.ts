@@ -8,12 +8,25 @@ interface UseAccountSummaryResult {
   data: AccountSummary | null;
   isLoading: boolean;
   error: string | null;
+  isStale: boolean;
   refetch: () => void;
 }
 
-// Module-level cache scoped to the session.
-// Keyed by `${network.id}:${address}` to ensure proper scoping across accounts.
-const accountSummaryCache = new Map<string, AccountSummary>();
+// Module-level cache scoped to the session, keyed by `${network.id}:${address}`
+// to ensure proper scoping across accounts. Each entry records when it was
+// fetched so callers can detect stale data after a long offline period.
+const STALE_AFTER_MS = 60_000; // 1 minute
+
+interface CacheEntry {
+  value: AccountSummary;
+  fetchedAt: number;
+}
+
+const accountSummaryCache = new Map<string, CacheEntry>();
+
+function readCache(key: string | null): CacheEntry | null {
+  return key ? accountSummaryCache.get(key) ?? null : null;
+}
 
 export function clearAccountSummaryCache() {
   accountSummaryCache.clear();
@@ -71,11 +84,16 @@ export function useAccountSummary(): UseAccountSummaryResult {
   const cacheKey = address ? `${network.id}:${address}` : null;
 
   const [data, setData] = useState<AccountSummary | null>(() => {
-    return cacheKey ? accountSummaryCache.get(cacheKey) || null : null;
+    return readCache(cacheKey)?.value ?? null;
+  });
+
+  const [isStale, setIsStale] = useState<boolean>(() => {
+    const entry = readCache(cacheKey);
+    return !!entry && Date.now() - entry.fetchedAt > STALE_AFTER_MS;
   });
 
   const [isLoading, setIsLoading] = useState(() => {
-    return cacheKey ? !accountSummaryCache.has(cacheKey) : false;
+    return cacheKey ? !readCache(cacheKey) : false;
   });
 
   const [error, setError] = useState<string | null>(null);
@@ -86,10 +104,16 @@ export function useAccountSummary(): UseAccountSummaryResult {
   const previousCacheKey = useRef(cacheKey);
   if (previousCacheKey.current !== cacheKey) {
     previousCacheKey.current = cacheKey;
-    const cached = cacheKey ? accountSummaryCache.get(cacheKey) || null : null;
-    setData(cached);
+    const cached = readCache(cacheKey);
+    setData(cached?.value ?? null);
+    setIsStale(!!cached && Date.now() - cached.fetchedAt > STALE_AFTER_MS);
     setIsLoading(!cached && !!cacheKey);
     setError(null);
+    // Serving stale data for this account/network on a (re)mount should not look
+    // current: refresh it once, but keep the stale value visible until it lands.
+    if (cached && Date.now() - cached.fetchedAt > STALE_AFTER_MS) {
+      setRequestTick((tick) => tick + 1);
+    }
   }
 
   const refetch = useCallback(() => {
@@ -109,7 +133,7 @@ export function useAccountSummary(): UseAccountSummaryResult {
     const requestId = latestRequestId.current + 1;
     latestRequestId.current = requestId;
 
-    if (!accountSummaryCache.has(cacheKey)) {
+    if (!readCache(cacheKey)) {
       setIsLoading(true);
     }
     setError(null);
@@ -117,8 +141,9 @@ export function useAccountSummary(): UseAccountSummaryResult {
     getAccountSummary()
       .then((result) => {
         if (!cancelled && requestId === latestRequestId.current) {
-          accountSummaryCache.set(cacheKey, result);
+          accountSummaryCache.set(cacheKey, { value: result, fetchedAt: Date.now() });
           setData(result);
+          setIsStale(false);
           setIsLoading(false);
         }
       })
@@ -138,5 +163,13 @@ export function useAccountSummary(): UseAccountSummaryResult {
     };
   }, [cacheKey, requestTick]);
 
-  return { data, isLoading, error, refetch };
+  // Reconnect triggers exactly one controlled refresh so a long offline period
+  // does not leave the dashboard showing a silently stale balance.
+  useEffect(() => {
+    const handleOnline = () => setRequestTick((tick) => tick + 1);
+    window.addEventListener("online", handleOnline);
+    return () => window.removeEventListener("online", handleOnline);
+  }, []);
+
+  return { data, isLoading, error, isStale, refetch };
 }
