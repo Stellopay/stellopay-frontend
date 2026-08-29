@@ -322,6 +322,7 @@ export const WalletProvider: React.FC<WalletProviderProps> = ({
     if (!subscribeToNetworkChanges) return;
 
     const cleanup = subscribeToNetworkChanges((networkId: string) => {
+      if (!confirmDiscard()) return;
       const matched = SUPPORTED_NETWORKS.find((n) => n.id === networkId);
       if (matched) {
         setNetworkState(matched);
@@ -338,21 +339,22 @@ export const WalletProvider: React.FC<WalletProviderProps> = ({
     return () => {
       cleanup?.();
     };
-  }, [subscribeToNetworkChanges]);
+  }, [subscribeToNetworkChanges, confirmDiscard]);
 
   useEffect(() => {
     if (!subscribeToAccountChanges) return;
 
     const cleanup = subscribeToAccountChanges((nextAddress: string | null) => {
+      if (!confirmDiscard()) return;
       setAddress(nextAddress);
     });
 
     return () => {
       cleanup?.();
     };
-  }, [subscribeToAccountChanges]);
+  }, [subscribeToAccountChanges, confirmDiscard]);
 
-  const setNetwork = useCallback((next: Network) => {
+  const applyNetwork = useCallback((next: Network) => {
     const supported = SUPPORTED_NETWORKS.some((n) => n.id === next.id);
     setNetworkState(next);
     setIsUnsupportedNetwork(!supported);
