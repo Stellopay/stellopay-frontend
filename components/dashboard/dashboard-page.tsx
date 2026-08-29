@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useRef, useMemo } from "react";
+import React, { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import {
   FileText,
   Wallet,
@@ -8,23 +8,17 @@ import {
   Settings,
   Clock3,
   ChevronRight,
+  GripVertical,
+  ChevronUp,
+  ChevronDown,
+  Rocket,
+  ArrowRight,
+  BarChart3,
+  ArrowUpRight,
+  type LucideIcon,
 } from "lucide-react";
-import type { LucideIcon } from "lucide-react";
-import DashboardNavbar from "@/components/dashboard/dashboard-navbar";
-import AccountOverview from "@/components/dashboard/account-overview";
-import { QuickActions } from "@/components/dashboard/quick-actions";
-import QuickTransfer from "@/components/dashboard/quick-transfer";
 import dynamic from "next/dynamic";
-import Skeleton from "@/components/ui/skeleton";
-import { EmptyState } from "@/components/ui/empty-state";
-import { ErrorState } from "@/components/ui/error-state";
-import ClientAnalyticsView from "@/components/analytics/client-analytics-view";
-import { DashboardTour } from "@/components/dashboard/dashboard-tour";
 import Link from "next/link";
-import dynamic from "next/dynamic";
-import { useTransactions } from "@/hooks/useTransactions";
-import type { Transaction } from "@/types/transaction";
-import { safeStorage } from "@/utils/safeStorage";
 import {
   DndContext,
   DragOverlay,
@@ -39,24 +33,19 @@ import {
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import {
-  GripVertical,
-  ChevronUp,
-  ChevronDown,
-  FileText,
-  Wallet,
-  Shield,
-  Settings,
-  Clock3,
-  ChevronRight,
-  Rocket,
-  ArrowRight,
-  BarChart3,
-  ArrowUpRight,
-} from "lucide-react";
-import Link from "next/link";
+
+import DashboardNavbar from "@/components/dashboard/dashboard-navbar";
+import AccountOverview from "@/components/dashboard/account-overview";
+import { QuickActions } from "@/components/dashboard/quick-actions";
+import QuickTransfer from "@/components/dashboard/quick-transfer";
 import { DashboardTour } from "@/components/dashboard/dashboard-tour";
+import ClientAnalyticsView from "@/components/analytics/client-analytics-view";
+import Skeleton from "@/components/ui/skeleton";
+import { EmptyState } from "@/components/ui/empty-state";
+import { ErrorState } from "@/components/ui/error-state";
 import { useTransactions } from "@/hooks/useTransactions";
+import type { Transaction } from "@/types/transaction";
+import { safeStorage } from "@/utils/safeStorage";
 
 const AnalyticsInsights = dynamic(
   () =>

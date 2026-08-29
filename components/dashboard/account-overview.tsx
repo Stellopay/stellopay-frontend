@@ -15,10 +15,12 @@ import {
   Copy,
   Check,
   X,
+  RefreshCw,
 } from "lucide-react";
 import { formatAddress, useWallet } from "@/context/wallet-context";
 import { copyToClipboardWithTimeout } from "@/utils/clipboardUtils";
 import { ErrorState } from "@/components/ui/error-state";
+import { useWidgetState } from "@/hooks/useWidgetState";
 
 // ─── Copy feedback types ──────────────────────────────────────────────────────
 
@@ -154,13 +156,6 @@ function CopyAddressButton({
   );
 }
 
-// ─── Loading / error state types ─────────────────────────────────────────────
-
-type SummaryState =
-  | { status: "loading" }
-  | { status: "success"; cards: AccountSummaryCardProps[] }
-  | { status: "error"; message: string };
-
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export default function AccountOverview() {
@@ -170,11 +165,6 @@ export default function AccountOverview() {
   const handleConnect = useCallback(() => {
     connect();
   }, [connect]);
-
-  // ── Data resolution ─────────────────────────────────────────────────────
-  const [summaryState, setSummaryState] = useState<SummaryState>({
-    status: "loading",
-  });
 
   // Keep static icon/card render data stable across wallet context ticks.
   const icons = useMemo(
@@ -195,41 +185,64 @@ export default function AccountOverview() {
     [],
   );
 
-  const loadSummary = useCallback(() => {
-    setSummaryState({ status: "loading" });
+  // Use widget state hook for independent loading/error/retry behavior
+  const {
+    state: widgetState,
+    isLoading,
+    isError,
+    isStale,
+    data: cardsData,
+    error,
+    retryCount,
+    refetch,
+    retry,
+    setData,
+    setError,
+    setLoading,
+    reset,
+  } = useWidgetState<AccountSummaryCardProps[]>({
+    maxRetries: 3,
+    retryDelay: 1000,
+    staleTime: 30000,
+    widgetId: "account-overview",
+  });
 
-    // The data currently comes from a static module (summaryCardsData).
-    // This async wrapper keeps the loading/error contract intact so that
-    // when a real API replaces the static import the component needs no
-    // structural changes — only the Promise body changes.
-    //
-    // NOTE: summaryCardsData is accessed inside new Promise() so that
-    // synchronous throws (e.g. from a vi.spyOn getter in tests, or from a
-    // future API helper that throws before returning a Promise) are captured
-    // by the rejection path rather than propagating as uncaught exceptions.
-    new Promise<typeof summaryCardsData>((resolve, reject) => {
+  const loadSummary = useCallback(() => {
+    const fetchAccountSummary = async () => {
+      // The data currently comes from a static module (summaryCardsData).
+      // This async wrapper keeps the loading/error contract intact so that
+      // when a real API replaces the static import the component needs no
+      // structural changes — only the Promise body changes.
+      const data = await new Promise<typeof summaryCardsData>((resolve, reject) => {
+        try {
+          resolve(summaryCardsData);
+        } catch (err) {
+          reject(err);
+        }
+      });
+
+      return data.map((card, idx) => ({ ...card, icon: icons[idx] }));
+    };
+
+    void (async () => {
       try {
-        resolve(summaryCardsData);
+        setLoading();
+        const cards = await fetchAccountSummary();
+        setData(cards);
       } catch (err) {
-        reject(err);
-      }
-    })
-      .then((data) => {
-        const cards = data.map((card, idx) => ({ ...card, icon: icons[idx] }));
-        setSummaryState({ status: "success", cards });
-      })
-      .catch((err: unknown) => {
         const message =
           err instanceof Error
             ? err.message
             : "Failed to load account summary.";
-        setSummaryState({ status: "error", message });
-      });
-  }, [icons]);
+        setError(message);
+      }
+    })();
+  }, [icons, setData, setError, setLoading]);
 
   useEffect(() => {
+    reset();
     loadSummary();
-  }, [loadSummary]);
+  }, [address, isConnected, loadSummary, reset]);
 
   // ── Render ───────────────────────────────────────────────────────────────
 
@@ -273,32 +286,63 @@ export default function AccountOverview() {
         <h2 className="text-2xl font-bold text-zinc-900 dark:text-white">
           Account Overview
         </h2>
-        <button className="hidden sm:flex items-center gap-2 px-4 py-2 bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 rounded-lg text-sm font-semibold hover:opacity-90 transition-opacity cursor-pointer">
-          View Full Account <ArrowRight className="w-4 h-4" />
-        </button>
+        <div className="flex items-center gap-2">
+          {isStale && (
+            <button
+              type="button"
+              onClick={() => {
+                refetch();
+                loadSummary();
+              }}
+              className="hidden sm:flex items-center gap-2 px-3 py-2 bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-300 rounded-lg text-sm font-medium hover:bg-amber-100 dark:hover:bg-amber-900/30 transition-colors"
+              aria-label="Refresh account overview"
+            >
+              <RefreshCw className="w-4 h-4" />
+              Update
+            </button>
+          )}
+          <button className="hidden sm:flex items-center gap-2 px-4 py-2 bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 rounded-lg text-sm font-semibold hover:opacity-90 transition-opacity cursor-pointer">
+            View Full Account <ArrowRight className="w-4 h-4" />
+          </button>
+        </div>
       </div>
 
-      {/* Cards Grid — loading / error / success */}
-      {summaryState.status === "loading" && (
+      {/* Cards Grid — loading / error / success / stale */}
+      {isLoading && (
         <SummaryCardsSkeleton shade="dark" />
       )}
 
-      {summaryState.status === "error" && (
+      {isError && (
         <ErrorState
           title="Failed to Load"
-          description={summaryState.message}
-          onRetry={loadSummary}
+          description={error || "Unable to load account summary. Please try again."}
+          onRetry={() => {
+            retry();
+            loadSummary();
+          }}
+          retrying={isLoading}
         />
       )}
 
-      {summaryState.status === "success" && (
-        <div
-          data-testid="summary-cards-grid"
-          className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
-        >
-          {summaryState.cards.map((card) => (
-            <AccountSummaryCard key={card.title} {...card} />
-          ))}
+      {(widgetState.status === "success" || isStale) && cardsData && (
+        <div className="relative">
+          {isStale && (
+            <div className="absolute -top-3 right-0 z-10">
+              <span className="inline-flex items-center gap-1 px-2 py-1 bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300 text-xs font-medium rounded-full">
+                <RefreshCw className="w-3 h-3" />
+                Data may be outdated
+              </span>
+            </div>
+          )}
+          <div
+            data-testid="summary-cards-grid"
+            className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
+          >
+            {cardsData.map((card) => {
+              const { key, ...cardProps } = card as any;
+              return <AccountSummaryCard key={card.title} {...cardProps} />;
+            })}
+          </div>
         </div>
       )}
 

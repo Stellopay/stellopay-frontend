@@ -34,6 +34,14 @@
  */
 export function execCommandCopy(text: string): boolean {
   try {
+    if (typeof document !== "undefined" && !document.execCommand) {
+      Object.defineProperty(document, "execCommand", {
+        value: () => false,
+        configurable: true,
+        writable: true,
+      });
+    }
+
     const textarea = document.createElement("textarea");
     textarea.value = text;
 
