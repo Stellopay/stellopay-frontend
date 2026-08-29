@@ -5,6 +5,11 @@ import userEvent from "@testing-library/user-event";
 import TransactionsFilters from "./transactions-filters";
 import type { SortConfig, SavedView } from "@/types/transaction";
 
+vi.mock("@/context/sidebar-context", () => ({
+  __esModule: true,
+  default: () => ({ isSidebarOpen: true, isMobile: false }),
+}));
+
 // ─── Mock Radix UI DropdownMenu ─────────────────────────────────────────
 vi.mock("@/components/ui/dropdown-menu", () => {
   // We use a plain div/button wrapper so that the dropdown items always

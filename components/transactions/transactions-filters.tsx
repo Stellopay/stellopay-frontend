@@ -50,7 +50,15 @@ export default function TransactionsFilters({
   onLoadView,
   onRenameView,
   onDeleteView,
-}: TransactionsFiltersProps) {
+  debounceMs = 0,
+  tagFilter,
+  allTags = [],
+  onTagFilterChange,
+}: TransactionsFiltersProps & {
+  tagFilter?: string;
+  allTags?: { id: string; name: string; color: string }[];
+  onTagFilterChange?: (tagName: string) => void;
+}) {
   const renderSortIndicator = (field: SortField) => {
     const indicators: string[] = [];
     for (const [idx, config] of sortConfigs.entries()) {
@@ -92,14 +100,9 @@ export default function TransactionsFilters({
           <DropdownMenuTrigger asChild>
             <Button
               variant="ghost"
-              className="relative text-xl text-white hover:bg-[#160f17] hover:text-white px-2"
+              className="text-xl text-white hover:bg-[#160f17] hover:text-white px-2"
             >
               {selectedFilter}
-              {activeFilterCount > 0 && (
-                <span className="absolute -top-1 -right-1 inline-flex items-center justify-center px-1.5 py-0.5 rounded-full text-xs font-medium bg-[#34D399] text-black">
-                  {activeFilterCount}
-                </span>
-              )}
               <ChevronDown
                 size={16}
                 color="currentColor"

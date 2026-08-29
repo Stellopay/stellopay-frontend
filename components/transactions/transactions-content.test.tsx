@@ -1,6 +1,6 @@
 import React from "react";
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { render, screen, within, act } from "@testing-library/react";
+import { render, screen, within, act, fireEvent, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 
 import {
@@ -16,6 +16,16 @@ const navigationMock = vi.hoisted(() => ({
   },
   pathname: "/transactions",
   searchParams: new URLSearchParams(),
+}));
+
+vi.mock("next/navigation", () => ({
+  useRouter: () => navigationMock.router,
+  usePathname: () => navigationMock.pathname,
+  useSearchParams: () => navigationMock.searchParams,
+}));
+
+vi.mock("@/hooks/useTransactions", () => ({
+  useTransactions: vi.fn(),
 }));
 
 // next/image is not available in jsdom — swap it for a plain <img>.
@@ -319,7 +329,7 @@ describe("TransactionsContent states", () => {
   it("renders empty state table when fetch succeeds but returns empty array", () => {
     mockTransactionsSuccess();
 
-    render(<TransactionsContent />);
+    renderTransactionsContent();
 
     // No error state
     expect(screen.queryByRole("alert")).not.toBeInTheDocument();
@@ -337,7 +347,7 @@ describe("TransactionsContent states", () => {
     );
     mockTransactionsSuccess(42);
 
-    render(<TransactionsContent />);
+    renderTransactionsContent();
 
     const firstHookOptions = vi.mocked(useTransactions).mock.calls[0][0];
 
@@ -360,7 +370,7 @@ describe("TransactionsContent states", () => {
     navigationMock.searchParams = new URLSearchParams("page=4");
     mockTransactionsSuccess(42);
 
-    render(<TransactionsContent />);
+    renderTransactionsContent();
     navigationMock.router.replace.mockClear();
 
     fireEvent.change(screen.getByLabelText("Search transactions"), {
@@ -379,7 +389,7 @@ describe("TransactionsContent states", () => {
     navigationMock.searchParams = new URLSearchParams("q=USDC");
     mockTransactionsSuccess(42);
 
-    render(<TransactionsContent />);
+    renderTransactionsContent();
     navigationMock.router.replace.mockClear();
 
     fireEvent.click(screen.getByRole("button", { name: "Page 2" }));
