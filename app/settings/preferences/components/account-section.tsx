@@ -190,16 +190,20 @@ export default function AccountSection({
     message: "",
     type: null,
   });
+  const [analytics, setAnalytics] = useState(false);
+  const [marketing, setMarketing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [isEmailTouched, setIsEmailTouched] = useState(false);
   const statusTimeoutRef = useRef<number | null>(null);
   const isMountedRef = useRef(true);
   const savedProfileRef = useRef<ProfileState>(profile);
+  const savedCookieRef = useRef({ analytics: false, marketing: false });
   const isDirty = (Object.keys(profile) as (keyof ProfileState)[]).some((key) =>
     key === "email"
       ? profile[key].trim() !== savedProfileRef.current[key].trim()
       : profile[key] !== savedProfileRef.current[key],
-  );
+  ) || analytics !== savedCookieRef.current.analytics ||
+    marketing !== savedCookieRef.current.marketing;
   useDirtyGuard(isDirty);
 
   // Trim before validating so incidental whitespace can neither defeat
@@ -215,6 +219,10 @@ export default function AccountSection({
         const parsed = JSON.parse(savedPreferences);
         setAnalytics(!!parsed.analytics);
         setMarketing(!!parsed.marketing);
+        savedCookieRef.current = {
+          analytics: !!parsed.analytics,
+          marketing: !!parsed.marketing,
+        };
       } catch (e) {
         console.error('Failed to parse cookie preferences', e);
       }
@@ -245,6 +253,11 @@ export default function AccountSection({
         });
         const savedProfile = { ...profile, email: normalizedEmail };
         savedProfileRef.current = savedProfile;
+        savedCookieRef.current = { analytics, marketing };
+        localStorage.setItem(
+          "stellopay_cookie_preferences",
+          JSON.stringify({ analytics, marketing }),
+        );
         onSaved?.(savedProfile);
       }
     } catch {
