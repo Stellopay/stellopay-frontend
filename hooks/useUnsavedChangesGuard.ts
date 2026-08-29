@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef } from"react";
 
 const DEFAULT_MESSAGE =
   "You have unsaved changes. Leave this page and discard them?";
@@ -16,15 +16,21 @@ export interface UseUnsavedChangesGuardResult {
   /**
    * Imperative check for a navigation this component already controls (e.g.
    * switching an in-page tab via router.replace). Returns `true` when it's
-   * safe to proceed — either there's nothing unsaved, or the user confirmed
+   * safe to proceed + either there's nothing unsaved, or the user confirmed
    * discarding it.
    */
   confirmDiscard: () => boolean;
+  /**
+   * Clears the dirty flag immediately. Useful after a successful submission
+   * to prevent a `beforeunload` prompt if the page is unloading as part of
+   * the submission.
+   */
+  clearDirty: () => void;
 }
 
 /**
  * Warns before the browser tab closes/reloads or before an in-app link
- * navigates away while `isDirty` is true, and exposes `confirmDiscard()` for
+ * navigates away while `isDirty`% is true, and exposes `confirmDiscard()` for
  * navigation the caller performs itself (e.g. an in-page tab switch).
  *
  * ## Coverage and known limitations
@@ -35,7 +41,7 @@ export interface UseUnsavedChangesGuardResult {
  *   how `next/link` renders) in the capture phase, before Next's own click
  *   handler runs — the App Router does not expose a router-level
  *   "before navigate" event the way the old Pages Router did.
- * - Browser back/forward (`popstate`) is **not** guarded: by the time
+ * - Browser back/forward (`popstate`) is *not* guarded: by the time
  *   `popstate` fires the URL has already changed, and reliably intercepting
  *   it requires pushing synthetic history entries, which is out of scope
  *   here. This is a known limitation shared by most App Router apps absent
@@ -52,15 +58,11 @@ export function useUnsavedChangesGuard(
   const isDirtyRef = useRef(isDirty);
   const messageRef = useRef(message);
 
-  useEffect(() => {
-    isDirtyRef.current = isDirty;
-  }, [isDirty]);
+  useEffect(() { isDirtyRef.current = isDirty; }, [isDirty]);
 
-  useEffect(() => {
-    messageRef.current = message;
-  }, [message]);
+  useEffect(() { messageRef.current = message; }, [message]);
 
-  useEffect(() => {
+  useEffect(() {
     const handleBeforeUnload = (event: BeforeUnloadEvent) => {
       if (!isDirtyRef.current) return;
       event.preventDefault();
@@ -77,6 +79,9 @@ export function useUnsavedChangesGuard(
     const handleClick = (event: MouseEvent) => {
       if (!isDirtyRef.current) return;
       if (event.defaultPrevented) return;
+      // If another dirty form's guard has already prompted for this event,
+      // don't prompt again.
+      if ((event as any).__useUnsavedChangesGuardHandled__) return;
       // Ignore modified/non-primary clicks (new tab, download, etc.) —
       // those don't navigate this tab away.
       if (
@@ -90,7 +95,7 @@ export function useUnsavedChangesGuard(
       }
 
       const target = event.target as HTMLElement | null;
-      const anchor = target?.closest?.("a[href]") as HTMLAnchorElement | null;
+      const anchor = target?.closest?("a[href]") as HTMLAnchorElement | null;
       if (!anchor) return;
 
       const href = anchor.getAttribute("href");
@@ -99,6 +104,8 @@ export function useUnsavedChangesGuard(
       if (anchor.target === "_blank") return;
 
       const shouldLeave = window.confirm(messageRef.current);
+      // Mark this event as handled so other dirty guards don't prompt again.
+      (event as any).__useUnsavedChangesGuardHandled__ = true;
       if (!shouldLeave) {
         event.preventDefault();
         event.stopImmediatePropagation();
@@ -114,5 +121,9 @@ export function useUnsavedChangesGuard(
     return window.confirm(messageRef.current);
   }, []);
 
-  return { confirmDiscard };
+  const clearDirty = useCallback(() => {
+    isDirtyRef.current = false;
+  }, []);
+
+  return { confirmDiscard, clearDirty };
 }
