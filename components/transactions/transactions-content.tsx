@@ -112,6 +112,20 @@ function persistSavedViews(address: string | null, views: SavedView[]): void {
   safeStorage.setItem(getSavedViewsKey(address), JSON.stringify(views));
 }
 
+const TRANSACTION_STATUS_LABELS: Record<string, TransactionProps["status"]> = {
+  completed: "Completed",
+  success: "Completed",
+  pending: "Pending",
+  retry: "Pending",
+  rejection: "Failed",
+  timeout: "Failed",
+  failed: "Failed",
+};
+
+function getTransactionStatusLabel(status: string): TransactionProps["status"] {
+  return TRANSACTION_STATUS_LABELS[status.toLowerCase()] ?? "Pending";
+}
+
 /** Convert internal Transaction → display TransactionProps */
 const toTransactionProps = (
   t: Transaction,
@@ -128,11 +142,111 @@ const toTransactionProps = (
     t.amount >= 0
       ? `+$${t.amount.toFixed(2)}`
       : `-$${Math.abs(t.amount).toFixed(2)}`,
-  status: t.status as "Completed" | "Pending" | "Failed",
+  status: getTransactionStatusLabel(t.status),
   tokenIcon: getTokenIcon(t.token),
   memo: t.memo,
   tags: getTagNames(t.id),
 });
+function getTransactionTimelineSteps(status: string) {
+  switch (status) {
+    case "success":
+    case "completed":
+      return [
+        { label: "Submitted", state: "completed" },
+        { label: "Processed", state: "completed" },
+        { label: "Completed", state: "completed" },
+      ];
+    case "rejection":
+      return [
+        { label: "Submitted", state: "completed" },
+        { label: "Processing", state: "failed" },
+        { label: "Rejected", state: "failed" },
+      ];
+    case "timeout":
+      return [
+        { label: "Submitted", state: "completed" },
+        { label: "Processing", state: "failed" },
+        { label: "Timed out", state: "failed" },
+      ];
+    case "retry":
+      return [
+        { label: "Submitted", state: "completed" },
+        { label: "Processing", state: "current" },
+        { label: "Completed", state: "upcoming" },
+      ];
+    case "pending":
+    default:
+      return [
+        { label: "Submitted", state: "completed" },
+        { label: "Processing", state: "current" },
+        { label: "Completed", state: "upcoming" },
+      ];
+  }
+}
+
+export function TransactionStatusTimeline({
+  status,
+  failureReason,
+  onRetry,
+  onDetails,
+}: {
+  status: string;
+  failureReason?: string;
+  onRetry?: () => void;
+  onDetails?: () => void;
+}) {
+  const [liveMessage, setLiveMessage] = useState("");
+  const prevStatusRef = useRef(status);
+
+  useEffect(() => {
+    if (prevStatusRef.current === status) return;
+    prevStatusRef.current = status;
+    const statusLabel = status.charAt(0).toUpperCase() + status.slice(1);
+    setLiveMessage(`Transaction status changed to ${statusLabel}.`);
+  }, [status]);
+
+  const steps = getTransactionTimelineSteps(status);
+  const isFailed = status === "rejection" || status === "timeout" || status === "failed";
+
+  return (
+    <div className="transaction-status-timeline">
+      <div role="status" aria-live="polite" className="sr-only">
+        {liveMessage}
+      </div>
+      <ol aria-label="Transaction status">
+        {steps.map((step) => (
+          <li
+            key={step.label}
+            data-state={step.state}
+            aria-current={step.state === "current" || step.state === "failed" ? "step" : undefined}
+            aria-label={`${step.label}, ${step.state}`}
+          >
+            <span className="sr-only">{step.state}.</span>
+            {step.label}
+          </li>
+        ))}
+      </ol>
+      {isFailed && failureReason ? (
+        <p role="alert">{failureReason}</p>
+      ) : null}
+      {(onRetry || onDetails) ? (
+        <div className="transaction-status-actions">
+          {onRetry ? (
+            <button type="button" onClick={onRetry}>
+              Retry
+            </button>
+          ) : null}
+          {onDetails ? (
+            <button type="button" onClick={onDetails}>
+              Details
+            </button>
+          ) : null}
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
 
 export default function TransactionsContent() {
   const router = useRouter();
