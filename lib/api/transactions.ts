@@ -6,11 +6,15 @@
  * replace the mock return with a fetch() call to NEXT_PUBLIC_API_BASE_URL.
  */
 
-import type { Transaction, TransactionFilters } from "@/types/transaction";
+import type {
+  Transaction,
+  TransactionFilters,
+  SortField,
+  SortConfig,
+} from "@/types/transaction";
 import { allTransactions } from "@/lib/transactions";
 import {
   filterTransactions,
-  sortTransactionsMulti,
 } from "@/utils/transactionUtils";
 
 export interface PaginatedTransactions {
@@ -24,6 +28,36 @@ export interface PaginatedTransactions {
 export interface GetTransactionsParams {
   filters?: Partial<TransactionFilters>;
   page?: number;
+  pageSize?: number;
+}
+
+/**
+ * A single page of cursor-based (keyset) pagination.
+ *
+ * Unlike offset-based pages, a cursor identifies *where the previous page
+ * ended* in a stable order, so records deleted or reordered between requests
+ * cannot shift the window and cause duplicates or skips.
+ *
+ * - {@link CursorPaginatedTransactions.nextCursor}: an opaque token that must
+ *   be passed back as {@link GetTransactionsCursorParams.cursor} to fetch the
+ *   next page. It is `null` when there are no more records — this is the
+ *   end-of-list signal.
+ * - {@link CursorPaginatedTransactions.hasMore}: short-hand for
+ *   `nextCursor !== null`.
+ * - {@link CursorPaginatedTransactions.total}: the total number of matching
+ *   records (independent of pagination), for building page-number UIs.
+ */
+export interface CursorPaginatedTransactions {
+  data: Transaction[];
+  total: number;
+  nextCursor: string | null;
+  hasMore: boolean;
+}
+
+export interface GetTransactionsCursorParams {
+  filters?: Partial<TransactionFilters>;
+  /** Opaque cursor from a previous page. Omitting it starts from the first record. */
+  cursor?: string | null;
   pageSize?: number;
 }
 
@@ -72,6 +106,275 @@ const normalizeDateFilter = (
 
   return value;
 };
+
+// ── Stable ordering + keyset pagination helpers ────────────────────────────
+//
+// Offset-based pagination ("slice index n..n+pageSize") duplicates or skips
+// rows whenever the underlying dataset is reordered or has records deleted
+// between requests. To make pagination resilient we:
+//
+// 1. Sort by a *stable total order* — the caller's sort criteria plus an `id`
+//    tiebreaker — so every record has a unique, deterministic position.
+// 2. Paginate by *keyset*: the returned cursor captures the boundary record's
+//    sort values + id, and the next request continues strictly after that
+//    boundary by comparison, not by a fragile absolute index. Deleting
+//    earlier records never shifts the window.
+// 3. Deduplicate by identity (`id`), and expose an explicit end-of-list signal
+//    (`nextCursor === null` / `hasMore === false`) so a repeated cursor can
+//    never spin into an infinite request loop.
+
+/** A normalized, comparable sort-key value for a single sort field. */
+type CursorSortValue = number | string;
+
+/** Encodes a record's position in the stable order for keyset resumption. */
+interface CursorPayload {
+  /** Normalized sort-key values, one per sort config (in config order). */
+  values: CursorSortValue[];
+  /** Boundary record id (final tiebreaker — unique). */
+  id: string;
+}
+
+const normalizeSortValue = (
+  transaction: Transaction,
+  field: SortField,
+): CursorSortValue => {
+  switch (field) {
+    case "date": {
+      const parsed = new Date(transaction.date);
+      const time = Number.isNaN(parsed.getTime()) ? 0 : parsed.getTime();
+      return time;
+    }
+    case "amount": {
+      const amount = Math.abs(transaction.amount);
+      return Number.isFinite(amount) ? amount : 0;
+    }
+    case "type":
+      return transaction.type;
+    case "status":
+      return transaction.status;
+    default:
+      return transaction.status;
+  }
+};
+
+const compareCursorValues = (a: CursorSortValue, b: CursorSortValue): number => {
+  if (typeof a === "number" && typeof b === "number") {
+    return a < b ? -1 : a > b ? 1 : 0;
+  }
+  const sa = String(a);
+  const sb = String(b);
+  return sa < sb ? -1 : sa > sb ? 1 : 0;
+};
+
+const compareStable = (
+  aValues: CursorSortValue[],
+  aId: string,
+  bValues: CursorSortValue[],
+  bId: string,
+  sortConfigs: SortConfig[],
+): number => {
+  for (let i = 0; i < sortConfigs.length; i += 1) {
+    const raw = compareCursorValues(aValues[i], bValues[i]);
+    if (raw !== 0) {
+      return sortConfigs[i].direction === "asc" ? raw : -raw;
+    }
+  }
+  // Id is the deterministic total order tiebreaker, always ascending.
+  return aId < bId ? -1 : aId > bId ? 1 : 0;
+};
+
+const stableSort = (
+  transactions: Transaction[],
+  sortConfigs: SortConfig[],
+): { transaction: Transaction; values: CursorSortValue[] }[] => {
+  const decorated = transactions.map((transaction) => ({
+    transaction,
+    values: sortConfigs.map(({ field }) => normalizeSortValue(transaction, field)),
+  }));
+
+  return decorated.sort((a, b) =>
+    compareStable(
+      a.values,
+      a.transaction.id,
+      b.values,
+      b.transaction.id,
+      sortConfigs,
+    ),
+  );
+};
+
+const encodeCursor = (payload: CursorPayload): string =>
+  encodeURIComponent(JSON.stringify(payload));
+
+/**
+ * Decodes an opaque pagination cursor.
+ * Returns `null` for a missing cursor, an invalid token, or a malformed
+ * payload — an untrusted/invalid cursor is treated as "start from the
+ * beginning" rather than throwing or looping.
+ */
+const decodeCursor = (cursor: string | null | undefined): CursorPayload | null => {
+  if (cursor === undefined || cursor === null || cursor === "") return null;
+
+  try {
+    const parsed: unknown = JSON.parse(decodeURIComponent(cursor));
+    if (
+      typeof parsed !== "object" ||
+      parsed === null ||
+      !Array.isArray((parsed as CursorPayload).values) ||
+      typeof (parsed as CursorPayload).id !== "string"
+    ) {
+      return null;
+    }
+    return parsed as CursorPayload;
+  } catch {
+    return null;
+  }
+};
+
+const DEFAULT_SORT_CONFIGS: readonly SortConfig[] = [
+  { field: "date", direction: "desc" },
+];
+
+/** Normalizes sort configs to a non-empty list (falling back to the default). */
+const normalizeSortConfigs = (
+  sortConfigs: SortConfig[] | undefined,
+): SortConfig[] =>
+  sortConfigs && sortConfigs.length > 0
+    ? sortConfigs
+    : [...DEFAULT_SORT_CONFIGS];
+
+/** Applies filters, validates date filters, and sorts into a stable total order. */
+const stableSortFilter = (
+  filters: Partial<TransactionFilters>,
+): { transaction: Transaction; values: CursorSortValue[] }[] => {
+  const {
+    searchQuery = "",
+    filterQuery = "",
+    selectedFilter = "All Transactions",
+    fromDate = MOCK_FROM_DATE,
+    toDate = MOCK_TO_DATE,
+    minAmount,
+    maxAmount,
+    counterparty,
+  } = filters;
+
+  const safeFromDate = normalizeDateFilter(fromDate, MOCK_FROM_DATE, "fromDate");
+  const safeToDate = normalizeDateFilter(toDate, MOCK_TO_DATE, "toDate");
+
+  const filtered = filterTransactions(
+    allTransactions,
+    searchQuery,
+    selectedFilter,
+    safeFromDate,
+    safeToDate,
+    filterQuery,
+    minAmount,
+    maxAmount,
+    counterparty,
+  );
+
+  return stableSort(filtered, normalizeSortConfigs(filters.sortConfigs));
+};
+
+/**
+ * Shared abortable dev-mode delay used by the resilient pagination API so the
+ * demo UI exercises its loading states. When `signal` fires mid-delay (or is
+ * already aborted), it rejects with a `DOMException` whose `.name` is
+ * `"AbortError"`.
+ */
+const abortableDelay = (signal?: AbortSignal): Promise<void> =>
+  new Promise<void>((resolve, reject) => {
+    const timeoutId = setTimeout(() => resolve(), 400);
+
+    const onAbort = () => {
+      clearTimeout(timeoutId);
+      reject(new DOMException("Aborted", "AbortError"));
+    };
+
+    if (signal) {
+      if (signal.aborted) {
+        onAbort();
+        return;
+      }
+      signal.addEventListener("abort", onAbort, { once: true });
+    }
+  });
+
+/**
+ * Fetch a page of transactions using resilient keyset (cursor) pagination.
+ *
+ * Every page returns an opaque {@link CursorPaginatedTransactions.nextCursor}
+ * that must be passed back via {@link GetTransactionsCursorParams.cursor}.
+ * Because pagination resumes "after this boundary record" in a stable
+ * total order (sort criteria + `id` tiebreaker) rather than by a numeric
+ * offset:
+ *
+ * - **Deletion resilience** — a record deleted between requests cannot shift
+ *   the window; the next page continues after the boundary by comparison.
+ * - **No duplicates** — identity is the total-order tiebreaker and each page
+ *   is deduplicated by `id`, so adjacent pages never render the same id.
+ * - **End-of-list policy** — when fewer than `pageSize` records remain (or
+ *   none), `nextCursor` is `null` so `hasMore` is `false`. Passing a repeated
+ *   cursor deterministically returns the same page, so callers can never
+ *   trigger an infinite request loop.
+ *
+ * An invalid or missing cursor is treated as "first page".
+ *
+ * @throws {RangeError} When `filters.fromDate` or `filters.toDate` is
+ *   non-empty and cannot be parsed as a valid date.
+ */
+export async function getTransactionsCursor(
+  params: GetTransactionsCursorParams = {},
+  signal?: AbortSignal,
+): Promise<CursorPaginatedTransactions> {
+  const { filters = {}, cursor, pageSize: requestedPageSize } = params;
+
+  const safePageSize = normalizePositiveInteger(
+    requestedPageSize,
+    DEFAULT_TRANSACTION_PAGE_SIZE,
+    MIN_TRANSACTION_PAGE_SIZE,
+    MAX_TRANSACTION_PAGE_SIZE,
+  );
+
+  if (process.env.NODE_ENV === "development") {
+    await abortableDelay(signal);
+  }
+  if (signal?.aborted) {
+    throw new DOMException("Aborted", "AbortError");
+  }
+
+  const sortConfigs = normalizeSortConfigs(filters.sortConfigs);
+  const appliedStable = stableSortFilter(filters);
+
+  // Only consider records strictly after the boundary cursor (keyset window).
+  const boundary = decodeCursor(cursor);
+  let window = appliedStable;
+  if (boundary) {
+    window = appliedStable.filter(({ transaction, values }) =>
+      compareStable(
+        values,
+        transaction.id,
+        boundary.values,
+        boundary.id,
+        sortConfigs,
+      ) > 0,
+    );
+  }
+
+  const page = window.slice(0, safePageSize);
+  const remaining = window.length - page.length;
+  const last = page[page.length - 1];
+
+  return {
+    data: page.map(({ transaction }) => transaction),
+    total: appliedStable.length,
+    nextCursor:
+      remaining > 0 && last
+        ? encodeCursor({ values: last.values, id: last.transaction.id })
+        : null,
+    hasMore: remaining > 0,
+  };
+}
 
 /**
  * Fetch a paginated, filtered, sorted list of transactions.
@@ -159,18 +462,6 @@ export async function getTransactions(
     pageSize: requestedPageSize = DEFAULT_TRANSACTION_PAGE_SIZE,
   } = params;
 
-  const {
-    searchQuery = "",
-    filterQuery = "",
-    selectedFilter = "All Transactions",
-    fromDate = MOCK_FROM_DATE,
-    toDate = MOCK_TO_DATE,
-    minAmount,
-    maxAmount,
-    sortConfigs = [{ field: "date" as const, direction: "desc" as const }],
-    counterparty,
-  } = filters;
-
   const safePageSize = normalizePositiveInteger(
     requestedPageSize,
     DEFAULT_TRANSACTION_PAGE_SIZE,
@@ -183,12 +474,6 @@ export async function getTransactions(
     1,
     Number.MAX_SAFE_INTEGER,
   );
-  const safeFromDate = normalizeDateFilter(
-    fromDate,
-    MOCK_FROM_DATE,
-    "fromDate",
-  );
-  const safeToDate = normalizeDateFilter(toDate, MOCK_TO_DATE, "toDate");
 
   // ── Real backend swap point ──────────────────────────────────────────────
   // const base = process.env.NEXT_PUBLIC_API_BASE_URL;
@@ -222,25 +507,15 @@ export async function getTransactions(
     throw new DOMException("Aborted", "AbortError");
   }
 
-  const filtered = filterTransactions(
-    allTransactions,
-    searchQuery,
-    selectedFilter,
-    safeFromDate,
-    safeToDate,
-    filterQuery,
-    minAmount,
-    maxAmount,
-    counterparty,
-  );
+  const stableOrder = stableSortFilter(filters);
 
-  const sorted = sortTransactionsMulti(filtered, sortConfigs);
-
-  const total = sorted.length;
+  const total = stableOrder.length;
   const totalPages = Math.max(1, Math.ceil(total / safePageSize));
   const safePage = Math.min(requestedSafePage, totalPages);
   const start = (safePage - 1) * safePageSize;
-  const data = sorted.slice(start, start + safePageSize);
+  const data = stableOrder
+    .slice(start, start + safePageSize)
+    .map(({ transaction }) => transaction);
 
   return { data, total, page: safePage, pageSize: safePageSize, totalPages };
 }
