@@ -8,6 +8,7 @@ import {
   resetRecoveryState,
   AuthExpiredError,
   generateIdempotencyKey,
+  completeReauth,
 } from "./authRecovery";
 
 describe("authRecovery service", () => {
@@ -181,5 +182,94 @@ describe("authRecovery service", () => {
     const headers = new Headers(init?.headers);
     expect(headers.get("Idempotency-Key")).toBeTruthy();
     expect(headers.get("Idempotency-Key")).toMatch(/^idempotency-|^[0-9a-f-]{36}$/);
+  });
+
+  it("clears protected tokens when refresh fails (session invalidated)", async () => {
+    setTokens({ accessToken: "expired-token", csrfToken: "expired-csrf" });
+
+    const refreshHandler = vi.fn().mockRejectedValue(new Error("Refresh token expired"));
+
+    setCustomRefreshHandler(refreshHandler);
+
+    const failureListener = vi.fn();
+    setAuthFailureHandler(failureListener);
+
+    vi.spyOn(globalThis, "fetch").mockResolvedValue(
+      new Response(JSON.stringify({ message: "Token expired" }), { status: 401 })
+    );
+
+    await expect(
+      authenticatedFetch("https://api.example.com/protected")
+    ).rejects.toThrow(AuthExpiredError);
+
+    // Protected tokens must be cleared on failed refresh
+    expect(getTokens()).toEqual({});
+    expect(refreshHandler).toHaveBeenCalledTimes(1);
+    expect(failureListener).toHaveBeenCalledTimes(1);
+    expect(failureListener.mock.calls[0][0]).toBeInstanceOf(AuthExpiredError);
+  });
+
+  it("allows retry with new tokens after successful refresh", async () => {
+    setTokens({ accessToken: "expired-token", csrfToken: "expired-csrf" });
+
+    let refreshCallCount = 0;
+    const refreshHandler = vi.fn().mockImplementation(async () => {
+      refreshCallCount++;
+      await new Promise((resolve) => setTimeout(resolve, 20));
+      return { accessToken: "new-access-token", csrfToken: "new-csrf-token" };
+    });
+    setCustomRefreshHandler(refreshHandler);
+
+    let requestAttempts = 0;
+    vi.spyOn(globalThis, "fetch").mockImplementation(async (input, init) => {
+      requestAttempts++;
+      const headers = new Headers(init?.headers);
+
+      if (headers.get("Authorization") === "Bearer expired-token") {
+        return new Response(JSON.stringify({ message: "Unauthorized" }), { status: 401 });
+      }
+
+      if (headers.get("Authorization") === "Bearer new-access-token") {
+        return new Response(JSON.stringify({ success: true }), { status: 200 });
+      }
+
+      return new Response(null, { status: 500 });
+    });
+
+    const promises = [
+      authenticatedFetch("https://api.example.com/resource1"),
+      authenticatedFetch("https://api.example.com/resource2"),
+    ];
+
+    const results = await Promise.all(promises);
+
+    expect(results).toHaveLength(2);
+    results.forEach((res) => expect(res.status).toBe(200));
+    expect(refreshCallCount).toBe(1);
+    expect(getTokens()).toEqual({
+      accessToken: "new-access-token",
+      csrfToken: "new-csrf-token",
+    });
+  });
+
+  it("triggers reauth dialog when refresh fails via context failure handler", async () => {
+    resetRecoveryState();
+
+    const refreshHandler = vi.fn().mockRejectedValue(new Error("Invalid refresh token"));
+    setCustomRefreshHandler(refreshHandler);
+
+    const failureListener = vi.fn();
+    setAuthFailureHandler(failureListener);
+
+    vi.spyOn(globalThis, "fetch").mockResolvedValue(
+      new Response(JSON.stringify({ message: "Token expired" }), { status: 401 })
+    );
+
+    await expect(
+      authenticatedFetch("https://api.example.com/protected")
+    ).rejects.toThrow(AuthExpiredError);
+
+    expect(failureListener).toHaveBeenCalledTimes(1);
+    expect(failureListener.mock.calls[0][0]).toBeInstanceOf(AuthExpiredError);
   });
 });
