@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { AlertTriangle } from "lucide-react";
+import { AlertTriangle, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -13,6 +13,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import { usePendingAction } from "@/hooks/usePendingAction";
 
 interface DestructiveActionDialogProps {
   triggerLabel: string;
@@ -22,7 +23,13 @@ interface DestructiveActionDialogProps {
   confirmationToken: string;
   confirmationLabel: string;
   confirmLabel: string;
-  onConfirm: () => void;
+  /**
+   * Runs once per confirmation. May return a promise; the dialog stays open
+   * (in a pending state) until it resolves, and only closes on success. When
+   * it rejects, the dialog stays open with an inline error so the user can
+   * retry.
+   */
+  onConfirm: () => void | Promise<void>;
 }
 
 /**
@@ -65,19 +72,29 @@ function getConfirmationError(value: string, token: string): string | null {
 
 /**
  * A confirmation dialog for irreversible, high-impact actions (e.g. account
- * deactivation, wallet removal).
+ * deactivation, wallet removal, key revocation).
  *
- * Accessibility & safety behaviour:
+ * Safety & idempotency behaviour:
+ * - Exactly one request is issued per confirmation. While `onConfirm` is
+ *   pending the dialog disables its controls (confirm, cancel, close, typed
+ *   input) and guards against re-entry, so a rapid double click or a held /
+ *   repeated Enter key can never fire the action twice.
+ * - The dialog only closes after `onConfirm` resolves successfully. It never
+ *   looks "done" while the request is still in flight.
+ * - If `onConfirm` rejects, the dialog stays open, surfaces the failure
+ *   inline, and leaves the confirm button enabled so the user can retry.
+ * - The confirm action requires an **exact** token match — the value is *not*
+ *   trimmed or lower-cased — so accidental whitespace or wrong casing can never
+ *   bypass the user's intent. Any mismatch is surfaced inline (including a
+ *   whitespace-specific hint) instead of failing silently.
+ *
+ * Accessibility:
  * - The confirmation input is auto-focused when the dialog opens
  *   (`onOpenAutoFocus`), and focus returns to the trigger button on close —
  *   focus trapping and restoration are provided by Radix's `Dialog`.
  * - The input is wired with `aria-required`, `aria-invalid`, and
  *   `aria-describedby` (instruction text + error) via the shared `Input`
- *   component.
- * - The confirm action requires an **exact** token match — the value is *not*
- *   trimmed or lower-cased — so accidental whitespace or wrong casing can never
- *   bypass the user's intent. Any mismatch is surfaced inline (including a
- *   whitespace-specific hint) instead of failing silently.
+ *   component, and the dialog signals `aria-busy` while the action runs.
  */
 export default function DestructiveActionDialog({
   triggerLabel,
@@ -91,11 +108,18 @@ export default function DestructiveActionDialog({
 }: DestructiveActionDialogProps) {
   const [open, setOpen] = useState(false);
   const [confirmationText, setConfirmationText] = useState("");
+  const {
+    isPending,
+    error: actionError,
+    run,
+    reset: resetAction,
+  } = usePendingAction();
 
   const inputId = `confirmation-${confirmationToken.toLowerCase()}`;
   const labelId = `${inputId}-label`;
   const instructionId = `${inputId}-instruction`;
   const errorId = `${inputId}-error`;
+  const actionErrorId = `${inputId}-action-error`;
 
   // Strict, exact comparison: whitespace and casing must match the token.
   const isConfirmed = confirmationText === confirmationToken;
@@ -105,18 +129,37 @@ export default function DestructiveActionDialog({
     [confirmationText, confirmationToken],
   );
 
-  const handleOpenChange = (nextOpen: boolean) => {
-    setOpen(nextOpen);
+  const closeDialog = () => {
+    setOpen(false);
     setConfirmationText("");
+    resetAction();
   };
 
-  const handleConfirm = () => {
-    if (!isConfirmed) {
+  const handleOpenChange = (nextOpen: boolean) => {
+    // Never let the dialog dismiss (Escape, overlay, close button, cancel)
+    // while a request is in flight — closing early would imply success.
+    if (isPending) {
       return;
     }
 
-    onConfirm();
-    handleOpenChange(false);
+    setOpen(nextOpen);
+    if (!nextOpen) {
+      setConfirmationText("");
+      resetAction();
+    }
+  };
+
+  const handleConfirm = async () => {
+    if (!isConfirmed || isPending) {
+      return;
+    }
+
+    const succeeded = await run(onConfirm);
+    if (succeeded) {
+      // Close directly: `handleOpenChange` would still see the stale pending
+      // state in this closure and refuse to dismiss.
+      closeDialog();
+    }
   };
 
   return (
@@ -131,8 +174,11 @@ export default function DestructiveActionDialog({
           // Override Radix's default (focus the content/close button) so the
           // user lands directly on the field they must fill in.
           event.preventDefault();
-          document.getElementById(inputId)?.focus();
+          if (!isPending) {
+            document.getElementById(inputId)?.focus();
+          }
         }}
+        aria-busy={isPending}
       >
         <DialogHeader className="space-y-3 text-left">
           <div className="flex items-center gap-3">
@@ -180,11 +226,17 @@ export default function DestructiveActionDialog({
             <Input
               id={inputId}
               value={confirmationText}
-              onChange={(event) => setConfirmationText(event.target.value)}
+              onChange={(event) => {
+                setConfirmationText(event.target.value);
+                if (actionError) {
+                  resetAction();
+                }
+              }}
               placeholder={confirmationToken}
               className="border-zinc-200 bg-white dark:border-white/10 dark:bg-white/5"
               required
               aria-required
+              disabled={isPending}
               error={Boolean(validationError)}
               labelId={labelId}
               descriptionId={instructionId}
@@ -200,19 +252,41 @@ export default function DestructiveActionDialog({
                 {validationError}
               </p>
             )}
+            {actionError && (
+              <p
+                id={actionErrorId}
+                role="alert"
+                aria-live="polite"
+                className="flex items-center gap-1.5 rounded-md border border-red-500/20 bg-red-500/5 px-3 py-2 text-xs font-medium text-red-500"
+              >
+                <AlertTriangle className="h-3.5 w-3.5 shrink-0" />
+                {actionError}. You can retry.
+              </p>
+            )}
           </div>
         </div>
 
         <DialogFooter>
-          <Button variant="outline" onClick={() => handleOpenChange(false)}>
+          <Button
+            variant="outline"
+            disabled={isPending}
+            onClick={() => handleOpenChange(false)}
+          >
             Cancel
           </Button>
           <Button
             variant="destructive"
-            disabled={!isConfirmed}
+            disabled={!isConfirmed || isPending}
             onClick={handleConfirm}
           >
-            {confirmLabel}
+            {isPending ? (
+              <>
+                <Loader2 className="h-4 w-4 animate-spin" />
+                {confirmLabel}
+              </>
+            ) : (
+              confirmLabel
+            )}
           </Button>
         </DialogFooter>
       </DialogContent>

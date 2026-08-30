@@ -1,5 +1,5 @@
 import React from "react";
-import { render, screen } from "@testing-library/react";
+import { render, screen, fireEvent, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, it, expect, vi } from "vitest";
 import { WalletsSection, WalletItem } from "./wallets-section";
@@ -30,7 +30,9 @@ describe("WalletsSection", () => {
 
     expect(screen.getByRole("dialog")).toBeInTheDocument();
     expect(screen.getByText("Remove Connected Wallet")).toBeInTheDocument();
-    expect(screen.getByText("Test Wallet 1")).toBeInTheDocument();
+    expect(
+      within(screen.getByRole("dialog")).getByText("Test Wallet 1"),
+    ).toBeInTheDocument();
   });
 
   it("cancels wallet removal when cancel button is clicked", () => {
@@ -42,7 +44,7 @@ describe("WalletsSection", () => {
     expect(screen.getByText("Test Wallet 1")).toBeInTheDocument();
   });
 
-  it("removes wallet and calls onRemoveWallet when confirmed", () => {
+  it("removes wallet and calls onRemoveWallet when confirmed", async () => {
     const handleRemove = vi.fn();
     render(<WalletsSection wallets={mockWallets} onRemoveWallet={handleRemove} />);
 
@@ -50,7 +52,59 @@ describe("WalletsSection", () => {
     fireEvent.click(screen.getByRole("button", { name: /^remove wallet$/i }));
 
     expect(handleRemove).toHaveBeenCalledWith("1");
+    await waitFor(() =>
+      expect(screen.queryByRole("dialog")).not.toBeInTheDocument(),
+    );
     expect(screen.queryByText("Test Wallet 1")).not.toBeInTheDocument();
+  });
+
+  it("issues a single removal request across a rapid double click on the confirm button", async () => {
+    const removeSpy = vi.fn(
+      () =>
+        new Promise<void>((resolve) => {
+          setTimeout(resolve, 50);
+        }),
+    );
+    render(<WalletsSection wallets={mockWallets} onRemoveWallet={removeSpy} />);
+
+    fireEvent.click(screen.getAllByRole("button", { name: /remove/i })[0]);
+    const confirm = screen.getByRole("button", { name: /^remove wallet$/i });
+    fireEvent.click(confirm);
+    // While the request is in flight the confirm button is disabled.
+    expect(confirm).toBeDisabled();
+    fireEvent.click(confirm);
+
+    expect(removeSpy).toHaveBeenCalledTimes(1);
+    await waitFor(() =>
+      expect(screen.queryByRole("dialog")).not.toBeInTheDocument(),
+    );
+    expect(removeSpy).toHaveBeenCalledTimes(1);
+  });
+
+  it("keeps the dialog open with an error on failure, then retries successfully", async () => {
+    const removeSpy = vi
+      .fn()
+      .mockRejectedValueOnce(new Error("Network down"))
+      .mockResolvedValueOnce(undefined);
+    render(<WalletsSection wallets={mockWallets} onRemoveWallet={removeSpy} />);
+
+    fireEvent.click(screen.getAllByRole("button", { name: /remove/i })[0]);
+    fireEvent.click(screen.getByRole("button", { name: /^remove wallet$/i }));
+
+    await waitFor(() =>
+      expect(screen.getByRole("alert")).toHaveTextContent(/you can retry/i),
+    );
+    expect(screen.getByRole("dialog")).toBeInTheDocument();
+    expect(
+      within(screen.getByRole("dialog")).getByText("Test Wallet 1"),
+    ).toBeInTheDocument();
+    expect(removeSpy).toHaveBeenCalledTimes(1);
+
+    fireEvent.click(screen.getByRole("button", { name: /^remove wallet$/i }));
+    await waitFor(() =>
+      expect(screen.queryByRole("dialog")).not.toBeInTheDocument(),
+    );
+    expect(removeSpy).toHaveBeenCalledTimes(2);
   });
 
   // ── nickname editing ──────────────────────────────────────────────
