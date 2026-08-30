@@ -15,10 +15,11 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import { useId, useState, type ReactNode } from "react";
+import { useEffect, useId, useState, type MouseEvent, type ReactNode } from "react";
 import { usePathname } from "next/navigation";
 import Link from "next/link";
 import { useTheme } from "@/context/theme-context";
+import { useDirtyGuard } from "@/context/dirty-guard-context";
 import { transition } from "@/lib/motion";
 import {
   isLinkActive,
@@ -55,6 +56,22 @@ function CollapsedNavLink({
 }: CollapsedNavLinkProps) {
   const [isHovered, setIsHovered] = useState(false);
   const [isFocused, setIsFocused] = useState(false);
+  const { isDirty, confirmNavigation } = useDirtyGuard();
+
+  const handleNavigation = (event: MouseEvent<HTMLAnchorElement>) => {
+    if (
+      isDirty &&
+      event.button === 0 &&
+      !event.metaKey &&
+      !event.ctrlKey &&
+      !event.shiftKey &&
+      !event.altKey &&
+      !confirmNavigation()
+    ) {
+      event.preventDefault();
+      event.stopPropagation();
+    }
+  };
   const tooltipId = useId();
   const isTooltipOpen = isHovered || isFocused;
 
@@ -84,6 +101,7 @@ function CollapsedNavLink({
             onMouseLeave={() => setIsHovered(false)}
             onFocus={() => setIsFocused(true)}
             onBlur={() => setIsFocused(false)}
+            onClickCapture={handleNavigation}
             className={`cursor-pointer my-1.5 p-3 relative rounded-xl flex items-center justify-center transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background ${
               isActive
                 ? ""
@@ -149,6 +167,35 @@ export const NavLink = () => {
 
   const isExpanded = shouldExpandSidebar(isMobile, isSidebarOpen);
 
+  const { isDirty, confirmNavigation } = useDirtyGuard();
+
+  useEffect(() => {
+    if (!isDirty) return;
+
+    const handleBeforeUnload = (event: BeforeUnloadEvent) => {
+      event.preventDefault();
+      event.returnValue = "";
+    };
+
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    return () => window.removeEventListener("beforeunload", handleBeforeUnload);
+  }, [isDirty]);
+
+  const handleNavigation = (event: MouseEvent<HTMLAnchorElement>) => {
+    if (
+      isDirty &&
+      event.button === 0 &&
+      !event.metaKey &&
+      !event.ctrlKey &&
+      !event.shiftKey &&
+      !event.altKey &&
+      !confirmNavigation()
+    ) {
+      event.preventDefault();
+      event.stopPropagation();
+    }
+  };
+
   const links: NavItem[] = [
     {
       link: "Dashboard",
@@ -198,6 +245,7 @@ export const NavLink = () => {
                 <Link
                   href={link.route}
                   aria-current={isActive ? "page" : undefined}
+                  onClickCapture={handleNavigation}
                   className={`cursor-pointer py-3.5 px-4 w-full relative rounded-xl flex justify-between items-center transition-all duration-200 group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background ${
                     isActive
                       ? "text-white dark:text-[#0D0D0D]"
@@ -244,47 +292,13 @@ export const NavLink = () => {
           }
 
           return (
-            <Tooltip
-              key={index}
-              placement="right"
-              content={link.link}
-              className="border border-zinc-100 dark:border-zinc-800 text-zinc-900 dark:text-zinc-100 bg-white dark:bg-zinc-900 px-3 py-1.5 shadow-xl rounded-md"
-            >
-              <li className="w-fit self-center relative w-full flex justify-center">
-                <Link
-                  href={link.route}
-                  aria-current={isActive ? "page" : undefined}
-                  className={`cursor-pointer my-1.5 p-3 relative rounded-xl flex items-center justify-center transition-all duration-200 ${
-                    isActive
-                      ? ""
-                      : "hover:bg-zinc-100 dark:hover:bg-zinc-800/50 text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white"
-                  }`}
-                >
-                  <span className="relative z-20 flex items-center justify-center">
-                    {link.icon(iconColor)}
-                  </span>
-
-                  {link.link.toLowerCase() === "transactions" && !isActive && (
-                    <div className="bg-[#EB6945] w-2 h-2 rounded-full -top-1 -right-1 absolute z-20 border border-white dark:border-[#101010]" />
-                  )}
-
-                  {isActive &&
-                    (reducedMotion ? (
-                      <div
-                        className="absolute left-0 top-0 w-8 h-8 self-center bg-zinc-900 dark:bg-white rounded-xl z-10 shadow-sm"
-                        style={{ left: "50%", transform: "translateX(-50%)" }}
-                      />
-                    ) : (
-                      <motion.div
-                        className="absolute left-0 top-0 w-8 h-8 self-center bg-zinc-900 dark:bg-white rounded-xl z-10 shadow-sm"
-                        style={{ left: "50%", transform: "translateX(-50%)" }}
-                        layoutId="activeLink-collapsed"
-                        transition={transition.spring}
-                      />
-                    ))}
-                </Link>
-              </li>
-            </Tooltip>
+            <CollapsedNavLink
+              key={link.route}
+              item={link}
+              iconColor={iconColor}
+              isActive={isActive}
+              reducedMotion={reducedMotion}
+            />
           );
         })}
       </ul>

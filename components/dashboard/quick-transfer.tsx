@@ -13,6 +13,7 @@ import { z } from "zod";
 import { Send } from "lucide-react";
 import { cn } from "@/utils/commonUtils";
 import { isValidStellarAddress } from "@/utils/stellarAddress";
+import { useDirtyGuard } from "@/hooks/useDirtyGuard";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -93,6 +94,8 @@ function QuickTransfer({
 
   const watchRecipient = form.watch("recipient");
   const watchAmount = form.watch("amount");
+  const isFormDirty = watchRecipient.trim().length > 0 || watchAmount.trim().length > 0;
+  useDirtyGuard(isFormDirty);
   const recipientError = form.formState.errors.recipient?.message;
   const amountError = form.formState.errors.amount?.message;
 

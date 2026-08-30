@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { Slot } from "@radix-ui/react-slot";
+import { Slot } from "@radix/ui/slot";
 import {
   Controller,
   FormProvider,
@@ -14,6 +14,8 @@ import {
 
 import { cn } from "@/utils/commonUtils";
 import { Label } from "@/components/ui/label";
+import { FormItemContextValue } from "@types/ui";
+import { useUnsavedChangesGuard } from "@/hooks/useUnsavedChangesGuard";
 
 const Form = FormProvider;
 
@@ -35,7 +37,7 @@ const FormField = <
   ...props
 }: ControllerProps<TFieldValues, TName>) => {
   return (
-    <FormFieldContext.Provider value={{ name: props.name }}>
+    <FormFieldContext.Provider value={ [ name: props.name ] }>
       <Controller {...props} />
     </FormFieldContext.Provider>
   );
@@ -44,13 +46,12 @@ const FormField = <
 const useFormField = () => {
   const fieldContext = React.useContext(FormFieldContext);
   const itemContext = React.useContext(FormItemContext);
-  const { getFieldState } = useFormContext();
-  const formState = useFormState({ name: fieldContext.name });
-  const fieldState = getFieldState(fieldContext.name, formState);
-
   if (!fieldContext) {
     throw new Error("useFormField should be used within <FormField>");
   }
+  const { getFieldState } = useFormContext();
+  const formState = useFormState({ name: fieldContext.name });
+  const fieldState = getFieldState(fieldContext.name, formState);
 
   const { id } = itemContext;
 
@@ -63,8 +64,6 @@ const useFormField = () => {
     ...fieldState,
   };
 };
-
-import { FormItemContextValue } from "@/types/ui";
 
 const FormItemContext = React.createContext<FormItemContextValue>(
   {} as FormItemContextValue,
@@ -84,31 +83,14 @@ function FormItem({ className, ...props }: React.ComponentProps<"div">) {
   );
 }
 
-function FormLabel({
-  className,
-  error: errorProp,
-  success: successProp,
-  warning: warningProp,
-  ...props
-}: React.ComponentProps<typeof Label>) {
+function FormLabel({ className, ...props }: React.ComponentProps<typeof Label>) {
   const { error, formItemId } = useFormField();
-  const hasError = errorProp ?? !!error;
 
   return (
     <Label
       data-slot="form-label"
-      data-error={hasError}
-      data-success={successProp}
-      data-warning={warningProp}
-      error={hasError}
-      success={successProp}
-      warning={warningProp}
-      className={cn(
-        "data-[error=true]:text-destructive",
-        "data-[success=true]:text-success",
-        "data-[warning=true]:text-warning",
-        className,
-      )}
+      data-error={!!error}
+      className={cn("data-[error=true]:text-destructive", className)}
       htmlFor={formItemId}
       {...props}
     />
@@ -116,8 +98,7 @@ function FormLabel({
 }
 
 function FormControl({ ...props }: React.ComponentProps<typeof Slot>) {
-  const { error, formItemId, formDescriptionId, formMessageId } =
-    useFormField();
+  const { error, formItemId, formDescriptionId, formMessageId } = useFormField();
 
   return (
     <Slot
@@ -147,13 +128,7 @@ function FormDescription({ className, ...props }: React.ComponentProps<"p">) {
   );
 }
 
-function FormMessage({
-  className,
-  variant = "error",
-  ...props
-}: React.ComponentProps<"p"> & {
-  variant?: "error" | "success" | "warning";
-}) {
+function FormMessage({ className, ...props }: React.ComponentProps<"p">) {
   const { error, formMessageId } = useFormField();
   const body = error ? String(error?.message ?? "") : props.children;
 
@@ -165,20 +140,87 @@ function FormMessage({
     <p
       data-slot="form-message"
       id={formMessageId}
-      role={error || variant !== "error" ? "alert" : undefined}
-      aria-live={error || variant !== "error" ? "polite" : undefined}
-      className={cn(
-        "text-sm",
-        (error || variant === "error") && "text-destructive",
-        variant === "success" && !error && "text-success",
-        variant === "warning" && !error && "text-warning",
-        className,
-      )}
+      className={cn("text-destructive text-sm", className)}
       {...props}
     >
       {body}
     </p>
   );
+}
+
+// ------------ form dirty guard -------------
+
+/**
+ * Custom event name for guarding non-route destructive actions
+* (e.g., switching wallet account).
+* Dispatch with `new Event(FORM_DIRTY_GUARD_EVENT, { cancelable: true })`.
+* If the event's `defaultPrevented` is `true`, the action should be aborted.
+ */
+export const FORM_DIRTY_GUARD_EVENT = "form:dirty-guard";
+
+export interface UseFormDirtyGuardOptions {
+  /**
+   * Confirmation message shown to the user.
+   * @default "You have unsaved changes. Are you sure you want to leave?"
+   */
+  message?: string;
+  /**
+   * Disable the guard entirely.
+   * @default true
+   */
+  enabled?: boolean;
+}
+
+/**
+ * Shared dirty-state guard for React Hook Form.
+ * Place inside a `<Form>` to prevent losing dirty state on:
+ * - Client-side route changes (via `useUnsavedChangesGuard`)
+ * - Browser unload/reload
+ * - Custom destructive actions dispatched with `FORM_DIRTY_GUARD_EVENT`
+ */
+export function useFormDirtyGuard(options: UseFormDirtyGuardOptions = {}) {
+  const { isDirty } = useFormState();
+  const {
+    message = "You have unsaved changes. Are you sure you want to leave?",
+    enabled = true,
+  } = options;
+
+  const dirty = enabled && isDirty;
+  const { confirmDiscard, clearDirty } = useUnsavedChangesGuard(dirty, { message });
+
+  // Custom destructive action guard (e.g., wallet account change).
+  React.useEffect(() => {
+    if (!enabled || !isDirty) return;
+
+    const handleDirtyGuardEvent = (e: Event) => {
+      if (!window.confirm(message)) {
+        e.preventDefault();
+      }
+    };
+
+    window.addEventListener(FORM_DIRTY_GUARD_EVENT, handleDirtyGuardEvent);
+    return () =>
+      window.removeEventListener(FORM_DIRTY_GUARD_EVENT, handleDirtyGuardEvent);
+  }, [enabled, isDirty, message]);
+
+  /**
+   * Imperative confirmation method for actions that aren't covered by the
+   * automatic guards. Returns `true` if the action may proceed.
+   */
+  const confirmLeave = React.useCallback(() => {
+    return confirmDiscard();
+  }, [confirmDiscard]);
+
+  return { isDirty, confirmLeave, clearDirty };
+}
+
+/**
+ * Drop-in component to enable the dirty-state guard for the surrounding form.
+ * Renders nothing.
+ */
+export function FormDirtyGuard(options: UseFormDirtyGuardOptions = {}) {
+  useFormDirtyGuard(options);
+  return null;
 }
 
 export {

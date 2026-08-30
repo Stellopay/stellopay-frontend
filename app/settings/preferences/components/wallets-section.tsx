@@ -1,7 +1,7 @@
 "use client";
 
-import React, { useState } from "react";
-import { Check, Loader2, Pencil, Trash2, Wallet as WalletIcon, X } from "lucide-react";
+import React, { useCallback, useEffect, useState } from "react";
+import { Check, Pencil, Trash2, Wallet as WalletIcon, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -61,7 +61,74 @@ export function WalletsSection({
     setWalletToRemove(wallet);
   };
 
+  const isDirty =
+    editingId !== null &&
+    editingValue.trim() !==
+      (walletList.find((w) => w.id === editingId)?.nickname ?? "").trim();
+
+  const confirmDiscardChanges = useCallback(() => {
+    if (!isDirty) return true;
+    return window.confirm(
+      "You have unsaved changes. Are you sure you want to leave?",
+    );
+  }, [isDirty]);
+
+  useEffect(() => {
+    if (!isDirty) return;
+
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      e.preventDefault();
+      e.returnValue = "";
+    };
+
+    const originalPushState = window.history.pushState;
+    const originalReplaceState = window.history.replaceState;
+
+    window.history.pushState = function (
+      ...args: Parameters<typeof originalPushState>
+    ) {
+      if (!confirmDiscardChanges()) {
+        return;
+      }
+      originalPushState.apply(this, args);
+    };
+
+    window.history.replaceState = function (
+      ...args: Parameters<typeof originalReplaceState>
+    ) {
+      if (!confirmDiscardChanges()) {
+        return;
+      }
+      originalReplaceState.apply(this, args);
+    };
+
+    let suppressingPopState = false;
+
+    const handlePopState = () => {
+      if (suppressingPopState) {
+        suppressingPopState = false;
+        return;
+      }
+
+      if (!confirmDiscardChanges()) {
+        suppressingPopState = true;
+        window.history.go(1);
+      }
+    };
+
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    window.addEventListener("popstate", handlePopState);
+
+    return () => {
+      window.removeEventListener("beforeunload", handleBeforeUnload);
+      window.removeEventListener("popstate", handlePopState);
+      window.history.pushState = originalPushState;
+      window.history.replaceState = originalReplaceState;
+    };
+  }, [isDirty, confirmDiscardChanges]);
+
   const startEditing = (wallet: WalletItem) => {
+    if (!confirmDiscardChanges()) return;
     setEditingId(wallet.id);
     setEditingValue(wallet.nickname);
   };
@@ -81,6 +148,7 @@ export function WalletsSection({
   };
 
   const cancelEdit = () => {
+    if (!confirmDiscardChanges()) return;
     setEditingId(null);
     setEditingValue("");
   };
@@ -93,11 +161,14 @@ export function WalletsSection({
   const handleConfirmRemove = () => {
     if (!walletToRemove || isRemoving) return;
     const { id } = walletToRemove;
-    void runRemove(async () => {
-      setWalletList((prev) => prev.filter((w) => w.id !== id));
-      await onRemoveWallet?.(id);
-      setWalletToRemove(null);
-    });
+    if (editingId === id) {
+      if (!confirmDiscardChanges()) return;
+      setEditingId(null);
+      setEditingValue("");
+    }
+    setWalletList((prev) => prev.filter((w) => w.id !== id));
+    onRemoveWallet?.(id);
+    setWalletToRemove(null);
   };
 
   return (
