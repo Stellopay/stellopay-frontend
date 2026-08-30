@@ -2,9 +2,11 @@ import {
   MAX_TRANSACTION_PAGE_SIZE,
   MIN_TRANSACTION_PAGE_SIZE,
   getTransactions,
+  getTransactionsCursor,
   getAccountSummary,
   getPaymentHistory,
 } from "../transactions";
+import { allTransactions } from "@/lib/transactions";
 
 beforeAll(() => {
   vi.stubEnv("NODE_ENV", "test");
@@ -164,6 +166,129 @@ describe("getTransactions", () => {
       expect(typeof t.amount).toBe("number");
       expect(["Completed", "Pending", "Failed"]).toContain(t.status);
     });
+  });
+});
+
+// ─── Resilient cursor (keyset) pagination ──────────────────────────────────
+//
+// Cursor pagination resumes "after the boundary record" in a stable total
+// order (sort criteria + id tiebreaker) instead of by a numeric offset, so
+// records deleted or reordered between requests cannot duplicate or skip rows.
+
+describe("getTransactionsCursor", () => {
+  // Snapshot/restore the shared mock dataset so deletion tests never leak.
+  const originalData = [...allTransactions];
+
+  afterEach(() => {
+    allTransactions.splice(0, allTransactions.length, ...originalData);
+  });
+
+  it("walks the whole list with no duplicate ids across adjacent pages", async () => {
+    const seen = new Set<string>();
+    let cursor: string | null = null;
+    let pageCount = 0;
+
+    do {
+      const page = await getTransactionsCursor({ pageSize: 2, cursor });
+      expect(page.data.length).toBeGreaterThan(0);
+      for (const t of page.data) {
+        expect(seen.has(t.id)).toBe(false); // adjacent pages never duplicate
+        seen.add(t.id);
+      }
+      pageCount += 1;
+      cursor = page.nextCursor;
+      expect(page.hasMore).toBe(cursor !== null);
+    } while (cursor !== null);
+
+    expect(pageCount).toBeGreaterThan(1);
+    expect(seen.size).toBe(originalData.length);
+  });
+
+  it("overlap across pages is impossible: next page never re-sends a returned id", async () => {
+    const page1 = await getTransactionsCursor({ pageSize: 2 });
+    const page1Ids = page1.data.map((t) => t.id);
+
+    const page2 = await getTransactionsCursor({ pageSize: 2, cursor: page1.nextCursor });
+    const page2Ids = page2.data.map((t) => t.id);
+
+    const intersection = page1Ids.filter((id) => page2Ids.includes(id));
+    expect(intersection).toEqual([]);
+  });
+
+  it("deleted records do not break subsequent pagination", async () => {
+    const page1 = await getTransactionsCursor({ pageSize: 2 });
+    const sentIds = new Set(page1.data.map((t) => t.id));
+
+    // Simulate a backend deletion of a record that was already returned.
+    const toDelete = allTransactions.find((t) => sentIds.has(t.id));
+    expect(toDelete).toBeDefined();
+    const deleteIndex = allTransactions.indexOf(toDelete!);
+    allTransactions.splice(deleteIndex, 1);
+
+    const page2 = await getTransactionsCursor({ pageSize: 2, cursor: page1.nextCursor });
+    expect(page2.total).toBe(originalData.length - 1);
+
+    // No duplicate of an already-seen id, and it still completes the walk.
+    const allIds = new Set(sentIds);
+    for (const t of page2.data) {
+      expect(allIds.has(t.id)).toBe(false);
+      allIds.add(t.id);
+    }
+  });
+
+  it("deleting a record before the boundary does not shift the next page", async () => {
+    const pageSize = 2;
+    const page1 = await getTransactionsCursor({ pageSize });
+    const boundary = page1.nextCursor;
+
+    // Record the full expected continuation by walking the *unmodified* data.
+    const page2Unmodified = await getTransactionsCursor({ pageSize, cursor: boundary });
+    const expectedIds = page2Unmodified.data.map((t) => t.id);
+
+    // Now delete one of the *earlier* (already-returned) records and re-request.
+    const toDelete = allTransactions.find((t) => !expectedIds.includes(t.id));
+    expect(toDelete).toBeDefined();
+    allTransactions.splice(allTransactions.indexOf(toDelete!), 1);
+
+    const page2AfterDeletion = await getTransactionsCursor({ pageSize, cursor: boundary });
+    const actualIds = page2AfterDeletion.data.map((t) => t.id);
+    expect(actualIds).toEqual(expectedIds);
+  });
+
+  it("repeated cursors are deterministic and never loop", async () => {
+    const page1 = await getTransactionsCursor({ pageSize: 2 });
+    const page1Ids = page1.data.map((t) => t.id);
+
+    const repeatA = await getTransactionsCursor({ pageSize: 2, cursor: page1.nextCursor });
+    const repeatB = await getTransactionsCursor({ pageSize: 2, cursor: page1.nextCursor });
+
+    expect(repeatA.data.map((t) => t.id)).toEqual(repeatB.data.map((t) => t.id));
+    expect(repeatA.nextCursor).toBe(repeatB.nextCursor);
+    expect(repeatA.hasMore).toBe(repeatB.hasMore);
+    expect(repeatA.nextCursor).not.toBe(page1.nextCursor); // advanced past page 1
+    expect(page1Ids.includes(repeatA.data[0]?.id)).toBe(false);
+  });
+
+  it("stops cleanly at the end of the list", async () => {
+    // With a page size >= total, one request returns everything and ends the list.
+    const first = await getTransactionsCursor({ pageSize: 100 });
+    expect(first.hasMore).toBe(false);
+    expect(first.nextCursor).toBeNull();
+  });
+
+  it("treats an invalid cursor as the first page instead of looping", async () => {
+    const result = await getTransactionsCursor({ pageSize: 2, cursor: "!!!not-a-cursor!!!" });
+    expect(result.data).toHaveLength(2);
+    expect(result.total).toBe(originalData.length);
+  });
+
+  it("honours filters and reports the filtered total", async () => {
+    const result = await getTransactionsCursor({
+      filters: { selectedFilter: "Payment Sent" },
+      pageSize: 100,
+    });
+    expect(result.total).toBeGreaterThan(0);
+    result.data.forEach((t) => expect(t.type).toBe("Payment Sent"));
   });
 });
 

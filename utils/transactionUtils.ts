@@ -328,3 +328,30 @@ export const getStatusIcon = (status: string): LucideIcon => {
   const normalizedStatus = status.toLowerCase() as KnownTransactionStatus;
   return STATUS_ICON_MAP[normalizedStatus] ?? UNKNOWN_STATUS_ICON;
 };
+
+/**
+ * Removes duplicate transactions by their stable `id`, keeping the first
+ * occurrence of each and preserving order.
+ *
+ * The backend can change between cursor requests (records reordered or
+ * duplicated across page boundaries). Rendering deduplicates by identity so
+ * the UI never shows the same transaction twice, even if a page contains a
+ * row already returned by the previous page. When applied per page it is a
+ * safety net on top of the cursor walk; when applied across a paginated
+ * accumulation it guarantees a globally unique list.
+ *
+ * @param transactions - Transactions that may contain duplicate ids
+ * @returns A new array with one entry per unique id (first occurrence)
+ */
+export const dedupeTransactionsById = <T extends { id: string }>(
+  transactions: T[],
+): T[] => {
+  const seen = new Set<string>();
+  const result: T[] = [];
+  for (const transaction of transactions) {
+    if (seen.has(transaction.id)) continue;
+    seen.add(transaction.id);
+    result.push(transaction);
+  }
+  return result;
+};
