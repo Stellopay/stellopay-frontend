@@ -1,6 +1,7 @@
 import type React from "react";
 import AppLayout from "@/components/common/app-layout";
 import { SidebarProvider } from "@/context/sidebar-context";
+import { ScopedErrorBoundary } from "@/components/common/scoped-error-boundary";
 import type { Metadata } from "next";
 
 /**
@@ -57,7 +58,15 @@ export default function DashboardLayout({
 }>) {
   return (
     <SidebarProvider>
-      <AppLayout>{children}</AppLayout>
+      <AppLayout>
+        <ScopedErrorBoundary
+          scope="dashboard"
+          fallbackHref="/dashboard"
+          fallbackLabel="Reload dashboard"
+        >
+          {children}
+        </ScopedErrorBoundary>
+      </AppLayout>
     </SidebarProvider>
   );
 }
