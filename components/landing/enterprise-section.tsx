@@ -85,10 +85,11 @@ const EnterpriseSolutionSection = () => {
               <div className="bg-linear-to-r from-[#83A7FF] to-[#8B5CF6] h-5 w-5 rounded-full flex items-center justify-center print:hidden">
                 <span className="text-white text-sm">
                   <Image
-                    src={"/landing/Vector.png"}
-                    alt="check-mark-vector"
-                    width={9.33}
-                    height={6.67}
+                    src="/landing/Vector.png"
+                    alt=""
+                    width={10}
+                    height={7}
+                    aria-hidden="true"
                   />
                 </span>
               </div>

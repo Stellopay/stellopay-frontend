@@ -30,9 +30,10 @@ export const FeatureCard: FC<FeatureCardProps & { priority?: boolean }> = ({
     >
       <Image
         src={imageSrc}
-        alt={title}
+        alt={`${title} feature illustration`}
         width={400}
         height={200}
+        sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 384px"
         className="rounded-md object-cover h-[200px] w-full"
         loading={priority ? undefined : "lazy"}
         priority={priority}

@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef, useState, useEffect } from "react";
+import Image from "next/image";
 import { useTransactions } from "@/hooks/useTransactions";
 import { TransactionTableSkeleton } from "@/components/ui/table-skeleton";
 import { ErrorState } from "@/components/ui/error-state";
@@ -106,7 +107,7 @@ const TransactionRow: React.FC<TransactionRowProps> = ({
         <div className="flex items-center gap-2">
           {tokenIconMapWithUrls[transaction.token] && (
             <div className="w-6 h-6 rounded-lg bg-zinc-100 dark:bg-zinc-800 p-1 flex items-center justify-center">
-              <img
+              <Image
                 src={tokenIconMapWithUrls[transaction.token]}
                 alt={`${transaction.token} icon`}
                 width={16}

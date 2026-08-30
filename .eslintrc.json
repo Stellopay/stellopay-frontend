@@ -36,7 +36,8 @@
         ]
       }
     ],
-    "no-console": ["error", { "allow": ["warn", "error"] }]
+    "no-console": ["error", { "allow": ["warn", "error"] }],
+    "@next/next/no-img-element": "error"
   },
   "overrides": [
     {

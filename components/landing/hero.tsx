@@ -267,6 +267,7 @@ const Hero = () => {
                       width={24}
                       height={20}
                       className="w-6 h-5"
+                      priority
                     />
                   </div>
                   <ArrowRight className="text-[#52525B] dark:text-[#A1A1AA] w-[13.99px] h-[13.99px]" />
@@ -298,6 +299,7 @@ const Hero = () => {
                       width={24}
                       height={20}
                       className="w-6 h-5"
+                      priority
                     />
                   </div>
                   <ArrowRight className="text-[#52525B] dark:text-[#A1A1AA] w-[13.99px] h-[13.99px]" />

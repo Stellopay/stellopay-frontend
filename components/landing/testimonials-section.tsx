@@ -96,7 +96,7 @@ function TestimonialCard({
         {testimonial.avatarSrc ? (
           <Image
             src={testimonial.avatarSrc}
-            alt={testimonial.name}
+            alt={`${testimonial.name} profile picture`}
             width={40}
             height={40}
             className="rounded-full object-cover size-10"

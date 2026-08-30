@@ -212,7 +212,7 @@ const AnalyticsViews = ({
             >
               <Image
                 src={chart}
-                alt="Analytics Chart Icon"
+                alt=""
                 width={showNotifications ? 20 : 24}
                 height={showNotifications ? 20 : 24}
                 className={
@@ -220,6 +220,7 @@ const AnalyticsViews = ({
                     ? "object-contain w-5 h-5 dark:invert-[0.9]"
                     : ""
                 }
+                aria-hidden="true"
               />
             </div>
             <h2
@@ -295,10 +296,11 @@ const AnalyticsViews = ({
               <div className="w-10 h-10 border border-border rounded-xl bg-muted flex items-center justify-center">
                 <Image
                   src="/notification-02.png"
-                  alt="Notification"
+                  alt=""
                   width={24}
                   height={24}
                   className="w-6 h-6 object-contain dark:invert-[0.9]"
+                  aria-hidden="true"
                 />
               </div>
               <h2 className="text-xl font-bold text-foreground">

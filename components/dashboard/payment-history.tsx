@@ -79,10 +79,11 @@ export default function PaymentHistory() {
               <div className="w-6 h-6 border border-zinc-200 dark:border-zinc-700 rounded-lg flex justify-center items-center bg-white dark:bg-zinc-800 shadow-sm relative">
                 <Image
                   src="/notification.png"
-                  alt="notify"
+                  alt=""
                   width={16}
                   height={16}
                   className="w-3.5 h-3.5 object-contain dark:invert-[0.9]"
+                  aria-hidden="true"
                 />
                 <span className="w-1.5 h-1.5 absolute -top-0.5 -right-0.5 bg-rose-500 rounded-full ring-2 ring-white dark:ring-zinc-800" />
               </div>
