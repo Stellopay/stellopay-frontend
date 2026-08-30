@@ -80,6 +80,7 @@ export function generateIdempotencyKey(): string {
 /**
  * Executes a deduplicated token refresh attempt.
  * Multiple concurrent callers will receive the same shared Promise.
+ * On failure, protected tokens are cleared and pending queue is rejected.
  */
 
 export async function requestTokenRefresh(): Promise<TokenState> {
@@ -95,6 +96,9 @@ export async function requestTokenRefresh(): Promise<TokenState> {
       setTokens(newTokens);
       return newTokens;
     } catch (err) {
+      // Clear protected tokens on unrecoverable refresh failure
+      currentTokens = {};
+
       const authError =
         err instanceof AuthExpiredError
           ? err
