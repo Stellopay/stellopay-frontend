@@ -1,5 +1,6 @@
 import type { NextConfig } from "next";
 import bundleAnalyzer from "@next/bundle-analyzer";
+import { SECURITY_HEADERS } from "./lib/security-headers";
 
 const nextConfig: NextConfig = {
   // ESLint now runs during `next build` so lint errors surface in CI.
@@ -9,6 +10,15 @@ const nextConfig: NextConfig = {
     // supported by the framework build worker.
     useTypeScriptCli: true,
   },
+
+  // Apply the security policy to every route so the deployed preview and
+  // production serve identical protection.
+  headers: async () => [
+    {
+      source: "/(.*)",
+      headers: [...SECURITY_HEADERS] as { key: string; value: string }[],
+    },
+  ],
 };
 
 const withBundleAnalyzer = bundleAnalyzer({
