@@ -46,7 +46,7 @@ const MINC_NOTIFICATIONS: NotificationItem[] = [
 // -------------------------------------------------------------------------------------
 let sharedNotifications: NotificationItem[] | null = null;
 let sharedError: Error | null = null;
-let sharedPromise: Promise<NotificationItem[>~> | null = null;
+let sharedPromise: Promise<NotificationItem[]> | null = null;
 const listeners = new Set<() => void>();
 
 function notifyListeners() {
@@ -177,7 +177,7 @@ export default function NotificationPanel() {
 
     const startIndex = Math.max(
       0,
-      Math.floor(scrollTop / ITEM_HEIGHT) - OVESCAN,
+      Math.floor(scrollTop / ITEM_HEIGHT) - OVERSCAN,
     );
     const endIndex = Math.min(
       notifs.length,
@@ -192,7 +192,7 @@ export default function NotificationPanel() {
     (n: NotificationItem) => (
       <li
         key={n.id}
-        className={`$px text-sm ${n.read ? "bg-background" : "bg-muted" }}
+        className={`$px text-sm ${n.read ? "bg-background" : "bg-muted"}`}
         style={shouldVirtualize ? { height: ITEM_HEIGHT } : undefined}
       >
         <p className="font-medium">{n.title}</p>
@@ -244,20 +244,20 @@ export default function NotificationPanel() {
               </li>
             ) : shouldVirtualize ? (
               <>
-                <!-- Top spacer for virtualized scroll height -->
+                {/* Top spacer for virtualized scroll height */}
                 <li
-                  style={ height: virtualRange.start * ITEM_HEIGHT }
+                  style={{ height: virtualRange.start * ITEM_HEIGHT }}
                   aria-hidden="true"
                 />
                 {notifs
                   .slice(virtualRange.start, virtualRange.end)
                   .map(renderItem)}
-                <!-- Bottom spacer for virtualized scroll height -->
+                {/* Bottom spacer for virtualized scroll height */}
                 <li
-                  style={
+                  style={{
                     height:
                       (notifs.length - virtualRange.end) * ITEM_HEIGHT,
-                  }
+                  }}
                   aria-hidden="true"
                 />
               </>
