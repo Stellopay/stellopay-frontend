@@ -43,10 +43,6 @@ import { useWallet } from "@/context/wallet-context";
 import { createAccountScope, realtimeRegistry } from "@/lib/realtime-registry";
 import type { RealtimeListener } from "@/lib/realtime-registry";
 
-// Deduplicate realtime payloads per (scope, channel) so multiple panels
-// sharing the same subscription trigger only one refetch (the first listener).
-const handledPayloadsByKey = new Map<string, WeakSet<object>>();
-
 export function useAccountScopedSubscription<T = unknown>(
   channel: string,
   listener: RealtimeListener<T>,
@@ -68,20 +64,6 @@ export function useAccountScopedSubscription<T = unknown>(
     if (scope === null) return;
 
     return realtimeRegistry.subscribe(scope, channel, (payload) => {
-      // If this exact payload object has already been dispatched to a listener
-      // in this module (e.g., another dashboard panel subscribed to the same
-      // channel and scope), skip it to avoid duplicate notification fetches.
-      const key = `${scope}:${channel}`;
-      const payloadObj = payload as unknown as object;
-      if (payloadObj !== null && typeof payloadObj === "object") {
-        let handled = handledPayloadsByKey.get(key);
-        if (!handled) {
-          handled = new WeakSet<object>();
-          handledPayloadsByKey.set(key, handled);
-        }
-        if (handled.has(payloadObj)) return;
-        handled.add(payloadObj);
-      }
       listenerRef.current(payload);
     });
   }, [scope, channel]);
