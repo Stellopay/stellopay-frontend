@@ -47,6 +47,8 @@ const MINC_NOTIFICATIONS: NotificationItem[] = [
 let sharedNotifications: NotificationItem[] | null = null;
 let sharedError: Error | null = null;
 let sharedPromise: Promise<NotificationItem[]> | null = null;
+let sharedController: AbortController | null = null;
+let markAllReadPending = false;
 const listeners = new Set<() => void>();
 
 function notifyListeners() {
@@ -62,17 +64,28 @@ function subscribe(listener: () => void) {
 
 function loadNotifications() {
   if (!sharedPromise) {
-    sharedPromise = new Promise<NotificationItem[]>((resolve) => {
+    const controller = new AbortController();
+    sharedController = controller;
+    sharedPromise = new Promise<NotificationItem[]>((resolve, reject) => {
       // Simulate a network request. Replace with an actual API call.
-      setTimeout(() => resolve(MINC_NOTIFICATIONS), 150);
+      const timer = setTimeout(() => resolve(MINC_NOTIFICATIONS), 150);
+      controller.signal.addEventListener("abort", () => {
+        clearTimeout(timer);
+        reject(new DOMException("Aborted", "AbortError"));
+      });
     }).then(
       (data) => {
-        sharedNotifications = data;
+        const result = markAllReadPending
+          ? data.map((n) => ({ ...n, read: true }))
+          : data;
+        sharedNotifications = result;
+        markAllReadPending = false;
         sharedError = null;
         notifyListeners();
-        return data;
+        return result;
       },
       (error: Error) => {
+        if (controller.signal.aborted) return [];
         sharedError = error;
         notifyListeners();
         throw error;
@@ -84,6 +97,8 @@ function loadNotifications() {
 
 /** Invalidates the shared cache and triggers a refetch from all active consumers. */
 export function invalidateNotifications() {
+  sharedController?.abort();
+  sharedController = null;
   sharedNotifications = null;
   sharedError = null;
   sharedPromise = null;
@@ -96,7 +111,8 @@ export function markAllNotificationsAsRead() {
     sharedNotifications = sharedNotifications.map((n) => ({ ...n, read: true }));
     notifyListeners();
   } else {
-    // If we haven't loaded yet, invalidate so the next fetch marks them read.
+    // If we haven't loaded yet, mark the next fetch as read after invalidation.
+    markAllReadPending = true;
     invalidateNotifications();
   }
 }
