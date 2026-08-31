@@ -98,7 +98,7 @@ export class RealtimeRegistry {
       // Ownership changed: a previous account still owns this channel. Tear it
       // down so no event for the old account can reach a new-account listener.
       this.channels.delete(channel);
-      this.requestCache.delete(channel);
+      this.invalidateRequest(channel);
     }
 
     let record = this.channels.get(channel);
@@ -130,7 +130,7 @@ export class RealtimeRegistry {
     for (const [channel, record] of this.channels) {
       if (record.scope === scope) {
         this.channels.delete(channel);
-        this.requestCache.delete(channel);
+        this.invalidateRequest(channel);
       }
     }
   }
@@ -138,6 +138,9 @@ export class RealtimeRegistry {
   /** Tear down every channel and listener (global logout / app teardown). */
   clear(): void {
     this.channels.clear();
+    for (const key of Array.from(this.requestCache.keys())) {
+      this.invalidateRequest(key);
+    }
     this.requestCache.clear();
   }
 
@@ -150,7 +153,7 @@ export class RealtimeRegistry {
    * dashboards, so the next `acquire` call fetches fresh data.
    */
   emit<T = unknown>(channel: string, payload: T): void {
-    this.requestCache.delete(channel);
+    this.invalidateRequest(channel);
     const record = this.channels.get(channel);
     if (!record) return;
     for (const listener of record.listeners) {
@@ -211,7 +214,11 @@ export class RealtimeRegistry {
       },
       (error) => {
         // Remove the entry so the next call can retry.
-        this.requestCache.delete(key);
+        // Remove the entry so the next call can retry, but only if it is
+        // still the same request; a newer entry may have replaced it.
+        if (this.requestCache.get(key) === entry) {
+          this.requestCache.delete(key);
+        }
         throw error;
       },
     );
@@ -231,8 +238,17 @@ export class RealtimeRegistry {
 
     entry.refCount -= 1;
     if (entry.refCount <= 0 && !entry.resolved) {
+      this.invalidateRequest(key);
+    }
+  }
+
+  private invalidateRequest(key: string): void {
+    const entry = this.requestCache.get(key);
+    if (!entry) return;
+
+    this.requestCache.delete(key);
+    if (!entry.resolved) {
       entry.controller?.abort();
-      this.requestCache.delete(key);
     }
   }
 
