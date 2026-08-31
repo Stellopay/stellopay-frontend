@@ -42,7 +42,7 @@ export default function Navbar({ navItems = DEFAULT_NAV_ITEMS }: NavbarProps) {
             <span className="font-general text-xl text-font-bold tracking-tight text-foreground">StellOpay</span>
           </Link>
         </div>
-        <nav className="hidden md:flex items-center space-x-1 lg:space-x2" aria-label="Main Navigation">
+        <nav className="hidden md:flex items-center space-x-1 lg:space-x-2" aria-label="Main Navigation">
           {navItems.map((item) => {
             const active = isItemActive(item.href);
             return (
@@ -62,8 +62,8 @@ export default function Navbar({ navItems = DEFAULT_NAV_ITEMS }: NavbarProps) {
               <span className="absolute right-0 top-0 flex h-4 w-4 items-center justify-center rounded-full bg-destructive text-[10px] font-medium text-white">{unreadCount}</span>
             )}
           </Button>
-          <Button asChild variant="outline" size="sm"><link href="/auth/login">Log In</link></Button>
-          <Button asChild size="sm"><link href="/auth/sign-up">Get Started</link></Button>
+          <Button asChild variant="outline" size="sm"><Link href="/auth/login">Log In</Link></Button>
+          <Button asChild size="sm"><Link href="/auth/sign-up">Get Started</Link></Button>
         </div>
         <div className="flex md:hidden items-center space-x-2">
           <Button variant="ghost" size="icon" onClick={() => setMobileMenuOpen(!mobileMenuOpen)} aria-expanded={mobileMenuOpen} aria-label={mobileMenuOpen ? 'Close navigation menu' : 'Open navigation menu'} aria-controls="mobile-navigation">
@@ -87,8 +87,8 @@ export default function Navbar({ navItems = DEFAULT_NAV_ITEMS }: NavbarProps) {
             })}
           </nav>
           <div className="pt-4 border-t border-border flex flex-col space-y-2">
-            <Button asChild variant="outline" className="w-full justify-center"><link href="/auth/login" onClick={() => setMobileMenuOpen(false)}>Log In</link></Button>
-            <Button asChild className="w-full justify-center"><link href="/auth/sign-up" onClick={() => setMobileMenuOpen(false)}>Get Started</link></Button>
+            <Button asChild variant="outline" className="w-full justify-center"><Link href="/auth/login" onClick={() => setMobileMenuOpen(false)}>Log In</Link></Button>
+            <Button asChild className="w-full justify-center"><Link href="/auth/sign-up" onClick={() => setMobileMenuOpen(false)}>Get Started</Link></Button>
           </div>
         </div>
       )}
