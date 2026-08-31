@@ -111,9 +111,11 @@ export function markAllNotificationsAsRead() {
     sharedNotifications = sharedNotifications.map((n) => ({ ...n, read: true }));
     notifyListeners();
   } else {
-    // If we haven't loaded yet, mark the next fetch as read after invalidation.
+    // If we haven't loaded yet, mark the next fetch as read.
     markAllReadPending = true;
-    invalidateNotifications();
+    if (sharedError || !sharedPromise) {
+      invalidateNotifications();
+    }
   }
 }
 
@@ -128,13 +130,13 @@ export function useNotifications() {
     const unsubscribe = subscribe(() => {
       setTick((t) => t + 1);
       // If the cache was invalidated, re-request.
-      if (!sharedNotifications && !sharedError) {
+      if (!sharedNotifications && !sharedError && !sharedPromise) {
         loadNotifications();
       }
     });
 
-    // Initial request if cache is empty.
-    if (!sharedNotifications && !sharedError) {
+    // Initial request if cache is empty and no request is in flight.
+    if (!sharedNotifications && !sharedError && !sharedPromise) {
       loadNotifications();
     }
 
