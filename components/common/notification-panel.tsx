@@ -39,12 +39,6 @@ function getSharedNotificationRequest(
 ) {
   let request = notificationRequests.get(cacheKey);
 
-  if (request && request.fetcher !== fetcher) {
-    request.controller.abort();
-    notificationRequests.delete(cacheKey);
-    request = undefined;
-  }
-
   if (!request) {
     const controller = new AbortController();
     const promise = fetcher(controller.signal)
@@ -102,28 +96,39 @@ export function useSharedNotifications(
     () => !notificationDataCache.has(cacheKey),
   );
 
+  const fetcherRef = useRef(fetcher);
+
+  useEffect(() => {
+    fetcherRef.current = fetcher;
+  }, [fetcher]);
+
   useEffect(() => {
     let active = true;
     let release: (() => void) | null = null;
+    let currentPromise: Promise<NotificationItem[]> | null = null;
 
     const load = () => {
       if (notificationDataCache.has(cacheKey)) {
+        currentPromise = null;
         setData(notificationDataCache.get(cacheKey) ?? []);
         setIsLoading(false);
         return;
       }
 
       setIsLoading(true);
-      const request = getSharedNotificationRequest(cacheKey, fetcher);
+      const request = getSharedNotificationRequest(cacheKey, fetcherRef.current);
       release = request.release;
+      currentPromise = request.promise;
       request.promise
         .then((items) => {
-          if (!active) return;
+          if (!active || currentPromise !== request.promise) return;
           setData(items);
           setIsLoading(false);
         })
         .catch(() => {
-          if (active) setIsLoading(false);
+          if (active && currentPromise === request.promise) {
+            setIsLoading(false);
+          }
         });
     };
 
@@ -145,7 +150,7 @@ export function useSharedNotifications(
       unsubscribe();
       if (release) release();
     };
-  }, [cacheKey, fetcher]);
+  }, [cacheKey]);
 
   const refetch = useCallback(() => {
     invalidateNotifications();
