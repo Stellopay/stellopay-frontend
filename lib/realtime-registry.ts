@@ -2,28 +2,28 @@
  * @fileoverview Account-scoped registry for realtime subscriptions.
  *
  * The registry is the single source of truth for every realtime channel the
- * app opens (transactions, account summary, payment history, …). Channels are
- * owned by an **account scope** — `"${network.id}:${address}"` for a connected
+ * app opens (transactions, account summary, payment history, ...). Channels are
+ * owned by an **account scope** -- `"${network.id}:${address}` for a connected
  * wallet, or `null` when logged out.
  *
  * Why this exists (issue #1179):
  *
- * - **Track subscription ownership** — every channel records the scope that
+ * - **Track subscription ownership** - every channel records the scope that
  *   created it, so we always know which account a subscription belongs to.
- * - **Tear down channels before replacing account context** — when a channel
- *   is re-subscribed under a *different* scope, the previous scope's channel
- *   is torn down first. A late event for the old account can never reach a
+ * - **Tear down channels before replacing account context** - when a channel
+ *   is re-subscribed under a different scope, the previous scope's channel
+   * is torn down first. A late event for the old account can never reach a
  *   listener registered by the new account.
- * - **At most one subscription per view** — subscribing to a channel that is
- *   already open for the same scope reuses the existing channel and only adds
- *   a listener, so reconnect/refetch never stack duplicate connections.
- * - **Deterministic teardown** — `unsubscribeScope` (logout / account switch)
- *   and `clear()` (app teardown) remove every listener of the affected
+ * - **At most one subscription per view** - subscribing to a channel that is
+ *   already open for the same scope reuses the existing channel and only adds a
+ *   listener, so reconnect/refetch never stack duplicate connections.
+ * - **Deterministic teardown** - `unsubscribeScope` (logout / account switch)
+ *   and `clear`() (app teardown) remove every listener of the affected
  *   channels.
  *
  * The transport itself is intentionally decoupled: today the app is mock-data
  * only, so events are delivered via {@link emit}. When a real backend lands,
- * only the transport (a WebSocket / SSE client) changes — the registry,
+ * only the transport (a WebSocket / SSE client) changes - the registry,
  * ownership tracking, and teardown contract stay identical.
  */
 
@@ -43,7 +43,24 @@ interface ChannelRecord {
   /** Scope that owns this channel. */
   scope: AccountScope;
   /** Listeners currently registered on the channel. */
-  listeners: Set<RealtimeListener>;
+  listeners: Set<RealtimeListener;
+}
+
+/**
+ * Internal record for the request cache.
+ * Tracks an in-flight or resolved request for a given key.
+ */
+interface RequestEntry<T> {
+  /** The shared promise consumers receive. */
+  promise: Promise<T>;
+  /** Abort controller for the in-flight request, null once settled. */
+  controller: AbortController | null;
+  /** Number of consumers waiting on this entry. */
+  refCount: number;
+  /** Resolved payload (when resolved). */
+  data?: T;
+  /** True once the promise has settled successfully. */
+  resolved: boolean;
 }
 
 /**
@@ -55,6 +72,7 @@ interface ChannelRecord {
  */
 export class RealtimeRegistry {
   private readonly channels = new Map<string, ChannelRecord>();
+  private readonly requestCache = new Map<string, RequestEntry<unknown>>();
 
   /**
    * Subscribe a listener to a channel on behalf of `scope`.
@@ -80,6 +98,7 @@ export class RealtimeRegistry {
       // Ownership changed: a previous account still owns this channel. Tear it
       // down so no event for the old account can reach a new-account listener.
       this.channels.delete(channel);
+      this.requestCache.delete(channel);
     }
 
     let record = this.channels.get(channel);
@@ -99,6 +118,7 @@ export class RealtimeRegistry {
       current.listeners.delete(typedListener);
       if (current.listeners.size === 0) {
         this.channels.delete(channel);
+        this.requestCache.delete(channel);
       }
     };
   }
@@ -111,6 +131,7 @@ export class RealtimeRegistry {
     for (const [channel, record] of this.channels) {
       if (record.scope === scope) {
         this.channels.delete(channel);
+        this.requestCache.delete(channel);
       }
     }
   }
@@ -118,17 +139,101 @@ export class RealtimeRegistry {
   /** Tear down every channel and listener (global logout / app teardown). */
   clear(): void {
     this.channels.clear();
+    this.requestCache.clear();
   }
 
   /**
    * Deliver a payload to every listener of `channel`. No-op when the channel
    * is not open. This is the seam a real WebSocket/SSE transport plugs into.
+   *
+   * Also invalidates the request cache for this channel so the next `acquire`
+   * call fetches fresh data. This is the single invalidation source for
+   * notification dashboards.
    */
   emit<T = unknown>(channel: string, payload: T): void {
     const record = this.channels.get(channel);
     if (!record) return;
     for (const listener of record.listeners) {
       listener(payload);
+    }
+    this.requestCache.delete(channel);
+  }
+
+  /**
+   * Acquire a shared request for `key`.
+   *
+   * Concurrent callers with the same `key` receive the same in-flight promise.
+   * The first caller triggers `fetcher`; when every caller has disposed, the
+   * request is aborted. If the request has already succeeded, a resolved
+   * promise is returned (until {@link emit} invalidates the cache).
+   *
+   * @returns A promise and a `dispose` function to call when the consumer no
+   *   longer needs the result.
+   */
+  acquire<T>(
+    key: string,
+    fetcher: (signal: AbortSignal) => Promise<T>,
+  ): { promise: Promise<T>; dispose: () => void } {
+    const existing = this.requestCache.get(key) as RequestEntry<T> | undefined;
+
+    if (existing && !existing.resolved) {
+      // Request already in flight — share it.
+      existing.refCount += 1;
+      return {
+        promise: existing.promise,
+        dispose: () => this.disposeRequest(key),
+      };
+    }
+
+    if (existing && existing.resolved) {
+      // Cache hit — return the resolved promise. The cache is invalidated on
+      // `emit`, so this value is considered fresh.
+      return {
+        promise: Promise.resolve(existing.data as T),
+        dispose: () => {},
+      };
+    }
+
+    // No entry much - start a new request.
+    const controller = new AbortController();
+    const entry: RequestEntry<T> = {
+      promise: undefined as unknown as Promise<T>,
+      controller,
+      refCount: 1,
+      resolved: false,
+    };
+
+    const promise = fetcher(controller.signal).then(
+      (data) => {
+        entry.data = data;
+        entry.resolved = true;
+        entry.controller = null;
+        return data;
+      },
+      (error) => {
+        // Remove the entry so the next call can retry.
+        this.requestCache.delete(key);
+        throw error;
+      },
+    );
+
+    entry.promise = promise;
+    this.requestCache.set(key, entry);
+
+    return {
+      promise,
+      dispose: () => this.disposeRequest(key),
+    };
+  }
+
+  private disposeRequest(key: string): void {
+    const entry = this.requestCache.get(key);
+    if (!entry) return;
+
+    entry.refCount -= 1;
+    if (entry.refCount <= 0 && !entry.resolved) {
+      entry.controller?.abort();
+      this.requestCache.delete(key);
     }
   }
 
