@@ -24,9 +24,9 @@ interface NotificationRequestEntry {
 
 const notificationRequests = new Map<string, NotificationRequestEntry>();
 const notificationDataCache = new Map<string, NotificationItem[]>();
-const notificationInvalidationListeners = new Set<() => void>();
+const notificationInvalidationListeners = new Set<(cacheKey?: string) => void>();
 
-function subscribeToNotificationInvalidation(listener: () => void) {
+function subscribeToNotificationInvalidation(listener: (cacheKey?: string) => void) {
   notificationInvalidationListeners.add(listener);
   return () => {
     notificationInvalidationListeners.delete(listener);
@@ -78,13 +78,22 @@ function getSharedNotificationRequest(
   };
 }
 
-export function invalidateNotifications() {
-  notificationDataCache.clear();
-  notificationRequests.forEach((request) => {
-    request.controller.abort();
-  });
-  notificationRequests.clear();
-  notificationInvalidationListeners.forEach((listener) => listener());
+export function invalidateNotifications(cacheKey?: string) {
+  if (cacheKey !== undefined) {
+    notificationDataCache.delete(cacheKey);
+    const request = notificationRequests.get(cacheKey);
+    if (request) {
+      request.controller.abort();
+      notificationRequests.delete(cacheKey);
+    }
+  } else {
+    notificationDataCache.clear();
+    notificationRequests.forEach((request) => {
+      request.controller.abort();
+    });
+    notificationRequests.clear();
+  }
+  notificationInvalidationListeners.forEach((listener) => listener(cacheKey));
 }
 
 export function useSharedNotifications(
@@ -136,8 +145,9 @@ export function useSharedNotifications(
 
     load();
 
-    const unsubscribe = subscribeToNotificationInvalidation(() => {
+    const unsubscribe = subscribeToNotificationInvalidation((invalidatedKey) => {
       if (!active) return;
+      if (invalidatedKey !== undefined && invalidatedKey !== cacheKey) return;
       if (release) {
         release();
         release = null;
@@ -155,8 +165,8 @@ export function useSharedNotifications(
   }, [cacheKey]);
 
   const refetch = useCallback(() => {
-    invalidateNotifications();
-  }, []);
+    invalidateNotifications(cacheKey);
+  }, [cacheKey]);
 
   return { data, isLoading, refetch };
 }
