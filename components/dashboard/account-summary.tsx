@@ -75,6 +75,7 @@ export default function AccountSummary() {
             width={24}
             height={24}
             className="w-6 h-6 object-contain"
+            aria-hidden="true"
           />
         </div>
         <h1 className="font-[Inter] text-base leading-[145%] align-middle">
@@ -92,10 +93,11 @@ export default function AccountSummary() {
                 </div>
                 <Image
                   src={info.accountImage}
-                  alt={info.accountInfo}
+                  alt=""
                   width={20}
                   height={20}
                   className="w-5 h-5 object-contain"
+                  aria-hidden="true"
                 />
               </div>
               <div className="font-semibold text-2xl align-middle font-[Inter] mb-1">
@@ -117,10 +119,11 @@ export default function AccountSummary() {
                   >
                     <Image
                       src={info.image}
-                      alt="copy"
+                      alt=""
                       width={14}
                       height={14}
                       className="object-contain w-3.5 h-3.5 cursor-pointer"
+                      aria-hidden="true"
                     />
                   </button>
                 )}

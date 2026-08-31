@@ -28,9 +28,10 @@ export function AuthShowcase({
           </div>
           <Image
             src={imageSrc || "/placeholder.svg"}
-            alt="Dashboard Preview"
+            alt={title ? `${title} showcase preview` : "Dashboard Preview"}
             width={500}
             height={500}
+            sizes="(max-width: 1024px) 100vw, 500px"
             className={`${borderRadiusClass} w-full`}
           />
         </CardContent>

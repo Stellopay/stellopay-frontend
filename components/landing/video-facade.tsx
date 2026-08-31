@@ -96,10 +96,12 @@ export function VideoFacade({
             className="group absolute inset-0 w-full h-full focus:outline-none focus-visible:ring-4 focus-visible:ring-blue-500 focus-visible:ring-offset-2 rounded-xl"
           >
             {/* Thumbnail */}
-            {thumb ? (
+              {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 src={thumb}
                 alt={thumbnailAlt}
+                width={640}
+                height={360}
                 className="w-full h-full object-cover"
                 loading="lazy"
                 decoding="async"

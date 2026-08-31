@@ -39,7 +39,7 @@ function AccountSummaryView({
   return (
     <div className="bg-[#140D13] p-4 rounded-xl border border-[#2D2D2D] shadow-lg text-white ">
       <div className="flex items-center mb-6 space-x-2">
-        <Image src={Icon} alt="Icon" />
+        <Image src={Icon} alt="" aria-hidden="true" />
         <h2 className="text-lg font-semibold">Account Summary</h2>
       </div>
 
@@ -48,7 +48,7 @@ function AccountSummaryView({
         <div className="bg-[#121212] border border-[#2E2E2E] p-5 rounded-lg flex flex-col justify-between">
           <div className="flex gap-2 items-center mb-2">
             <span className="text-sm text-gray-400">Your Account Balance</span>
-            <Image src={Piggy} alt="Piggy Bank Icon" />
+            <Image src={Piggy} alt="" aria-hidden="true" />
           </div>
           <div className="text-3xl font-bold mb-2">
             $2,432 <span className="text-base">USDC</span>

@@ -241,9 +241,10 @@ export default function Footer() {
               <Link href="/" className="flex items-center gap-2 mb-4">
                 <Image
                   src="/stellopay-icon.svg"
-                  alt="StelloPay Logo"
+                  alt=""
                   width={32}
                   height={32}
+                  aria-hidden="true"
                 />
                 <span
                   className="text-[#1a1a1a] dark:text-white text-xl font-semibold tracking-tight"

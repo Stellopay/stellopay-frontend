@@ -126,10 +126,14 @@ describe("EnterpriseSolutionSection", () => {
     expect(section).toBeInTheDocument();
   });
 
-  it("renders decorative check-mark images for each feature", () => {
-    render(<EnterpriseSolutionSection />);
+  it("renders decorative check-mark images with aria-hidden for each feature", () => {
+    const { container } = render(<EnterpriseSolutionSection />);
 
-    const images = screen.getAllByRole("img");
+    const images = container.querySelectorAll("img");
     expect(images.length).toBeGreaterThanOrEqual(4);
+    images.forEach((img) => {
+      expect(img).toHaveAttribute("alt", "");
+      expect(img).toHaveAttribute("aria-hidden", "true");
+    });
   });
 });

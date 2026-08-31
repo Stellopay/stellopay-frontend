@@ -113,6 +113,7 @@ function ScreenshotUpload({ file, onFileChange, onRemove }: { file: File | null;
       <Label className="text-sm font-medium">Screenshot (optional)</Label>
       {file && preview ? (
         <div className="relative inline-block rounded-md overflow-hidden border border-border">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src={preview} alt="Screenshot preview" className="max-h-32 w-auto object-contain bg-muted" />
           <button type="button" onClick={onRemove} className="absolute top-1 right-1 rounded-full bg-background/80 p-1 text-foreground hover:bg-background transition-colors" aria-label="Remove screenshot">
             <X className="h-3 w-3" />

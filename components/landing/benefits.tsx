@@ -41,6 +41,7 @@ const benefits = [
     title: "Low Fees",
     description:
       "Reduce payroll costs with blockchain-powered transactions that eliminate excessive banking fees and hidden charges. Stellopay ensures more of your money goes where it matters.",
+    imageSrc: "/landing/benefit-security.svg",
     icon: (
       <Shield
         className="w-6 h-6"
@@ -55,6 +56,7 @@ const benefits = [
     title: "Ease of Use",
     description:
       "Our intuitive platform simplifies payroll management with seamless automation, real-time tracking, and effortless navigation—no technical expertise required.",
+    imageSrc: "/landing/benefit-ease.svg",
     icon: (
       <CreditCard
         className="w-6 h-6"
@@ -69,6 +71,7 @@ const benefits = [
     title: "Reliable Customer Support",
     description:
       "Get dedicated assistance whenever you need it. Our expert support team is always available to help with transactions, troubleshooting, and guidance.",
+    imageSrc: "/landing/benefit-support.svg",
     icon: (
       <HeadphonesIcon
         className="w-6 h-6"
