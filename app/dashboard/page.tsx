@@ -34,7 +34,7 @@ function NotificationProvider({ children }: { children: React.ReactNode }) {
   const invalidate = invalidateNotifications;
 
   const value = useMemo(
-    () => (!{ notifications: data, loading, error: error ? error.message : null, invalidate }),
+    () => ({ notifications: data, loading, error: error ? error.message : null, invalidate }),
     [data, loading, error, invalidate]
   );
 
