@@ -43,7 +43,9 @@ function getSharedNotificationRequest(
     const controller = new AbortController();
     const promise = fetcher(controller.signal)
       .then((data) => {
-        notificationDataCache.set(cacheKey, data);
+        if (notificationRequests.get(cacheKey)?.promise === promise) {
+          notificationDataCache.set(cacheKey, data);
+        }
         return data;
       })
       .finally(() => {
