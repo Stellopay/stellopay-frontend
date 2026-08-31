@@ -4,7 +4,7 @@
  * @fileoverview React hook for account-scoped realtime subscriptions.
  *
  * Subscribes a listener to a realtime channel for the **current** wallet
- * account (scope = `"${network.id}:${address}`). The subscription lifecycle
+ * account (scope = `"${network.id}:${address}"`). The subscription lifecycle
  * is fully tied to the account context:
  *
  * - **Account switch / network change** - the previous scope's listener is
@@ -28,7 +28,7 @@
  * one invalidation source for all dependent views.
  *
  * @example
- * ``tsx
+ * `tsx
  * function TransactionHistory() {
  *   const { refetch } = useTransactions();
  *   useAccountScopedSubscription<TransactionEvent>("transactions", (event) => {
@@ -36,7 +36,7 @@
  *   });
  *   return <Table rows={data} />;
  * }
- * ```
+ * `
  *
  * @param channel  Name of the realtime channel to subscribe to
  *                 (e.g. `transactions`, `account-summary`).
@@ -99,7 +99,7 @@ export function useAccountScopedSubscription<T = unknown>(
   // Keep the latest listener in a ref so a changing listener identity never
   // triggers a re-subscribe. Subscriptions are scoped to the channel, not the
   // callback.
-  const listenerRef = useRef><RealtimeListener<T>>(listener);
+  const listenerRef = useRef<RealtimeListener<T>>(listener);
   useEffect(() => {
     listenerRef.current = listener;
   });
