@@ -142,20 +142,20 @@ export class RealtimeRegistry {
   }
 
   /**
-   * Deliver a payload to every listener of `channel`. No-op when the channel
-   * is not open. This is the seam a real WebSocket/SSE transport plugs into.
+   * Deliver a payload to every listener of `channel` and invalidate the
+   * request cache for this channel, even when no channel is open. This is the
+   * seam a real WebSocket/SSE transport plugs into.
    *
-   * Also invalidates the request cache for this channel so the next `acquire`
-   * call fetches fresh data. This is the single invalidation source for
-   * notification dashboards.
+   * The cache invalidation is the single invalidation source for notification
+   * dashboards, so the next `acquire` call fetches fresh data.
    */
   emit<T = unknown>(channel: string, payload: T): void {
+    this.requestCache.delete(channel);
     const record = this.channels.get(channel);
     if (!record) return;
     for (const listener of record.listeners) {
       listener(payload);
     }
-    this.requestCache.delete(channel);
   }
 
   /**
