@@ -10,8 +10,7 @@ export default function GetStartedCTA() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    console.log("Submitted email:", email);
-    // Add logic to submit email or redirect
+    // TODO: submit `email` to the waitlist endpoint or redirect to sign-up.
   };
 
   return (
@@ -31,10 +30,10 @@ export default function GetStartedCTA() {
 
           {/* Heading */}
           <h2 className="sm:text-[72px] text-[48px] font-bold tracking-tight text-[#09090B] dark:text-[#FAFAFA] font-inter">
-            Ready to revolutionize
-          </h2>
-          <h2 className="sm:text-[72px] text-[48px] font-bold bg-gradient-to-b from-[#83A7FF] via-[#C4F49F] to-[#83A7FF] bg-clip-text text-transparent font-inter">
-            your payments?
+            Ready to revolutionize{" "}
+            <span className="block bg-gradient-to-b from-[#83A7FF] via-[#C4F49F] to-[#83A7FF] bg-clip-text text-transparent font-inter">
+              your payments?
+            </span>
           </h2>
 
           {/* Subheading */}
@@ -65,7 +64,7 @@ export default function GetStartedCTA() {
               <Button
                 type="submit"
                 size="lg"
-                className="h-12 rounded-xl bg-gradient-to-b from-[#83A7FF] to-[#8B5CF6] text-white shadow-lg shadow-indigo-500/20 hover:opacity-90 hover:shadow-indigo-500/30 dark:shadow-none font-medium font-general transition-transform active:scale-95"
+                className="h-12 rounded-xl bg-gradient-to-b from-[#83A7FF] to-[#8B5CF6] contrast-more:bg-[#5B21B6] contrast-more:bg-none text-white shadow-lg shadow-indigo-500/20 hover:opacity-90 hover:shadow-indigo-500/30 dark:shadow-none contrast-more:shadow-none font-medium font-general transition-transform active:scale-95"
               >
                 Get Started
                 <ArrowRight className="ml-2 h-4 w-4" />

@@ -1,0 +1,378 @@
+import { afterAll, beforeAll, describe, expect, it } from "vitest";
+
+import {
+  formatDate,
+  formatDateForDisplay,
+  formatDateForInput,
+  formatDateTimeWithTimezone,
+  getCurrentDate,
+  isDateInRange,
+  parseTransactionDate,
+  formatRelativeTime,
+  formatAbsoluteDateTime,
+  toIsoDateTime,
+  RELATIVE_TIME_THRESHOLD_DAYS,
+} from "@/utils/date-utils";
+
+// ---------------------------------------------------------------------------
+// Pin the process timezone for deterministic, hardcoded assertions in the
+// midnight-boundary regression tests below. Asia/Tokyo (UTC+9) is a clear
+// non-UTC offset that exposes the boundary bug.
+// ---------------------------------------------------------------------------
+const PINNED_TZ = "Asia/Tokyo";
+
+const originalTZ = process.env.TZ;
+
+beforeAll(() => {
+  process.env.TZ = PINNED_TZ;
+});
+
+afterAll(() => {
+  if (originalTZ === undefined) {
+    delete process.env.TZ;
+  } else {
+    process.env.TZ = originalTZ;
+  }
+});
+
+describe("parseTransactionDate", () => {
+  it("parses valid `MMM dd, yyyy` strings", () => {
+    const parsed = parseTransactionDate("Apr 12, 2023");
+
+    expect(parsed).toBeInstanceOf(Date);
+    expect(parsed?.getFullYear()).toBe(2023);
+    expect(parsed?.getMonth()).toBe(3);
+    expect(parsed?.getDate()).toBe(12);
+  });
+
+  it("returns null for empty or whitespace-only input", () => {
+    expect(parseTransactionDate("")).toBeNull();
+    expect(parseTransactionDate("   ")).toBeNull();
+  });
+
+  it("returns null for strings that don't match the expected format", () => {
+    expect(parseTransactionDate("not-a-date")).toBeNull();
+    expect(parseTransactionDate("2023-04-12")).toBeNull();
+    expect(parseTransactionDate("13/45/2023")).toBeNull();
+  });
+
+  it("returns null for calendar-invalid dates (e.g. Feb 30)", () => {
+    expect(parseTransactionDate("Feb 30, 2023")).toBeNull();
+  });
+
+  it("never throws on malformed input", () => {
+    expect(() => parseTransactionDate(" garbage")).not.toThrow();
+  });
+});
+
+describe("isDateInRange", () => {
+  const start = new Date("2023-03-26T00:00:00.000Z");
+  const end = new Date("2023-04-10T00:00:00.000Z");
+
+  it("is inclusive on both the start and end boundaries", () => {
+    expect(isDateInRange("Mar 26, 2023", start, end)).toBe(true);
+    expect(isDateInRange("Apr 10, 2023", start, end)).toBe(true);
+  });
+
+  it("excludes dates outside the range", () => {
+    expect(isDateInRange("Mar 25, 2023", start, end)).toBe(false);
+    expect(isDateInRange("Apr 11, 2023", start, end)).toBe(false);
+  });
+
+  it("behaves as from-only when only startDate is provided", () => {
+    const fromOnly = new Date("2023-04-01T00:00:00.000Z");
+
+    expect(isDateInRange("Apr 01, 2023", fromOnly, undefined)).toBe(true);
+    expect(isDateInRange("Mar 31, 2023", fromOnly, undefined)).toBe(false);
+  });
+
+  it("behaves as to-only when only endDate is provided", () => {
+    const toOnly = new Date("2023-04-01T00:00:00.000Z");
+
+    expect(isDateInRange("Apr 01, 2023", undefined, toOnly)).toBe(true);
+    expect(isDateInRange("Apr 02, 2023", undefined, toOnly)).toBe(false);
+  });
+
+  it("returns true (fail-open) when transactionDate cannot be parsed", () => {
+    expect(isDateInRange("bad-date", start, end)).toBe(true);
+    expect(isDateInRange("", start, end)).toBe(true);
+  });
+
+  it("returns true when no range boundary is selected", () => {
+    expect(isDateInRange("Apr 01, 2023", undefined, undefined)).toBe(true);
+  });
+
+  it("normalizes timestamps to calendar days, ignoring time-of-day", () => {
+    // Constructed in local time (no `Z`) so the comparison stays within the
+    // same calendar day as `parseTransactionDate`'s local-midnight result,
+    // regardless of the host machine's timezone offset.
+    const startWithTime = new Date(2023, 2, 26, 23, 0, 0);
+    const endWithTime = new Date(2023, 3, 10, 1, 0, 0);
+
+    expect(isDateInRange("Mar 26, 2023", startWithTime, endWithTime)).toBe(
+      true,
+    );
+    expect(isDateInRange("Apr 10, 2023", startWithTime, endWithTime)).toBe(
+      true,
+    );
+  });
+});
+
+describe("formatDate", () => {
+  it("formats a local Date instance deterministically", () => {
+    // new Date(2023, 3, 15) = Apr 15 at 00:00:00 in the pinned timezone
+    // (Asia/Tokyo, UTC+9). startOfDay is a no-op at local midnight,
+    // so the output is always "Apr 15, 2023".
+    const localDate = new Date(2023, 3, 15);
+
+    expect(formatDate(localDate)).toBe("Apr 15, 2023");
+  });
+
+  it("formats Date instances the same way as equivalent strings", () => {
+    // Round-trip through ISO preserves the UTC instant, and startOfDay
+    // normalizes both paths to the same local calendar day.
+    const date = new Date(2023, 3, 15);
+
+    expect(formatDate(date)).toBe(formatDate(date.toISOString()));
+  });
+
+  it("returns an empty string instead of throwing on an invalid input", () => {
+    expect(formatDate("not-a-date")).toBe("");
+    expect(formatDate(new Date("not-a-date"))).toBe("");
+  });
+
+  it("does not depend on the host locale (always uses en-US month abbreviations)", () => {
+    const janDate = new Date(2023, 0, 1);
+
+    expect(formatDate(janDate)).toContain("Jan");
+  });
+
+  // -----------------------------------------------------------------------
+  // Midnight-boundary regression tests (pinned to Asia/Tokyo, UTC+9)
+  //
+  // Without startOfDay normalization, a UTC timestamp near midnight could
+  // silently display as the wrong calendar day. These hardcoded assertions
+  // verify the fix works in a non-UTC timezone.
+  // -----------------------------------------------------------------------
+
+  it("normalizes a near-midnight UTC timestamp to the correct local day", () => {
+    // 2023-04-15T23:30:00Z → in Asia/Tokyo (UTC+9) this is Apr 16 at 08:30.
+    // startOfDay normalizes to Apr 16 00:00:00 JST → "Apr 16, 2023".
+    expect(formatDate("2023-04-15T23:30:00.000Z")).toBe("Apr 16, 2023");
+  });
+
+  it("shows the correct local day for midnight UTC (regression test for boundary bug)", () => {
+    // Midnight UTC on Apr 15 → in Asia/Tokyo this is Apr 15 at 09:00.
+    // After startOfDay → "Apr 15, 2023".
+    expect(formatDate("2023-04-15T00:00:00.000Z")).toBe("Apr 15, 2023");
+  });
+
+  it("handles month-end boundary: 23:59:59 UTC on Apr 30 → May 1 in UTC+9", () => {
+    // 2023-04-30T23:59:59Z → in Asia/Tokyo (UTC+9) this is May 01 at 08:59:59.
+    // startOfDay normalizes to May 01 00:00:00 JST → "May 01, 2023".
+    expect(formatDate("2023-04-30T23:59:59.000Z")).toBe("May 01, 2023");
+  });
+
+  it("returns empty string for a non-date string (negative test)", () => {
+    // Explicit negative case: formatDate must not throw or produce garbage
+    // when the input is completely unparseable.
+    expect(formatDate("not-even-close-to-a-date")).toBe("");
+  });
+});
+
+describe("formatDateForInput", () => {
+  it("returns YYYY-MM-DD", () => {
+    const date = new Date("2023-04-15T00:00:00.000Z");
+
+    expect(formatDateForInput(date)).toBe("2023-04-15");
+  });
+});
+
+describe("formatDateForDisplay", () => {
+  it("returns DD-MM-YYYY", () => {
+    const date = new Date("2023-04-15T00:00:00.000Z");
+
+    expect(formatDateForDisplay(date)).toBe("15-04-2023");
+  });
+});
+
+describe("getCurrentDate", () => {
+  it("returns today's date in YYYY-MM-DD format", () => {
+    expect(getCurrentDate()).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+    expect(getCurrentDate()).toBe(formatDateForInput(new Date()));
+  });
+});
+
+describe("formatDateTimeWithTimezone", () => {
+  const sample = new Date("2026-07-29T14:30:00Z");
+
+  it("formats a date with a valid IANA timezone", () => {
+    const result = formatDateTimeWithTimezone(sample, "Africa/Lagos");
+
+    expect(result).toContain("2026");
+    // WAT = West Africa Time, UTC+1
+    expect(result).toMatch(/Jul 29/);
+  });
+
+  it("produces different output for different timezones", () => {
+    const lagos = formatDateTimeWithTimezone(sample, "Africa/Lagos");
+    const london = formatDateTimeWithTimezone(sample, "Europe/London");
+    const utc = formatDateTimeWithTimezone(sample, "UTC");
+
+    // Verify all three are valid non-empty strings
+    [lagos, london, utc].forEach((output) => {
+      expect(output).toContain("2026");
+      expect(output.length).toBeGreaterThan(0);
+    });
+
+    // At least one pair should differ since timezones have different offsets
+    const allUnique = lagos !== london || london !== utc || lagos !== utc;
+
+    expect(allUnique).toBe(true);
+  });
+
+  it("falls back to no-timezone formatting when the timezone is invalid", () => {
+    const result = formatDateTimeWithTimezone(sample, "Mars/Olympus");
+
+    // Should still return a date string without throwing
+    expect(result).toContain("2026");
+    expect(typeof result).toBe("string");
+  });
+
+  it("returns a non-empty string for every supported profile timezone", () => {
+    for (const tz of ["Africa/Lagos", "Europe/London", "UTC"]) {
+      const result = formatDateTimeWithTimezone(sample, tz);
+
+      expect(result).toBeTruthy();
+      expect(typeof result).toBe("string");
+    }
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Relative-time helpers
+// ---------------------------------------------------------------------------
+
+describe("formatRelativeTime", () => {
+  const NOW = new Date("2026-07-30T12:00:00.000Z");
+
+  const MINUTE = 60_000;
+  const HOUR = 60 * MINUTE;
+  const DAY = 24 * HOUR;
+
+  const ago = (ms: number) => new Date(NOW.getTime() - ms);
+  const ahead = (ms: number) => new Date(NOW.getTime() + ms);
+
+  it.each([
+    ["just now", 0],
+    ["just now", 1_000],
+    ["just now", 59_000],
+    ["1m ago", MINUTE],
+    ["5m ago", 5 * MINUTE],
+    ["59m ago", 59 * MINUTE],
+    ["1h ago", HOUR],
+    ["2h ago", 2 * HOUR],
+    ["23h ago", 23 * HOUR],
+    ["yesterday", DAY],
+    ["yesterday", DAY + 6 * HOUR],
+    ["2d ago", 2 * DAY],
+    ["6d ago", 6 * DAY],
+  ])("returns %s for a timestamp %d ms in the past", (expected, offset) => {
+    expect(formatRelativeTime(ago(offset), { now: NOW })).toBe(expected);
+  });
+
+  it("falls back to an absolute date at the 7 day threshold", () => {
+    expect(formatRelativeTime(ago(7 * DAY), { now: NOW })).toBe("Jul 23, 2026");
+  });
+
+  it("falls back to an absolute date beyond the threshold", () => {
+    expect(formatRelativeTime(ago(30 * DAY), { now: NOW })).toBe("Jun 30, 2026");
+  });
+
+  it("honours a custom threshold", () => {
+    expect(formatRelativeTime(ago(3 * DAY), { now: NOW, thresholdDays: 2 })).toBe(
+      "Jul 27, 2026",
+    );
+    expect(
+      formatRelativeTime(ago(10 * DAY), { now: NOW, thresholdDays: 30 }),
+    ).toBe("10d ago");
+  });
+
+  it("exports a default threshold of 7 days", () => {
+    expect(RELATIVE_TIME_THRESHOLD_DAYS).toBe(7);
+  });
+
+  it.each([
+    ["in 5m", 5 * MINUTE],
+    ["in 3h", 3 * HOUR],
+    ["tomorrow", DAY],
+    ["in 2d", 2 * DAY],
+  ])("renders future timestamps as %s rather than a negative age", (expected, offset) => {
+    expect(formatRelativeTime(ahead(offset), { now: NOW })).toBe(expected);
+  });
+
+  it("accepts ISO strings as well as Date instances", () => {
+    expect(formatRelativeTime(ago(2 * HOUR).toISOString(), { now: NOW })).toBe(
+      "2h ago",
+    );
+  });
+
+  it("defaults `now` to the current time", () => {
+    expect(formatRelativeTime(new Date(Date.now() - 2 * HOUR))).toBe("2h ago");
+  });
+
+  it.each([
+    ["null", null],
+    ["undefined", undefined],
+    ["an empty string", ""],
+    ["an unparsable string", "not-a-date"],
+    ["an invalid Date", new Date("nope")],
+  ])("returns an empty string for %s", (_label, input) => {
+    expect(formatRelativeTime(input as Date | string | null, { now: NOW })).toBe(
+      "",
+    );
+  });
+
+  it("returns an empty string when `now` is invalid", () => {
+    expect(formatRelativeTime(ago(HOUR), { now: new Date("nope") })).toBe("");
+  });
+});
+
+describe("formatAbsoluteDateTime", () => {
+  // 03:00Z is midday in the pinned Asia/Tokyo (UTC+9) timezone, so the
+  // calendar day is stable regardless of how the host resolves the offset.
+  const MIDDAY = "2026-07-29T03:00:00.000Z";
+
+  it("formats a date with medium date and short time", () => {
+    const result = formatAbsoluteDateTime(MIDDAY);
+
+    expect(result).toContain("Jul 29, 2026");
+    expect(result).toMatch(/\d{1,2}:\d{2}\s?(AM|PM)/);
+  });
+
+  it("accepts a Date instance", () => {
+    expect(formatAbsoluteDateTime(new Date(MIDDAY))).toContain("Jul 29, 2026");
+  });
+
+  it.each([null, undefined, "", "not-a-date"])(
+    "returns an empty string for %s",
+    (input) => {
+      expect(formatAbsoluteDateTime(input as string | null)).toBe("");
+    },
+  );
+});
+
+describe("toIsoDateTime", () => {
+  it("returns the ISO 8601 representation", () => {
+    expect(toIsoDateTime("2026-07-29T15:00:00.000Z")).toBe(
+      "2026-07-29T15:00:00.000Z",
+    );
+  });
+
+  it.each([null, undefined, "", "not-a-date"])(
+    "returns undefined for %s so the attribute can be omitted",
+    (input) => {
+      expect(toIsoDateTime(input as string | null)).toBeUndefined();
+    },
+  );
+});

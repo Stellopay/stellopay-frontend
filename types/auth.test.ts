@@ -1,6 +1,14 @@
 import { describe, expect, it } from "vitest";
 
-import { loginSchema, signUpSchema } from "@/types/auth";
+import {
+  loginSchema,
+  passwordPolicySchema,
+  passwordPolicy,
+  passwordSchema,
+  signUpSchema,
+  changePasswordSchema,
+  forgotPasswordSchema,
+} from "@/types/auth";
 
 const validSignUp = {
   fullName: "Ada Lovelace",
@@ -12,7 +20,7 @@ const validSignUp = {
 
 const validLogin = {
   email: "ada@example.com",
-  password: "password",
+  password: "Password@1",
 };
 
 function issuesFor(
@@ -48,6 +56,34 @@ function withoutField<T extends object>(
   return payloadWithoutField;
 }
 
+describe("shared password policy", () => {
+  it("exports a shared password schema and policy for all auth forms", () => {
+    expect(passwordPolicy.rules).toHaveLength(3);
+    expect(passwordSchema.safeParse("Password@1").success).toBe(true);
+    expect(passwordSchema.safeParse("password").success).toBe(false);
+  });
+
+  it.each([
+    {
+      rule: passwordPolicy.rules[0],
+      password: "Pass@1",
+    },
+    {
+      rule: passwordPolicy.rules[1],
+      password: "password@1",
+    },
+    {
+      rule: passwordPolicy.rules[2],
+      password: "Password1",
+    },
+  ])("surfaces the shared $rule.id policy message", ({ rule, password }) => {
+    const result = passwordSchema.safeParse(password);
+
+    expect(result.success).toBe(false);
+    expect(result.error?.issues[0]?.message).toBe(rule.message);
+  });
+});
+
 describe("signUpSchema", () => {
   it("accepts a valid signup with matching passwords and accepted terms", () => {
     expect(signUpSchema.safeParse(validSignUp).success).toBe(true);
@@ -76,51 +112,48 @@ describe("signUpSchema", () => {
 
   it("rejects an invalid email with the configured message", () => {
     expect(
-      issueFor(signUpSchema, { ...validSignUp, email: "not-an-email" }, "email"),
+      issueFor(
+        signUpSchema,
+        { ...validSignUp, email: "not-an-email" },
+        "email",
+      ),
     ).toMatchObject({
       path: ["email"],
       message: "Please enter a valid email address.",
     });
   });
 
-  it("rejects passwords shorter than eight characters with the configured message", () => {
-    expect(
-      issueFor(
-        signUpSchema,
-        { ...validSignUp, password: "seven77", confirmPassword: "seven77" },
-        "password",
-      ),
-    ).toMatchObject({
-      path: ["password"],
-      message: "Password must be at least 8 characters.",
-    });
-  });
-
-  it("rejects passwords missing an uppercase letter with the configured message", () => {
-    expect(
-      issueFor(
-        signUpSchema,
-        { ...validSignUp, password: "password@1", confirmPassword: "password@1" },
-        "password",
-      ),
-    ).toMatchObject({
-      path: ["password"],
-      message: "Password must include at least one uppercase letter.",
-    });
-  });
-
-  it("rejects passwords missing a special character with the configured message", () => {
-    expect(
-      issueFor(
-        signUpSchema,
-        { ...validSignUp, password: "Password1", confirmPassword: "Password1" },
-        "password",
-      ),
-    ).toMatchObject({
-      path: ["password"],
-      message: "Password must include at least one special character.",
-    });
-  });
+  it.each([
+    {
+      name: "minimum length",
+      password: "seven77",
+      message: passwordPolicy.rules[0].message,
+    },
+    {
+      name: "uppercase letter",
+      password: "password@1",
+      message: passwordPolicy.rules[1].message,
+    },
+    {
+      name: "special character",
+      password: "Password1",
+      message: passwordPolicy.rules[2].message,
+    },
+  ])(
+    "rejects passwords missing a $name rule with the shared policy message",
+    ({ password, message }) => {
+      expect(
+        issueFor(
+          signUpSchema,
+          { ...validSignUp, password, confirmPassword: password },
+          "password",
+        ),
+      ).toMatchObject({
+        path: ["password"],
+        message,
+      });
+    },
+  );
 
   it("rejects mismatched confirmation passwords on confirmPassword", () => {
     expect(
@@ -199,26 +232,28 @@ describe("signUpSchema", () => {
       path: "agreeToTerms",
       payload: { ...validSignUp, agreeToTerms: "true" },
     },
-  ])("rejects $name with invalid_type on the field path", ({ payload, path }) => {
-    expect(issueFor(signUpSchema, payload, path)).toMatchObject({
-      path: [path],
-      code: "invalid_type",
-    });
-  });
-
+  ])(
+    "rejects $name with invalid_type on the field path",
+    ({ payload, path }) => {
+      expect(issueFor(signUpSchema, payload, path)).toMatchObject({
+        path: [path],
+        code: "invalid_type",
+      });
+    },
+  );
 });
 
 describe("loginSchema", () => {
   it("accepts valid login data with rememberMe true", () => {
-    expect(loginSchema.safeParse({ ...validLogin, rememberMe: true }).success).toBe(
-      true,
-    );
+    expect(
+      loginSchema.safeParse({ ...validLogin, rememberMe: true }).success,
+    ).toBe(true);
   });
 
   it("accepts valid login data with rememberMe false", () => {
-    expect(loginSchema.safeParse({ ...validLogin, rememberMe: false }).success).toBe(
-      true,
-    );
+    expect(
+      loginSchema.safeParse({ ...validLogin, rememberMe: false }).success,
+    ).toBe(true);
   });
 
   it("rejects invalid login emails with the configured message", () => {
@@ -234,7 +269,7 @@ describe("loginSchema", () => {
     });
   });
 
-  it("rejects short login passwords with the configured message", () => {
+  it("rejects short login passwords with the shared minimum-length message", () => {
     expect(
       issueFor(
         loginSchema,
@@ -243,7 +278,7 @@ describe("loginSchema", () => {
       ),
     ).toMatchObject({
       path: ["password"],
-      message: "Password must be at least 8 characters.",
+      message: passwordPolicy.rules[0].message,
     });
   });
 
@@ -268,12 +303,15 @@ describe("loginSchema", () => {
       path: "password",
       payload: { ...validLogin, password: 42, rememberMe: true },
     },
-  ])("rejects $name with invalid_type on the field path", ({ payload, path }) => {
-    expect(issueFor(loginSchema, payload, path)).toMatchObject({
-      path: [path],
-      code: "invalid_type",
-    });
-  });
+  ])(
+    "rejects $name with invalid_type on the field path",
+    ({ payload, path }) => {
+      expect(issueFor(loginSchema, payload, path)).toMatchObject({
+        path: [path],
+        code: "invalid_type",
+      });
+    },
+  );
 
   it("rejects missing rememberMe", () => {
     expect(issueFor(loginSchema, validLogin, "rememberMe")).toMatchObject({
@@ -284,10 +322,184 @@ describe("loginSchema", () => {
 
   it("rejects non-boolean rememberMe", () => {
     expect(
-      issueFor(loginSchema, { ...validLogin, rememberMe: "true" }, "rememberMe"),
+      issueFor(
+        loginSchema,
+        { ...validLogin, rememberMe: "true" },
+        "rememberMe",
+      ),
     ).toMatchObject({
       path: ["rememberMe"],
       code: "invalid_type",
     });
+  });
+});
+
+// ---------------------------------------------------------------------------
+// passwordPolicySchema
+// ---------------------------------------------------------------------------
+
+describe("passwordPolicySchema", () => {
+  it("accepts a strong password", () => {
+    expect(passwordPolicySchema.safeParse("StrongPass@1").success).toBe(true);
+  });
+
+  it("rejects a password shorter than 8 characters", () => {
+    const result = passwordPolicySchema.safeParse("Ab@1");
+    expect(result.success).toBe(false);
+    expect(!result.success && result.error.issues[0].message).toBe(
+      "Password must be at least 8 characters.",
+    );
+  });
+
+  it("rejects a password with no uppercase letter", () => {
+    const result = passwordPolicySchema.safeParse("weakpass@1");
+    expect(result.success).toBe(false);
+    expect(!result.success && result.error.issues[0].message).toBe(
+      "Password must include at least one uppercase letter.",
+    );
+  });
+
+  it("rejects a password with no special character", () => {
+    const result = passwordPolicySchema.safeParse("StrongPass1");
+    expect(result.success).toBe(false);
+    expect(!result.success && result.error.issues[0].message).toBe(
+      "Password must include at least one special character.",
+    );
+  });
+
+  it("accepts passwords with each supported special character", () => {
+    const specials = ["@", "!", "#", "%", "$", "^", "&", "*"];
+    for (const char of specials) {
+      expect(
+        passwordPolicySchema.safeParse(`StrongPass${char}1`).success,
+      ).toBe(true);
+    }
+  });
+});
+
+// ---------------------------------------------------------------------------
+// changePasswordSchema
+// ---------------------------------------------------------------------------
+
+const validChange = {
+  newPassword: "StrongPass@1",
+  confirmPassword: "StrongPass@1",
+};
+
+describe("changePasswordSchema", () => {
+  it("accepts matching strong passwords", () => {
+    expect(changePasswordSchema.safeParse(validChange).success).toBe(true);
+  });
+
+  it("rejects when newPassword is too short", () => {
+    const result = changePasswordSchema.safeParse({
+      ...validChange,
+      newPassword: "Ab@1",
+      confirmPassword: "Ab@1",
+    });
+    expect(result.success).toBe(false);
+    const issues = !result.success ? result.error.issues : [];
+    expect(issues.some((i) => i.path[0] === "newPassword")).toBe(true);
+  });
+
+  it("rejects when newPassword has no uppercase letter", () => {
+    const result = changePasswordSchema.safeParse({
+      newPassword: "weakpass@1",
+      confirmPassword: "weakpass@1",
+    });
+    expect(result.success).toBe(false);
+    const issues = !result.success ? result.error.issues : [];
+    expect(
+      issues.some(
+        (i) =>
+          i.path[0] === "newPassword" &&
+          i.message.includes("uppercase"),
+      ),
+    ).toBe(true);
+  });
+
+  it("rejects when newPassword has no special character", () => {
+    const result = changePasswordSchema.safeParse({
+      newPassword: "StrongPass1",
+      confirmPassword: "StrongPass1",
+    });
+    expect(result.success).toBe(false);
+    const issues = !result.success ? result.error.issues : [];
+    expect(
+      issues.some(
+        (i) =>
+          i.path[0] === "newPassword" &&
+          i.message.includes("special character"),
+      ),
+    ).toBe(true);
+  });
+
+  it("rejects when passwords don't match, placing the error on confirmPassword", () => {
+    const result = changePasswordSchema.safeParse({
+      ...validChange,
+      confirmPassword: "DifferentPass@1",
+    });
+    expect(result.success).toBe(false);
+    const issues = !result.success ? result.error.issues : [];
+    const confirmIssue = issues.find((i) => i.path[0] === "confirmPassword");
+    expect(confirmIssue).toMatchObject({
+      path: ["confirmPassword"],
+      message: "Passwords don't match.",
+    });
+  });
+
+  it("rejects when newPassword is missing", () => {
+    const result = changePasswordSchema.safeParse({
+      confirmPassword: "StrongPass@1",
+    });
+    expect(result.success).toBe(false);
+  });
+
+  it("rejects when confirmPassword is missing", () => {
+    const result = changePasswordSchema.safeParse({
+      newPassword: "StrongPass@1",
+    });
+    expect(result.success).toBe(false);
+  });
+
+  it("rejects when both fields are empty strings", () => {
+    const result = changePasswordSchema.safeParse({
+      newPassword: "",
+      confirmPassword: "",
+    });
+    expect(result.success).toBe(false);
+  });
+
+  it("allows confirmPassword that is an empty string when newPassword is weak (newPassword error wins)", () => {
+    const result = changePasswordSchema.safeParse({
+      newPassword: "weak",
+      confirmPassword: "",
+    });
+    expect(result.success).toBe(false);
+    const issues = !result.success ? result.error.issues : [];
+    expect(issues.some((i) => i.path[0] === "newPassword")).toBe(true);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// forgotPasswordSchema
+// ---------------------------------------------------------------------------
+
+describe("forgotPasswordSchema", () => {
+  it("accepts a valid email", () => {
+    expect(forgotPasswordSchema.safeParse({ email: "user@example.com" }).success).toBe(true);
+  });
+
+  it("rejects an invalid email with the configured message", () => {
+    const result = forgotPasswordSchema.safeParse({ email: "not-an-email" });
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(result.error.issues[0].message).toBe("Please enter a valid email address.");
+    }
+  });
+
+  it("rejects an empty email", () => {
+    const result = forgotPasswordSchema.safeParse({ email: "" });
+    expect(result.success).toBe(false);
   });
 });

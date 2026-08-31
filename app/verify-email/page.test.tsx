@@ -1,282 +1,257 @@
-import { render, screen, fireEvent, act } from "@testing-library/react";
-import { describe, expect, it, vi, beforeEach, afterEach } from "vitest";
+import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { afterEach, describe, expect, it, vi } from "vitest";
+import VerifyEmail from "./page";
 
-import VerifyEmail from "@/app/verify-email/page";
-
-// Mock next/navigation
-const mockBack = vi.fn();
-vi.mock("next/navigation", () => ({
-  useRouter: () => ({ back: mockBack }),
+const mocks = vi.hoisted(() => ({
+  mockGet: vi.fn().mockReturnValue(null),
+  MockVerifyEmailError: class extends Error {
+    constructor(
+      message: string,
+      public readonly code: string,
+    ) {
+      super(message);
+      this.name = "VerifyEmailError";
+    }
+  },
+  mockVerifyEmailToken: vi.fn(),
+  mockResendVerificationEmail: vi.fn().mockResolvedValue(undefined),
 }));
 
-// Use fake timers so setTimeout-based status resets are testable
-beforeEach(() => {
-  vi.useFakeTimers();
-  mockBack.mockClear();
-});
+vi.mock("next/navigation", () => ({
+  useRouter: () => ({
+    back: vi.fn(),
+  }),
+  useSearchParams: () => ({ get: mocks.mockGet }),
+}));
 
-afterEach(() => {
-  vi.useRealTimers();
-});
+vi.mock("@/lib/api/auth", () => ({
+  VerifyEmailError: mocks.MockVerifyEmailError,
+  verifyEmailToken: mocks.mockVerifyEmailToken,
+  resendVerificationEmail: mocks.mockResendVerificationEmail,
+}));
 
 describe("VerifyEmail", () => {
-  // ---------- Static / initial render ----------
-
-  it("renders the heading, resend link, input, continue button, and go-back button", () => {
-    render(<VerifyEmail />);
-
-    expect(
-      screen.getByRole("heading", { name: /check your email/i }),
-    ).toBeInTheDocument();
-
-    expect(
-      screen.getByRole("button", { name: /resend/i }),
-    ).toBeInTheDocument();
-
-    expect(
-      screen.getByPlaceholderText("- - - - - - - -"),
-    ).toBeInTheDocument();
-
-    expect(
-      screen.getByRole("button", { name: /continue/i }),
-    ).toBeInTheDocument();
-
-    expect(
-      screen.getByRole("button", { name: /go back/i }),
-    ).toBeInTheDocument();
+  afterEach(() => {
+    vi.useRealTimers();
+    mocks.mockGet.mockReturnValue(null);
+    mocks.mockVerifyEmailToken.mockReset();
+    mocks.mockResendVerificationEmail.mockReset();
+    mocks.mockResendVerificationEmail.mockResolvedValue(undefined);
   });
 
-  it("renders a close button with an accessible label", () => {
+  it("keeps continue disabled until the 6-character code is complete", () => {
     render(<VerifyEmail />);
 
-    expect(
-      screen.getByRole("button", { name: /close/i }),
-    ).toBeInTheDocument();
+    const continueButton = screen.getByRole("button", { name: /continue/i });
+    expect(continueButton).toBeDisabled();
+
+    for (let index = 1; index <= 6; index += 1) {
+      fireEvent.change(
+        screen.getByLabelText(`Verification code character ${index}`),
+        { target: { value: String(index) } },
+      );
+    }
+
+    expect(continueButton).toBeEnabled();
   });
 
-  // ---------- Navigation ----------
-
-  it("calls router.back when the close button is clicked", () => {
+  it("supports pasting a complete verification code", () => {
     render(<VerifyEmail />);
 
-    fireEvent.click(screen.getByRole("button", { name: /close/i }));
-    expect(mockBack).toHaveBeenCalledTimes(1);
-  });
-
-  it("calls router.back when the go-back button is clicked", () => {
-    render(<VerifyEmail />);
-
-    fireEvent.click(screen.getByRole("button", { name: /go back/i }));
-    expect(mockBack).toHaveBeenCalledTimes(1);
-  });
-
-  // ---------- Code input ----------
-
-  it("allows entering a 6-character alphanumeric code", () => {
-    render(<VerifyEmail />);
-
-    const input = screen.getByPlaceholderText("- - - - - - - -");
-    fireEvent.change(input, { target: { value: "ABC123" } });
-
-    expect(input).toHaveValue("ABC123");
-  });
-
-  it("strips non-alphanumeric characters from input", () => {
-    render(<VerifyEmail />);
-
-    const input = screen.getByPlaceholderText("- - - - - - - -");
-    fireEvent.change(input, { target: { value: "A!@#B$%^C" } });
-
-    expect(input).toHaveValue("ABC");
-  });
-
-  it("rejects input longer than 6 characters at the state level", () => {
-    render(<VerifyEmail />);
-
-    const input = screen.getByPlaceholderText("- - - - - - - -");
-
-    // First set a valid 6-char code
-    fireEvent.change(input, { target: { value: "ABCDEF" } });
-    expect(input).toHaveValue("ABCDEF");
-
-    // Attempt to set 7 chars — component guard prevents it
-    fireEvent.change(input, { target: { value: "ABCDEFG" } });
-    expect(input).toHaveValue("ABCDEF");
-  });
-
-  // ---------- Continue button enablement ----------
-
-  it("disables the continue button when code is shorter than 6 characters", () => {
-    render(<VerifyEmail />);
-
-    const continueBtn = screen.getByRole("button", { name: /continue/i });
-    expect(continueBtn).toBeDisabled();
-  });
-
-  it("enables the continue button when exactly 6 characters are entered", () => {
-    render(<VerifyEmail />);
-
-    const input = screen.getByPlaceholderText("- - - - - - - -");
-    fireEvent.change(input, { target: { value: "123456" } });
-
-    const continueBtn = screen.getByRole("button", { name: /continue/i });
-    expect(continueBtn).toBeEnabled();
-  });
-
-  // ---------- Successful verification ----------
-
-  it("shows success message after entering the correct code and clicking continue", async () => {
-    render(<VerifyEmail />);
-
-    const input = screen.getByPlaceholderText("- - - - - - - -");
-    fireEvent.change(input, { target: { value: "123456" } });
-
-    const continueBtn = screen.getByRole("button", { name: /continue/i });
-
-    // Click → sets status "loading"
-    await act(async () => {
-      fireEvent.click(continueBtn);
+    fireEvent.paste(screen.getByLabelText("Verification code character 1"), {
+      clipboardData: { getData: () => "123456" },
     });
 
-    // Button shows "Verifying..." during loading
-    expect(
-      screen.getByRole("button", { name: /verifying/i }),
-    ).toBeInTheDocument();
-
-    // Advance past the 1500 ms simulated API delay
-    await act(async () => {
-      vi.advanceTimersByTime(1500);
-    });
-
-    expect(
-      screen.getByRole("status"),
-    ).toHaveTextContent("Email verified successfully!");
-
-    // After status resets (3 s), button returns to "Continue"
-    await act(async () => {
-      vi.advanceTimersByTime(3000);
-    });
-
-    expect(
-      screen.getByRole("button", { name: /continue/i }),
-    ).toBeInTheDocument();
-  });
-
-  // ---------- Failed verification ----------
-
-  it("shows error message when an incorrect code is submitted", async () => {
-    render(<VerifyEmail />);
-
-    const input = screen.getByPlaceholderText("- - - - - - - -");
-    fireEvent.change(input, { target: { value: "000000" } });
-
-    const continueBtn = screen.getByRole("button", { name: /continue/i });
-
-    await act(async () => {
-      fireEvent.click(continueBtn);
-    });
-
-    await act(async () => {
-      vi.advanceTimersByTime(1500);
-    });
-
-    expect(
-      screen.getByRole("status"),
-    ).toHaveTextContent(
-      "Invalid verification code. Please try again.",
+    expect(screen.getByLabelText("Verification code character 6")).toHaveValue(
+      "6",
     );
+    expect(screen.getByRole("button", { name: /continue/i })).toBeEnabled();
+  });
 
-    // After status resets, button returns to "Continue"
+  it("starts a resend cooldown after resending the code", async () => {
+    vi.useFakeTimers();
+    render(<VerifyEmail />);
+
+    fireEvent.click(screen.getByRole("button", { name: /^resend$/i }));
+
     await act(async () => {
-      vi.advanceTimersByTime(3000);
+      await vi.advanceTimersByTimeAsync(100);
     });
 
     expect(
-      screen.getByRole("button", { name: /continue/i }),
+      screen.getByText("Verification code resent to your email."),
     ).toBeInTheDocument();
-  });
-
-  // ---------- Resend ----------
-
-  it("shows a success message after resending the code", async () => {
-    render(<VerifyEmail />);
-
-    const resendBtn = screen.getByRole("button", { name: /resend/i });
-
-    await act(async () => {
-      fireEvent.click(resendBtn);
-    });
-
-    await act(async () => {
-      vi.advanceTimersByTime(1500);
-    });
-
     expect(
-      screen.getByRole("status"),
-    ).toHaveTextContent(
-      "Verification code resent to your email.",
-    );
-
-    // After status resets, button returns to "Resend"
-    await act(async () => {
-      vi.advanceTimersByTime(3000);
-    });
-
-    expect(
-      screen.getByRole("button", { name: /resend/i }),
-    ).toBeInTheDocument();
-  });
-
-  it("disables the resend button while the resend is in progress", async () => {
-    render(<VerifyEmail />);
-
-    const resendBtn = screen.getByRole("button", { name: /resend/i });
-
-    await act(async () => {
-      fireEvent.click(resendBtn);
-    });
-
-    expect(resendBtn).toBeDisabled();
-
-    await act(async () => {
-      vi.advanceTimersByTime(1500);
-    });
-
-    // After success, button shows "Resend" again and is enabled
-    const resendBtnAfter = screen.getByRole("button", { name: /resend/i });
-    expect(resendBtnAfter).toBeEnabled();
-  });
-
-  // ---------- Continue button loading state ----------
-
-  it("disables continue button while verification is in progress", async () => {
-    render(<VerifyEmail />);
-
-    const input = screen.getByPlaceholderText("- - - - - - - -");
-    fireEvent.change(input, { target: { value: "123456" } });
-
-    const continueBtn = screen.getByRole("button", { name: /continue/i });
-
-    await act(async () => {
-      fireEvent.click(continueBtn);
-    });
-
-    // Button shows "Verifying..." and stays disabled
-    expect(
-      screen.getByRole("button", { name: /verifying/i }),
+      screen.getByRole("button", { name: /resend in 30s/i }),
     ).toBeDisabled();
 
-    // Advance past the simulated API delay + idle reset
     await act(async () => {
-      vi.advanceTimersByTime(1500);
-    });
-    await act(async () => {
-      vi.advanceTimersByTime(3000);
+      await vi.advanceTimersByTimeAsync(1000);
     });
 
-    // After status resets, continue button should be enabled again (code still in input)
     expect(
-      screen.getByRole("button", { name: /continue/i }),
-    ).toBeEnabled();
+      screen.getByRole("button", { name: /resend in 29s/i }),
+    ).toBeDisabled();
+  });
+
+  describe("token verification", () => {
+    afterEach(() => {
+      mocks.mockGet.mockReturnValue(null);
+    });
+
+    it("shows loading then success when token is valid", async () => {
+      mocks.mockVerifyEmailToken.mockResolvedValue(undefined);
+      mocks.mockGet.mockImplementation(
+        (key: string) => (key === "token" ? "valid-token" : null),
+      );
+
+      render(<VerifyEmail />);
+
+      expect(screen.getByText("Verifying your email...")).toBeInTheDocument();
+
+      await waitFor(() => {
+        expect(
+          screen.getByText("Your email has been verified successfully."),
+        ).toBeInTheDocument();
+      });
+
+      expect(mocks.mockVerifyEmailToken).toHaveBeenCalledWith("valid-token");
+    });
+
+    it("shows specific message with resend action when token is expired", async () => {
+      mocks.mockVerifyEmailToken.mockRejectedValue(
+        new mocks.MockVerifyEmailError(
+          "This verification link has expired.",
+          "TOKEN_EXPIRED",
+        ),
+      );
+      mocks.mockGet.mockImplementation(
+        (key: string) => (key === "token" ? "expired-token" : null),
+      );
+
+      render(<VerifyEmail />);
+
+      await waitFor(() => {
+        expect(screen.getByText("Link expired")).toBeInTheDocument();
+        expect(
+          screen.getByText("This verification link has expired."),
+        ).toBeInTheDocument();
+        expect(
+          screen.getByRole("button", {
+            name: /request new verification email/i,
+          }),
+        ).toBeInTheDocument();
+      });
+    });
+
+    it("shows specific message with resend action when token is invalid", async () => {
+      mocks.mockVerifyEmailToken.mockRejectedValue(
+        new mocks.MockVerifyEmailError(
+          "This verification link is invalid.",
+          "TOKEN_INVALID",
+        ),
+      );
+      mocks.mockGet.mockImplementation(
+        (key: string) => (key === "token" ? "invalid-token" : null),
+      );
+
+      render(<VerifyEmail />);
+
+      await waitFor(() => {
+        expect(screen.getByText("Link invalid")).toBeInTheDocument();
+        expect(
+          screen.getByText("This verification link is invalid."),
+        ).toBeInTheDocument();
+        expect(
+          screen.getByRole("button", {
+            name: /request new verification email/i,
+          }),
+        ).toBeInTheDocument();
+      });
+    });
+
+    it("shows generic error for verification failure (non-token errors)", async () => {
+      mocks.mockVerifyEmailToken.mockRejectedValue(
+        new mocks.MockVerifyEmailError("Verification failed.", "VERIFICATION_FAILED"),
+      );
+      mocks.mockGet.mockImplementation(
+        (key: string) => (key === "token" ? "bad-token" : null),
+      );
+
+      render(<VerifyEmail />);
+
+      await waitFor(() => {
+        expect(screen.getByText("Something went wrong")).toBeInTheDocument();
+        expect(
+          screen.getByText("Verification failed."),
+        ).toBeInTheDocument();
+      });
+    });
+
+    it("shows generic error for network failures", async () => {
+      mocks.mockVerifyEmailToken.mockRejectedValue(new Error("Network error"));
+      mocks.mockGet.mockImplementation(
+        (key: string) => (key === "token" ? "network-fail" : null),
+      );
+
+      render(<VerifyEmail />);
+
+      await waitFor(() => {
+        expect(screen.getByText("Something went wrong")).toBeInTheDocument();
+        expect(
+          screen.getByText(
+            "An error occurred during verification. Please try again later.",
+          ),
+        ).toBeInTheDocument();
+      });
+    });
+
+    it("resend button on expired screen calls resendVerificationEmail", async () => {
+      mocks.mockVerifyEmailToken.mockRejectedValue(
+        new mocks.MockVerifyEmailError(
+          "This verification link has expired.",
+          "TOKEN_EXPIRED",
+        ),
+      );
+      mocks.mockResendVerificationEmail.mockResolvedValue(undefined);
+      mocks.mockGet.mockImplementation(
+        (key: string) =>
+          key === "token" ? "expired-token" : key === "email" ? "user@test.com" : null,
+      );
+
+      render(<VerifyEmail />);
+
+      await waitFor(() => {
+        expect(
+          screen.getByRole("button", {
+            name: /request new verification email/i,
+          }),
+        ).toBeInTheDocument();
+      });
+
+      fireEvent.click(
+        screen.getByRole("button", { name: /request new verification email/i }),
+      );
+
+      await waitFor(() => {
+        expect(mocks.mockResendVerificationEmail).toHaveBeenCalledWith(
+          "user@test.com",
+        );
+        expect(
+          screen.getByText("Verification email sent! Check your inbox."),
+        ).toBeInTheDocument();
+      });
+    });
+
+    it("does not call verifyEmailToken when no token param is present", () => {
+      mocks.mockGet.mockReturnValue(null);
+
+      render(<VerifyEmail />);
+
+      expect(mocks.mockVerifyEmailToken).not.toHaveBeenCalled();
+      expect(
+        screen.getByRole("heading", { name: /check your email/i }),
+      ).toBeInTheDocument();
+    });
   });
 });

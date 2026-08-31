@@ -1,11 +1,27 @@
 "use client";
 
 import Image from "next/image";
+import { useRouter } from "next/navigation";
 import { usePaymentHistory } from "@/hooks/usePaymentHistory";
 import { CardSkeleton } from "@/components/ui/card-skeleton";
+import { ErrorState } from "@/components/ui/error-state";
+import { EmptyState } from "@/components/ui/empty-state";
+import { downloadCsv } from "@/utils/csvUtils";
 
 export default function PaymentHistory() {
-  const { data, isLoading, error } = usePaymentHistory();
+  const router = useRouter();
+  const { data, isLoading, error, refetch } = usePaymentHistory();
+
+  const handleExport = () => {
+    if (!data || data.length === 0) return;
+    const headers = ["Description", "Payment ID", "Details"];
+    const csvData = data.map((item) => [
+      item.paymentDescription,
+      item.paymentId,
+      item.history,
+    ]);
+    downloadCsv("payment-history.csv", headers, csvData);
+  };
 
   if (isLoading) {
     return (
@@ -19,14 +35,37 @@ export default function PaymentHistory() {
 
   if (error) {
     return (
-      <div role="alert" className="text-sm text-red-400 text-center py-4">
-        Failed to load payment history.
-      </div>
+      <ErrorState
+        title="Failed to Load"
+        description="Failed to load payment history."
+        onRetry={refetch}
+      />
+    );
+  }
+
+  if (!data || data.length === 0) {
+    return (
+      <EmptyState
+        title="No History"
+        description="You have no payment history yet."
+        action={{
+          label: "View Transactions",
+          onClick: () => router.push("/transactions"),
+        }}
+      />
     );
   }
 
   return (
     <div className="flex flex-col gap-4">
+      <div className="flex justify-end">
+        <button
+          onClick={handleExport}
+          className="text-xs font-medium text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-white transition-colors underline underline-offset-2"
+        >
+          Export CSV
+        </button>
+      </div>
       {data.map((history) => (
         <div
           key={history.id}
@@ -40,10 +79,11 @@ export default function PaymentHistory() {
               <div className="w-6 h-6 border border-zinc-200 dark:border-zinc-700 rounded-lg flex justify-center items-center bg-white dark:bg-zinc-800 shadow-sm relative">
                 <Image
                   src="/notification.png"
-                  alt="notify"
+                  alt=""
                   width={16}
                   height={16}
                   className="w-3.5 h-3.5 object-contain dark:invert-[0.9]"
+                  aria-hidden="true"
                 />
                 <span className="w-1.5 h-1.5 absolute -top-0.5 -right-0.5 bg-rose-500 rounded-full ring-2 ring-white dark:ring-zinc-800" />
               </div>

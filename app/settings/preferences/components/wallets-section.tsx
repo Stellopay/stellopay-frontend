@@ -1,249 +1,338 @@
 "use client";
 
-import { useState } from "react";
-import { Badge } from "@/components/ui/badge";
+import React, { useCallback, useEffect, useState } from "react";
+import { Check, Pencil, Trash2, Wallet as WalletIcon, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import ToggleCard from "@/components/common/toggle-card";
-import DestructiveActionDialog from "./destructive-action-dialog";
-import { DEMO_WALLETS } from "@/lib/demo-data";
-import { Loader2 } from "lucide-react";
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { truncateStellarAddress } from "@/utils/stellarAddress";
+import { useSearchHighlight } from "@/hooks/useSearchHighlight";
+import { usePendingAction } from "@/hooks/usePendingAction";
 
-const connectedWallets = DEMO_WALLETS;
-
-interface WalletSettingsState {
-  transferApprovals: boolean;
-  addressBookLock: boolean;
-  travelRuleChecks: boolean;
+export interface WalletItem {
+  id: string;
+  nickname: string;
+  address: string;
 }
 
-interface StatusState {
-  message: string;
-  type: "success" | "error" | null;
+interface WalletsSectionProps {
+  wallets?: WalletItem[];
+  /** May return a promise; the remove dialog stays pending until it resolves. */
+  onRemoveWallet?: (id: string) => void | Promise<void>;
+  onUpdateNickname?: (id: string, nickname: string) => void;
+  /** When set, scrolls to and highlights the matching control. */
+  highlightedSearchLabel?: string | null;
 }
 
-/**
- * WalletsSection component.
- * Renders connected wallet configurations, region settings, and outbound transfer safeguards.
- * Uses placeholder demo data pending full backend API integration.
- */
-export default function WalletsSection() {
-  const [settings, setSettings] = useState<WalletSettingsState>({
-    transferApprovals: true,
-    addressBookLock: true,
-    travelRuleChecks: true,
-  });
-  const [status, setStatus] = useState<StatusState>({ message: "", type: null });
-  const [isSaving, setIsSaving] = useState(false);
+const MAX_NICKNAME_LENGTH = 40;
 
-  const updateSetting = (field: keyof WalletSettingsState, value: boolean) => {
-    setSettings((currentSettings) => ({
-      ...currentSettings,
-      [field]: value,
-    }));
+const DEFAULT_WALLETS: WalletItem[] = [
+  { id: "w1", nickname: "Primary Treasury", address: "GAYO...3X92" },
+  { id: "w2", nickname: "Secondary Operations", address: "GCBK...991A" },
+];
+
+export function WalletsSection({
+  wallets = DEFAULT_WALLETS,
+  onRemoveWallet,
+  onUpdateNickname,
+  highlightedSearchLabel,
+}: WalletsSectionProps) {
+  useSearchHighlight(highlightedSearchLabel ?? null);
+  const [walletList, setWalletList] = useState<WalletItem[]>(wallets);
+  const [walletToRemove, setWalletToRemove] = useState<WalletItem | null>(null);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editingValue, setEditingValue] = useState("");
+  const {
+    isPending: isRemoving,
+    error: removeError,
+    run: runRemove,
+    reset: resetRemove,
+  } = usePendingAction({ genericErrorMessage: "Failed to remove the wallet." });
+
+  const openRemoveDialog = (wallet: WalletItem) => {
+    resetRemove();
+    setWalletToRemove(wallet);
   };
 
-  const handleSave = async () => {
-    setIsSaving(true);
-    setStatus({ message: "", type: null });
-    try {
-      await new Promise((resolve, reject) => setTimeout(() => {
-        if (Math.random() > 0.8) {
-          reject(new Error("Failed to save"));
-        } else {
-          resolve(null);
-        }
-      }, 1500));
-      setStatus({
-        message: "Wallet safeguards updated. Transfer review controls remain enabled by default.",
-        type: "success",
-      });
-    } catch {
-      setStatus({
-        message: "Failed to save changes. Please try again.",
-        type: "error",
-      });
-    } finally {
-      setIsSaving(false);
-      setTimeout(() => setStatus({ message: "", type: null }), 5000);
+  const isDirty =
+    editingId !== null &&
+    editingValue.trim() !==
+      (walletList.find((w) => w.id === editingId)?.nickname ?? "").trim();
+
+  const confirmDiscardChanges = useCallback(() => {
+    if (!isDirty) return true;
+    return window.confirm(
+      "You have unsaved changes. Are you sure you want to leave?",
+    );
+  }, [isDirty]);
+
+  useEffect(() => {
+    if (!isDirty) return;
+
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      e.preventDefault();
+      e.returnValue = "";
+    };
+
+    const originalPushState = window.history.pushState;
+    const originalReplaceState = window.history.replaceState;
+
+    window.history.pushState = function (
+      ...args: Parameters<typeof originalPushState>
+    ) {
+      if (!confirmDiscardChanges()) {
+        return;
+      }
+      originalPushState.apply(this, args);
+    };
+
+    window.history.replaceState = function (
+      ...args: Parameters<typeof originalReplaceState>
+    ) {
+      if (!confirmDiscardChanges()) {
+        return;
+      }
+      originalReplaceState.apply(this, args);
+    };
+
+    let suppressingPopState = false;
+
+    const handlePopState = () => {
+      if (suppressingPopState) {
+        suppressingPopState = false;
+        return;
+      }
+
+      if (!confirmDiscardChanges()) {
+        suppressingPopState = true;
+        window.history.go(1);
+      }
+    };
+
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    window.addEventListener("popstate", handlePopState);
+
+    return () => {
+      window.removeEventListener("beforeunload", handleBeforeUnload);
+      window.removeEventListener("popstate", handlePopState);
+      window.history.pushState = originalPushState;
+      window.history.replaceState = originalReplaceState;
+    };
+  }, [isDirty, confirmDiscardChanges]);
+
+  const startEditing = (wallet: WalletItem) => {
+    if (!confirmDiscardChanges()) return;
+    setEditingId(wallet.id);
+    setEditingValue(wallet.nickname);
+  };
+
+  const commitEdit = (id: string) => {
+    const trimmed = editingValue.trim();
+    const fallback = truncateStellarAddress(
+      walletList.find((w) => w.id === id)?.address ?? "",
+    );
+    const next = trimmed || fallback;
+
+    setWalletList((prev) =>
+      prev.map((w) => (w.id === id ? { ...w, nickname: next } : w)),
+    );
+    onUpdateNickname?.(id, next);
+    setEditingId(null);
+  };
+
+  const cancelEdit = () => {
+    if (!confirmDiscardChanges()) return;
+    setEditingId(null);
+    setEditingValue("");
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent, id: string) => {
+    if (e.key === "Enter") commitEdit(id);
+    if (e.key === "Escape") cancelEdit();
+  };
+
+  const handleConfirmRemove = () => {
+    if (!walletToRemove || isRemoving) return;
+    const { id } = walletToRemove;
+    if (editingId === id) {
+      if (!confirmDiscardChanges()) return;
+      setEditingId(null);
+      setEditingValue("");
     }
+    setWalletList((prev) => prev.filter((w) => w.id !== id));
+    onRemoveWallet?.(id);
+    setWalletToRemove(null);
   };
 
   return (
-    <div className="grid gap-6 xl:grid-cols-[minmax(0,1.1fr)_minmax(320px,0.9fr)]">
-      <Card className="border-zinc-200 bg-white/90 shadow-sm dark:border-white/10 dark:bg-white/5">
-        <CardHeader className="border-b border-zinc-200/80 dark:border-white/10">
-          <CardTitle className="font-general text-2xl text-zinc-950 dark:text-white flex flex-wrap items-center gap-2">
-            Connected wallets
-            <span className="inline-flex items-center gap-1 rounded-full bg-amber-50 px-2 py-0.5 text-xs font-medium text-amber-800 ring-1 ring-inset ring-amber-600/20 dark:bg-amber-400/10 dark:text-amber-500 dark:ring-amber-400/20">
-              Demo Data
-            </span>
-          </CardTitle>
-          <CardDescription className="text-zinc-600 dark:text-zinc-400">
-            Wallet identity and transfer controls stay on the same surface so
-            users do not lose context.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4 pt-6">
-          {connectedWallets.map((wallet) => (
-            <div
-              key={wallet.name}
-              className="rounded-3xl border border-zinc-200 bg-zinc-50 p-5 dark:border-white/10 dark:bg-white/5"
-            >
-              <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
-                <div className="space-y-1">
-                  <p className="font-medium text-zinc-900 dark:text-white">
-                    {wallet.name}
-                  </p>
-                  <p className="text-sm text-zinc-500 dark:text-zinc-400">
-                    {wallet.network}
-                  </p>
+    <section className="space-y-4 rounded-lg border p-4 bg-background text-foreground">
+      <div data-search-label="Connected wallets">
+        <h3 className="text-lg font-medium">Connected Wallets</h3>
+        <p className="text-sm text-muted-foreground">
+          Manage your connected wallets for payroll and payments.
+        </p>
+      </div>
+
+      {walletList.length === 0 ? (
+        <p className="text-sm text-muted-foreground italic">No connected wallets found.</p>
+      ) : (
+        <ul className="divide-y rounded-md border" role="list">
+          {walletList.map((wallet) => {
+            const isEditing = editingId === wallet.id;
+            const displayName = wallet.nickname || truncateStellarAddress(wallet.address);
+
+            return (
+              <li
+                key={wallet.id}
+                className="flex items-center justify-between gap-2 p-3 transition-colors hover:bg-muted/50"
+              >
+                <div className="flex min-w-0 flex-1 items-center gap-3">
+                  <WalletIcon
+                    className="h-5 w-5 shrink-0 text-muted-foreground"
+                    aria-hidden="true"
+                  />
+                  <div className="min-w-0 flex-1">
+                    {isEditing ? (
+                      <div className="flex items-center gap-1.5">
+                        <Input
+                          autoFocus
+                          value={editingValue}
+                          onChange={(e) => setEditingValue(e.target.value)}
+                          onKeyDown={(e) => handleKeyDown(e, wallet.id)}
+                          maxLength={MAX_NICKNAME_LENGTH}
+                          aria-label={`Nickname for wallet ${wallet.address}`}
+                          className="h-7 text-sm"
+                        />
+                        {/* onMouseDown prevents the input's blur from firing before onClick */}
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          className="h-7 w-7 shrink-0 text-muted-foreground hover:text-foreground"
+                          onMouseDown={(e) => e.preventDefault()}
+                          onClick={() => commitEdit(wallet.id)}
+                          aria-label="Save nickname"
+                        >
+                          <Check className="h-3.5 w-3.5" />
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          className="h-7 w-7 shrink-0 text-muted-foreground hover:text-foreground"
+                          onMouseDown={(e) => e.preventDefault()}
+                          onClick={cancelEdit}
+                          aria-label="Cancel editing"
+                        >
+                          <X className="h-3.5 w-3.5" />
+                        </Button>
+                      </div>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => startEditing(wallet)}
+                        className="group flex items-center gap-1.5 text-left"
+                        aria-label={`Edit nickname for ${displayName}`}
+                      >
+                        <span className="text-sm font-medium leading-none">{displayName}</span>
+                        <Pencil
+                          className="h-3 w-3 shrink-0 text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100"
+                          aria-hidden="true"
+                        />
+                      </button>
+                    )}
+                    <p className="mt-1 truncate text-xs text-muted-foreground">
+                      {wallet.address}
+                    </p>
+                  </div>
                 </div>
-                <Badge
-                  variant="outline"
-                  className="border-zinc-200 bg-white text-zinc-600 dark:border-white/10 dark:bg-transparent dark:text-zinc-400"
+
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => openRemoveDialog(wallet)}
+                  aria-label={`Remove ${displayName} (${wallet.address})`}
+                  className="shrink-0 text-destructive hover:bg-destructive/10 hover:text-destructive"
+                  disabled={isRemoving}
                 >
-                  {wallet.status}
-                </Badge>
-              </div>
-              <p className="mt-4 text-sm text-zinc-500 dark:text-zinc-400">
-                Address: {wallet.address}
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+              </li>
+            );
+          })}
+        </ul>
+      )}
+
+      {/* WCAG 2.1 AA – Remove Confirmation Dialog */}
+      <Dialog
+        open={!!walletToRemove}
+        onOpenChange={(nextOpen) => {
+          // Never dismiss while the removal request is in flight.
+          if (isRemoving) return;
+          if (!nextOpen) setWalletToRemove(null);
+        }}
+      >
+        <DialogContent
+          className="sm:max-w-[425px]"
+          showCloseButton={!isRemoving}
+        >
+          <DialogHeader>
+            <DialogTitle>Remove Connected Wallet</DialogTitle>
+            <DialogDescription className="pt-2 text-sm">
+              Are you sure you want to disconnect{" "}
+              <span className="font-semibold text-foreground">
+                {walletToRemove?.nickname ||
+                  truncateStellarAddress(walletToRemove?.address ?? "")}
+              </span>{" "}
+              ({walletToRemove?.address})? This action cannot be undone and you will need to
+              re-verify to re-add it.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="mt-4 gap-2 sm:gap-0">
+            {removeError && (
+              <p
+                role="alert"
+                aria-live="polite"
+                className="w-full text-xs font-medium text-destructive"
+              >
+                {removeError}. You can retry.
               </p>
-            </div>
-          ))}
-
-          <details className="rounded-2xl border border-zinc-200 bg-zinc-50 p-4 dark:border-white/10 dark:bg-white/5">
-            <summary className="cursor-pointer list-none text-sm font-medium text-zinc-900 dark:text-white">
-              Show wallet metadata and compliance checks
-            </summary>
-            <div className="mt-4 grid gap-4 md:grid-cols-2">
-              <MetadataItem label="Settlement region" value="Nigeria and UK" />
-              <MetadataItem
-                label="Compliance mode"
-                value="Travel rule checks on"
-              />
-              <MetadataItem label="Default asset" value="USDC" />
-              <MetadataItem label="Address book lock" value="Enabled" />
-            </div>
-          </details>
-        </CardContent>
-      </Card>
-
-      <div className="space-y-6">
-        <Card className="border-zinc-200 bg-white/90 shadow-sm dark:border-white/10 dark:bg-white/5">
-          <CardHeader className="border-b border-zinc-200/80 dark:border-white/10">
-            <CardTitle className="font-general text-xl text-zinc-950 dark:text-white">
-              Outbound safeguards
-            </CardTitle>
-            <CardDescription className="text-zinc-600 dark:text-zinc-400">
-              Controls that change transfer behavior stay separate from wallet
-              identity details.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4 pt-6">
-            <ToggleCard
-              title="Approval required for new recipients"
-              description="Force review before first transfer to any new wallet address."
-              badge="Recommended"
-              enabled={settings.transferApprovals}
-              onToggle={(value) => updateSetting("transferApprovals", value)}
-            />
-            <ToggleCard
-              title="Lock approved address book"
-              description="Prevent edits to trusted addresses without extra verification."
-              enabled={settings.addressBookLock}
-              onToggle={(value) => updateSetting("addressBookLock", value)}
-            />
-            <ToggleCard
-              title="Travel rule checks"
-              description="Validate counterparty information before eligible transfers leave the platform."
-              enabled={settings.travelRuleChecks}
-              onToggle={(value) => updateSetting("travelRuleChecks", value)}
-            />
-            <Button onClick={handleSave} disabled={isSaving}>
-              {isSaving ? (
+            )}
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setWalletToRemove(null)}
+              disabled={isRemoving}
+            >
+              Cancel
+            </Button>
+            <Button
+              type="button"
+              variant="destructive"
+              onClick={handleConfirmRemove}
+              disabled={isRemoving}
+            >
+              {isRemoving ? (
                 <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Saving...
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  Removing...
                 </>
               ) : (
-                "Save wallet settings"
+                "Remove Wallet"
               )}
             </Button>
-            {status.message && (
-              <div
-                role="status"
-                aria-live="polite"
-                className={`rounded-2xl border px-4 py-3 ${
-                  status.type === "success"
-                    ? "border-emerald-500/20 bg-emerald-500/10"
-                    : "border-destructive/20 bg-destructive/10"
-                }`}
-              >
-                <p
-                  className={`text-sm ${
-                    status.type === "success"
-                      ? "text-emerald-700 dark:text-emerald-300"
-                      : "text-destructive"
-                  }`}
-                >
-                  {status.message}
-                </p>
-              </div>
-            )}
-          </CardContent>
-        </Card>
-
-        <Card className="border-red-500/20 bg-white/90 shadow-sm dark:bg-white/5">
-          <CardHeader className="border-b border-red-500/10">
-            <CardTitle className="font-general text-xl text-zinc-950 dark:text-white">
-              Wallet danger zone
-            </CardTitle>
-            <CardDescription className="text-zinc-600 dark:text-zinc-400">
-              Removing a wallet is destructive, so it is isolated and confirmed
-              independently from toggle changes.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4 pt-6">
-            <DestructiveActionDialog
-              triggerLabel="Remove primary wallet"
-              title="Remove the primary settlement wallet"
-              description="This will block settlement flows that depend on the current default wallet."
-              impactItems={[
-                "Scheduled payouts using the wallet would pause immediately.",
-                "Operators would need to nominate a new default settlement wallet.",
-                "Historical references remain visible for audit trails.",
-              ]}
-              confirmationToken="REMOVE"
-              confirmationLabel='Type "REMOVE" to confirm'
-              confirmLabel="Remove wallet"
-              onConfirm={() =>
-                setStatus({
-                  message: "Wallet removal request captured. A replacement wallet should be selected before execution.",
-                  type: "success",
-                })
-              }
-            />
-          </CardContent>
-        </Card>
-      </div>
-    </div>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </section>
   );
 }
 
-function MetadataItem({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="rounded-2xl border border-zinc-200 bg-white px-4 py-3 dark:border-white/10 dark:bg-[#09090B]">
-      <p className="text-xs font-medium tracking-[0.18em] text-zinc-400 uppercase">
-        {label}
-      </p>
-      <p className="mt-2 text-sm text-zinc-700 dark:text-zinc-300">{value}</p>
-    </div>
-  );
-}
+export default WalletsSection;

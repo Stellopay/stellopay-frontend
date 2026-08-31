@@ -1,46 +1,75 @@
-import react from '@vitejs/plugin-react';
-import { fileURLToPath } from 'node:url';
-import { defineConfig } from 'vitest/config';
+import react from "@vitejs/plugin-react";
+import { fileURLToPath } from "node:url";
+import { defineConfig } from "vitest/config";
 
-const repoRoot = fileURLToPath(new URL('.', import.meta.url));
+const repoRoot = fileURLToPath(new URL(".", import.meta.url));
 
 export default defineConfig({
   plugins: [react()],
   css: {
-    postcss: false,
+    // Empty inline PostCSS config: skips the project's Tailwind/PostCSS
+    // pipeline during unit tests without tripping Vite's css.postcss types
+    // (which accept a config object, not a boolean).
+    postcss: { plugins: [] },
   },
   resolve: {
     alias: {
-      '@': repoRoot,
+      "@": repoRoot,
     },
   },
   test: {
     globals: true,
-    include: ['**/*.test.ts', '**/*.test.tsx'],
-    environment: 'jsdom',
-    setupFiles: './vitest.setup.ts',
+    include: ["**/*.test.ts", "**/*.test.tsx"],
+    environment: "jsdom",
+    setupFiles: "./vitest.setup.ts",
     coverage: {
-      provider: 'v8',
-      reporter: ['text', 'json', 'html'],
+      provider: "v8",
+      reporter: ["text", "json", "html"],
       include: [
-        'utils/authUtils.ts',
-        'utils/dateUtils.ts',
-        'utils/formatUtils.ts',
-        'utils/transactionUtils.ts',
-        'utils/paginationUtils.ts',
-        'types/auth.ts',
-        'app/global-error.tsx',
-        'context/wallet-context.tsx',
-        'components/analytics/analytics-view.tsx',
-        'components/analytics/client-analytics-view.tsx',
+        "hooks/useTransactions.ts",
+        "hooks/useCountdown.ts",
+        "hooks/useUnsavedChangesGuard.ts",
+        "utils/authUtils.ts",
+        "utils/clipboardUtils.ts",
+        "utils/date-utils.ts",
+        "utils/formatUtils.ts",
+        "utils/navigationUtils.ts",
+        "utils/transactionUtils.ts",
+        "utils/paginationUtils.ts",
+        "utils/stellarAddress.ts",
+        "utils/commonUtils.ts",
+        "utils/objectUtils.ts",
+        "app/settings/preferences/components/settings-page-shell.tsx",
+        "types/auth.ts",
+        "types/wallet.ts",
+        "lib/api/transactions.ts",
+        "app/error.tsx",
+        "app/global-error.tsx",
+        "context/wallet-context.tsx",
+        "context/theme-context.tsx",
+        "components/auth/auth-social-buttons.tsx",
+        "components/auth/sign-up/sign-up-email-modal.tsx",
+        "components/ui/empty-state.tsx",
+        "components/analytics/analytics-view.tsx",
+        "components/analytics/client-analytics-view.tsx",
+        "components/analytics/analytics-chart.tsx",
+        "components/common/notification-panel.tsx",
+        "components/common/app-layout.tsx",
+        "components/common/network-switcher.tsx",
+        "components/common/scoped-error-boundary.tsx",
+        "components/common/search-bar.tsx",
+        "components/ui/pagination.tsx",
+       "components/dashboard/account-summary-card.tsx",
+       "components/dashboard/transaction-history.tsx",
+       "components/dashboard/dashboard-header.tsx",
       ],
       exclude: [
-        '**/*.test.{ts,tsx}',
-        '**/*.spec.{ts,tsx}',
-        '**/*.config.*',
-        'vitest.config.ts',
-        'tests/**',
-        'vitest.setup.ts',
+        "**/*.test.{ts,tsx}",
+        "**/*.spec.{ts,tsx}",
+        "**/*.config.*",
+        "vitest.config.ts",
+        "tests/**",
+        "vitest.setup.ts",
       ],
       thresholds: {
         lines: 95,

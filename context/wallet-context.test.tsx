@@ -1,6 +1,12 @@
-import { act, render, renderHook, screen } from "@testing-library/react";
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import React from "react";
+import {
+  act,
+  fireEvent,
+  render,
+  renderHook,
+  screen,
+} from "@testing-library/react";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import React, { useEffect } from "react";
 
 import {
   DEFAULT_NETWORK,
@@ -9,13 +15,69 @@ import {
   formatAddress,
   useWallet,
 } from "@/context/wallet-context";
+import { createAccountScope, realtimeRegistry } from "@/lib/realtime-registry";
+import { WALLET_NETWORK_STORAGE_KEY } from "@/types/wallet";
+import {
+  INVALID_SECRET_SEED,
+  VALID_WALLET_ADDRESS,
+  VALID_WALLET_CONNECTION_PAYLOAD,
+} from "@/types/wallet.fixtures";
 
-const POLYGON = SUPPORTED_NETWORKS.find((n) => n.id === "polygon")!;
+// Stellar is the only supported network now that the placeholder EVM chains
+// have been removed, so network-switching/persistence is exercised against it.
+const STELLAR = SUPPORTED_NETWORKS.find((n) => n.id === "stellar")!;
 const STORAGE_KEY = "stellopay.wallet.network";
 
 function wrap(children: React.ReactNode) {
   return <WalletProvider>{children}</WalletProvider>;
 }
+
+// ─── Legacy SUPPORTED_NETWORKS shape tests (kept for regression coverage) ────
+
+describe("SUPPORTED_NETWORKS", () => {
+  it("includes Stellar", () => {
+    const ids = SUPPORTED_NETWORKS.map((n) => n.id);
+    expect(ids).toContain("stellar");
+  });
+
+  it("does not include any EVM chain ids", () => {
+    const ids = SUPPORTED_NETWORKS.map((n) => n.id);
+    for (const evmId of ["eth", "ethereum", "polygon", "bsc", "arbitrum"]) {
+      expect(ids).not.toContain(evmId);
+    }
+  });
+
+  it("does not include any EVM chain names", () => {
+    const names = SUPPORTED_NETWORKS.map((n) => n.name.toLowerCase());
+    for (const evmName of ["ethereum", "polygon", "bsc", "arbitrum", "eth"]) {
+      expect(names).not.toContain(evmName);
+    }
+  });
+});
+
+// ─── DEFAULT_NETWORK ─────────────────────────────────────────────────────────
+
+describe("DEFAULT_NETWORK", () => {
+  it("is Stellar", () => {
+    expect(DEFAULT_NETWORK.id).toBe("stellar");
+    expect(DEFAULT_NETWORK.name).toBe("Stellar");
+  });
+
+  it("is the first entry in SUPPORTED_NETWORKS", () => {
+    expect(DEFAULT_NETWORK).toEqual(SUPPORTED_NETWORKS[0]);
+  });
+});
+
+// ─── WALLET_NETWORK_STORAGE_KEY export ───────────────────────────────────────
+
+describe("WALLET_NETWORK_STORAGE_KEY", () => {
+  it("is exported from @/types/wallet", () => {
+    expect(typeof WALLET_NETWORK_STORAGE_KEY).toBe("string");
+    expect(WALLET_NETWORK_STORAGE_KEY.length).toBeGreaterThan(0);
+  });
+});
+
+// ─── WalletProvider ───────────────────────────────────────────────────────────
 
 describe("WalletProvider", () => {
   beforeEach(() => {
@@ -54,14 +116,26 @@ describe("WalletProvider", () => {
       wrapper: ({ children }) => wrap(children),
     });
 
-    const publicAddress =
-      "GAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAW";
-
     act(() => {
-      result.current.connect(publicAddress);
+      result.current.connect(VALID_WALLET_ADDRESS);
     });
 
-    expect(result.current.address).toBe(publicAddress);
+    expect(result.current.address).toBe(VALID_WALLET_ADDRESS);
+  });
+
+  // Keep connect-flow fixture shape covered in types/wallet.test.ts; this
+  // assertion only verifies WalletProvider consumes the shared validated shape.
+  it("connect accepts a guarded wallet connection payload", () => {
+    const { result } = renderHook(() => useWallet(), {
+      wrapper: ({ children }) => wrap(children),
+    });
+
+    act(() => {
+      result.current.connect(VALID_WALLET_CONNECTION_PAYLOAD);
+    });
+
+    expect(result.current.address).toBe(VALID_WALLET_ADDRESS);
+    expect(result.current.network.id).toBe("stellar");
   });
 
   it("connect rejects values that look like a Stellar secret key", () => {
@@ -69,11 +143,9 @@ describe("WalletProvider", () => {
       wrapper: ({ children }) => wrap(children),
     });
 
-    const fakeSecret = "S" + "A".repeat(55);
-
     expect(() => {
       act(() => {
-        result.current.connect(fakeSecret);
+        result.current.connect(INVALID_SECRET_SEED);
       });
     }).toThrow(/secret key/i);
     expect(result.current.address).toBeNull();
@@ -102,21 +174,21 @@ describe("WalletProvider", () => {
     });
 
     act(() => {
-      result.current.setNetwork(POLYGON);
+      result.current.setNetwork(STELLAR);
     });
 
-    expect(result.current.network.id).toBe("polygon");
-    expect(window.localStorage.getItem(STORAGE_KEY)).toBe("polygon");
+    expect(result.current.network.id).toBe("stellar");
+    expect(window.localStorage.getItem(STORAGE_KEY)).toBe("stellar");
   });
 
   it("hydrates the network from localStorage on mount", () => {
-    window.localStorage.setItem(STORAGE_KEY, "polygon");
+    window.localStorage.setItem(STORAGE_KEY, "stellar");
 
     const { result } = renderHook(() => useWallet(), {
       wrapper: ({ children }) => wrap(children),
     });
 
-    expect(result.current.network.id).toBe("polygon");
+    expect(result.current.network.id).toBe("stellar");
   });
 
   it("ignores unknown network ids in storage", () => {
@@ -134,10 +206,9 @@ describe("WalletProvider", () => {
       wrapper: ({ children }) => wrap(children),
     });
 
-    const fakeSecret = "S" + "A".repeat(55);
     expect(() => {
       act(() => {
-        result.current.connect(fakeSecret);
+        result.current.connect(INVALID_SECRET_SEED);
       });
     }).toThrow();
     expect(window.localStorage.getItem("stellopay.wallet.address")).toBeNull();
@@ -154,7 +225,9 @@ describe("useWallet outside provider", () => {
 
 describe("formatAddress", () => {
   it("truncates long Stellar addresses", () => {
-    expect(formatAddress("GABCDEFGHIJKLMNOPQRSTUVWXYZF123")).toBe("GABC...F123");
+    expect(formatAddress("GABCDEFGHIJKLMNOPQRSTUVWXYZF123")).toBe(
+      "GABC...F123",
+    );
   });
 
   it("returns empty string for null", () => {
@@ -217,10 +290,10 @@ describe("WalletProvider storage edge cases", () => {
       });
       expect(() => {
         act(() => {
-          result.current.setNetwork(POLYGON);
+          result.current.setNetwork(STELLAR);
         });
       }).not.toThrow();
-      expect(result.current.network.id).toBe("polygon");
+      expect(result.current.network.id).toBe("stellar");
     });
   });
 
@@ -233,16 +306,37 @@ describe("WalletProvider storage edge cases", () => {
       expect(result.current.network.id).toBe(DEFAULT_NETWORK.id);
       expect(() => {
         act(() => {
-          result.current.setNetwork(POLYGON);
+          result.current.setNetwork(STELLAR);
         });
       }).not.toThrow();
     });
+  });
+
+  it("does not crash when localStorage.getItem throws (render-based)", () => {
+    vi.spyOn(Storage.prototype, "getItem").mockImplementation(() => {
+      throw new Error("Storage unavailable");
+    });
+
+    function WalletConsumer() {
+      const { network } = useWallet();
+      return <span data-testid="network-id">{network.id}</span>;
+    }
+
+    expect(() =>
+      render(
+        <WalletProvider>
+          <WalletConsumer />
+        </WalletProvider>,
+      ),
+    ).not.toThrow();
+
+    vi.restoreAllMocks();
   });
 });
 
 describe("WalletProvider initial props", () => {
   it("respects initialAddress for SSR seeding", () => {
-    const seeded = "GAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAW";
+    const seeded = VALID_WALLET_ADDRESS;
     function Probe() {
       const { address, isConnected } = useWallet();
       return (
@@ -258,8 +352,435 @@ describe("WalletProvider initial props", () => {
       </WalletProvider>,
     );
 
-    expect(screen.getByTestId("probe").textContent).toBe(
-      `connected:${seeded}`,
+    expect(screen.getByTestId("probe").textContent).toBe(`connected:${seeded}`);
+  });
+});
+
+describe("WalletProvider capability detection", () => {
+  it("disables unsupported actions while disconnected and explains the recovery path", () => {
+    const { result } = renderHook(() => useWallet(), {
+      wrapper: ({ children }) => wrap(children),
+    });
+
+    expect(result.current.capabilities.canSignTransaction).toBe(false);
+    expect(result.current.capabilities.canSignMessage).toBe(false);
+    expect(result.current.capabilities.canSwitchNetwork).toBe(false);
+
+    const signTx = result.current.getActionState("signTransaction");
+    expect(signTx.enabled).toBe(false);
+    expect(signTx.reason).toMatch(/connect|wallet/i);
+    expect(signTx.alternative).toMatch(/recover|alternative|compatible/i);
+  });
+
+  it("updates capability state when the wallet changes account or network", () => {
+    const subscribeToAccountChanges = vi.fn((cb: (address: string | null) => void) => {
+      return () => undefined;
+    });
+
+    const { result } = renderHook(() => useWallet(), {
+      wrapper: ({ children }) => (
+        <WalletProvider
+          providerCapabilities={{
+            canSignTransaction: true,
+            canSignMessage: true,
+            canSwitchNetwork: true,
+          }}
+          subscribeToAccountChanges={subscribeToAccountChanges}
+        >
+          {children}
+        </WalletProvider>
+      ),
+    });
+
+    act(() => {
+      result.current.connect(VALID_WALLET_ADDRESS);
+    });
+
+    expect(result.current.capabilities.canSignTransaction).toBe(true);
+    expect(result.current.capabilities.canSignMessage).toBe(true);
+
+    act(() => {
+      result.current.setNetwork({ id: "unsupported", name: "Unsupported Chain" });
+    });
+
+    expect(result.current.capabilities.canSignTransaction).toBe(false);
+    expect(result.current.capabilities.canSwitchNetwork).toBe(false);
+    expect(result.current.getActionState("signTransaction").reason).toMatch(/unsupported|network/i);
+  });
+});
+
+// ─── Network-change event handling ───────────────────────────────────────────
+//
+// WalletProvider accepts a subscribeToNetworkChanges prop so wallet SDKs
+// (Freighter, WalletConnect, etc.) can push network-change events into the
+// context without requiring a manual reconnect.
+
+describe("WalletProvider – network-change event handling", () => {
+  beforeEach(() => {
+    window.localStorage.clear();
+  });
+
+  afterEach(() => {
+    window.localStorage.clear();
+  });
+
+  /**
+   * Builds a minimal event-emitter stand-in that records the callback
+   * registered by WalletProvider, letting tests fire it at will.
+   */
+  function makeNetworkEmitter() {
+    let _cb: ((networkId: string) => void) | null = null;
+    const subscribe = vi.fn((cb: (networkId: string) => void) => {
+      _cb = cb;
+      return () => {
+        _cb = null;
+      }; // cleanup
+    });
+    const emit = (networkId: string) => {
+      _cb?.(networkId);
+    };
+    return { subscribe, emit };
+  }
+
+  it("registers the subscription on mount", () => {
+    const { subscribe } = makeNetworkEmitter();
+    renderHook(() => useWallet(), {
+      wrapper: ({ children }) => (
+        <WalletProvider subscribeToNetworkChanges={subscribe}>
+          {children}
+        </WalletProvider>
+      ),
+    });
+    expect(subscribe).toHaveBeenCalledOnce();
+  });
+
+  it("calls the cleanup function returned by subscribeToNetworkChanges on unmount", () => {
+    const cleanup = vi.fn();
+    const subscribe = vi.fn(() => cleanup);
+    const { unmount } = renderHook(() => useWallet(), {
+      wrapper: ({ children }) => (
+        <WalletProvider subscribeToNetworkChanges={subscribe}>
+          {children}
+        </WalletProvider>
+      ),
+    });
+    unmount();
+    expect(cleanup).toHaveBeenCalledOnce();
+  });
+
+  it("updates network state when a supported network-change event fires", () => {
+    const { subscribe, emit } = makeNetworkEmitter();
+    const { result } = renderHook(() => useWallet(), {
+      wrapper: ({ children }) => (
+        <WalletProvider subscribeToNetworkChanges={subscribe}>
+          {children}
+        </WalletProvider>
+      ),
+    });
+
+    act(() => {
+      emit("stellar");
+    });
+
+    expect(result.current.network.id).toBe("stellar");
+    expect(result.current.isUnsupportedNetwork).toBe(false);
+  });
+
+  it("persists the new network to localStorage when a supported network-change event fires", () => {
+    const { subscribe, emit } = makeNetworkEmitter();
+    renderHook(() => useWallet(), {
+      wrapper: ({ children }) => (
+        <WalletProvider subscribeToNetworkChanges={subscribe}>
+          {children}
+        </WalletProvider>
+      ),
+    });
+
+    act(() => {
+      emit("stellar");
+    });
+
+    expect(window.localStorage.getItem(STORAGE_KEY)).toBe("stellar");
+  });
+
+  it("sets isUnsupportedNetwork=true when an unsupported network id is emitted", () => {
+    const { subscribe, emit } = makeNetworkEmitter();
+    const { result } = renderHook(() => useWallet(), {
+      wrapper: ({ children }) => (
+        <WalletProvider subscribeToNetworkChanges={subscribe}>
+          {children}
+        </WalletProvider>
+      ),
+    });
+
+    act(() => {
+      emit("ethereum");
+    });
+
+    expect(result.current.isUnsupportedNetwork).toBe(true);
+  });
+
+  it("does not update the network id when an unsupported network is emitted", () => {
+    const { subscribe, emit } = makeNetworkEmitter();
+    const { result } = renderHook(() => useWallet(), {
+      wrapper: ({ children }) => (
+        <WalletProvider subscribeToNetworkChanges={subscribe}>
+          {children}
+        </WalletProvider>
+      ),
+    });
+
+    const previousId = result.current.network.id;
+    act(() => {
+      emit("polygon");
+    });
+
+    // Network id must not change to an unsupported value.
+    expect(result.current.network.id).toBe(previousId);
+  });
+
+  it("clears isUnsupportedNetwork when switching back to a supported network", () => {
+    const { subscribe, emit } = makeNetworkEmitter();
+    const { result } = renderHook(() => useWallet(), {
+      wrapper: ({ children }) => (
+        <WalletProvider subscribeToNetworkChanges={subscribe}>
+          {children}
+        </WalletProvider>
+      ),
+    });
+
+    act(() => {
+      emit("ethereum");
+    });
+    expect(result.current.isUnsupportedNetwork).toBe(true);
+
+    act(() => {
+      emit("stellar");
+    });
+    expect(result.current.isUnsupportedNetwork).toBe(false);
+    expect(result.current.network.id).toBe("stellar");
+  });
+
+  it("does not subscribe when subscribeToNetworkChanges is not provided", () => {
+    // Simply verify the provider renders without error and isUnsupportedNetwork
+    // defaults to false when no subscription prop is given.
+    const { result } = renderHook(() => useWallet(), {
+      wrapper: ({ children }) => <WalletProvider>{children}</WalletProvider>,
+    });
+    expect(result.current.isUnsupportedNetwork).toBe(false);
+  });
+
+  it("handles a subscription that returns void (no cleanup) without throwing", () => {
+    const subscribe = vi.fn((_cb: (id: string) => void) => {
+      // intentionally returns void instead of a cleanup function
+    });
+    expect(() => {
+      const { unmount } = renderHook(() => useWallet(), {
+        wrapper: ({ children }) => (
+          <WalletProvider subscribeToNetworkChanges={subscribe}>
+            {children}
+          </WalletProvider>
+        ),
+      });
+      unmount();
+    }).not.toThrow();
+  });
+});
+
+// ─── Realtime subscription teardown (issue #1179) ────────────────────────────
+//
+// The WalletProvider owns the account scope, so it is responsible for tearing
+// down every realtime channel of the previous account before the new account
+// context takes over. These tests drive a probe component that opens a channel
+// through the shared registry and verify the provider closes it on account
+// switch, logout, and unmount.
+
+describe("WalletProvider – realtime subscription teardown", () => {
+  const SECOND_VALID_WALLET_ADDRESS = "G" + "B".repeat(55);
+
+  /**
+   * Probe that opens a realtime channel for the current wallet scope, the
+   * same way a view using useAccountScopedSubscription would.
+   */
+  function RealtimeProbe() {
+    const { address, network } = useWallet();
+    const scope = createAccountScope(network.id, address);
+
+    useEffect(() => {
+      if (!scope) return;
+      return realtimeRegistry.subscribe(scope, "probe-channel", () => {
+        // no-op listener; presence on the registry is what we assert
+      });
+    }, [scope]);
+
+    return null;
+  }
+
+  function Harness() {
+    const wallet = useWallet();
+    return (
+      <div>
+        <button
+          type="button"
+          data-testid="connect-a"
+          onClick={() => wallet.connect(VALID_WALLET_ADDRESS)}
+        >
+          connect A
+        </button>
+        <button
+          type="button"
+          data-testid="connect-b"
+          onClick={() => wallet.connect(SECOND_VALID_WALLET_ADDRESS)}
+        >
+          connect B
+        </button>
+        <button
+          type="button"
+          data-testid="disconnect"
+          onClick={() => wallet.disconnect()}
+        >
+          disconnect
+        </button>
+        <RealtimeProbe />
+      </div>
     );
+  }
+
+  function renderHarness() {
+    return render(
+      <WalletProvider>
+        <Harness />
+      </WalletProvider>,
+    );
+  }
+
+  beforeEach(() => {
+    window.localStorage.clear();
+    realtimeRegistry.clear();
+  });
+
+  afterEach(() => {
+    window.localStorage.clear();
+    realtimeRegistry.clear();
+  });
+
+  it("opens a channel scoped to the connected account", () => {
+    renderHarness();
+    fireEvent.click(screen.getByTestId("connect-a"));
+
+    expect(realtimeRegistry.getActiveChannelCount("probe-channel")).toBe(1);
+    expect(realtimeRegistry.getChannelScope("probe-channel")).toBe(
+      `stellar:${VALID_WALLET_ADDRESS}`,
+    );
+  });
+
+  it("tears down the previous account's channels before the new account subscribes", () => {
+    renderHarness();
+    fireEvent.click(screen.getByTestId("connect-a"));
+    expect(realtimeRegistry.getChannelScope("probe-channel")).toBe(
+      `stellar:${VALID_WALLET_ADDRESS}`,
+    );
+
+    // Rapid account switch: B replaces A in the same commit.
+    fireEvent.click(screen.getByTestId("connect-b"));
+
+    expect(realtimeRegistry.getActiveChannelCount("probe-channel")).toBe(1);
+    expect(realtimeRegistry.getChannelScope("probe-channel")).toBe(
+      `stellar:${SECOND_VALID_WALLET_ADDRESS}`,
+    );
+  });
+
+  it("removes all listeners on logout (disconnect)", () => {
+    renderHarness();
+    fireEvent.click(screen.getByTestId("connect-a"));
+    expect(realtimeRegistry.getActiveChannelCount("probe-channel")).toBe(1);
+
+    fireEvent.click(screen.getByTestId("disconnect"));
+
+    expect(realtimeRegistry.getActiveChannelCount("probe-channel")).toBe(0);
+    expect(realtimeRegistry.getListenerCount("probe-channel")).toBe(0);
+  });
+
+  it("removes all listeners on provider unmount", () => {
+    const { unmount } = renderHarness();
+    fireEvent.click(screen.getByTestId("connect-a"));
+    expect(realtimeRegistry.getActiveChannelCount("probe-channel")).toBe(1);
+
+    unmount();
+
+    expect(realtimeRegistry.getActiveChannelCount("probe-channel")).toBe(0);
+    expect(realtimeRegistry.getListenerCount("probe-channel")).toBe(0);
+  });
+});
+
+// ─── isUnsupportedNetwork via setNetwork ─────────────────────────────────────
+
+describe("WalletProvider – isUnsupportedNetwork via setNetwork", () => {
+  beforeEach(() => {
+    window.localStorage.clear();
+  });
+
+  afterEach(() => {
+    window.localStorage.clear();
+  });
+
+  it("starts with isUnsupportedNetwork=false", () => {
+    const { result } = renderHook(() => useWallet(), {
+      wrapper: ({ children }) => wrap(children),
+    });
+    expect(result.current.isUnsupportedNetwork).toBe(false);
+  });
+
+  it("sets isUnsupportedNetwork=true when setNetwork is called with an unsupported network", () => {
+    const { result } = renderHook(() => useWallet(), {
+      wrapper: ({ children }) => wrap(children),
+    });
+
+    act(() => {
+      result.current.setNetwork({ id: "arbitrum", name: "Arbitrum" });
+    });
+
+    expect(result.current.isUnsupportedNetwork).toBe(true);
+  });
+
+  it("keeps isUnsupportedNetwork=false when setNetwork is called with a supported network", () => {
+    const { result } = renderHook(() => useWallet(), {
+      wrapper: ({ children }) => wrap(children),
+    });
+
+    act(() => {
+      result.current.setNetwork(STELLAR);
+    });
+
+    expect(result.current.isUnsupportedNetwork).toBe(false);
+  });
+
+  it("clears isUnsupportedNetwork when switching back to a supported network via setNetwork", () => {
+    const { result } = renderHook(() => useWallet(), {
+      wrapper: ({ children }) => wrap(children),
+    });
+
+    act(() => {
+      result.current.setNetwork({ id: "bsc", name: "BSC" });
+    });
+    expect(result.current.isUnsupportedNetwork).toBe(true);
+
+    act(() => {
+      result.current.setNetwork(STELLAR);
+    });
+    expect(result.current.isUnsupportedNetwork).toBe(false);
+  });
+
+  it("does not persist an unsupported network to localStorage", () => {
+    const { result } = renderHook(() => useWallet(), {
+      wrapper: ({ children }) => wrap(children),
+    });
+
+    act(() => {
+      result.current.setNetwork({ id: "arbitrum", name: "Arbitrum" });
+    });
+
+    // Unsupported networks must not be written to storage.
+    expect(window.localStorage.getItem(STORAGE_KEY)).toBeNull();
   });
 });

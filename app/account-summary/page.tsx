@@ -6,20 +6,40 @@ import Image from "next/image";
 import Icon from "@/public/Icon.png";
 import Piggy from "@/public/piggy-bank.png";
 import { copyToClipboardWithTimeout } from "@/utils/clipboardUtils";
+import { useWallet, formatAddress } from "@/context/wallet-context";
+import { Breadcrumb, type BreadcrumbItem } from "@/components/common/breadcrumb";
 
+/**
+ * The route lives at `/account-summary` but the user always arrives from the
+ * dashboard sidebar, so the trail is spelled out rather than derived from the
+ * URL segments.
+ */
+const BREADCRUMB_TRAIL: BreadcrumbItem[] = [
+  { label: "Dashboard", href: "/dashboard" },
+  { label: "Account Summary" },
+];
 
-function AccountSummaryView({ isLoading: _isLoading = false }: { isLoading?: boolean }) {
+/**
+ * Renders the account summary card, sourcing the wallet address from the
+ * WalletProvider context. Shows a "no wallet connected" message when the
+ * user is disconnected. Only the truncated public address is ever displayed.
+ */
+function AccountSummaryView({
+  isLoading: _isLoading = false,
+}: {
+  isLoading?: boolean;
+}) {
   const [copied, setCopied] = useState(false);
-  const address = "0x8dE1243U45...67800UZ";
+  const { address, isConnected } = useWallet();
 
   const handleCopy = () => {
-    copyToClipboardWithTimeout(address, setCopied);
+    if (address) copyToClipboardWithTimeout(address, setCopied);
   };
 
   return (
     <div className="bg-[#140D13] p-4 rounded-xl border border-[#2D2D2D] shadow-lg text-white ">
       <div className="flex items-center mb-6 space-x-2">
-        <Image src={Icon} alt="Icon" />
+        <Image src={Icon} alt="" aria-hidden="true" />
         <h2 className="text-lg font-semibold">Account Summary</h2>
       </div>
 
@@ -28,16 +48,28 @@ function AccountSummaryView({ isLoading: _isLoading = false }: { isLoading?: boo
         <div className="bg-[#121212] border border-[#2E2E2E] p-5 rounded-lg flex flex-col justify-between">
           <div className="flex gap-2 items-center mb-2">
             <span className="text-sm text-gray-400">Your Account Balance</span>
-            <Image src={Piggy} alt="Piggy Bank Icon" />
+            <Image src={Piggy} alt="" aria-hidden="true" />
           </div>
           <div className="text-3xl font-bold mb-2">
             $2,432 <span className="text-base">USDC</span>
           </div>
           <div className="flex items-center text-xs text-gray-400 space-x-2">
-            <span>Copy Address:</span>
-            <span className="truncate text-white">{address}</span>
-            <Copy size={14} className="cursor-pointer" onClick={handleCopy} />
-            {copied && <span className="text-green-400 ml-2">Copied!</span>}
+            {isConnected ? (
+              <>
+                <span>Copy Address:</span>
+                <span className="truncate text-white">
+                  {formatAddress(address)}
+                </span>
+                <Copy
+                  size={14}
+                  className="cursor-pointer"
+                  onClick={handleCopy}
+                />
+                {copied && <span className="text-green-400 ml-2">Copied!</span>}
+              </>
+            ) : (
+              <span data-testid="no-wallet-message">No wallet connected</span>
+            )}
           </div>
         </div>
 
@@ -67,5 +99,12 @@ function AccountSummaryView({ isLoading: _isLoading = false }: { isLoading?: boo
 
 export default function Page() {
   // If this page later fetches data, you can wire up loading state here.
-  return <AccountSummaryView isLoading={false} />;
+  return (
+    <>
+      <div className="px-4 py-4 md:px-6 w-full max-w-screen-xl mx-auto">
+        <Breadcrumb items={BREADCRUMB_TRAIL} />
+      </div>
+      <AccountSummaryView isLoading={false} />
+    </>
+  );
 }

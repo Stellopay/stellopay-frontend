@@ -40,3 +40,10 @@ declare module "*.svg" {
   const content: StaticImageData;
   export default content;
 }
+
+/**
+ * Plain (non-CSS-module) stylesheet side-effect imports, e.g. `./globals.css`.
+ * Next.js loads these via webpack at build time; TypeScript just needs to
+ * know the specifier resolves to something so it doesn't report TS2307.
+ */
+declare module "*.css";

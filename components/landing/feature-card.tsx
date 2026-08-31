@@ -2,10 +2,11 @@ import Image from "next/image";
 import { FC } from "react";
 import { FeatureCardProps } from "@/types/landing";
 
-export const FeatureCard: FC<FeatureCardProps> = ({
+export const FeatureCard: FC<FeatureCardProps & { priority?: boolean }> = ({
   imageSrc,
   title,
   description,
+  priority = false,
 }) => {
   return (
     <div
@@ -29,10 +30,13 @@ export const FeatureCard: FC<FeatureCardProps> = ({
     >
       <Image
         src={imageSrc}
-        alt={title}
+        alt={`${title} feature illustration`}
         width={400}
         height={200}
+        sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 384px"
         className="rounded-md object-cover h-[200px] w-full"
+        loading={priority ? undefined : "lazy"}
+        priority={priority}
       />
       <h3 className="text-xl font-semibold text-black mt-4">{title}</h3>
       <p className="text-sm text-black mt-2 flex-grow">{description}</p>

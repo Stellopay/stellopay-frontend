@@ -2,7 +2,10 @@
 
 import Link from "next/link";
 import Image from "next/image";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { safeStorage } from "@/utils/safeStorage";
+import { X } from "lucide-react";
+import { messages } from "@/messages";
 
 // Social Media Icons as SVG components
 const TwitterIcon = () => (
@@ -70,52 +73,100 @@ const EmailIcon = () => (
 
 // Footer link data
 const footerLinks = {
-  Product: [
-    { label: "Features", href: "#KeyFeatures" },
-    { label: "Pricing", href: "#Pricing" },
-    { label: "Security", href: "#Security" },
-    { label: "API", href: "#API" },
-    { label: "Integrations", href: "#Integrations" },
+  [messages.footer.categories.product]: [
+    { label: messages.footer.links.features, href: "#KeyFeatures" },
+    { label: messages.footer.links.pricing, href: "#Pricing" },
+    { label: messages.footer.links.security, href: "#Security" },
+    { label: messages.footer.links.api, href: "#API" },
+    { label: messages.footer.links.integrations, href: "#Integrations" },
   ],
-  Company: [
-    { label: "About", href: "/about" },
-    { label: "Blog", href: "/blog" },
-    { label: "Careers", href: "/careers" },
-    { label: "Press", href: "/press" },
-    { label: "Partners", href: "/partners" },
+  [messages.footer.categories.company]: [
+    { label: messages.footer.links.about, href: "/about" },
+    { label: messages.footer.links.blog, href: "/blog" },
+    { label: messages.footer.links.careers, href: "/careers" },
+    { label: messages.footer.links.press, href: "/press" },
+    { label: messages.footer.links.partners, href: "/partners" },
   ],
-  Resources: [
-    { label: "Documentation", href: "/docs" },
-    { label: "Help Center", href: "/help" },
-    { label: "Tutorials", href: "/tutorials" },
-    { label: "Community", href: "/community" },
-    { label: "Error Pages", href: "/errors" },
+  [messages.footer.categories.resources]: [
+    { label: messages.footer.links.documentation, href: "/docs" },
+    { label: messages.footer.links.helpCenter, href: "/help" },
+    { label: messages.footer.links.tutorials, href: "/tutorials" },
+    { label: messages.footer.links.community, href: "/community" },
+    { label: messages.footer.links.errorPages, href: "/errors" },
   ],
-  Legal: [
-    { label: "Privacy", href: "/privacy" },
-    { label: "Terms", href: "/terms" },
-    { label: "Cookie Policy", href: "/cookies" },
-    { label: "Licenses", href: "/licenses" },
+  [messages.footer.categories.legal]: [
+    { label: messages.footer.links.privacy, href: "/privacy" },
+    { label: messages.footer.links.terms, href: "/terms" },
+    { label: messages.footer.links.cookiePolicy, href: "/cookies" },
+    { label: messages.footer.links.licenses, href: "/licenses" },
   ],
 };
 
 const socialLinks = [
-  { icon: TwitterIcon, href: "https://twitter.com/stellopay", label: "Twitter" },
-  { icon: LinkedInIcon, href: "https://linkedin.com/company/stellopay", label: "LinkedIn" },
-  { icon: GitHubIcon, href: "https://github.com/stellopay", label: "GitHub" },
-  { icon: EmailIcon, href: "mailto:contact@stellopay.com", label: "Email" },
+  {
+    icon: TwitterIcon,
+    href: "https://twitter.com/stellopay",
+    label: messages.footer.socialLinks.twitter,
+  },
+  {
+    icon: LinkedInIcon,
+    href: "https://linkedin.com/company/stellopay",
+    label: messages.footer.socialLinks.linkedIn,
+  },
+  {
+    icon: GitHubIcon,
+    href: "https://github.com/stellopay",
+    label: messages.footer.socialLinks.gitHub,
+  },
+  {
+    icon: EmailIcon,
+    href: "mailto:contact@stellopay.com",
+    label: messages.footer.socialLinks.email,
+  },
 ];
+
+const CONSENT_STORAGE_KEY = "stellopay.cookie-consent";
+
+function persistConsent(value: boolean): void {
+  safeStorage.setItem(
+    CONSENT_STORAGE_KEY,
+    value ? "accepted" : "rejected",
+  );
+}
 
 export default function Footer() {
   const [email, setEmail] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [bannerVisible, setBannerVisible] = useState(false);
+
+  useEffect(() => {
+    const stored = safeStorage.getItem(CONSENT_STORAGE_KEY);
+    if (stored === null) {
+      setBannerVisible(true);
+    } else {
+      setBannerVisible(false);
+    }
+  }, []);
+
+  const handleAccept = () => {
+    persistConsent(true);
+    setBannerVisible(false);
+  };
+
+  const handleReject = () => {
+    persistConsent(false);
+    setBannerVisible(false);
+  };
+
+  const handleClose = () => {
+    setBannerVisible(false);
+  };
 
   const handleSubscribe = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!email) return;
 
     setIsSubmitting(true);
-    // Simulate API call
     await new Promise((resolve) => setTimeout(resolve, 1000));
     setEmail("");
     setIsSubmitting(false);
@@ -123,8 +174,66 @@ export default function Footer() {
 
   return (
     <footer className="w-full bg-[#FAFAFA] dark:bg-[#09090B] border-t border-gray-100 dark:border-[#1a1a1a]">
+      {/* Cookie Consent Banner */}
+      {bannerVisible && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-label="Cookie consent"
+          className="fixed bottom-0 left-0 right-0 z-50 bg-white dark:bg-[#18181b] border-t border-gray-200 dark:border-[#27272a] shadow-lg"
+          data-testid="cookie-consent-banner"
+        >
+          <div className="relative max-w-[1200px] mx-auto px-4 py-3 sm:py-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4 pr-10 sm:pr-12">
+            <div className="flex-1 min-w-0">
+              <p
+                className="text-sm text-[#1a1a1a] dark:text-[#a1a1aa]"
+                style={{ fontFamily: "General Sans, sans-serif" }}
+              >
+                We use cookies to improve your experience. By continuing to use
+                our site, you agree to our{" "}
+                <Link
+                  href="/cookies"
+                  className="text-[#7C3AED] dark:text-[#a78bfa] underline hover:text-[#6d28d9] dark:hover:text-[#8b5cf6] transition-colors"
+                >
+                  Cookie Policy
+                </Link>
+                .
+              </p>
+            </div>
+            <div className="flex items-center gap-2 shrink-0">
+              <button
+                onClick={handleReject}
+                className="px-4 py-2 text-sm font-medium text-[#666666] dark:text-[#a1a1aa] rounded-lg border border-gray-200 dark:border-[#27272a] hover:bg-gray-50 dark:hover:bg-[#27272a] transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-[#7C3AED]/20 dark:focus:ring-[#a78bfa]/20"
+                data-testid="cookie-consent-reject"
+                aria-label="Reject all cookies"
+              >
+                Reject
+              </button>
+              <button
+                onClick={handleAccept}
+                className="px-4 py-2 text-sm font-medium text-white rounded-lg bg-gradient-to-r from-[#83A7FF] to-[#8B5CF6] hover:opacity-90 transition-opacity duration-200 focus:outline-none focus:ring-2 focus:ring-[#7C3AED]/40 dark:focus:ring-[#a78bfa]/40"
+                data-testid="cookie-consent-accept"
+                aria-label="Accept all cookies"
+              >
+                Accept
+              </button>
+            </div>
+            {/* Positioned relative to the inner container so the button sits
+                at the top-right corner without escaping the max-width constraint. */}
+            <button
+              onClick={handleClose}
+              className="absolute top-3 right-3 text-[#666666] dark:text-[#a1a1aa] hover:text-[#1a1a1a] dark:hover:text-white transition-colors p-1 rounded focus:outline-none focus:ring-2 focus:ring-[#7C3AED]/20 dark:focus:ring-[#a78bfa]/20"
+              aria-label="Dismiss cookie consent banner"
+              data-testid="cookie-consent-close"
+            >
+              <X className="w-4 h-4" aria-hidden="true" />
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Main Footer Content */}
-      <div className="max-w-[1200px] mx-auto">
+      <div className="max-w-[1200px] mx-auto pb-20">
         <div className="px-6 py-16">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-12 lg:gap-8">
             {/* Logo and Description Section */}
@@ -132,9 +241,10 @@ export default function Footer() {
               <Link href="/" className="flex items-center gap-2 mb-4">
                 <Image
                   src="/stellopay-icon.svg"
-                  alt="StelloPay Logo"
+                  alt=""
                   width={32}
                   height={32}
+                  aria-hidden="true"
                 />
                 <span
                   className="text-[#1a1a1a] dark:text-white text-xl font-semibold tracking-tight"
@@ -147,7 +257,7 @@ export default function Footer() {
                 className="text-[#666666] dark:text-[#a1a1aa] text-sm leading-relaxed mb-6 max-w-[280px]"
                 style={{ fontFamily: "General Sans, sans-serif" }}
               >
-                Simplifying crypto payments for businesses. Built on the Stellar blockchain for instant, secure, and affordable global transactions.
+                {messages.footer.description}
               </p>
 
               {/* Social Links */}
@@ -170,12 +280,12 @@ export default function Footer() {
             {/* Navigation Columns */}
             {Object.entries(footerLinks).map(([category, links]) => (
               <div key={category}>
-                <h4
+                <p
                   className="text-[#1a1a1a] dark:text-white font-semibold text-sm mb-4 tracking-wide"
                   style={{ fontFamily: "General Sans, sans-serif" }}
                 >
                   {category}
-                </h4>
+                </p>
                 <ul className="space-y-3">
                   {links.map((link) => (
                     <li key={link.label}>
@@ -196,25 +306,28 @@ export default function Footer() {
           {/* Newsletter Section */}
           <div className="mt-16 pt-12">
             <div className="max-w-[600px] mx-auto text-center">
-              <h3
+              <p
                 className="text-[#1a1a1a] dark:text-white text-2xl font-semibold mb-3"
                 style={{ fontFamily: "General Sans, sans-serif" }}
               >
-                Stay updated with StelloPay
-              </h3>
+                {messages.footer.newsletter.heading}
+              </p>
               <p
                 className="text-[#666666] dark:text-[#a1a1aa] text-sm mb-6"
                 style={{ fontFamily: "General Sans, sans-serif" }}
               >
-                Get the latest news, updates, and tips delivered straight to your inbox.
+                {messages.footer.newsletter.description}
               </p>
 
-              <form onSubmit={handleSubscribe} className="flex flex-col sm:flex-row items-center justify-center gap-3">
+              <form
+                onSubmit={handleSubscribe}
+                className="flex flex-col sm:flex-row items-center justify-center gap-3"
+              >
                 <input
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  placeholder="Your email address"
+                  placeholder={messages.footer.newsletter.placeholder}
                   className="w-full sm:w-[320px] h-12 px-4 rounded-lg border border-gray-200 dark:border-[#27272a] bg-transparent dark:bg-[#18181b] text-[#1a1a1a] dark:text-white text-sm placeholder:text-[#999999] dark:placeholder:text-[#71717a] focus:outline-none focus:ring-2 focus:ring-[#7C3AED]/20 dark:focus:ring-[#a78bfa]/20 focus:border-[#7C3AED] dark:focus:border-[#a78bfa] transition-all duration-200"
                   style={{ fontFamily: "General Sans, sans-serif" }}
                 />
@@ -224,7 +337,9 @@ export default function Footer() {
                   className="w-full sm:w-auto h-12 px-8 rounded-lg text-white font-medium text-sm disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 bg-gradient-to-r from-[#83A7FF] to-[#8B5CF6]"
                   style={{ fontFamily: "General Sans, sans-serif" }}
                 >
-                  {isSubmitting ? "Subscribing..." : "Subscribe"}
+                  {isSubmitting
+                    ? messages.footer.newsletter.subscribing
+                    : messages.footer.newsletter.subscribe}
                 </button>
               </form>
             </div>
@@ -238,7 +353,7 @@ export default function Footer() {
                 className="text-[#666666] dark:text-[#a1a1aa] text-sm"
                 style={{ fontFamily: "General Sans, sans-serif" }}
               >
-                © 2026 StelloPay. All rights reserved.
+                {messages.footer.bottomBar.copyright}
               </p>
 
               <div className="flex items-center gap-6">
@@ -247,21 +362,21 @@ export default function Footer() {
                   className="text-[#666666] dark:text-[#a1a1aa] text-sm hover:text-[#7C3AED] dark:hover:text-[#a78bfa] transition-colors duration-200"
                   style={{ fontFamily: "General Sans, sans-serif" }}
                 >
-                  Privacy Policy
+                  {messages.footer.bottomBar.privacyPolicy}
                 </Link>
                 <Link
                   href="/terms"
                   className="text-[#666666] dark:text-[#a1a1aa] text-sm hover:text-[#7C3AED] dark:hover:text-[#a78bfa] transition-colors duration-200"
                   style={{ fontFamily: "General Sans, sans-serif" }}
                 >
-                  Terms of Service
+                  {messages.footer.bottomBar.termsOfService}
                 </Link>
                 <Link
                   href="/cookies"
                   className="text-[#666666] dark:text-[#a1a1aa] text-sm hover:text-[#7C3AED] dark:hover:text-[#a78bfa] transition-colors duration-200"
                   style={{ fontFamily: "General Sans, sans-serif" }}
                 >
-                  Cookie Policy
+                  {messages.footer.bottomBar.cookiePolicy}
                 </Link>
               </div>
             </div>

@@ -1,30 +1,159 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { Suspense, useEffect, useRef, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { X, Loader2 } from "lucide-react";
+import { useCountdown } from "@/hooks/useCountdown";
+import {
+  VerifyEmailError,
+  verifyEmailToken,
+  resendVerificationEmail,
+} from "@/lib/api/auth";
 
 type StatusType = "idle" | "loading" | "success" | "error";
+type TokenStatus =
+  "idle" | "loading" | "success" | "expired" | "invalid" | "error";
+const OTP_LENGTH = 6;
+const RESEND_COOLDOWN_SECONDS = 30;
 
-export default function VerifyEmail() {
-  const [code, setCode] = useState("");
+function VerifyEmailForm() {
+  const searchParams = useSearchParams();
+  const token = searchParams.get("token");
+  const emailFromUrl = searchParams.get("email") || "";
   const router = useRouter();
+
+  const [code, setCode] = useState<string[]>(Array(OTP_LENGTH).fill(""));
   const [status, setStatus] = useState<StatusType>("idle");
   const [message, setMessage] = useState("");
+  const [codeError, setCodeError] = useState("");
   const [resendStatus, setResendStatus] = useState<StatusType>("idle");
+  const { secondsLeft, isActive, start: startCooldown } = useCountdown();
+  const inputRefs = useRef<Array<HTMLInputElement | null>>([]);
+  const codeValue = code.join("");
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.value.replace(/[^0-9a-zA-Z]/g, "");
-    if (value.length <= 6) setCode(value);
+  const codeHelpId = "verification-code-help";
+  const codeErrorId = "verification-code-error";
+
+  const [tokenStatus, setTokenStatus] = useState<TokenStatus>(
+    token ? "loading" : "idle",
+  );
+  const [tokenErrorMessage, setTokenErrorMessage] = useState("");
+  const [resendMessage, setResendMessage] = useState("");
+
+  useEffect(() => {
+    if (!token) return;
+
+    let cancelled = false;
+
+    verifyEmailToken(token)
+      .then(() => {
+        if (!cancelled) setTokenStatus("success");
+      })
+      .catch((error) => {
+        if (cancelled) return;
+        if (error instanceof VerifyEmailError) {
+          if (error.code === "TOKEN_EXPIRED") {
+            setTokenStatus("expired");
+          } else if (error.code === "TOKEN_INVALID") {
+            setTokenStatus("invalid");
+          } else {
+            setTokenStatus("error");
+          }
+          setTokenErrorMessage(error.message);
+        } else {
+          setTokenStatus("error");
+          setTokenErrorMessage(
+            "An error occurred during verification. Please try again later.",
+          );
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [token]);
+
+  const handleTokenResend = async () => {
+    if (resendStatus === "loading" || isActive) return;
+
+    setResendStatus("loading");
+    setResendMessage("");
+    try {
+      await resendVerificationEmail(emailFromUrl);
+      setResendStatus("success");
+      startCooldown(RESEND_COOLDOWN_SECONDS);
+      setResendMessage("Verification email sent! Check your inbox.");
+    } catch {
+      setResendStatus("error");
+      setResendMessage("Failed to resend. Please try again.");
+    } finally {
+      setTimeout(() => setResendStatus("idle"), 3000);
+    }
+  };
+
+  const updateCodeAt = (index: number, value: string) => {
+    const nextValue = value.replace(/[^0-9a-zA-Z]/g, "").slice(-1);
+    setCode((current) => {
+      const next = [...current];
+      next[index] = nextValue;
+      return next;
+    });
+
+    if (nextValue && index < OTP_LENGTH - 1) {
+      inputRefs.current[index + 1]?.focus();
+    }
+  };
+
+  const handleInputChange = (
+    index: number,
+    e: React.ChangeEvent<HTMLInputElement>,
+  ) => {
+    updateCodeAt(index, e.target.value);
+  };
+
+  const handleKeyDown = (
+    index: number,
+    e: React.KeyboardEvent<HTMLInputElement>,
+  ) => {
+    if (e.key === "Backspace" && !code[index] && index > 0) {
+      inputRefs.current[index - 1]?.focus();
+      return;
+    }
+
+    if (e.key === "ArrowLeft" && index > 0) {
+      e.preventDefault();
+      inputRefs.current[index - 1]?.focus();
+    }
+
+    if (e.key === "ArrowRight" && index < OTP_LENGTH - 1) {
+      e.preventDefault();
+      inputRefs.current[index + 1]?.focus();
+    }
+  };
+
+  const handlePaste = (e: React.ClipboardEvent<HTMLInputElement>) => {
+    e.preventDefault();
+    const pastedCode = e.clipboardData
+      .getData("text")
+      .replace(/[^0-9a-zA-Z]/g, "")
+      .slice(0, OTP_LENGTH)
+      .split("");
+
+    if (pastedCode.length === 0) return;
+
+    setCode([...pastedCode, ...Array(OTP_LENGTH - pastedCode.length).fill("")]);
+    inputRefs.current[Math.min(pastedCode.length, OTP_LENGTH) - 1]?.focus();
   };
 
   const handleResend = async () => {
+    if (isActive || resendStatus === "loading") return;
+
     setResendStatus("loading");
     setMessage("");
     try {
-      // Simulate API call
-      await new Promise((resolve) => setTimeout(resolve, 1500));
+      await resendVerificationEmail(emailFromUrl);
       setResendStatus("success");
+      startCooldown(RESEND_COOLDOWN_SECONDS);
       setMessage("Verification code resent to your email.");
     } catch {
       setResendStatus("error");
@@ -35,25 +164,118 @@ export default function VerifyEmail() {
   };
 
   const handleContinue = async () => {
+    if (codeValue.length !== OTP_LENGTH) {
+      setStatus("error");
+      setMessage("Enter the 6-character verification code.");
+      setCodeError("Enter the full 6-digit verification code.");
+      return;
+    }
+
     setStatus("loading");
     setMessage("");
+    setCodeError("");
     try {
       // Simulate API call
-      await new Promise((resolve, reject) => setTimeout(() => {
-        if (code === "123456") {
-          resolve(null);
-        } else {
-          reject(new Error("Invalid code"));
-        }
-      }, 1500));
+      await new Promise((resolve, reject) =>
+        setTimeout(() => {
+          if (codeValue === "123456") {
+            resolve(null);
+          } else {
+            reject(new Error("Invalid code"));
+          }
+        }, 1500),
+      );
       setStatus("success");
       setMessage("Email verified successfully!");
     } catch {
       setStatus("error");
       setMessage("Invalid verification code. Please try again.");
+      setCodeError("Invalid verification code. Please try again.");
     } finally {
       setTimeout(() => setStatus("idle"), 3000);
     }
+  };
+
+  const renderTokenContent = () => {
+    if (tokenStatus === "loading") {
+      return (
+        <>
+          <Loader2 className="h-8 w-8 animate-spin text-[#F8D2FE] mx-auto" />
+          <p className="text-sm text-[#ACB4B5]">Verifying your email...</p>
+        </>
+      );
+    }
+
+    if (tokenStatus === "success") {
+      return (
+        <>
+          <h1 className="text-[#F8D2FE] text-2xl sm:text-[32px] font-medium">
+            Email verified!
+          </h1>
+          <p className="text-sm text-emerald-300">
+            Your email has been verified successfully.
+          </p>
+        </>
+      );
+    }
+
+    if (tokenStatus === "expired" || tokenStatus === "invalid") {
+      return (
+        <>
+          <h1 className="text-[#F8D2FE] text-2xl sm:text-[32px] font-medium">
+            Link {tokenStatus === "expired" ? "expired" : "invalid"}
+          </h1>
+          <p role="alert" className="text-sm text-red-300 mb-4">
+            {tokenErrorMessage}
+          </p>
+          <button
+            onClick={handleTokenResend}
+            disabled={resendStatus === "loading" || isActive}
+            className="w-full py-3 px-4 rounded-[8px] bg-[#FFFFFF] text-black font-medium transition cursor-pointer disabled:opacity-80 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+          >
+            {resendStatus === "loading" ? (
+              <>
+                <Loader2 className="h-4 w-4 animate-spin" />
+                Sending...
+              </>
+            ) : isActive ? (
+              `Resend in ${secondsLeft}s`
+            ) : (
+              "Request new verification email"
+            )}
+          </button>
+          {resendMessage &&
+            (resendStatus === "success" || resendStatus === "error") && (
+              <div
+                role="status"
+                aria-live="polite"
+                className={`text-sm px-4 py-2 rounded-lg mt-2 ${
+                  resendStatus === "success"
+                    ? "bg-emerald-500/10 text-emerald-300"
+                    : "bg-red-500/10 text-red-300"
+                }`}
+              >
+                {resendMessage}
+              </div>
+            )}
+        </>
+      );
+    }
+
+    if (tokenStatus === "error") {
+      return (
+        <>
+          <h1 className="text-[#F8D2FE] text-2xl sm:text-[32px] font-medium">
+            Something went wrong
+          </h1>
+          <p role="alert" className="text-sm text-red-300">
+            {tokenErrorMessage}
+          </p>
+        </>
+      );
+    }
+
+    return null;
   };
 
   return (
@@ -69,79 +291,149 @@ export default function VerifyEmail() {
 
       {/* Modal Card */}
       <div className="border-[#2D2D2D] border rounded-[24px] px-7 sm:px-11 py-9 w-full max-w-[480px] space-y-4 text-center shadow-lg">
-        <h1 className="text-[#F8D2FE] text-2xl sm:text-[32px] font-medium mb-2">
+        {token ? (
+          renderTokenContent()
+        ) : (
+          <>
+            <h1 className="text-[#F8D2FE] text-2xl sm:text-[32px] font-medium mb-2">
           Check your email
         </h1>
         <p className="text-sm text-[#ACB4B5] mb-6">
           Didn&apos;t get code?{" "}
           <button
             onClick={handleResend}
-            disabled={resendStatus === "loading"}
+            disabled={resendStatus === "loading" || isActive}
             className="text-white font-semibold underline cursor-pointer disabled:opacity-50"
+            aria-describedby="resend-status"
           >
             {resendStatus === "loading" ? (
               <>
                 <Loader2 className="inline h-4 w-4 mr-1 animate-spin" />
                 Sending...
               </>
-            ) : "Resend"}
+            ) : isActive ? (
+              `Resend in ${secondsLeft}s`
+            ) : (
+              "Resend"
+            )}
           </button>
         </p>
+        <p id="resend-status" aria-live="polite" className="sr-only">
+          {isActive
+            ? `You can request a new code in ${secondsLeft} seconds.`
+            : "You can request a new verification code."}
+        </p>
 
-        {/* Input */}
-        <input
-          type="text"
-          inputMode="numeric"
-          maxLength={6}
-          value={code}
-          onChange={handleInputChange}
-          className="w-full text-left py-3 px-4 rounded-[8px] border border-[#2D2D2D] bg-transparent text-white mb-4 outline-none mt-5"
-          placeholder="- - - - - - - -"
-        />
+        {!token ? (
+          <>
+            {/* OTP input */}
+            <fieldset className="mt-5 mb-2">
+              <legend className="sr-only">Verification code</legend>
+              <div className="grid grid-cols-6 gap-2">
+                {code.map((value, index) => (
+                  <input
+                    key={index}
+                    ref={(node) => {
+                      inputRefs.current[index] = node;
+                    }}
+                    type="text"
+                    inputMode="numeric"
+                    autoComplete={index === 0 ? "one-time-code" : "off"}
+                    maxLength={1}
+                    value={value}
+                    onChange={(event) => handleInputChange(index, event)}
+                    onKeyDown={(event) => handleKeyDown(index, event)}
+                    onPaste={handlePaste}
+                    aria-label={`Verification code character ${index + 1}`}
+                    aria-describedby={
+                      codeError ? `${codeHelpId} ${codeErrorId}` : codeHelpId
+                    }
+                    aria-invalid={codeError ? "true" : "false"}
+                    className="h-12 rounded-[8px] border border-[#2D2D2D] bg-transparent text-center text-lg font-semibold text-white outline-none focus:border-[#F8D2FE] focus:ring-1 focus:ring-[#F8D2FE]"
+                  />
+                ))}
+              </div>
+            </fieldset>
+            <p
+              id={codeHelpId}
+              className="text-left text-xs text-[#ACB4B5] mb-2"
+            >
+              Enter the 6-digit code sent to your email.
+            </p>
+            {codeError && (
+              <p
+                id={codeErrorId}
+                role="alert"
+                aria-live="polite"
+                className="text-left text-xs text-red-300 mb-4"
+              >
+                {codeError}
+              </p>
+            )}
 
-        {/* Status Messages */}
-        {message && (
-          <div
-            role="status"
-            aria-live="polite"
-            className={`text-sm px-4 py-2 rounded-lg mb-2 ${
-              status === "success" || resendStatus === "success"
-                ? "bg-emerald-500/10 text-emerald-300"
-                : status === "error" || resendStatus === "error"
-                ? "bg-red-500/10 text-red-300"
-                : ""
-            }`}
-          >
-            {message}
-          </div>
+            {/* Status Messages */}
+            {message && (
+              <div
+                role="status"
+                aria-live="polite"
+                className={`text-sm px-4 py-2 rounded-lg mb-2 ${
+                  status === "success" || resendStatus === "success"
+                    ? "bg-emerald-500/10 text-emerald-300"
+                    : status === "error" || resendStatus === "error"
+                      ? "bg-red-500/10 text-red-300"
+                      : ""
+                }`}
+              >
+                {message}
+              </div>
+            )}
+
+            {/* Continue Button */}
+            <button
+              onClick={handleContinue}
+              disabled={codeValue.length !== OTP_LENGTH || status === "loading"}
+              className={`w-full py-3 px-4 rounded-[8px] bg-[#FFFFFF] text-black font-medium transition mt-2 flex items-center justify-center gap-2 ${
+                codeValue.length === OTP_LENGTH && status !== "loading"
+                  ? "cursor-pointer"
+                  : "opacity-80 cursor-not-allowed"
+              }`}
+            >
+              {status === "loading" ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  Verifying...
+                </>
+              ) : (
+                "Continue"
+              )}
+            </button>
+
+            {/* Go Back */}
+            <button
+              onClick={() => router.back()}
+              className="text-[13px] text-[#FFFFFF] underline font-semibold cursor-pointer"
+            >
+              Go Back
+            </button>
+          </>
+        ) : (
+          renderTokenContent()
         )}
-
-        {/* Continue Button */}
-        <button
-          onClick={handleContinue}
-          disabled={code.length !== 6 || status === "loading"}
-          className={`w-full py-3 px-4 rounded-[8px] bg-[#FFFFFF] text-black font-medium transition mt-2 flex items-center justify-center gap-2 ${
-            code.length === 6 && status !== "loading"
-              ? "cursor-pointer"
-              : "opacity-80 cursor-not-allowed"
-          }`}
-        >
-          {status === "loading" ? (
-            <>
-              <Loader2 className="h-4 w-4 animate-spin" />
-              Verifying...
-            </>
-          ) : "Continue"}
-        </button>
-
-        {/* Go Back */}
-        <button
-          onClick={() => router.back()}
-          className="text-[13px] text-[#FFFFFF] underline font-semibold cursor-pointer"
-        >
-          Go Back
-        </button>
       </div>
     </div>
+  );
+}
+
+export default function VerifyEmail() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen flex items-center justify-center px-4">
+          <Loader2 className="h-8 w-8 animate-spin text-[#F8D2FE]" />
+        </div>
+      }
+    >
+      <VerifyEmailForm />
+    </Suspense>
   );
 }
