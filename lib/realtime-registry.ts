@@ -43,7 +43,7 @@ interface ChannelRecord {
   /** Scope that owns this channel. */
   scope: AccountScope;
   /** Listeners currently registered on the channel. */
-  listeners: Set<RealtimeListener;
+  listeners: Set<RealtimeListener>;
 }
 
 /**
@@ -118,7 +118,6 @@ export class RealtimeRegistry {
       current.listeners.delete(typedListener);
       if (current.listeners.size === 0) {
         this.channels.delete(channel);
-        this.requestCache.delete(channel);
       }
     };
   }
