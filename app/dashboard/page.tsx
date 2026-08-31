@@ -1,7 +1,8 @@
 "use client";
 
-import React, { createContext, useContext, useEffect, useState, useCallback, useRef, useMemo } from "react";
+import React, { createContext, useContext, useMemo } from "react";
 import Dashboard from "@/components/dashboard/dashboard-page";
+import { useNotifications as useNotificationsStore, invalidateNotifications } from "@/lib/notifications-store";
 
 type Notification = {
   id: string;
@@ -28,62 +29,13 @@ export function useNotifications() {
 }
 
 function NotificationProvider({ children }: { children: React.ReactNode }) {
-  const [notifications, setNotifications] = useState<Notification[] | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const abortRef = useRef<AbortController | null>(null);
-
-  const fetchNotifications = useCallback(() => {
-    if (abortRef.current) return;
-
-    const controller = new AbortController();
-    abortRef.current = controller;
-
-    setLoading(true);
-    setError(null);
-
-    fetch("/api/notifications", { signal: controller.signal })
-      .then((res) => {
-        if (!res.ok) {
-          throw new Error("Failed to fetch notifications");
-        }
-        return res.json() as Promise<Notification[]>;
-      })
-      .then((data) => {
-        setNotifications(data);
-        setError(null);
-      })
-      .catch((err: Error) => {
-        if (err.name === "AbortError") return;
-        setError(err.message);
-      })
-      .finally(() => {
-        if (abortRef.current === controller) {
-          abortRef.current = null;
-        }
-        setLoading(false);
-      });
-  }, []);
-
-  useEffect(() => {
-    fetchNotifications();
-    return () => {
-      abortRef.current?.abort();
-      abortRef.current = null;
-    };
-  }, [fetchNotifications]);
-
-  const invalidate = useCallback(() => {
-    abortRef.current?.abort();
-    abortRef.current = null;
-    setNotifications(null);
-    setError(null);
-    fetchNotifications();
-  }, [fetchNotifications]);
+  const { data, status, error } = useNotificationsStore();
+  const loading = status === "loading";
+  const invalidate = invalidateNotifications;
 
   const value = useMemo(
-    () => ({ notifications, loading, error, invalidate }),
-    [notifications, loading, error, invalidate]
+    () => { notifications: data, loading, error: error ? error.message : null, invalidate },
+    [data, loading, error, invalidate]
   );
 
   return <NotificationContext.Provider value={value}>{children}</NotificationContext.Provider>;
