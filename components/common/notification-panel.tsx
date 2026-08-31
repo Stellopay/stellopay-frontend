@@ -13,6 +13,149 @@ import {
   toIsoDateTime,
 } from "@/utils/date-utils";
 
+export type NotificationFetcher = (signal: AbortSignal) => Promise<NotificationItem[]>;
+
+interface NotificationRequestEntry {
+  fetcher: NotificationFetcher;
+  promise: Promise<NotificationItem[]>;
+  controller: AbortController;
+  refCount: number;
+}
+
+const notificationRequests = new Map<string, NotificationRequestEntry>();
+const notificationDataCache = new Map<string, NotificationItem[]>();
+const notificationInvalidationListeners = new Set<() => void>();
+
+function subscribeToNotificationInvalidation(listener: () => void) {
+  notificationInvalidationListeners.add(listener);
+  return () => {
+    notificationInvalidationListeners.delete(listener);
+  };
+}
+
+function getSharedNotificationRequest(
+  cacheKey: string,
+  fetcher: NotificationFetcher,
+) {
+  let request = notificationRequests.get(cacheKey);
+
+  if (request && request.fetcher !== fetcher) {
+    request.controller.abort();
+    notificationRequests.delete(cacheKey);
+    request = undefined;
+  }
+
+  if (!request) {
+    const controller = new AbortController();
+    const promise = fetcher(controller.signal)
+      .then((data) => {
+        notificationDataCache.set(cacheKey, data);
+        return data;
+      })
+      .finally(() => {
+        if (notificationRequests.get(cacheKey)?.promise === promise) {
+          notificationRequests.delete(cacheKey);
+        }
+      });
+
+    request = { fetcher, promise, controller, refCount: 0 };
+    notificationRequests.set(cacheKey, request);
+  }
+
+  request.refCount += 1;
+
+  let released = false;
+  return {
+    promise: request.promise,
+    release: () => {
+      if (released) return;
+      released = true;
+      request.refCount -= 1;
+      if (
+        request.refCount <= 0 &&
+        notificationRequests.get(cacheKey) === request
+      ) {
+        request.controller.abort();
+        notificationRequests.delete(cacheKey);
+      }
+    },
+  };
+}
+
+export function invalidateNotifications() {
+  notificationDataCache.clear();
+  notificationRequests.forEach((request) => {
+    request.controller.abort();
+  });
+  notificationRequests.clear();
+  notificationInvalidationListeners.forEach((listener) => listener());
+}
+
+export function useSharedNotifications(
+  cacheKey: string,
+  fetcher: NotificationFetcher,
+) {
+  const [data, setData] = useState<NotificationItem[] | null>(() =>
+    notificationDataCache.get(cacheKey) ?? null,
+  );
+  const [isLoading, setIsLoading] = useState(
+    () => !notificationDataCache.has(cacheKey),
+  );
+
+  useEffect(() => {
+    let active = true;
+    let release: (() => void) | null = null;
+
+    const load = () => {
+      if (notificationDataCache.has(cacheKey)) {
+        setData(notificationDataCache.get(cacheKey) ?? []);
+        setIsLoading(false);
+        return;
+      }
+
+      setIsLoading(true);
+      const request = getSharedNotificationRequest(cacheKey, fetcher);
+      release = request.release;
+      request.promise
+        .then((items) => {
+          if (!active) return;
+          setData(items);
+          setIsLoading(false);
+        })
+        .catch(() => {
+          if (active) setIsLoading(false);
+        });
+    };
+
+    load();
+
+    const unsubscribe = subscribeToNotificationInvalidation(() => {
+      if (!active) return;
+      if (release) {
+        release();
+        release = null;
+      }
+      setData(null);
+      setIsLoading(true);
+      load();
+    });
+
+    return () => {
+      active = false;
+      unsubscribe();
+      if (release) release();
+    };
+  }, [cacheKey, fetcher]);
+
+  const refetch = useCallback(() => {
+    invalidateNotifications();
+  }, []);
+
+  return { data, isLoading, refetch };
+}
+
+export const useNotifications = useSharedNotifications;
+
 export const CATEGORY_STORAGE_KEY = "notification-panel-category-filter";
 
 export const CATEGORIES: { id: NotificationCategoryFilter; label: string }[] = [
@@ -249,6 +392,7 @@ const NotificationPanel = ({
       prev.map((n) => (n.read ? n : { ...n, read: true, readAt })),
     );
     onMarkAllAsRead?.();
+    invalidateNotifications();
   }, [onMarkAllAsRead]);
 
   const handleClearAll = useCallback(() => {
