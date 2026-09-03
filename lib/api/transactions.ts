@@ -16,6 +16,11 @@ import { allTransactions } from "@/lib/transactions";
 import {
   filterTransactions,
 } from "@/utils/transactionUtils";
+import {
+  parseAccountSummary,
+  parseCursorPaginatedTransactions,
+  parsePaginatedTransactions,
+} from "./response-validation";
 
 export interface PaginatedTransactions {
   data: Transaction[];
@@ -365,7 +370,7 @@ export async function getTransactionsCursor(
   const remaining = window.length - page.length;
   const last = page[page.length - 1];
 
-  return {
+  return parseCursorPaginatedTransactions({
     data: page.map(({ transaction }) => transaction),
     total: appliedStable.length,
     nextCursor:
@@ -373,7 +378,7 @@ export async function getTransactionsCursor(
         ? encodeCursor({ values: last.values, id: last.transaction.id })
         : null,
     hasMore: remaining > 0,
-  };
+  });
 }
 
 /**
@@ -517,7 +522,13 @@ export async function getTransactions(
     .slice(start, start + safePageSize)
     .map(({ transaction }) => transaction);
 
-  return { data, total, page: safePage, pageSize: safePageSize, totalPages };
+  return parsePaginatedTransactions({
+    data,
+    total,
+    page: safePage,
+    pageSize: safePageSize,
+    totalPages,
+  });
 }
 
 export interface AccountSummary {
@@ -538,7 +549,7 @@ export async function getAccountSummary(): Promise<AccountSummary> {
     await new Promise((r) => setTimeout(r, 400));
   }
 
-  return {
+  return parseAccountSummary({
     balance: "$ 2,432 USDC",
     balanceRaw: 2432,
     paidThisMonth: "$ 0",
@@ -546,7 +557,7 @@ export async function getAccountSummary(): Promise<AccountSummary> {
     toBePaid: "$ 0",
     toBePaidCount: 0,
     walletAddress: "BaDE1b23U45...67890UzZ",
-  };
+  });
 }
 
 export interface PaymentHistoryItem {
