@@ -49,6 +49,11 @@ import { useEffect, useRef } from "react";
 import { useWallet } from "@/context/wallet-context";
 import { createAccountScope, realtimeRegistry } from "@/lib/realtime-registry";
 import type { RealtimeListener } from "@/lib/realtime-registry";
+import {
+  ApiResponseValidationError,
+  parseStreamPayload,
+} from "@/lib/api";
+import type { ValidatedStreamPayload } from "@/lib/api";
 
 // Map of active shared subscriptions keyed by `${scope}:${channel}`.
 // This implements a shared request/cache layer: concurrent consumers with the
@@ -137,4 +142,34 @@ export function useAccountScopedSubscription<T = unknown>(
       }
     };
   }, [scope, channel]);
+}
+
+/**
+ * Subscribe to a typed realtime envelope. Invalid payloads never reach the
+ * listener, so a state update can only be made from validated data.
+ */
+export function useValidatedAccountScopedSubscription(
+  channel: string,
+  listener: RealtimeListener<ValidatedStreamPayload>,
+  onValidationError?: (error: ApiResponseValidationError) => void,
+): void {
+  const listenerRef = useRef(listener);
+  const errorRef = useRef(onValidationError);
+
+  useEffect(() => {
+    listenerRef.current = listener;
+    errorRef.current = onValidationError;
+  }, [listener, onValidationError]);
+
+  useAccountScopedSubscription(channel, (payload: unknown) => {
+    try {
+      listenerRef.current(parseStreamPayload(payload));
+    } catch (error) {
+      if (error instanceof ApiResponseValidationError) {
+        errorRef.current?.(error);
+        return;
+      }
+      throw error;
+    }
+  });
 }

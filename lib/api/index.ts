@@ -15,3 +15,14 @@ export type {
   PaginatedTransactions,
   PaymentHistoryItem,
 } from "./transactions";
+export {
+  ApiResponseValidationError,
+  parseAccountSummary,
+  parseCursorPaginatedTransactions,
+  parseNotification,
+  parseNotifications,
+  parsePaginatedTransactions,
+  parseStreamPayload,
+  parseTransaction,
+} from "./response-validation";
+export type { ValidatedStreamPayload } from "./response-validation";

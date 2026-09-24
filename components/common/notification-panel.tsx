@@ -12,8 +12,10 @@ import {
   formatRelativeTime,
   toIsoDateTime,
 } from "@/utils/date-utils";
+import { ApiResponseValidationError, parseNotifications } from "@/lib/api";
 
-export type NotificationFetcher = (signal: AbortSignal) => Promise<NotificationItem[]>;
+/** Fetchers return unknown because network JSON is untrusted until validated. */
+export type NotificationFetcher = (signal: AbortSignal) => Promise<unknown>;
 
 interface NotificationRequestEntry {
   fetcher: NotificationFetcher;
@@ -43,10 +45,11 @@ function getSharedNotificationRequest(
     const controller = new AbortController();
     const promise = fetcher(controller.signal)
       .then((data) => {
+        const notifications = parseNotifications(data);
         if (notificationRequests.get(cacheKey)?.promise === promise) {
-          notificationDataCache.set(cacheKey, data);
+          notificationDataCache.set(cacheKey, notifications);
         }
-        return data;
+        return notifications;
       })
       .finally(() => {
         if (notificationRequests.get(cacheKey)?.promise === promise) {
@@ -106,6 +109,7 @@ export function useSharedNotifications(
   const [isLoading, setIsLoading] = useState(
     () => !notificationDataCache.has(cacheKey),
   );
+  const [error, setError] = useState<ApiResponseValidationError | null>(null);
 
   const fetcherRef = useRef(fetcher);
 
@@ -123,10 +127,12 @@ export function useSharedNotifications(
         currentPromise = null;
         setData(notificationDataCache.get(cacheKey) ?? []);
         setIsLoading(false);
+        setError(null);
         return;
       }
 
       setIsLoading(true);
+      setError(null);
       const request = getSharedNotificationRequest(cacheKey, fetcherRef.current);
       release = request.release;
       currentPromise = request.promise;
@@ -136,8 +142,9 @@ export function useSharedNotifications(
           setData(items);
           setIsLoading(false);
         })
-        .catch(() => {
+        .catch((reason: unknown) => {
           if (active && currentPromise === request.promise) {
+            setError(reason instanceof ApiResponseValidationError ? reason : null);
             setIsLoading(false);
           }
         });
@@ -168,7 +175,7 @@ export function useSharedNotifications(
     invalidateNotifications(cacheKey);
   }, [cacheKey]);
 
-  return { data, isLoading, refetch };
+  return { data, isLoading, error, refetch };
 }
 
 export const useNotifications = useSharedNotifications;
