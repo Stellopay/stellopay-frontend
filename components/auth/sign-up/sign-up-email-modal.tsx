@@ -11,6 +11,7 @@ import {
 } from "@/components/ui/dialog";
 import { SignUpEmailModalProps } from "@/types/auth";
 import { useCountdown } from "@/hooks/useCountdown";
+import { resendVerificationEmail } from "@/lib/api/auth";
 
 /** Cooldown window (seconds) enforced client-side between resend clicks. */
 const RESEND_COOLDOWN_SECONDS = 30;
@@ -23,7 +24,10 @@ export function SignUpEmailModal({
   email,
 }: SignUpEmailModalProps) {
   const [isResending, setIsResending] = useState(false);
-  const [resendStatus, setResendStatus] = useState<string>("");
+  const [resendFeedback, setResendFeedback] = useState<{
+    type: "success" | "error";
+    message: string;
+  } | null>(null);
   const [correctedEmail, setCorrectedEmail] = useState<string | null>(null);
   // secondsLeft/isActive persist across a close/reopen within the same
   // mount because the interval lives inside useCountdown, not in local
@@ -61,20 +65,44 @@ export function SignUpEmailModal({
   const handleCorrection = () => {
     if (suggestion) {
       setCorrectedEmail(suggestion);
+      setResendFeedback(null);
       // Optional: if the parent form needs to know, we could call an onEmailCorrection prop.
       // For now, we update the local display.
     }
   };
 
   const handleResend = async () => {
+    if (isResending || isCoolingDown) return;
+
+    if (!currentEmail) {
+      setResendFeedback({
+        type: "error",
+        message: "Email address is required to resend verification.",
+      });
+      return;
+    }
+
     setIsResending(true);
-    setResendStatus("");
-    // TODO: trigger the resend-verification-email request for `email`.
-    setTimeout(() => {
-      setIsResending(false);
-      setResendStatus("Verification email resent successfully.");
+    setResendFeedback(null);
+
+    try {
+      await resendVerificationEmail(currentEmail);
+      setResendFeedback({
+        type: "success",
+        message: "Verification email resent successfully.",
+      });
       start(RESEND_COOLDOWN_SECONDS);
-    }, 2000);
+    } catch (error) {
+      setResendFeedback({
+        type: "error",
+        message:
+          error instanceof Error
+            ? error.message
+            : "Failed to resend verification email. Please try again.",
+      });
+    } finally {
+      setIsResending(false);
+    }
   };
 
   const isResendDisabled = isResending || isCoolingDown;
@@ -153,9 +181,19 @@ export function SignUpEmailModal({
                   : "Resend"}
             </button>
           </p>
-          <p className="sr-only" aria-live="polite" aria-atomic="true">
-            {resendStatus}
-          </p>
+          {resendFeedback && (
+            <div
+              role={resendFeedback.type === "error" ? "alert" : "status"}
+              aria-live="polite"
+              className={`text-sm px-4 py-2 rounded-lg text-center ${
+                resendFeedback.type === "success"
+                  ? "bg-emerald-500/10 text-emerald-300 border border-emerald-500/20"
+                  : "bg-red-500/10 text-red-300 border border-red-500/20"
+              }`}
+            >
+              {resendFeedback.message}
+            </div>
+          )}
 
           <div className="space-y-3 pt-4">
             <Button
