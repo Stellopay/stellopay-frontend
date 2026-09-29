@@ -75,12 +75,7 @@ test.describe("WalletProvider — connect/disconnect UX", () => {
   });
 });
 
-// Skipped: the placeholder EVM networks (Polygon/BSC/etc) were removed from
-// SUPPORTED_NETWORKS, leaving Stellar as the only network. There is no longer
-// a second network to switch to, so the cross-network selection + persistence
-// flow cannot be exercised end-to-end. Reinstate once real multichain support
-// adds back additional networks.
-test.describe.skip("WalletProvider — network selection drives shared state", () => {
+test.describe("WalletProvider — network selection drives shared state", () => {
   test("switching networks updates the navbar badge and persists across reloads", async ({
     page,
   }) => {
@@ -91,21 +86,19 @@ test.describe.skip("WalletProvider — network selection drives shared state", (
     await expect(trigger).toHaveText(/Stellar/i);
 
     await trigger.click();
-    await page
-      .getByRole("menuitem", { name: /^Polygon/i })
-      .click();
+    await page.getByRole("menuitem", { name: /^Testnet/i }).click();
 
     // Confirmation dialog appears before the switch is committed.
     await page.getByTestId("confirm-network-switch").click();
-    await expect(trigger).toHaveText(/Polygon/i);
+    await expect(trigger).toHaveText(/Testnet/i);
 
     // Reload and confirm persistence. The selected network should still be
-    // Polygon thanks to the localStorage hydration in WalletProvider.
+    // Testnet thanks to the localStorage hydration in WalletProvider.
     await page.reload();
     const triggerAfterReload = page
       .locator('[aria-label*="Current network"]')
       .first();
-    await expect(triggerAfterReload).toHaveText(/Polygon/i);
+    await expect(triggerAfterReload).toHaveText(/Testnet/i);
   });
 
   test("cancelling the network switch leaves the current network intact", async ({
@@ -115,9 +108,7 @@ test.describe.skip("WalletProvider — network selection drives shared state", (
 
     const trigger = page.locator('[aria-label*="Current network"]').first();
     await trigger.click();
-    await page
-      .getByRole("menuitem", { name: /^Polygon/i })
-      .click();
+    await page.getByRole("menuitem", { name: /^Testnet/i }).click();
 
     await page.getByRole("button", { name: /^Cancel$/ }).click();
     await expect(trigger).toHaveText(/Stellar/i);

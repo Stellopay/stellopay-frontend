@@ -30,13 +30,10 @@ import type {
 import { isWalletAddress, isWalletConnectionResult } from "@/types/wallet";
 import { createAccountScope, realtimeRegistry } from "@/lib/realtime-registry";
 
-// Networks exposed to the UI. Stellar is the only network the product is
-// actually built on, so it is the sole supported entry. The placeholder EVM
-// chains (ETH, Polygon, BSC, Arbitrum) were removed because they had no real
-// adapters behind them — they will be added back here once genuine multichain
-// support lands.
 export const SUPPORTED_NETWORKS: Network[] = [
   { id: "stellar", name: "Stellar" },
+  { id: "testnet", name: "Testnet" },
+  { id: "futurenet", name: "Futurenet" },
 ];
 
 export const DEFAULT_NETWORK: Network = SUPPORTED_NETWORKS[0];
