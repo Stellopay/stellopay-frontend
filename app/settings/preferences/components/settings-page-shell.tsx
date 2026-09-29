@@ -244,6 +244,7 @@ export default function SettingsPageShell({
             onProfileChange={setProfile}
             onSaved={setSavedProfile}
             highlightedSearchLabel={highlightedSearchLabel}
+            profileSource="placeholder"
           />
         </TabsContent>
 
