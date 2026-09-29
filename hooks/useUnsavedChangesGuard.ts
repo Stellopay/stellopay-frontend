@@ -98,7 +98,7 @@ export function useUnsavedChangesGuard(
       }
 
       const target = event.target as HTMLElement | null;
-      const anchor = target?.closest?("a[href]") as HTMLAnchorElement | null;
+      const anchor = target?.closest?.("a[href]") as HTMLAnchorElement | null;
       if (!anchor) return;
 
       const href = anchor.getAttribute("href");
