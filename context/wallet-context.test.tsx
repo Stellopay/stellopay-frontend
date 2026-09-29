@@ -23,8 +23,9 @@ import {
   VALID_WALLET_CONNECTION_PAYLOAD,
 } from "@/types/wallet.fixtures";
 
-// Stellar is the only supported network now that the placeholder EVM chains
-// have been removed, so network-switching/persistence is exercised against it.
+// Stellar, Testnet and Futurenet are the supported networks. The placeholder
+// EVM chains have been removed, so network-switching/persistence is
+// exercised against Stellar-tier networks only.
 const STELLAR = SUPPORTED_NETWORKS.find((n) => n.id === "stellar")!;
 const STORAGE_KEY = "stellopay.wallet.network";
 
