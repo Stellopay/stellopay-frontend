@@ -148,16 +148,14 @@ describe("SettingsPageShell unsaved-changes navigation guard", () => {
 
   it("clears the dirty flag after a successful save, so a later navigation is unprompted", async () => {
     const user = userEvent.setup();
-    // The simulated save in AccountSection has a random failure chance;
-    // force the success branch deterministically (same pattern used in
-    // account-section.test.tsx).
-    vi.spyOn(Math, "random").mockReturnValue(0.1);
+    // No NEXT_PUBLIC_API_BASE_URL is configured under test, so the profile
+    // client takes its placeholder path and reports the change as staged.
     render(<SettingsPageShell />);
 
     const firstNameInput = screen.getByLabelText(/first name/i);
     fireEvent.change(firstNameInput, { target: { value: "Ada" } });
     fireEvent.click(
-      screen.getByRole("button", { name: /save account changes/i }),
+      screen.getByRole("button", { name: /^save changes$/i }),
     );
 
     await waitFor(

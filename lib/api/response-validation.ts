@@ -8,6 +8,7 @@ import type {
 } from "./transactions";
 import type { Transaction } from "@/types/transaction";
 import type { NotificationItem } from "@/types/notification-item";
+import type { ProfileData } from "@/types/profile";
 
 /** A recoverable error: callers may show an error state and safely retry. */
 export class ApiResponseValidationError extends Error {
@@ -53,6 +54,20 @@ const accountSummarySchema = z.object({
   paidThisMonthCount: z.number().int().nonnegative(), toBePaid: nonEmptyString,
   toBePaidCount: z.number().int().nonnegative(), walletAddress: nonEmptyString,
 });
+// Profile strings are deliberately plain `z.string()` rather than
+// `nonEmptyString`: a half-completed profile is a legitimate server state and
+// the form must render it rather than reject the whole response. What is
+// validated is the *shape* — every field must be present and be a string.
+const profileSchema = z.object({
+  firstName: z.string(),
+  lastName: z.string(),
+  displayName: z.string(),
+  email: z.string(),
+  timezone: z.string(),
+  currency: z.string(),
+  legalEntity: z.string(),
+  billingCountry: z.string(),
+});
 const notificationSchema = z.object({
   id: nonEmptyString, title: nonEmptyString, message: nonEmptyString, read: z.boolean(),
   timestamp: isoDateTime.optional(), category: z.string().optional(), readAt: isoDateTime.optional(),
@@ -70,6 +85,7 @@ export const parseCursorPaginatedTransactions = (input: unknown): CursorPaginate
 export const parseAccountSummary = (input: unknown): AccountSummary => parse(accountSummarySchema, input, "account summary");
 export const parseNotifications = (input: unknown): NotificationItem[] => parse(z.array(notificationSchema), input, "notifications");
 export const parseNotification = (input: unknown): NotificationItem => parse(notificationSchema, input, "notification");
+export const parseProfile = (input: unknown): ProfileData => parse(profileSchema, input, "profile");
 
 const streamEnvelopeSchema = z.object({ type: z.enum(["transaction", "account-summary", "notification"]), payload: z.unknown() });
 export type ValidatedStreamPayload =
