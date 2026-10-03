@@ -6,21 +6,29 @@ import { Separator } from "@/components/ui/separator";
 import Image from "next/image";
 import { Loader2 } from "lucide-react";
 import { OAuthCallbackError, simulateOAuth } from "@/lib/api/auth";
-
-type Provider = "google" | "apple";
+import {
+  getConfiguredOAuthProviders,
+  type OAuthProvider,
+} from "@/lib/api/oauthProviders";
 
 export function AuthSocialButtons() {
-  const [loadingProvider, setLoadingProvider] = useState<Provider | null>(null);
-  const [errorState, setErrorState] = useState<{ 
-    message: string; 
-    code: string; 
-    retry: () => void; 
-    useEmailInstead: () => void; 
+  const [loadingProvider, setLoadingProvider] = useState<OAuthProvider | null>(
+    null,
+  );
+  const [errorState, setErrorState] = useState<{
+    message: string;
+    code: string;
+    retry: () => void;
+    useEmailInstead: () => void;
   } | null>(null);
+
+  // Only present providers that have credentials configured. When none are
+  // configured the component renders nothing so users never see a dead button.
+  const configuredProviders = getConfiguredOAuthProviders();
 
   const isLoading = loadingProvider !== null;
 
-  const handleLogin = async (provider: Provider) => {
+  const handleLogin = async (provider: OAuthProvider) => {
     // Guard: ignore clicks while any provider flow is already in-flight.
     if (isLoading) return;
 
@@ -28,13 +36,7 @@ export function AuthSocialButtons() {
     setErrorState(null); // Clear any existing error state
 
     try {
-      if (provider === "google") {
-        // TODO: integrate Google authentication.
-        await simulateOAuth(provider);
-      } else if (provider === "apple") {
-        // TODO: integrate Apple authentication.
-        await simulateOAuth(provider);
-      }
+      await simulateOAuth(provider);
     } catch (error) {
       if (error instanceof OAuthCallbackError) {
         const errorMessage = error.message;
@@ -60,6 +62,11 @@ export function AuthSocialButtons() {
       setLoadingProvider(null);
     }
   };
+
+  // No providers configured → render nothing (not even the divider).
+  if (configuredProviders.length === 0) {
+    return null;
+  }
 
   return (
     <>
@@ -103,44 +110,48 @@ export function AuthSocialButtons() {
           </div>
         ) : (
           <div className="flex md:flex-row flex-col justify-center items-center gap-3">
-            <Button
-              variant={"outline"}
-              onClick={() => handleLogin("google")}
-              disabled={isLoading}
-              aria-busy={loadingProvider === "google"}
-              className="border-muted-foreground cursor-pointer w-full md:w-auto"
-            >
-              {loadingProvider === "google" ? (
-                <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
-              ) : (
-                <Image
-                  src={"/google-logo.svg"}
-                  alt="Google logo"
-                  width={20}
-                  height={20}
-                />
-              )}
-              <span className="whitespace-nowrap">Continue With Google</span>
-            </Button>
-            <Button
-              variant={"outline"}
-              onClick={() => handleLogin("apple")}
-              disabled={isLoading}
-              aria-busy={loadingProvider === "apple"}
-              className="border-muted-foreground cursor-pointer w-full md:w-auto"
-            >
-              {loadingProvider === "apple" ? (
-                <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
-              ) : (
-                <Image
-                  src={"/apple-logo.svg"}
-                  alt="Apple logo"
-                  width={20}
-                  height={20}
-                />
-              )}
-              <span className="whitespace-nowrap">Continue With Apple</span>
-            </Button>
+            {configuredProviders.includes("google") && (
+              <Button
+                variant={"outline"}
+                onClick={() => handleLogin("google")}
+                disabled={isLoading}
+                aria-busy={loadingProvider === "google"}
+                className="border-muted-foreground cursor-pointer w-full md:w-auto"
+              >
+                {loadingProvider === "google" ? (
+                  <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
+                ) : (
+                  <Image
+                    src={"/google-logo.svg"}
+                    alt="Google logo"
+                    width={20}
+                    height={20}
+                  />
+                )}
+                <span className="whitespace-nowrap">Continue With Google</span>
+              </Button>
+            )}
+            {configuredProviders.includes("apple") && (
+              <Button
+                variant={"outline"}
+                onClick={() => handleLogin("apple")}
+                disabled={isLoading}
+                aria-busy={loadingProvider === "apple"}
+                className="border-muted-foreground cursor-pointer w-full md:w-auto"
+              >
+                {loadingProvider === "apple" ? (
+                  <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
+                ) : (
+                  <Image
+                    src={"/apple-logo.svg"}
+                    alt="Apple logo"
+                    width={20}
+                    height={20}
+                  />
+                )}
+                <span className="whitespace-nowrap">Continue With Apple</span>
+              </Button>
+            )}
           </div>
         )}
       </div>
