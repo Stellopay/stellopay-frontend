@@ -6,15 +6,7 @@ name: E2E & Accessibility
 # and seeded-data flows) runs nightly so a flaky or backend-dependent spec
 # cannot stall merges but is still watched.
 on:
-  pull_request:
-    branches: [main]
-  push:
-    branches: [main]
-  schedule:
-    # Nightly at 03:17 UTC — spreads load and avoids the top-of-hour rush.
-    - cron: "17 3 * * *"
   workflow_dispatch:
-
 permissions:
   contents: read
 
