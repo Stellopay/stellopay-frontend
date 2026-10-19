@@ -10,6 +10,15 @@ import { cn } from "@/utils/commonUtils";
  * (typically buttons or a form) in a consistent layout. Used by both
  * `GetStartedCTA` and `HelpCTASection` to avoid duplicated markup.
  *
+ * Input validation
+ * ----------------
+ * `heading` and `subtext` are validated at render entry, before any markup or
+ * child component is produced. Malformed, empty and oversized values are
+ * rejected with a typed `LandingCtaInputError` carrying a stable `field` and
+ * `code`, so callers can tell exactly why the input was rejected. Nothing is
+ * rendered — and no child (and therefore no child state) is mounted — when
+ * validation fails.
+ *
  * Accessibility
  * -------------
  * - Accepts an `aria-labelledby` value for section labelling.
@@ -30,6 +39,104 @@ export interface LandingCtaProps {
   className?: string;
 }
 
+/** Maximum characters accepted for the card heading. */
+export const MAX_HEADING_LENGTH = 120;
+
+/** Maximum characters accepted for the card subtext. */
+export const MAX_SUBTEXT_LENGTH = 500;
+
+/** The `LandingCta` props that carry user-visible copy. */
+export type LandingCtaField = "heading" | "subtext";
+
+/**
+ * Why an input was rejected.
+ *
+ * - `MALFORMED` — the value is not a string at runtime (e.g. `null`,
+ *   `undefined`, a number, or an object reaching the prop through an
+ *   untyped caller).
+ * - `EMPTY` — the value contains no non-whitespace characters.
+ * - `OVERSIZED` — the value exceeds the field's character limit.
+ */
+export type LandingCtaInputErrorCode = "MALFORMED" | "EMPTY" | "OVERSIZED";
+
+/**
+ * Typed rejection for invalid `LandingCta` copy.
+ *
+ * Carries structured `field` and `code` properties so a caller (or a test)
+ * can distinguish the failure reason without parsing the message.
+ */
+export class LandingCtaInputError extends Error {
+  /** Which prop was rejected. */
+  readonly field: LandingCtaField;
+  /** Why the prop was rejected. */
+  readonly code: LandingCtaInputErrorCode;
+
+  constructor(
+    field: LandingCtaField,
+    code: LandingCtaInputErrorCode,
+    message: string,
+  ) {
+    super(message);
+    this.name = "LandingCtaInputError";
+    this.field = field;
+    this.code = code;
+  }
+}
+
+function describeRuntimeType(value: unknown): string {
+  if (value === null) return "null";
+  if (Array.isArray(value)) return "array";
+  return typeof value;
+}
+
+function assertLandingCtaText(
+  field: LandingCtaField,
+  value: unknown,
+  maxLength: number,
+): void {
+  if (typeof value !== "string") {
+    throw new LandingCtaInputError(
+      field,
+      "MALFORMED",
+      `landing-cta: \`${field}\` must be a string, received ${describeRuntimeType(value)}`,
+    );
+  }
+
+  // Whitespace-only copy is treated as empty, so an oversized run of spaces
+  // reports EMPTY rather than OVERSIZED — the caller sees the useful reason.
+  if (value.trim().length === 0) {
+    throw new LandingCtaInputError(
+      field,
+      "EMPTY",
+      `landing-cta: \`${field}\` must contain at least one non-whitespace character`,
+    );
+  }
+
+  if (value.length > maxLength) {
+    throw new LandingCtaInputError(
+      field,
+      "OVERSIZED",
+      `landing-cta: \`${field}\` exceeds ${maxLength} characters (received ${value.length})`,
+    );
+  }
+}
+
+/**
+ * Validates the copy props of `LandingCta`.
+ *
+ * Throws `LandingCtaInputError` on the first invalid field (checked in
+ * `heading`, `subtext` order) and returns normally for valid input.
+ *
+ * @throws {LandingCtaInputError} when a field is malformed, empty, or oversized.
+ */
+export function validateLandingCtaInput(
+  heading: unknown,
+  subtext: unknown,
+): void {
+  assertLandingCtaText("heading", heading, MAX_HEADING_LENGTH);
+  assertLandingCtaText("subtext", subtext, MAX_SUBTEXT_LENGTH);
+}
+
 export function LandingCta({
   heading,
   subtext,
@@ -37,6 +144,10 @@ export function LandingCta({
   ariaLabelledby,
   className,
 }: LandingCtaProps) {
+  // Reject invalid copy before anything is rendered: no markup is produced,
+  // no child component mounts, and therefore no state is written.
+  validateLandingCtaInput(heading, subtext);
+
   return (
     <section
       className={cn(
