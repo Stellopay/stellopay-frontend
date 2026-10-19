@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
+import { getReceiptValidationError } from "./receipt-validation";
 import {
   generateTransactionReceiptPdf,
   type ReceiptTransaction,
@@ -12,10 +13,12 @@ export function DownloadReceiptButton({
 }: {
   transaction: ReceiptTransaction;
 }) {
+  const validationError = getReceiptValidationError(transaction);
   const [isGenerating, setIsGenerating] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const handleDownload = async () => {
+    if (validationError) return;
     setError(null);
     setIsGenerating(true);
     try {
@@ -31,17 +34,21 @@ export function DownloadReceiptButton({
     <div className="inline-flex flex-col items-start">
       <Button
         onClick={handleDownload}
-        disabled={isGenerating}
+        disabled={isGenerating || Boolean(validationError)}
         variant="ghost"
         size="sm"
-        aria-label={`Download PDF receipt for transaction ${transaction.hash}`}
+        aria-label={
+          validationError
+            ? "Download PDF receipt"
+            : `Download PDF receipt for transaction ${transaction.hash}`
+        }
         className="focus-visible:ring-2 focus-visible:ring-offset-2"
       >
         {isGenerating ? "Generating…" : "Download receipt"}
       </Button>
-      {error && (
+      {(validationError || error) && (
         <span role="alert" className="text-xs text-destructive mt-1">
-          {error}
+          {validationError?.message ?? error}
         </span>
       )}
     </div>
