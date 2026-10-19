@@ -11,6 +11,231 @@ export interface CoachMarkStep {
   position: "top" | "bottom" | "left" | "right";
 }
 
+export type CoachMarkValidationErrorCode =
+  | "EMPTY_STEPS"
+  | "TOO_MANY_STEPS"
+  | "INVALID_STEP"
+  | "EMPTY_TARGET_SELECTOR"
+  | "INVALID_TARGET_SELECTOR"
+  | "OVERSIZED_TARGET_SELECTOR"
+  | "EMPTY_TITLE"
+  | "OVERSIZED_TITLE"
+  | "EMPTY_DESCRIPTION"
+  | "OVERSIZED_DESCRIPTION"
+  | "INVALID_POSITION"
+  | "INVALID_CURRENT_STEP"
+  | "INVALID_CALLBACK";
+
+export class CoachMarkValidationError extends Error {
+  readonly code: CoachMarkValidationErrorCode;
+  readonly field?: string;
+  readonly stepIndex?: number;
+
+  constructor(
+    code: CoachMarkValidationErrorCode,
+    message: string,
+    options?: { field?: string; stepIndex?: number },
+  ) {
+    super(message);
+    this.name = "CoachMarkValidationError";
+    this.code = code;
+    this.field = options?.field;
+    this.stepIndex = options?.stepIndex;
+    // Maintain proper prototype chain when transpiled to ES2.
+    Object.setPrototypeOf(this, CoachMarkValidationError.prototype);
+  }
+}
+
+export const MAX_STEPS = 100;
+export const MAX_TARGET_SELECTOR_LENGTH = 512;
+export const MAX_TITLE_LENGTH = 200;
+export const MAX_DESCRIPTION_LENGTH = 2000;
+
+const VALID_POSITIONS: ReadonlySet<CoachMarkStep["position"]> = new Set([
+  "top",
+  "bottom",
+  "left",
+  "right",
+]);
+
+function isPlainObject(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function validateStep(step: unknown, index: number): void {
+  if (!isPlainObject(step)) {
+    throw new CoachMarkValidationError(
+      "INVALID_STEP",
+      `Step at index ${index} must be an object`,
+      { stepIndex: index },
+    );
+  }
+
+  const { targetSelector, title, description, position } = step as {
+    targetSelector?: unknown;
+    title?: unknown;
+    description?: unknown;
+    position?: unknown;
+  };
+
+  if (typeof targetSelector !== "string") {
+    throw new CoachMarkValidationError(
+      "INVALID_TARGET_SELECTOR",
+      `Step at index ${index} has a non-string targetSelector`,
+      { field: "targetSelector", stepIndex: index },
+    );
+  }
+  if (targetSelector.trim().length === 0) {
+    throw new CoachMarkValidationError(
+      "EMPTY_TARGET_SELECTOR",
+      `Step at index ${index} has an empty targetSelector`,
+      { field: "targetSelector", stepIndex: index },
+    );
+  }
+  if (targetSelector.length > MAX_TARGET_SELECTOR_LENGTH) {
+    throw new CoachMarkValidationError(
+      "OVERSIZED_TARGET_SELECTOR",
+      `Step at index ${index} has a targetSelector exceeding ${MAX_TARGET_SELECTOR_LENGTH} characters`,
+      { field: "targetSelector", stepIndex: index },
+    );
+  }
+
+  if (typeof title !== "string") {
+    throw new CoachMarkValidationError(
+      "INVALID_STEP",
+      `Step at index ${index} has a non-string title`,
+      { field: "title", stepIndex: index },
+    );
+  }
+  if (title.trim().length === 0) {
+    throw new CoachMarkValidationError(
+      "EMPTY_TITLE",
+      `Step at index ${index} has an empty title`,
+      { field: "title", stepIndex: index },
+    );
+  }
+  if (title.length > MAX_TITLE_LENGTH) {
+    throw new CoachMarkValidationError(
+      "OVERSIZED_TITLE",
+      `Step at index ${index} has a title exceeding ${MAX_TITLE_LENGTH} characters`,
+      { field: "title", stepIndex: index },
+    );
+  }
+
+  if (typeof description !== "string") {
+    throw new CoachMarkValidationError(
+      "INVALID_STEP",
+      `Step at index ${index} has a non-string description`,
+      { field: "description", stepIndex: index },
+    );
+  }
+  if (description.trim().length === 0) {
+    throw new CoachMarkValidationError(
+      "EMPTY_DESCRIPTION",
+      `Step at index ${index} has an empty description`,
+      { field: "description", stepIndex: index },
+    );
+  }
+  if (description.length > MAX_DESCRIPTION_LENGTH) {
+    throw new CoachMarkValidationError(
+      "OVERSIZED_DESCRIPTION",
+      `Step at index ${index} has a description exceeding ${MAX_DESCRIPTION_LENGTH} characters`,
+      { field: "description", stepIndex: index },
+    );
+  }
+
+  if (
+    typeof position !== "string" ||
+    !VALID_POSITIONS.has(position as CoachMarkStep["position"])
+  ) {
+    throw new CoachMarkValidationError(
+      "INVALID_POSITION",
+      `Step at index ${index} has an invalid position (expected top|bottom|left|right)`,
+      { field: "position", stepIndex: index },
+    );
+  }
+}
+
+/**
+ * Validates the inputs to CoachMarkOverlay. Throws a typed CoachMarkValidationError
+ * on the first problem found. This is pure (no side effects) so it can be called
+ * before any state is written.
+ */
+export function validateCoachMarkInputs({
+  steps,
+  currentStep,
+  onNext,
+  onPrev,
+  onDismiss,
+}: {
+  steps: unknown;
+  currentStep: unknown;
+  onNext: unknown;
+  onPrev: unknown;
+  onDismiss: unknown;
+}): void {
+  if (!Array.isArray(steps)) {
+    throw new CoachMarkValidationError(
+      "EMPTY_STEPS",
+      "steps must be an array of coach-mark steps",
+      { field: "steps" },
+    );
+  }
+  if (steps.length === 0) {
+    throw new CoachMarkValidationError(
+      "EMPTY_STEPS",
+      "steps must contain at least one step",
+      { field: "steps" },
+    );
+  }
+  if (steps.length > MAX_STEPS) {
+    throw new CoachMarkValidationError(
+      "TOO_MANY_STEPS",
+      `steps must contain at most ${MAX_STEPS} steps (received ${steps.length})`,
+      { field: "steps" },
+    );
+  }
+
+  for (let i = 0; i < steps.length; i++) {
+    validateStep(steps[i], i);
+  }
+
+  if (
+    typeof currentStep !== "number" ||
+    !Number.isInteger(currentStep) ||
+    currentStep < 0 ||
+    currentStep >= steps.length
+  ) {
+    throw new CoachMarkValidationError(
+      "INVALID_CURRENT_STEP",
+      `currentStep must be an integer between 0 and ${steps.length - 1}`,
+      { field: "currentStep" },
+    );
+  }
+
+  if (typeof onNext !== "function") {
+    throw new CoachMarkValidationError(
+      "INVALID_CALLBACK",
+      "onNext must be a function",
+      { field: "onNext" },
+    );
+  }
+  if (typeof onPrev !== "function") {
+    throw new CoachMarkValidationError(
+      "INVALID_CALLBACK",
+      "onPrev must be a function",
+      { field: "onPrev" },
+    );
+  }
+  if (typeof onDismiss !== "function") {
+    throw new CoachMarkValidationError(
+      "INVALID_CALLBACK",
+      "onDismiss must be a function",
+      { field: "onDismiss" },
+    );
+  }
+}
+
 interface CoachMarkOverlayProps {
   steps: CoachMarkStep[];
   currentStep: number;
@@ -18,6 +243,7 @@ interface CoachMarkOverlayProps {
   onPrev: () => void;
   onDismiss: () => void;
   "aria-label"?: string;
+  onValidationError?: (error: CoachMarkValidationError) => void;
 }
 
 /**
@@ -30,6 +256,9 @@ interface CoachMarkOverlayProps {
  * - Fully keyboard-dismissible (Escape, Tab through buttons)
  * - Persists dismissal state via safeStorage (handled by parent)
  * - WCAG 2.1 AA compliant (focus management, ARIA labels)
+ *
+ * Inputs are validated before any state is written. Invalid inputs are reported
+ * to the caller via `onValidationError` and the overlay renders nothing.
  *
  * @example
  * <CoachMarkOverlay
@@ -46,10 +275,24 @@ export default function CoachMarkOverlay({
   onNext,
   onPrev,
   onDismiss,
+  onValidationError,
   ...props
 }: CoachMarkOverlayProps) {
+  // Validate synchronously before any state is written. This runs on every render,
+  // but is pure and cheap relative to rendering the overlay.
+  let validationError: CoachMarkValidationError | null = null;
+  try {
+    validateCoachMarkInputs({ steps, currentStep, onNext, onPrev, onDismiss });
+  } catch (err) {
+    if (err instanceof CoachMarkValidationError) {
+      validationError = err;
+    } else {
+      throw err;
+    }
+  }
+
   const [targetRect, setTargetRect] = useState<DOMRect | null>(null);
-  const step = steps[currentStep];
+  const step = validationError ? undefined : steps[currentStep];
 
   const updateTargetRect = useCallback(() => {
     if (!step) return;
@@ -70,8 +313,16 @@ export default function CoachMarkOverlay({
     };
   }, [updateTargetRect]);
 
+  // Report validation failures to the caller without writing state.
+  useEffect(() => {
+    if (validationError && onValidationError) {
+      onValidationError(validationError);
+    }
+  }, [validationError, onValidationError]);
+
   // Handle keyboard dismissal
   useEffect(() => {
+    if (validationError) return;
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === "Escape") {
         onDismiss();
@@ -79,9 +330,9 @@ export default function CoachMarkOverlay({
     };
     document.addEventListener("keydown", handleKeyDown);
     return () => document.removeEventListener("keydown", handleKeyDown);
-  }, [onDismiss]);
+  }, [onDismiss, validationError]);
 
-  if (!step || !targetRect) return null;
+  if (validationError || !step || !targetRect) return null;
 
   const stepPosition = step.position;
   const tooltipOffset = 12; // gap between target and tooltip in px
