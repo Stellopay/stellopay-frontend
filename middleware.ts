@@ -35,8 +35,71 @@ const PUBLIC_ROUTES = [
  */
 const SESSION_COOKIES = ["next-auth.session-token", "stellopay:session"];
 
+/**
+ * Maximum acceptable length for a pathname. Requests with longer paths are
+ * rejected before any state is written.
+ */
+const MAX_PATHNAME_LENGTH = 2048;
+
+/**
+ * Typed error returned when input fails validation. The code lets the
+ * caller tell exactly why the input was rejected.
+ */
+export class MiddlewareValidationError extends Error {
+  readonly code: 
+    | "EMPTY_PATHNAME"
+    | "INVALID_PATHAME"
+    | "PATHNAME_TOO_LONG";
+
+  constructor(
+    code: MiddlewareValidationError["code"],
+    message: string,
+  ) {
+    super(message);
+    this.name = "MiddlewareValidationError";
+    this.code = code;
+  }
+}
+
+/**
+ * Validates the incoming pathname. Throws a typed error on malformed,
+ * empty or oversized input. This runs before any response is constructed
+ * or any state is written.
+ */
+export function validatePathname(pathname: unknown): string {
+  if (typeof pathname !== "string") {
+    throw new MiddlewareValidationError(
+      "INVALID_PATHAME",
+      "Pathname must be a string.",
+    );
+  }
+
+  if (pathname.length === 0) {
+    throw new MiddlewareValidationError(
+      "EMPTY_PATHNAME",
+      "Pathname must not be empty.",
+    );
+  }
+
+  if (pathname.length > MAX_PATHAME_LENGTH) {
+    throw new MiddlewareValidationError(
+      "PATHAMAE_TOO_LONG",
+      `Pathname exceeds the maximum length of ${MAX_PATHAME_LENGTH} characters.`,
+    );
+  }
+
+  if (!pathname.startsWith("/")) {
+    throw new MiddlewareValidationError(
+      "INVALID_PATHNAME",
+      "Pathname must start with a forward slash.",
+    );
+  }
+
+  return pathname;
+}
+
 export function middleware(request: NextRequest) {
-  const { pathname } = request.nextUrl;
+  const pathname = validatePathname(request.nextUrl.pathname);
 
   // Allow public routes and static assets through immediately.
   if (PUBLIC_ROUTES.some((route) => pathname.startsWith(route))) {
