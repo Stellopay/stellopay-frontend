@@ -11,6 +11,7 @@ import {
   CardFooter,
   CardAction,
 } from "./card";
+import { FeatureCard } from "../landing/feature-card";
 
 describe("Card", () => {
   it("renders children", () => {
@@ -77,5 +78,39 @@ describe("Card sub-components", () => {
   it("renders CardAction", () => {
     render(<CardAction>Action</CardAction>);
     expect(screen.getByText("Action")).toBeInTheDocument();
+  });
+});
+
+describe("FeatureCard", () => {
+  it("renders title and description", () => {
+    render(
+      <FeatureCard
+        title="Fast"
+        description="Ships quickly"
+        icon={<span data-testid="icon" />}
+      />,
+    );
+    expect(screen.getByText("Fast")).toBeInTheDocument();
+    expect(screen.getByText("Ships quickly")).toBeInTheDocument();
+    expect(screen.getByTestId("icon")).toBeInTheDocument();
+  });
+
+  it("renders with empty title and description", () => {
+    const { container } = render(
+      <FeatureCard title="" description="" icon={null} />,
+    );
+    expect(container.firstChild).toBeInTheDocument();
+  });
+
+  it("applies extra className", () => {
+    const { container } = render(
+      <FeatureCard
+        title="T"
+        description="D"
+        icon={null}
+        className="custom-class"
+      />,
+    );
+    expect(container.firstChild).toHaveClass("custom-class");
   });
 });
