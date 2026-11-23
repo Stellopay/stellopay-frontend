@@ -114,16 +114,20 @@ export default function TaxDocumentsSection({
                     {statement.generatedAt}
                   </TableCell>
                   <TableCell className="text-right">
-                    <Button asChild size="sm" variant="outline">
-                      <a
-                        href={statement.downloadUrl}
-                        download={`${statement.id}.txt`}
-                        aria-label={`Download ${statement.period} ${statement.type}`}
-                      >
-                        <Download className="h-4 w-4" aria-hidden="true" />
-                        Download
-                      </a>
-                    </Button>
+                    {statement.status === "Ready" ? (
+                      <Button asChild size="sm" variant="outline">
+                        <a
+                          href={statement.downloadUrl}
+                          download={`${statement.id}.txt`}
+                          aria-label={`Download ${statement.period} ${statement.type}`}
+                        >
+                          <Download className="h-4 w-4" aria-hidden="true" />
+                          Download
+                        </a>
+                      </Button>
+                    ) : (
+                      <span>Processing</span>
+                    )}
                   </TableCell>
                 </TableRow>
               ))}
