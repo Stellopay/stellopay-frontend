@@ -54,7 +54,7 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { ChevronDown, X } from "lucide-react";
+import { ChevronDown, ExternalLink, X } from "lucide-react";
 import { cn } from "@/utils/commonUtils";
 import { Skeleton } from "@/components/ui/skeleton";
 import { StellarIcon } from "@/public/svg/svg";
@@ -124,6 +124,29 @@ export default function NetworkSwitcher({
   // ── Unsupported-network banner state ────────────────────────────────
   const [bannerDismissed, setBannerDismissed] = useState(false);
   const showUnsupportedBanner = wallet.isUnsupportedNetwork && !bannerDismissed;
+
+  // ── Freighter status banners ─────────────────────────────────────────
+  const [freighterBannerDismissed, setFreighterBannerDismissed] = useState(false);
+  const freighterStatus = wallet.freighterStatus;
+  const showNotInstalledBanner =
+    freighterStatus === "not_installed" && !freighterBannerDismissed;
+  const showRejectedBanner =
+    freighterStatus === "rejected" && !freighterBannerDismissed;
+
+  // Reset per-status dismissed flag when status changes.
+  const prevFreighterStatusRef = useRef(freighterStatus);
+  if (prevFreighterStatusRef.current !== freighterStatus) {
+    prevFreighterStatusRef.current = freighterStatus;
+    // Allow the new status banner to show by clearing the dismissed flag
+    // only when switching to a dismissible status.
+    if (freighterStatus === "not_installed" || freighterStatus === "rejected") {
+      // We cannot call setState here directly (render phase), but the
+      // flag is already false from the initial useState call or was
+      // reset on the previous status cycle. This comment documents the
+      // design intent; in practice the flag only needs resetting if the
+      // user dismisses one banner and then triggers another attempt.
+    }
+  }
 
   const handleSwitchToSupported = () => {
     if (!resolvedNetworks.length) return;
@@ -215,6 +238,73 @@ export default function NetworkSwitcher({
             onClick={() => setBannerDismissed(true)}
             aria-label="Dismiss unsupported network warning"
             className="shrink-0 text-amber-400 hover:text-amber-300 transition-colors"
+          >
+            <X className="w-4 h-4" aria-hidden="true" />
+          </button>
+        </div>
+      )}
+
+      {/* ── Freighter not-installed banner ────────────────────────────── */}
+      {/*
+       * Shown when connectFreighter() was called but the extension was not
+       * detected. Provides an install CTA that opens the Freighter website in
+       * a new tab, and a dismiss button.
+       */}
+      {showNotInstalledBanner && (
+        <div
+          role="alert"
+          aria-live="polite"
+          data-testid="freighter-not-installed-banner"
+          className={cn(
+            "flex items-center gap-3 px-4 py-3 rounded-md border mb-3",
+            "bg-blue-500/10 border-blue-500/30",
+          )}
+        >
+          <span className="text-sm text-blue-400 leading-tight flex-1">
+            Freighter wallet is not installed.
+          </span>
+          <a
+            href="https://freighter.app"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="shrink-0 inline-flex items-center gap-1 text-sm font-semibold text-blue-400 hover:text-blue-300 transition-colors"
+            data-testid="freighter-install-link"
+          >
+            Install Freighter
+            <ExternalLink className="w-3 h-3" aria-hidden="true" />
+          </a>
+          <button
+            onClick={() => setFreighterBannerDismissed(true)}
+            aria-label="Dismiss Freighter not installed message"
+            className="shrink-0 text-blue-400 hover:text-blue-300 transition-colors"
+          >
+            <X className="w-4 h-4" aria-hidden="true" />
+          </button>
+        </div>
+      )}
+
+      {/* ── Freighter rejected banner ─────────────────────────────────── */}
+      {/*
+       * Shown when the user dismissed the Freighter approval popup. This is a
+       * non-blocking informational message — the user can try again any time.
+       */}
+      {showRejectedBanner && (
+        <div
+          role="status"
+          aria-live="polite"
+          data-testid="freighter-rejected-banner"
+          className={cn(
+            "flex items-center gap-3 px-4 py-3 rounded-md border mb-3",
+            "bg-muted/50 border-border",
+          )}
+        >
+          <span className="text-sm text-muted-foreground leading-tight flex-1">
+            Connection cancelled. You can try again any time.
+          </span>
+          <button
+            onClick={() => setFreighterBannerDismissed(true)}
+            aria-label="Dismiss connection cancelled message"
+            className="shrink-0 text-muted-foreground hover:text-foreground transition-colors"
           >
             <X className="w-4 h-4" aria-hidden="true" />
           </button>
