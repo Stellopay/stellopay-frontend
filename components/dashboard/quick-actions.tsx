@@ -84,7 +84,7 @@ const defaultActions: QuickActionItem[] = [
     icon: FileText,
     title: messages.dashboard.quickActions.actions.createInvoice.title,
     subtitle: messages.dashboard.quickActions.actions.createInvoice.subtitle,
-    disabled: true,
+    href: "/invoices/new",
     shortcut: "i",
     borderColor: "border-[#E5E5E5] dark:border-[#2E2E2E]",
     bgColor: "bg-[#F5F5F5] dark:bg-[#1A1A1A]",
@@ -131,7 +131,11 @@ const cardInteractive =
  * or contenteditable container where keyboard shortcuts should be suppressed.
  */
 function isInputTarget(element: EventTarget | Element | null): boolean {
-  if (!element || !("tagName" in element) || typeof (element as Element).tagName !== "string") {
+  if (
+    !element ||
+    !("tagName" in element) ||
+    typeof (element as Element).tagName !== "string"
+  ) {
     return false;
   }
   const el = element as HTMLElement;
@@ -178,11 +182,11 @@ export function QuickActions({
       const currentIndex = currentActive >= 0 ? currentActive : activeIndex;
 
       let nextIndex = currentIndex;
-      const cols =
-        gridRef.current
-          ? window.getComputedStyle(gridRef.current).gridTemplateColumns.split(" ")
-              .length
-          : 1;
+      const cols = gridRef.current
+        ? window
+            .getComputedStyle(gridRef.current)
+            .gridTemplateColumns.split(" ").length
+        : 1;
 
       switch (e.key) {
         case "ArrowRight":
@@ -196,8 +200,7 @@ export function QuickActions({
             nextIndex = currentIndex + cols;
           break;
         case "ArrowUp":
-          if (currentIndex - cols >= 0)
-            nextIndex = currentIndex - cols;
+          if (currentIndex - cols >= 0) nextIndex = currentIndex - cols;
           break;
         case "Home":
           nextIndex = 0;
