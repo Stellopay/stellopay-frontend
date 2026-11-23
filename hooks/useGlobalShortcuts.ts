@@ -71,7 +71,7 @@ const CHORD_TIMEOUT_MS = 1000;
  * Checks if the current active element is a text input
  * Returns true if focus is on an input that shouldn't trigger shortcuts
  */
-function isTextInputFocused(): boolean {
+export function isTextInputFocused(): boolean {
   const activeElement = document.activeElement as HTMLElement;
 
   // Null or body element means nothing is focused

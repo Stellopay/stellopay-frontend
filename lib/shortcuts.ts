@@ -45,6 +45,10 @@ export const SHORTCUT_GROUPS: ShortcutGroup[] = [
         description: "Show / hide this keyboard shortcut reference",
       },
       {
+        keys: ["Ctrl", "K"],
+        description: "Open the command palette (Cmd on Mac)",
+      },
+      {
         keys: ["Esc"],
         description: "Close the current modal or dismiss a popover",
       },
