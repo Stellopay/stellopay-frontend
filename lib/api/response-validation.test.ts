@@ -49,4 +49,22 @@ describe("API response validation", () => {
       type: "notification", payload: notification,
     });
   });
+
+  it("validates optional transaction detail fields", () => {
+    const details = {
+      ...transaction,
+      counterparty: "GDESTINATION",
+      fee: "0.01 XLM",
+      hash: "stellar-hash",
+      tags: ["Payroll"],
+    };
+
+    expect(parsePaginatedTransactions({
+      data: [details], total: 1, page: 1, pageSize: 1, totalPages: 1,
+    }).data[0]).toMatchObject(details);
+    expect(() => parsePaginatedTransactions({
+      data: [{ ...details, tags: [42] }],
+      total: 1, page: 1, pageSize: 1, totalPages: 1,
+    })).toThrow(ApiResponseValidationError);
+  });
 });
