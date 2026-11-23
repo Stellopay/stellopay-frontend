@@ -13,8 +13,9 @@ import SettingsPageShell from "./settings-page-shell";
 
 // next/navigation is only available inside the Next.js runtime; stub the two
 // hooks the shell calls so it can render under jsdom.
+const { routerReplace } = vi.hoisted(() => ({ routerReplace: vi.fn() }));
 vi.mock("next/navigation", () => ({
-  useRouter: () => ({ replace: vi.fn() }),
+  useRouter: () => ({ replace: routerReplace }),
   usePathname: () => "/settings/preferences",
 }));
 
@@ -194,5 +195,54 @@ describe("SettingsPageShell unsaved-changes navigation guard", () => {
     window.dispatchEvent(event);
 
     expect(event.defaultPrevented).toBe(false);
+  });
+});
+
+describe("SettingsPageShell section commit after discarding changes", () => {
+  afterEach(() => {
+    cleanup();
+    vi.restoreAllMocks();
+    routerReplace.mockClear();
+  });
+
+  it("discarding an unsaved edit commits the pending section and syncs the URL", async () => {
+    const user = userEvent.setup();
+    render(<SettingsPageShell />);
+
+    fireEvent.change(screen.getByLabelText(/first name/i), {
+      target: { value: "Ada" },
+    });
+
+    const confirmSpy = vi.spyOn(window, "confirm").mockReturnValue(true);
+    await user.click(screen.getByRole("tab", { name: /security/i }));
+
+    expect(confirmSpy).toHaveBeenCalled();
+    expect(screen.getByRole("tab", { name: /security/i })).toHaveAttribute(
+      "data-state",
+      "active",
+    );
+    // The query string is rewritten without a hash, so any stale #anchor is dropped.
+    expect(routerReplace).toHaveBeenCalledWith(
+      "/settings/preferences?section=security",
+      { scroll: false },
+    );
+  });
+
+  it("keeping the unsaved edit leaves the section and URL untouched", async () => {
+    const user = userEvent.setup();
+    render(<SettingsPageShell />);
+
+    fireEvent.change(screen.getByLabelText(/first name/i), {
+      target: { value: "Ada" },
+    });
+
+    vi.spyOn(window, "confirm").mockReturnValue(false);
+    await user.click(screen.getByRole("tab", { name: /security/i }));
+
+    expect(screen.getByRole("tab", { name: /account/i })).toHaveAttribute(
+      "data-state",
+      "active",
+    );
+    expect(routerReplace).not.toHaveBeenCalled();
   });
 });

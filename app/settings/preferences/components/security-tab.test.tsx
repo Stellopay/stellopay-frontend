@@ -1477,3 +1477,84 @@ describe("SecurityTab — API key revocation", () => {
     );
   });
 });
+
+describe("SecurityTab — copy to clipboard feedback", () => {
+  const originalClipboard = Object.getOwnPropertyDescriptor(
+    navigator,
+    "clipboard",
+  );
+
+  function mockClipboard(writeText: ReturnType<typeof vi.fn>) {
+    Object.defineProperty(navigator, "clipboard", {
+      value: { writeText },
+      configurable: true,
+    });
+  }
+
+  afterEach(() => {
+    if (originalClipboard) {
+      Object.defineProperty(navigator, "clipboard", originalClipboard);
+    } else {
+      delete (navigator as { clipboard?: unknown }).clipboard;
+    }
+    vi.restoreAllMocks();
+  });
+
+  async function revealNewApiSecret() {
+    render(<SecurityTab />);
+    fireEvent.change(screen.getByPlaceholderText("Production checkout service"), {
+      target: { value: "Copy test service" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: /create key/i }));
+    return screen.findByRole(
+      "button",
+      { name: "Copy raw API key for Copy test service" },
+      { timeout: 3000 },
+    );
+  }
+
+  it("copies a revealed API secret and shows the success state", async () => {
+    const writeText = vi.fn().mockResolvedValue(undefined);
+    mockClipboard(writeText);
+
+    const copyButton = await revealNewApiSecret();
+    fireEvent.click(copyButton);
+
+    await waitFor(() => expect(copyButton).toHaveTextContent("Copied"));
+    expect(writeText).toHaveBeenCalledTimes(1);
+    expect(writeText.mock.calls[0][0]).toMatch(/\S+/);
+  });
+
+  it("shows the failure state when every clipboard path fails", async () => {
+    mockClipboard(vi.fn().mockRejectedValue(new Error("denied")));
+    Object.defineProperty(document, "execCommand", {
+      value: () => false,
+      configurable: true,
+      writable: true,
+    });
+
+    const copyButton = await revealNewApiSecret();
+    fireEvent.click(copyButton);
+
+    await waitFor(() => expect(copyButton).toHaveTextContent("Failed"));
+  });
+
+  it("copies the authenticator secret key and announces success", async () => {
+    const writeText = vi.fn().mockResolvedValue(undefined);
+    mockClipboard(writeText);
+
+    render(<SecurityTab twoFactorEnabled={false} />);
+    fireEvent.click(
+      screen.getByRole("switch", { name: /authenticator app verification/i }),
+    );
+
+    fireEvent.click(
+      await screen.findByRole("button", { name: "Copy secret key" }),
+    );
+
+    expect(
+      await screen.findByRole("button", { name: "Secret key copied" }),
+    ).toBeInTheDocument();
+    expect(writeText).toHaveBeenCalledWith("JBSWY3DPEHPK3PXP");
+  });
+});
