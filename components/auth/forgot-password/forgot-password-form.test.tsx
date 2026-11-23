@@ -7,8 +7,8 @@ import { sendPasswordResetEmail, AuthError } from "@/lib/api/auth";
 vi.mock("@/lib/api/auth", () => ({
   sendPasswordResetEmail: vi.fn(),
   AuthError: class AuthError extends Error {
-    kind: string;
-    constructor(message: string, kind: string = "invalid_credentials") {
+    kind: "network" | "http" | "unknown";
+    constructor(message: string, kind: "network" | "http" | "unknown" = "unknown") {
       super(message);
       this.name = "AuthError";
       this.kind = kind;
