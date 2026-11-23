@@ -48,7 +48,7 @@ const MAX_PATHNAME_LENGTH = 2048;
 export class MiddlewareValidationError extends Error {
   readonly code: 
     | "EMPTY_PATHNAME"
-    | "INVALID_PATHAME"
+    | "INVALID_PATHNAME"
     | "PATHNAME_TOO_LONG";
 
   constructor(
@@ -69,7 +69,7 @@ export class MiddlewareValidationError extends Error {
 export function validatePathname(pathname: unknown): string {
   if (typeof pathname !== "string") {
     throw new MiddlewareValidationError(
-      "INVALID_PATHAME",
+      "INVALID_PATHNAME",
       "Pathname must be a string.",
     );
   }
@@ -81,10 +81,10 @@ export function validatePathname(pathname: unknown): string {
     );
   }
 
-  if (pathname.length > MAX_PATHAME_LENGTH) {
+  if (pathname.length > MAX_PATHNAME_LENGTH) {
     throw new MiddlewareValidationError(
-      "PATHAMAE_TOO_LONG",
-      `Pathname exceeds the maximum length of ${MAX_PATHAME_LENGTH} characters.`,
+      "PATHNAME_TOO_LONG",
+      `Pathname exceeds the maximum length of ${MAX_PATHNAME_LENGTH} characters.`,
     );
   }
 
