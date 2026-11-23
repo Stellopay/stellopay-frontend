@@ -160,6 +160,13 @@ export const SEARCHABLE_CONTROLS: SearchableControl[] = [
     section: "wallets",
     keywords: ["remove", "wallet", "danger", "destructive", "delete"],
   },
+
+  // Payment approvals section controls
+  {
+    label: "Approval threshold",
+    section: "approvals",
+    keywords: ["payment", "payroll", "approval", "asset", "minor units"],
+  },
 ];
 
 export interface SettingsSearchResult {
