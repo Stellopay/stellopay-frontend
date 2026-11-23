@@ -71,6 +71,10 @@ export const SHORTCUT_GROUPS: ShortcutGroup[] = [
         description: "Go to Analytics",
       },
       {
+        keys: ["g", "r"],
+        description: "Go to Reports",
+      },
+      {
         keys: ["g", "s"],
         description: "Go to Settings",
       },

@@ -104,7 +104,7 @@ const defaultActions: QuickActionItem[] = [
     icon: BarChart3,
     title: messages.dashboard.quickActions.actions.viewReports.title,
     subtitle: messages.dashboard.quickActions.actions.viewReports.subtitle,
-    href: "/analytics-view",
+    href: "/reports",
     shortcut: "r",
     borderColor: "border-[#E5E5E5] dark:border-[#2E2E2E]",
     bgColor: "bg-[#F5F5F5] dark:bg-[#1A1A1A]",

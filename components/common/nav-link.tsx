@@ -4,6 +4,7 @@ import {
   AccountSummaryIcon,
   DashBoardIcon,
   HelpCircleIcon,
+  ReportIcon,
   SettinIcon,
   TransactionIcon,
 } from "@/public/svg/svg";
@@ -211,6 +212,11 @@ export const NavLink = () => {
       link: "Transactions",
       icon: (color: string) => <TransactionIcon color={color} />,
       route: "/transactions",
+    },
+    {
+      link: "Reports",
+      icon: (color: string) => <ReportIcon color={color} />,
+      route: "/reports",
     },
     {
       link: "Help/Support",

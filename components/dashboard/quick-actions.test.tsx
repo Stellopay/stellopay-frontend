@@ -89,11 +89,11 @@ describe("QuickActions – default destinations", () => {
     expect(link).toHaveAttribute("href", "/transactions");
   });
 
-  it("routes View Reports to /analytics-view", () => {
+  it("routes View Reports to /reports", () => {
     renderDefault();
 
     const link = screen.getByRole("link", { name: "View Reports" });
-    expect(link).toHaveAttribute("href", "/analytics-view");
+    expect(link).toHaveAttribute("href", "/reports");
   });
 
   it("no two distinct active actions share the same href", () => {
@@ -418,7 +418,7 @@ describe("QuickActions – href link variant", () => {
         icon: BarChart3,
         title: "Go to Reports",
         subtitle: "See data",
-        href: "/analytics-view",
+        href: "/reports",
         borderColor: "border-zinc-200",
         bgColor: "bg-zinc-50",
         iconColor: "text-zinc-500",
@@ -428,7 +428,7 @@ describe("QuickActions – href link variant", () => {
     render(<QuickActions actions={customActions} />);
 
     const link = screen.getByRole("link", { name: "Go to Reports" });
-    expect(link).toHaveAttribute("href", "/analytics-view");
+    expect(link).toHaveAttribute("href", "/reports");
     expect(link).toHaveAttribute("aria-label", "Go to Reports");
   });
 
@@ -529,7 +529,7 @@ describe("QuickActions – keyboard shortcuts", () => {
     expect(mockPush).toHaveBeenCalledWith("/transactions");
 
     fireEvent.keyDown(window, { key: "r" });
-    expect(mockPush).toHaveBeenCalledWith("/analytics-view");
+    expect(mockPush).toHaveBeenCalledWith("/reports");
   });
 
   it("triggers onClick callback when key for custom onClick action is pressed", () => {
@@ -561,7 +561,7 @@ describe("QuickActions – keyboard shortcuts", () => {
     expect(mockPush).toHaveBeenCalledWith("/transactions");
 
     fireEvent.keyDown(window, { key: "R" });
-    expect(mockPush).toHaveBeenCalledWith("/analytics-view");
+    expect(mockPush).toHaveBeenCalledWith("/reports");
   });
 
   it("suppresses shortcuts when an input field has focus", () => {
