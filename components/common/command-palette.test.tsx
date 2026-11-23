@@ -97,6 +97,7 @@ describe("CommandPalette", () => {
   it("is accessible while open", async () => {
     const { container } = render(<CommandPalette open />);
     expect(container).toBeInTheDocument();
-    expect(await axe(document.body)).toHaveNoViolations();
+    const { violations } = await axe(document.body);
+    expect(violations).toEqual([]);
   });
 });

@@ -248,7 +248,12 @@ export function CommandPalette({
             </li>
           ))}
           {results.length === 0 && (
-            <li className="px-3 py-8 text-center text-sm text-zinc-500">
+            <li
+              role="option"
+              aria-selected="false"
+              aria-disabled="true"
+              className="px-3 py-8 text-center text-sm text-zinc-500"
+            >
               {normalizedQuery
                 ? "No matching commands."
                 : "No commands available."}
