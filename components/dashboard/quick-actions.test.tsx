@@ -82,11 +82,11 @@ describe("QuickActions – default destinations", () => {
     }
   });
 
-  it("routes Send Payment to /transactions", () => {
+  it("routes Send Payment to /payments/new", () => {
     renderDefault();
 
     const link = screen.getByRole("link", { name: "Send Payment" });
-    expect(link).toHaveAttribute("href", "/transactions");
+    expect(link).toHaveAttribute("href", "/payments/new");
   });
 
   it("routes View Reports to /analytics-view", () => {
@@ -526,7 +526,7 @@ describe("QuickActions – keyboard shortcuts", () => {
     renderDefault();
 
     fireEvent.keyDown(window, { key: "s" });
-    expect(mockPush).toHaveBeenCalledWith("/transactions");
+    expect(mockPush).toHaveBeenCalledWith("/payments/new");
 
     fireEvent.keyDown(window, { key: "r" });
     expect(mockPush).toHaveBeenCalledWith("/analytics-view");
@@ -558,7 +558,7 @@ describe("QuickActions – keyboard shortcuts", () => {
     renderDefault();
 
     fireEvent.keyDown(window, { key: "S" });
-    expect(mockPush).toHaveBeenCalledWith("/transactions");
+    expect(mockPush).toHaveBeenCalledWith("/payments/new");
 
     fireEvent.keyDown(window, { key: "R" });
     expect(mockPush).toHaveBeenCalledWith("/analytics-view");
