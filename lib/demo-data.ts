@@ -1,4 +1,5 @@
 import type { StatCardItem } from "@/types/landing";
+import type { PendingInvite, TeamMember } from "@/types/team";
 
 /**
  * @file demo-data.ts
@@ -84,3 +85,60 @@ export const ILLUSTRATIVE_STATS: StatCardItem[] = [
   { value: "99.9%", label: "Uptime" },
   { value: "<3s", label: "Transaction Speed" },
 ];
+
+/**
+ * Demo team members placeholder fixtures clearly flagged as illustrative data
+ * pending backend RBAC integration.
+ */
+export const DEMO_TEAM_MEMBERS: readonly TeamMember[] = [
+  {
+    id: "member-owner-1",
+    name: "Demo Owner (Placeholder)",
+    email: "owner.demo@example.com",
+    role: "Owner",
+    joinedAt: "2026-01-10",
+    isCurrentUser: true,
+  },
+  {
+    id: "member-admin-1",
+    name: "Demo Admin (Placeholder)",
+    email: "admin.demo@example.com",
+    role: "Admin",
+    joinedAt: "2026-02-14",
+  },
+  {
+    id: "member-finance-1",
+    name: "Demo Finance Lead (Placeholder)",
+    email: "finance.demo@example.com",
+    role: "Finance",
+    joinedAt: "2026-03-05",
+  },
+  {
+    id: "member-viewer-1",
+    name: "Demo Auditor (Placeholder)",
+    email: "viewer.demo@example.com",
+    role: "Viewer",
+    joinedAt: "2026-04-20",
+  },
+] as const;
+
+/**
+ * Demo pending team invitations placeholder fixtures clearly flagged as
+ * illustrative data pending email delivery integration.
+ */
+export const DEMO_PENDING_INVITES: readonly PendingInvite[] = [
+  {
+    id: "invite-pending-1",
+    email: "pending.payroll.demo@example.com",
+    role: "Finance",
+    invitedAt: "2026-06-18",
+    invitedBy: "owner.demo@example.com",
+  },
+  {
+    id: "invite-pending-2",
+    email: "pending.observer.demo@example.com",
+    role: "Viewer",
+    invitedAt: "2026-06-22",
+    invitedBy: "admin.demo@example.com",
+  },
+] as const;
