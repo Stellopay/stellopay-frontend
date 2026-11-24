@@ -8,6 +8,7 @@ import {
   SettinIcon,
   TransactionIcon,
 } from "@/public/svg/svg";
+import { Users } from "lucide-react";
 import { Bell } from "lucide-react";
 import { motion } from "framer-motion";
 import { ClipboardCheck } from "lucide-react";
@@ -243,6 +244,9 @@ export const NavLink = () => {
       route: "/transactions",
     },
     {
+      link: "Recipients",
+      icon: (color: string) => <Users className="h-5 w-5" style={{ color }} />,
+      route: "/recipients",
       link: "Notifications",
       icon: (color: string) => (
         <Bell color={color} size={20} strokeWidth={1.75} aria-hidden="true" />

@@ -1,3 +1,7 @@
+import { useUnsavedChangesGuard } from "./useUnsavedChangesGuard";
+
+export function useDirtyGuard(isDirty: boolean) {
+  return useUnsavedChangesGuard(isDirty);
 "use client";
 
 import { useEffect, useId } from "react";
