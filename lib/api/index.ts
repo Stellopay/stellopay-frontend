@@ -38,3 +38,19 @@ export {
   saveProfile,
 } from "./profile";
 export type { ProfileErrorCode, ProfileSaveResult } from "./profile";
+export {
+  createPayment,
+  DEFAULT_ACCOUNT_BALANCES,
+  DEFAULT_RECENT_RECIPIENTS,
+  getAccountBalances,
+  PaymentApiError,
+} from "./payments";
+export type {
+  AccountAssetBalance,
+  CreatePaymentInput,
+  CreatePaymentOptions,
+  CreatePaymentResult,
+  PaymentErrorCode,
+  RecentRecipient,
+} from "./payments";
+

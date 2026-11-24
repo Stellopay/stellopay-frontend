@@ -7,6 +7,7 @@ import {
   SettinIcon,
   TransactionIcon,
 } from "@/public/svg/svg";
+import { Bell } from "lucide-react";
 import { motion } from "framer-motion";
 import { ClipboardCheck } from "lucide-react";
 import { useReducedMotion } from "@/hooks/useReducedMotion";
@@ -213,6 +214,11 @@ export const NavLink = () => {
       route: "/transactions",
     },
     {
+      link: "Notifications",
+      icon: (color: string) => (
+        <Bell color={color} size={20} strokeWidth={1.75} aria-hidden="true" />
+      ),
+      route: "/notifications",
       link: "Approvals",
       icon: (color: string) => <ClipboardCheck color={color} size={20} />,
       route: "/approvals",

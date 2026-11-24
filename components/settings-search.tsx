@@ -161,6 +161,26 @@ export const SEARCHABLE_CONTROLS: SearchableControl[] = [
     keywords: ["remove", "wallet", "danger", "destructive", "delete"],
   },
 
+  // Team section controls
+  {
+    label: "Team members",
+    section: "team",
+    keywords: ["team", "member", "users", "people", "collaborators", "access"],
+  },
+  {
+    label: "Invite member",
+    section: "team",
+    keywords: ["invite", "add", "member", "team", "user", "colleague"],
+  },
+  {
+    label: "Role permissions",
+    section: "team",
+    keywords: ["role", "permission", "owner", "admin", "finance", "viewer", "access"],
+  },
+  {
+    label: "Pending invitations",
+    section: "team",
+    keywords: ["pending", "invite", "invitation", "resend", "revoke", "team"],
   // Payment approvals section controls
   {
     label: "Approval threshold",
