@@ -49,6 +49,29 @@ describe("security-headers", () => {
     });
   });
 
+  it("allows every supported Horizon host in connect-src", () => {
+    const connectSrc = CSP_DIRECTIVES.find((d) => d.startsWith("connect-src"));
+    expect(connectSrc).toBeDefined();
+    for (const host of [
+      "https://horizon.stellar.org",
+      "https://horizon-testnet.stellar.org",
+      "https://horizon-futurenet.stellar.org",
+    ]) {
+      expect(connectSrc).toContain(host);
+    }
+    expect(CONTENT_SECURITY_POLICY).toContain("connect-src");
+  });
+
+  it("rejects unsafe inline scripts and eval in script-src", () => {
+    const scriptSrc = CSP_DIRECTIVES.find((d) => d.startsWith("script-src"));
+    expect(scriptSrc).toBe("script-src 'self'");
+    // Explicitly assert no unsafe-inline / unsafe-eval in the script directive.
+    expect(scriptSrc).not.toContain("'unsafe-inline'");
+    expect(scriptSrc).not.toContain("'unsafe-eval'");
+  });
+
+  it("still permits inline styles required by Next/Tailwind in style-src only", () => {
+    const styleSrc = CSP_DIRECTIVES.find((d) => d.startsWith("style-src"));
   it("allows inline styles only in style-src", () => {
     const styleSrc = CSP_DIRECTIVES.find((directive) =>
       directive.startsWith("style-src"),

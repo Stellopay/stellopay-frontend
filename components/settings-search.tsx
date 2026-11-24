@@ -160,6 +160,43 @@ export const SEARCHABLE_CONTROLS: SearchableControl[] = [
     section: "wallets",
     keywords: ["remove", "wallet", "danger", "destructive", "delete"],
   },
+
+  // Team section controls
+  {
+    label: "Team members",
+    section: "team",
+    keywords: ["team", "member", "users", "people", "collaborators", "access"],
+  },
+  {
+    label: "Invite member",
+    section: "team",
+    keywords: ["invite", "add", "member", "team", "user", "colleague"],
+  },
+  {
+    label: "Role permissions",
+    section: "team",
+    keywords: ["role", "permission", "owner", "admin", "finance", "viewer", "access"],
+  },
+  {
+    label: "Pending invitations",
+    section: "team",
+    keywords: ["pending", "invite", "invitation", "resend", "revoke", "team"],
+  // Payment approvals section controls
+  {
+    label: "Approval threshold",
+    section: "approvals",
+    keywords: ["payment", "payroll", "approval", "asset", "minor units"],
+  // Audit log section controls
+  {
+    label: "Audit log",
+    section: "audit",
+    keywords: ["audit", "log", "security", "activity", "history", "events", "trail"],
+  },
+  {
+    label: "Export audit log",
+    section: "audit",
+    keywords: ["export", "csv", "download", "audit", "events", "logs"],
+  },
 ];
 
 export interface SettingsSearchResult {

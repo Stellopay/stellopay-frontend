@@ -6,6 +6,7 @@ import "./globals.css";
 import { SidebarProvider } from "@/context/sidebar-context";
 import { ThemeProvider } from "@/context/theme-context";
 import { WalletProvider } from "@/context/wallet-context";
+import { RequestsProvider } from "@/lib/requests-store";
 import { OfflineBanner } from "@/components/common/offline-banner";
 import { CookieConsentBanner } from "@/components/common/cookie-consent-banner";
 import { Toaster } from "@/components/ui/toaster";
@@ -194,7 +195,9 @@ export default async function RootLayout({
         <CookieConsentBanner />
         <ThemeProvider>
           <WalletProvider>
-            <SidebarProvider>{children}</SidebarProvider>
+            <RequestsProvider>
+              <SidebarProvider>{children}</SidebarProvider>
+            </RequestsProvider>
           </WalletProvider>
           <Toaster />
         </ThemeProvider>

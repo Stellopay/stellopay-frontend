@@ -34,6 +34,20 @@ vi.mock("@/components/common/navbar", () => ({
 
 vi.mock("next/navigation", () => ({
   usePathname: () => "/dashboard",
+  useRouter: () => ({ push: vi.fn() }),
+}));
+
+vi.mock("@/context/theme-context", () => ({
+  useTheme: () => ({ toggleTheme: vi.fn() }),
+}));
+
+vi.mock("@/context/wallet-context", () => ({
+  useWallet: () => ({
+    address: null,
+    connect: vi.fn(),
+    disconnect: vi.fn(),
+  }),
+  useDirtyGuard: () => ({ confirmDiscard: () => true }),
 }));
 
 vi.mock("./shortcut-help-modal", () => ({

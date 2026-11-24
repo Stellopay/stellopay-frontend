@@ -180,6 +180,15 @@ describe("useUnsavedChangesGuard", () => {
         clickAnchor("/dashboard");
       }
     });
+
+    it("uses the default prompt message when called with no options", () => {
+      renderHook(() => useUnsavedChangesGuard(true));
+      const confirmSpy = vi.spyOn(window, "confirm").mockReturnValue(true);
+      clickAnchor("/dashboard");
+      expect(confirmSpy).toHaveBeenCalledWith(
+        "You have unsaved changes. Leave this page and discard them?",
+      );
+    });
   });
 
   it("does not throw when act() batches an isDirty flip and a click together", () => {
