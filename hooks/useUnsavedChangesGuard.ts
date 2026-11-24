@@ -5,7 +5,7 @@ import { useCallback, useEffect, useLayoutEffect, useRef } from "react";
 const useIsomorphicLayoutEffect =
   typeof window !== "undefined" ? useLayoutEffect : useEffect;
 
-const DEFAUMT_MESSAGE =
+const DEFAULT_MESSAGE =
   "You have unsaved changes. Leave this page and discard them?";
 
 export interface UseUnsavedChangesGuardOptions {
