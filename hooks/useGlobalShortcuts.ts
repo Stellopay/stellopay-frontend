@@ -29,7 +29,7 @@ interface ShortcutConfig {
   /**
    * The second key to press after 'g'
    */
-  key: "d" | "t" | "s";
+  key: "d" | "p" | "t" | "s";
   /**
    * The route to navigate to
    */
@@ -48,6 +48,11 @@ const SHORTCUTS: Record<string, ShortcutConfig> = {
     key: "d",
     route: "/dashboard",
     description: "Go to Dashboard",
+  },
+  p: {
+    key: "p",
+    route: "/payments/new",
+    description: "Go to Send Payment",
   },
   t: {
     key: "t",
@@ -188,7 +193,10 @@ export function useGlobalShortcuts(): void {
             timeoutIdRef.current = null;
           }, CHORD_TIMEOUT_MS);
         }
-      } else if (firstKeyPressedRef.current && (key === "d" || key === "t" || key === "s")) {
+      } else if (
+        firstKeyPressedRef.current &&
+        (key === "d" || key === "p" || key === "t" || key === "s")
+      ) {
         // Second key in chord detected
         event.preventDefault();
 

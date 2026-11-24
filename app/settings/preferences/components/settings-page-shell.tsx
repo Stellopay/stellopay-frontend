@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Bell, FileText, Shield, UserRound, Wallet } from "lucide-react";
+import { Bell, FileText, Shield, UserRound, Users, Wallet } from "lucide-react";
 import { usePathname, useRouter } from "next/navigation";
 import SettingsHeader, {
   SettingsHeaderSection,
@@ -23,7 +23,8 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent } from "@/components/ui/tabs";
-import { DEMO_WALLETS } from "@/lib/demo-data";
+import { PermissionsProvider } from "@/context/permissions-context";
+import { DEMO_TEAM_MEMBERS, DEMO_WALLETS } from "@/lib/demo-data";
 import AccountSection, {
   DEFAULT_PROFILE,
   isProfileComplete,
@@ -39,7 +40,9 @@ import TaxDocumentsSection, {
   AVAILABLE_TAX_DOCUMENTS,
   type TaxDocument,
 } from "./tax-documents-section";
+import TeamSection from "./team-section";
 import WalletsSection from "./wallets-section";
+import ApprovalThresholdsSection from "./approval-thresholds-section";
 import { useUnsavedChangesGuard } from "@/hooks/useUnsavedChangesGuard";
 import { isShallowEqual } from "@/utils/objectUtils";
 
@@ -49,8 +52,12 @@ import { isShallowEqual } from "@/utils/objectUtils";
  * hardcoded "2 linked" literal so the summary stays in sync with reality.
  */
 const linkedWalletCount = DEMO_WALLETS.length;
+const defaultTeamMemberCount = DEMO_TEAM_MEMBERS.length;
 
-function buildSections(statementCount: number): SettingsHeaderSection[] {
+function buildSections(
+  statementCount: number,
+  teamMemberCount: number = defaultTeamMemberCount,
+): SettingsHeaderSection[] {
   return [
     {
       value: "account",
@@ -77,10 +84,22 @@ function buildSections(statementCount: number): SettingsHeaderSection[] {
       badge: `${linkedWalletCount} linked`,
     },
     {
+      value: "team",
+      label: "Team",
+      description: "Members, invitations, and role permissions.",
+      badge: `${teamMemberCount} members`,
+    },
+    {
       value: "documents",
       label: "Statements",
       description: "Periodic statements and tax summaries.",
       badge: `${statementCount} ready`,
+    },
+    {
+      value: "approvals",
+      label: "Approvals",
+      description: "Per-asset thresholds for payment review.",
+      badge: "Payments",
     },
   ];
 }
@@ -278,8 +297,20 @@ export default function SettingsPageShell({
           <WalletsSection highlightedSearchLabel={highlightedSearchLabel} />
         </TabsContent>
 
+        <TabsContent value="team" className="mt-0">
+          <PermissionsProvider>
+            <TeamSection highlightedSearchLabel={highlightedSearchLabel} />
+          </PermissionsProvider>
+        </TabsContent>
+
         <TabsContent value="documents" className="mt-0">
           <TaxDocumentsSection statements={statements} />
+        </TabsContent>
+
+        <TabsContent value="approvals" className="mt-0">
+          <ApprovalThresholdsSection
+            highlightedSearchLabel={highlightedSearchLabel}
+          />
         </TabsContent>
       </div>
 

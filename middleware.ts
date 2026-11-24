@@ -10,6 +10,8 @@ const PROTECTED_ROUTES = [
   "/transactions",
   "/settings",
   "/account-summary",
+  "/notifications",
+  "/approvals",
 ];
 
 /**
