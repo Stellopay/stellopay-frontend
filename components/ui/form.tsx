@@ -14,7 +14,7 @@ import {
 
 import { cn } from "@/utils/commonUtils";
 import { Label } from "@/components/ui/label";
-import { FormItemContextValue } from "@types/ui";
+import type { FormItemContextValue } from "@/types/ui";
 import { useUnsavedChangesGuard } from "@/hooks/useUnsavedChangesGuard";
 
 const Form = FormProvider;
@@ -46,7 +46,7 @@ const FormField = <
 const useFormField = () => {
   const fieldContext = React.useContext(FormFieldContext);
   const itemContext = React.useContext(FormItemContext);
-  if (!fieldContext) {
+  if (!fieldContext?.name) {
     throw new Error("useFormField should be used within <FormField>");
   }
   const { getFieldState } = useFormContext();

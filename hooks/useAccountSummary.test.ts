@@ -32,6 +32,13 @@ const summary = (walletAddress: string): AccountSummary => ({
   toBePaid: "$ 0",
   toBePaidCount: 0,
   walletAddress,
+  source: "horizon" as const,
+  network: "test-network",
+  nativeBalance: "2432.0000000",
+  spendableBalance: "2431.0000000",
+  isUnfunded: false,
+  balances: [],
+  trustlines: [],
 });
 
 describe("useAccountSummary", () => {
@@ -197,5 +204,58 @@ describe("useAccountSummary", () => {
     });
 
     expect(result.current.data?.walletAddress).toBe("account-2");
+  });
+
+  it("passes the connected wallet and an abortable signal to the API", async () => {
+    const capture = vi.fn();
+    (getAccountSummary as Mock).mockImplementationOnce((params) => {
+      capture(params);
+      return Promise.resolve(summary("scoped-wallet"));
+    });
+
+    const { result, unmount } = renderHook(() => useAccountSummary());
+    await waitFor(() => {
+      expect(result.current.data?.walletAddress).toBe("scoped-wallet");
+    });
+
+    const params = capture.mock.calls[0][0];
+    expect(params.address).toBe("test-wallet-address");
+    expect(params.network).toEqual({ id: "test-network" });
+    expect(params.signal).toBeInstanceOf(AbortSignal);
+
+    unmount();
+    expect(params.signal.aborted).toBe(true);
+  });
+
+  it("surfaces an unfunded account as data instead of an error", async () => {
+    (getAccountSummary as Mock).mockResolvedValueOnce({
+      ...summary("unfunded-wallet"),
+      isUnfunded: true,
+    });
+
+    const { result } = renderHook(() => useAccountSummary());
+    await waitFor(() => expect(result.current.isUnfunded).toBe(true));
+    expect(result.current.error).toBeNull();
+  });
+
+  it("silently ignores AbortError from a superseded request", async () => {
+    const first = deferred<AccountSummary>();
+    (getAccountSummary as Mock)
+      .mockReturnValueOnce(first.promise)
+      .mockResolvedValueOnce(summary("latest-wallet"));
+
+    const { result } = renderHook(() => useAccountSummary());
+    act(() => result.current.refetch());
+
+    await waitFor(() => {
+      expect(result.current.data?.walletAddress).toBe("latest-wallet");
+    });
+
+    await act(async () => {
+      first.reject(new DOMException("Aborted", "AbortError"));
+      await Promise.resolve();
+    });
+
+    expect(result.current.error).toBeNull();
   });
 });

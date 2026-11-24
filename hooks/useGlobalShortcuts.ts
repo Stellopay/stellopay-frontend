@@ -29,7 +29,7 @@ interface ShortcutConfig {
   /**
    * The second key to press after 'g'
    */
-  key: "d" | "t" | "s";
+  key: "d" | "p" | "t" | "s";
   /**
    * The route to navigate to
    */
@@ -48,6 +48,11 @@ const SHORTCUTS: Record<string, ShortcutConfig> = {
     key: "d",
     route: "/dashboard",
     description: "Go to Dashboard",
+  },
+  p: {
+    key: "p",
+    route: "/payments/new",
+    description: "Go to Send Payment",
   },
   t: {
     key: "t",
@@ -71,7 +76,7 @@ const CHORD_TIMEOUT_MS = 1000;
  * Checks if the current active element is a text input
  * Returns true if focus is on an input that shouldn't trigger shortcuts
  */
-function isTextInputFocused(): boolean {
+export function isTextInputFocused(): boolean {
   const activeElement = document.activeElement as HTMLElement;
 
   // Null or body element means nothing is focused
@@ -188,7 +193,10 @@ export function useGlobalShortcuts(): void {
             timeoutIdRef.current = null;
           }, CHORD_TIMEOUT_MS);
         }
-      } else if (firstKeyPressedRef.current && (key === "d" || key === "t" || key === "s")) {
+      } else if (
+        firstKeyPressedRef.current &&
+        (key === "d" || key === "p" || key === "t" || key === "s")
+      ) {
         // Second key in chord detected
         event.preventDefault();
 

@@ -1,12 +1,21 @@
 "use client";
 
-import React, { useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { Bell, Moon, Search, Settings, Sun, X, Menu } from "lucide-react";
 import { useTheme } from "@/context/theme-context";
 import { formatAddress, useWallet } from "@/context/wallet-context";
 import NetworkSwitcher from "@/components/common/network-switcher";
 import { StellOpayLogo } from "@/public/svg/svg";
+import NotificationPanel, {
+  useSharedNotifications,
+} from "@/components/common/notification-panel";
+import {
+  fetchNotifications,
+  isNotificationsSourceUnavailable,
+  NOTIFICATIONS_CACHE_KEY,
+} from "@/lib/api/notifications";
+import type { NotificationItem } from "@/types/notification-item";
 
 /** CSS selector that matches all natively focusable elements. */
 const FOCUSABLE_SELECTOR = [
@@ -18,17 +27,85 @@ const FOCUSABLE_SELECTOR = [
   '[tabindex]:not([tabindex="-1"])',
 ].join(", ");
 
+const NOTIFICATIONS_PANEL_ID = "dashboard-notifications-panel";
+const MOBILE_NOTIFICATIONS_PANEL_ID = "dashboard-mobile-notifications-panel";
+const NO_NOTIFICATIONS: NotificationItem[] = [];
+
 interface DashboardNavbarProps {
-  /** Number of unread notifications; hides the badge when 0. */
+  /**
+   * Number of unread notifications; hides the badge when 0. When omitted the
+   * count is derived from the shared notification feed.
+   */
   unreadCount?: number;
+  /** Invoked when a notification in the bell panel is activated. */
+  onNotificationClick?: (notification: NotificationItem) => void;
 }
 
 export default function DashboardNavbar({
-  unreadCount = 0,
+  unreadCount: unreadCountOverride,
+  onNotificationClick,
 }: DashboardNavbarProps) {
   const { theme, resolvedTheme, toggleTheme } = useTheme();
   const { address, isConnected, connect, disconnect } = useWallet();
   const [mobileDrawerOpen, setMobileDrawerOpen] = useState(false);
+  const [notificationsOpen, setNotificationsOpen] = useState(false);
+  const [mobileNotificationsOpen, setMobileNotificationsOpen] = useState(false);
+
+  const {
+    data: notificationData,
+    isLoading: notificationsLoading,
+    error: notificationsError,
+    refetch: refetchNotifications,
+  } = useSharedNotifications(NOTIFICATIONS_CACHE_KEY, fetchNotifications);
+  const notifications = notificationData ?? NO_NOTIFICATIONS;
+  const unreadCount =
+    unreadCountOverride ?? notifications.filter((n) => !n.read).length;
+  const notificationsErrorMessage = notificationsError
+    ? isNotificationsSourceUnavailable(notificationsError)
+      ? notificationsError.message
+      : "Couldn't load notifications."
+    : null;
+  const canRetryNotifications =
+    notificationsError !== null &&
+    !isNotificationsSourceUnavailable(notificationsError);
+
+  /** Wraps the bell and its panel, so clicks inside either are "inside". */
+  const notificationsRef = useRef<HTMLDivElement>(null);
+  const bellButtonRef = useRef<HTMLButtonElement>(null);
+
+  const closeNotifications = useCallback((returnFocus: boolean) => {
+    setNotificationsOpen(false);
+    if (returnFocus) bellButtonRef.current?.focus();
+  }, []);
+
+  // ── Notification panel: close on outside click and on Escape ─────────────
+  useEffect(() => {
+    if (!notificationsOpen) return;
+
+    const handlePointerDown = (e: MouseEvent | TouchEvent) => {
+      const root = notificationsRef.current;
+      if (root && e.target instanceof Node && !root.contains(e.target)) {
+        closeNotifications(false);
+      }
+    };
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") closeNotifications(true);
+    };
+
+    document.addEventListener("mousedown", handlePointerDown);
+    document.addEventListener("touchstart", handlePointerDown);
+    document.addEventListener("keydown", handleKeyDown);
+    return () => {
+      document.removeEventListener("mousedown", handlePointerDown);
+      document.removeEventListener("touchstart", handlePointerDown);
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [notificationsOpen, closeNotifications]);
+
+  // The inline mobile panel belongs to the drawer; reset it when the drawer closes.
+  useEffect(() => {
+    if (!mobileDrawerOpen) setMobileNotificationsOpen(false);
+  }, [mobileDrawerOpen]);
 
   /** Ref on the hamburger/close button — focus returns here when drawer closes. */
   const menuButtonRef = useRef<HTMLButtonElement>(null);
@@ -137,17 +214,43 @@ export default function DashboardNavbar({
             <NetworkSwitcher variant="dashboard" />
           </div>
 
-          <button
-            aria-label={`Notifications${unreadCount > 0 ? `, ${unreadCount > 9 ? "9+" : unreadCount} unread` : ""}`}
-            className="relative p-2 rounded-lg text-zinc-500 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors hidden sm:block cursor-pointer"
-          >
-            <Bell size={20} strokeWidth={2} />
-            {unreadCount > 0 && (
-              <span className="absolute -top-0.5 -right-0.5 flex items-center justify-center min-w-[18px] h-[18px] px-1 text-[10px] font-bold leading-none text-white bg-red-500 rounded-full border-2 border-white dark:border-[#0D0D0D]">
-                {unreadCount > 9 ? "9+" : unreadCount}
-              </span>
+          <div ref={notificationsRef} className="relative hidden sm:block">
+            <button
+              ref={bellButtonRef}
+              type="button"
+              aria-label={`Notifications${unreadCount > 0 ? `, ${unreadCount > 9 ? "9+" : unreadCount} unread` : ""}`}
+              aria-haspopup="dialog"
+              aria-expanded={notificationsOpen}
+              aria-controls={notificationsOpen ? NOTIFICATIONS_PANEL_ID : undefined}
+              onClick={() => setNotificationsOpen((open) => !open)}
+              className="relative block p-2 rounded-lg text-zinc-500 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors cursor-pointer"
+            >
+              <Bell size={20} strokeWidth={2} aria-hidden="true" />
+              {unreadCount > 0 && (
+                <span className="absolute -top-0.5 -right-0.5 flex items-center justify-center min-w-[18px] h-[18px] px-1 text-[10px] font-bold leading-none text-white bg-red-500 rounded-full border-2 border-white dark:border-[#0D0D0D]">
+                  {unreadCount > 9 ? "9+" : unreadCount}
+                </span>
+              )}
+            </button>
+
+            {notificationsOpen && (
+              <div
+                id={NOTIFICATIONS_PANEL_ID}
+                role="dialog"
+                aria-label="Notifications panel"
+                className="absolute right-0 top-full mt-2 z-50 w-[min(25rem,calc(100vw-2rem))] max-h-[calc(100vh-6rem)] overflow-y-auto rounded-xl bg-[#0D0D0D] shadow-xl"
+              >
+                <NotificationPanel
+                  notifications={notifications}
+                  isLoading={notificationsLoading}
+                  error={notificationsErrorMessage}
+                  onRetry={canRetryNotifications ? refetchNotifications : undefined}
+                  onNotificationClick={onNotificationClick}
+                  onClose={() => closeNotifications(true)}
+                />
+              </div>
             )}
-          </button>
+          </div>
 
           <button
             aria-label="Settings"
@@ -274,7 +377,11 @@ export default function DashboardNavbar({
             {/* Notifications & Settings row */}
             <div className="flex items-center gap-4">
               <button
+                type="button"
                 aria-label={`Notifications${unreadCount > 0 ? `, ${unreadCount > 9 ? "9+" : unreadCount} unread` : ""}`}
+                aria-expanded={mobileNotificationsOpen}
+                aria-controls={mobileNotificationsOpen ? MOBILE_NOTIFICATIONS_PANEL_ID : undefined}
+                onClick={() => setMobileNotificationsOpen((open) => !open)}
                 className="flex items-center gap-3 p-3 rounded-lg text-zinc-500 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors cursor-pointer w-full"
               >
                 <div className="relative">
@@ -300,6 +407,20 @@ export default function DashboardNavbar({
                 </span>
               </button>
             </div>
+
+            {mobileNotificationsOpen && (
+              <div id={MOBILE_NOTIFICATIONS_PANEL_ID}>
+                <NotificationPanel
+                  notifications={notifications}
+                  isLoading={notificationsLoading}
+                  error={notificationsErrorMessage}
+                  onRetry={canRetryNotifications ? refetchNotifications : undefined}
+                  onNotificationClick={onNotificationClick}
+                  onClose={() => setMobileNotificationsOpen(false)}
+                  className="max-w-none"
+                />
+              </div>
+            )}
 
             {/* Network switcher */}
             <div className="flex justify-start">

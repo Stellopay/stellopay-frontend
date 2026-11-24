@@ -4,6 +4,7 @@ import {
   verifyEmailToken,
   resendVerificationEmail,
   sendMagicLink,
+  sendPasswordResetEmail,
   simulateOAuth,
   AuthError,
   VerifyEmailError,
@@ -168,6 +169,64 @@ describe("lib/api/auth.ts", () => {
 
       await expect(sendMagicLink(email)).rejects.toThrow(AuthError);
       await expect(sendMagicLink(email)).rejects.toThrow("An error occurred. Please try again later.");
+    });
+  });
+
+  describe("sendPasswordResetEmail", () => {
+    const email = "test@example.com";
+
+    it("should resolve on a successful 200 response", async () => {
+      vi.mocked(fetch).mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+      } as Response);
+
+      await expect(sendPasswordResetEmail(email)).resolves.toBeUndefined();
+      expect(fetch).toHaveBeenCalledWith(
+        expect.stringContaining("/auth/forgot-password"),
+        expect.objectContaining({
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email }),
+        }),
+      );
+    });
+
+    it("should resolve on 202 response (enumeration prevention)", async () => {
+      vi.mocked(fetch).mockResolvedValueOnce({
+        ok: false,
+        status: 202,
+      } as Response);
+
+      await expect(sendPasswordResetEmail(email)).resolves.toBeUndefined();
+    });
+
+    it("should resolve on 404 response (enumeration prevention)", async () => {
+      vi.mocked(fetch).mockResolvedValueOnce({
+        ok: false,
+        status: 404,
+      } as Response);
+
+      await expect(sendPasswordResetEmail(email)).resolves.toBeUndefined();
+    });
+
+    it("should throw AuthError with kind 'http' on non-2xx response", async () => {
+      vi.mocked(fetch).mockResolvedValueOnce({
+        ok: false,
+        status: 500,
+      } as Response);
+
+      const promise = sendPasswordResetEmail(email);
+      await expect(promise).rejects.toThrow(AuthError);
+      await expect(promise).rejects.toMatchObject({ kind: "http" });
+    });
+
+    it("should throw AuthError with kind 'network' on fetch network rejection", async () => {
+      vi.mocked(fetch).mockRejectedValueOnce(new TypeError("Failed to fetch"));
+
+      const promise = sendPasswordResetEmail(email);
+      await expect(promise).rejects.toThrow(AuthError);
+      await expect(promise).rejects.toMatchObject({ kind: "network" });
     });
   });
 

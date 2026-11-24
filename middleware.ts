@@ -11,6 +11,8 @@ const PROTECTED_ROUTES = [
   "/settings",
   "/account-summary",
   "/recipients",
+  "/notifications",
+  "/approvals",
 ];
 
 /**
