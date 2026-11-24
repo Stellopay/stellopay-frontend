@@ -90,6 +90,37 @@ describe("NavLink aria-current", () => {
     );
   });
 
+  it("lists Notifications once, linking to /notifications", () => {
+    render(<NavLink />);
+
+    const links = screen.getAllByRole("link", { name: "Notifications" });
+    expect(links).toHaveLength(1);
+    expect(links[0]).toHaveAttribute("href", "/notifications");
+  });
+
+  it("marks Notifications active on /notifications", () => {
+    mockPathname.value = "/notifications";
+    render(<NavLink />);
+
+    const currentLinks = screen
+      .getAllByRole("link")
+      .filter((link) => link.getAttribute("aria-current") === "page");
+
+    expect(currentLinks).toHaveLength(1);
+    expect(currentLinks[0]).toHaveAccessibleName(/Notifications/);
+  });
+
+  it("shows the Notifications entry with an accessible label when collapsed", () => {
+    mockSidebar.isSidebarOpen = false;
+    mockPathname.value = "/notifications";
+    render(<NavLink />);
+
+    expect(screen.getByRole("link", { name: "Notifications" })).toHaveAttribute(
+      "aria-current",
+      "page",
+    );
+  });
+
   it("renders without motion animations when reduced motion is preferred", () => {
     mockPathname.value = "/dashboard";
     mockUseReducedMotion.mockReturnValue(true);

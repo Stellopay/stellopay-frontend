@@ -7,6 +7,7 @@ import {
   SettinIcon,
   TransactionIcon,
 } from "@/public/svg/svg";
+import { Bell } from "lucide-react";
 import { motion } from "framer-motion";
 import { useReducedMotion } from "@/hooks/useReducedMotion";
 import useSidebar from "@/context/sidebar-context";
@@ -211,6 +212,13 @@ export const NavLink = () => {
       link: "Transactions",
       icon: (color: string) => <TransactionIcon color={color} />,
       route: "/transactions",
+    },
+    {
+      link: "Notifications",
+      icon: (color: string) => (
+        <Bell color={color} size={20} strokeWidth={1.75} aria-hidden="true" />
+      ),
+      route: "/notifications",
     },
     {
       link: "Help/Support",
