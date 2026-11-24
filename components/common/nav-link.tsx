@@ -29,11 +29,39 @@ import {
   getActiveLinkLayoutId,
 } from "@/utils/navigationUtils";
 
-type NavItem = {
+export type NavItem = {
   link: string;
   icon: (color: string) => ReactNode;
   route: string;
 };
+
+export const NAV_LINKS: NavItem[] = [
+  {
+    link: "Dashboard",
+    icon: (color: string) => <DashBoardIcon color={color} />,
+    route: "/dashboard",
+  },
+  {
+    link: "Account Summary",
+    icon: (color: string) => <AccountSummaryIcon color={color} />,
+    route: "/account-summary",
+  },
+  {
+    link: "Transactions",
+    icon: (color: string) => <TransactionIcon color={color} />,
+    route: "/transactions",
+  },
+  {
+    link: "Help/Support",
+    icon: (color: string) => <HelpCircleIcon color={color} />,
+    route: "/help/support",
+  },
+  {
+    link: "Settings",
+    icon: (color: string) => <SettinIcon color={color} />,
+    route: "/settings/preferences",
+  },
+];
 
 type CollapsedNavLinkProps = {
   item: NavItem;
@@ -240,7 +268,7 @@ export const NavLink = () => {
   return (
     <nav className="w-full">
       <ul className="space-y-1 flex items-center flex-col w-full px-2">
-        {links.map((link) => {
+        {NAV_LINKS.map((link) => {
           const isActive = isLinkActive(link.route, pathname);
 
           let iconColor = "";

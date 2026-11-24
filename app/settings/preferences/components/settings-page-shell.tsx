@@ -2,6 +2,8 @@
 
 import { useEffect, useRef, useState } from "react";
 import { Bell, FileText, Shield, UserRound, Users, Wallet } from "lucide-react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Bell, FileText, Shield, UserRound, Wallet } from "lucide-react";
 import { usePathname, useRouter } from "next/navigation";
 import SettingsHeader, {
   SettingsHeaderSection,
@@ -106,16 +108,21 @@ function buildSections(
 
 interface SettingsPageShellProps {
   initialSection?: string;
+  initialSearchLabel?: string;
   statements?: TaxDocument[];
 }
 
 export default function SettingsPageShell({
   initialSection,
+  initialSearchLabel,
   statements = AVAILABLE_TAX_DOCUMENTS,
 }: SettingsPageShellProps) {
   const router = useRouter();
   const pathname = usePathname();
-  const sections = buildSections(statements.length);
+  const sections = useMemo(
+    () => buildSections(statements.length),
+    [statements.length],
+  );
   const resolvedInitialSection = sections.some(
     (section) => section.value === initialSection,
   )
@@ -162,7 +169,9 @@ export default function SettingsPageShell({
   const statementCoverage = `${statements.length} ready`;
 
   const [pendingSection, setPendingSection] = useState<string | null>(null);
-  const [highlightedSearchLabel, setHighlightedSearchLabel] = useState<string | null>(null);
+  const [highlightedSearchLabel, setHighlightedSearchLabel] = useState<
+    string | null
+  >(initialSearchLabel ?? null);
 
   // Determine if there are unsaved edits. We use a simple deep comparison
   // against the initial defaults since this shell tracks the state.
@@ -176,19 +185,59 @@ export default function SettingsPageShell({
    * change handler and the "Discard changes" dialog go through this so the
    * state transitions live in one place.
    */
-  const commitSectionChange = (nextSection: string, searchLabel?: string) => {
-    setActiveSection(nextSection);
-    setHighlightedSearchLabel(searchLabel ?? null);
-    router.replace(`${pathname}?section=${nextSection}`, {
-      scroll: false,
-    });
-  };
+  const commitSectionChange = useCallback(
+    (nextSection: string, searchLabel?: string) => {
+      setActiveSection(nextSection);
+      setHighlightedSearchLabel(searchLabel ?? null);
+      router.replace(`${pathname}?section=${nextSection}`, {
+        scroll: false,
+      });
+    },
+    [pathname, router],
+  );
 
-  const handleSectionChange = (nextSection: string, searchLabel?: string) => {
-    if (nextSection === activeSection && !searchLabel) return;
-    if (!confirmDiscard()) return;
-    commitSectionChange(nextSection, searchLabel);
-  };
+  const handleSectionChange = useCallback(
+    (nextSection: string, searchLabel?: string) => {
+      if (nextSection === activeSection && !searchLabel) return;
+      if (!confirmDiscard()) return;
+      commitSectionChange(nextSection, searchLabel);
+    },
+    [activeSection, commitSectionChange, confirmDiscard],
+  );
+
+  useEffect(() => {
+    const handleCommandNavigation = (event: Event) => {
+      const navigationEvent = event as CustomEvent<{ href: string }>;
+      const target = new URL(
+        navigationEvent.detail.href,
+        window.location.origin,
+      );
+
+      if (target.pathname !== pathname) {
+        if (!confirmDiscard()) event.preventDefault();
+        return;
+      }
+
+      const section = target.searchParams.get("section");
+      if (!section || !sections.some((item) => item.value === section)) return;
+
+      event.preventDefault();
+      handleSectionChange(
+        section,
+        target.searchParams.get("control") ?? undefined,
+      );
+    };
+
+    window.addEventListener(
+      "stellopay:command-navigation",
+      handleCommandNavigation,
+    );
+    return () =>
+      window.removeEventListener(
+        "stellopay:command-navigation",
+        handleCommandNavigation,
+      );
+  }, [handleSectionChange, pathname, sections]);
 
   // Clear the search highlight after the next render cycle so the
   // section component can pick it up and scroll to the control.
