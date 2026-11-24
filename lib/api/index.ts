@@ -4,8 +4,10 @@ export {
   MIN_TRANSACTION_PAGE_SIZE,
   getAccountSummary,
   getPaymentHistory,
+  getTransactionById,
   getTransactions,
   getTransactionsCursor,
+  TransactionNotFoundError,
 } from "./transactions";
 export type {
   AccountBalance,

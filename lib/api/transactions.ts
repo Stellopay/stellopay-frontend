@@ -28,6 +28,7 @@ import {
   parseAccountSummary,
   parseCursorPaginatedTransactions,
   parsePaginatedTransactions,
+  parseTransaction,
 } from "./response-validation";
 
 export interface PaginatedTransactions {
@@ -43,6 +44,23 @@ export interface GetTransactionsParams {
   page?: number;
   pageSize?: number;
 }
+
+export class TransactionNotFoundError extends Error {
+  readonly code = "TRANSACTION_NOT_FOUND" as const;
+
+  constructor(id: string) {
+    super(`Transaction "${id}" was not found.`);
+    this.name = "TransactionNotFoundError";
+  }
+}
+
+const normalizeTransactionId = (id: string): string => {
+  const normalizedId = typeof id === "string" ? id.trim() : "";
+  if (!normalizedId || normalizedId.length > 256) {
+    throw new TransactionNotFoundError(normalizedId);
+  }
+  return normalizedId;
+};
 
 /**
  * A single page of cursor-based (keyset) pagination.
@@ -548,6 +566,31 @@ export interface AccountBalance {
   isAuthorized: boolean | null;
   buyingLiabilities: string;
   sellingLiabilities: string;
+/**
+ * Fetch a single transaction by its opaque identifier.
+ *
+ * @throws {TransactionNotFoundError} If `id` is invalid or does not exist.
+ * @throws {DOMException} With `.name === "AbortError"` when `signal` aborts.
+ */
+export async function getTransactionById(
+  id: string,
+  signal?: AbortSignal,
+): Promise<Transaction> {
+  const normalizedId = normalizeTransactionId(id);
+
+  if (process.env.NODE_ENV === "development") {
+    await abortableDelay(signal);
+  }
+  if (signal?.aborted) {
+    throw new DOMException("Aborted", "AbortError");
+  }
+
+  const transaction = allTransactions.find((item) => item.id === normalizedId);
+  if (!transaction) {
+    throw new TransactionNotFoundError(normalizedId);
+  }
+
+  return parseTransaction(transaction);
 }
 
 export interface AccountSummary {

@@ -10,6 +10,10 @@ export interface Transaction {
   status: string;
   statusColor: "success" | "warning" | "destructive";
   memo?: string;
+  counterparty?: string;
+  fee?: string;
+  hash?: string;
+  tags?: string[];
 }
 
 export type SortField = Extract<

@@ -1,10 +1,12 @@
 import {
   MAX_TRANSACTION_PAGE_SIZE,
   MIN_TRANSACTION_PAGE_SIZE,
+  getTransactionById,
   getTransactions,
   getTransactionsCursor,
   getAccountSummary,
   getPaymentHistory,
+  TransactionNotFoundError,
 } from "../transactions";
 import { allTransactions } from "@/lib/transactions";
 import {
@@ -176,6 +178,37 @@ describe("getTransactions", () => {
       expect(typeof t.amount).toBe("number");
       expect(["Completed", "Pending", "Failed"]).toContain(t.status);
     });
+  });
+});
+
+describe("getTransactionById", () => {
+  it("returns a validated transaction by its id", async () => {
+    const transaction = await getTransactionById("1");
+
+    expect(transaction).toMatchObject({
+      id: "1",
+      txId: "#TXNT2345",
+      amount: -607.87,
+    });
+  });
+
+  it("trims a valid id and rejects invalid or unknown ids with a typed error", async () => {
+    await expect(getTransactionById(" 1 ")).resolves.toMatchObject({ id: "1" });
+    await expect(getTransactionById("  ")).rejects.toBeInstanceOf(
+      TransactionNotFoundError,
+    );
+    await expect(getTransactionById("not-a-transaction")).rejects.toMatchObject(
+      { code: "TRANSACTION_NOT_FOUND" },
+    );
+  });
+
+  it("rejects when the signal is already aborted", async () => {
+    const controller = new AbortController();
+    controller.abort();
+
+    await expect(
+      getTransactionById("1", controller.signal),
+    ).rejects.toMatchObject({ name: "AbortError" });
   });
 });
 

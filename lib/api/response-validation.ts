@@ -39,6 +39,8 @@ const transactionSchema = z.object({
   address: nonEmptyString, date: nonEmptyString, time: nonEmptyString,
   token: nonEmptyString, amount: finiteNumber, status: nonEmptyString,
   statusColor: z.enum(["success", "warning", "destructive"]), memo: z.string().optional(),
+  counterparty: nonEmptyString.optional(), fee: nonEmptyString.optional(),
+  hash: nonEmptyString.optional(), tags: z.array(nonEmptyString).optional(),
 });
 const paginatedTransactionsSchema = z.object({
   data: z.array(transactionSchema), total: z.number().int().nonnegative(),

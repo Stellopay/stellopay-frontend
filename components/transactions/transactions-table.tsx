@@ -633,7 +633,26 @@ export function TransactionsTable({
                       className={`font-medium border border-[#2D2D2D] ${s.cell}`}
                     >
                       <span className="text-[#D7E0EF]">{transaction.type}</span>
-                      <p>#{transaction.id}</p>
+                      <p>
+                        <Link
+                          href={`/transactions/${encodeURIComponent(transaction.id)}`}
+                          aria-label={`View transaction ${transaction.id}`}
+                          className="underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#D7E0EF]"
+                        >
+                          #{transaction.id}
+                        </Link>
+                      </p>
+                      {transaction.txId && (
+                        <p className="text-xs text-muted-foreground">
+                          <Link
+                            href={`/transactions/${encodeURIComponent(transaction.id)}`}
+                            aria-label={`View transaction ${transaction.id} by transaction ID ${transaction.txId}`}
+                            className="underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#D7E0EF]"
+                          >
+                            {transaction.txId}
+                          </Link>
+                        </p>
+                      )}
                     </TableCell>
                     <TableCell
                       className={`border border-[#2D2D2D] ${s.cell} w-[180px] max-w-[180px]`}
@@ -794,91 +813,101 @@ export function TransactionsTable({
           transactions.map((transaction, index) => {
             const StatusIcon = getStatusIcon(transaction.status);
             return (
-              <button
-                key={index}
-                type="button"
-                onClick={(e) => handleRowClick(transaction, e)}
-                onKeyDown={(e) => handleRowKeyDown(transaction, e)}
-                className="w-full text-left p-4 border rounded-lg hover:bg-[#1A1A1A] focus:outline-none focus:ring-2 focus:ring-[#D7E0EF] transition-colors"
-                aria-label={`View details for transaction ${transaction.id}`}
-              >
-                <div className="flex justify-between items-start">
-                  <div>
-                    <p className="font-medium">
-                      {transaction.type} #{transaction.id}
-                    </p>
-                    <p
-                      className="text-sm text-muted-foreground block truncate max-w-[180px] cursor-help focus:outline-none focus:ring-2 focus:ring-[#D7E0EF] rounded px-1 -ml-1"
-                      title={transaction.address}
-                      tabIndex={0}
-                      onClick={(e) => e.stopPropagation()}
-                    >
-                      {truncateStellarAddress(transaction.address)}
-                    </p>
-                  </div>
-                  <Badge
-                    aria-label={`Status: ${transaction.status}`}
-                    aria-current={
-                      transaction.status === "Pending" ||
-                      transaction.status === "Retry"
-                        ? "step"
-                        : undefined
-                    }
-                    data-state={getTransactionStatusState(transaction.status)}
-                    className={getStatusColor(transaction.status)}
-                  >
-                    <StatusIcon className="size-4" aria-hidden="true" />
-                    <span className="text-sm">{transaction.status}</span>
-                  </Badge>
-                </div>
-                <div className="mt-2 grid grid-cols-2 gap-2">
-                  <div>
-                    <p className="text-sm text-muted-foreground">Date</p>
-                    <p>
-                      {transaction.date} {transaction.time}
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-muted-foreground">Token</p>
-                    <p>{transaction.token}</p>
-                  </div>
-                  <div className="min-w-0">
-                    <p className="text-sm text-muted-foreground">Amount</p>
-                    <p
-                      className={`block truncate max-w-[120px] cursor-help focus:outline-none focus:ring-2 focus:ring-[#D7E0EF] rounded px-1 -ml-1 ${
-                        transaction.amount.startsWith("+")
-                          ? "text-green-500"
-                          : "text-red-500"
-                      }`}
-                      title={transaction.amount}
-                      tabIndex={0}
-                      onClick={(e) => e.stopPropagation()}
-                    >
-                      {transaction.amount}
-                    </p>
-                  </div>
-                </div>
-                <div className="mt-2" onClick={(e) => e.stopPropagation()}>
-                  <TagChip
-                    assignedTags={(tagAssignments[transaction.id] ?? [])
-                      .map((id) => allTags.find((t) => t.id === id))
-                      .filter(Boolean) as Tag[]}
-                    allTags={allTags}
-                    onAssign={(tagId) => onAssignTag?.(transaction.id, tagId)}
-                    onUnassign={(tagId) =>
-                      onUnassignTag?.(transaction.id, tagId)
-                    }
-                    onCreateTag={(name) =>
-                      onCreateTag?.(name) ?? {
-                        id: "",
-                        name,
-                        color: "#34D399",
+              <div key={transaction.id ?? index}>
+                <button
+                  type="button"
+                  onClick={(e) => handleRowClick(transaction, e)}
+                  onKeyDown={(e) => handleRowKeyDown(transaction, e)}
+                  className="w-full text-left p-4 border rounded-lg hover:bg-[#1A1A1A] focus:outline-none focus:ring-2 focus:ring-[#D7E0EF] transition-colors"
+                  aria-label={`View details for transaction ${transaction.id}`}
+                >
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <p className="font-medium">
+                        {transaction.type} #{transaction.id}
+                      </p>
+                      <p
+                        className="text-sm text-muted-foreground block truncate max-w-[180px] cursor-help focus:outline-none focus:ring-2 focus:ring-[#D7E0EF] rounded px-1 -ml-1"
+                        title={transaction.address}
+                        tabIndex={0}
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        {truncateStellarAddress(transaction.address)}
+                      </p>
+                    </div>
+                    <Badge
+                      aria-label={`Status: ${transaction.status}`}
+                      aria-current={
+                        transaction.status === "Pending" ||
+                        transaction.status === "Retry"
+                          ? "step"
+                          : undefined
                       }
-                    }
-                    transactionId={transaction.id}
-                  />
-                </div>
-              </button>
+                      data-state={getTransactionStatusState(transaction.status)}
+                      className={getStatusColor(transaction.status)}
+                    >
+                      <StatusIcon className="size-4" aria-hidden="true" />
+                      <span className="text-sm">{transaction.status}</span>
+                    </Badge>
+                  </div>
+                  <div className="mt-2 grid grid-cols-2 gap-2">
+                    <div>
+                      <p className="text-sm text-muted-foreground">Date</p>
+                      <p>
+                        {transaction.date} {transaction.time}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-muted-foreground">Token</p>
+                      <p>{transaction.token}</p>
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-sm text-muted-foreground">Amount</p>
+                      <p
+                        className={`block truncate max-w-[120px] cursor-help focus:outline-none focus:ring-2 focus:ring-[#D7E0EF] rounded px-1 -ml-1 ${
+                          transaction.amount.startsWith("+")
+                            ? "text-green-500"
+                            : "text-red-500"
+                        }`}
+                        title={transaction.amount}
+                        tabIndex={0}
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        {transaction.amount}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="mt-2" onClick={(e) => e.stopPropagation()}>
+                    <TagChip
+                      assignedTags={
+                        (tagAssignments[transaction.id] ?? [])
+                          .map((id) => allTags.find((t) => t.id === id))
+                          .filter(Boolean) as Tag[]
+                      }
+                      allTags={allTags}
+                      onAssign={(tagId) => onAssignTag?.(transaction.id, tagId)}
+                      onUnassign={(tagId) =>
+                        onUnassignTag?.(transaction.id, tagId)
+                      }
+                      onCreateTag={(name) =>
+                        onCreateTag?.(name) ?? {
+                          id: "",
+                          name,
+                          color: "#34D399",
+                        }
+                      }
+                      transactionId={transaction.id}
+                    />
+                  </div>
+                </button>
+                <Link
+                  href={`/transactions/${encodeURIComponent(transaction.id)}`}
+                  aria-label={`View full details for transaction ${transaction.id}`}
+                  className="mt-2 inline-flex rounded px-1 text-sm text-muted-foreground underline-offset-4 hover:text-foreground hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#D7E0EF]"
+                >
+                  View full details
+                </Link>
+              </div>
             );
           })
         )}
