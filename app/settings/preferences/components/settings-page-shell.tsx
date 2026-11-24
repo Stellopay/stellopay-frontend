@@ -42,6 +42,7 @@ import TaxDocumentsSection, {
 } from "./tax-documents-section";
 import TeamSection from "./team-section";
 import WalletsSection from "./wallets-section";
+import ApprovalThresholdsSection from "./approval-thresholds-section";
 import { useUnsavedChangesGuard } from "@/hooks/useUnsavedChangesGuard";
 import { isShallowEqual } from "@/utils/objectUtils";
 
@@ -93,6 +94,12 @@ function buildSections(
       label: "Statements",
       description: "Periodic statements and tax summaries.",
       badge: `${statementCount} ready`,
+    },
+    {
+      value: "approvals",
+      label: "Approvals",
+      description: "Per-asset thresholds for payment review.",
+      badge: "Payments",
     },
   ];
 }
@@ -298,6 +305,12 @@ export default function SettingsPageShell({
 
         <TabsContent value="documents" className="mt-0">
           <TaxDocumentsSection statements={statements} />
+        </TabsContent>
+
+        <TabsContent value="approvals" className="mt-0">
+          <ApprovalThresholdsSection
+            highlightedSearchLabel={highlightedSearchLabel}
+          />
         </TabsContent>
       </div>
 

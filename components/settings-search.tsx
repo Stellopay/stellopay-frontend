@@ -181,6 +181,11 @@ export const SEARCHABLE_CONTROLS: SearchableControl[] = [
     label: "Pending invitations",
     section: "team",
     keywords: ["pending", "invite", "invitation", "resend", "revoke", "team"],
+  // Payment approvals section controls
+  {
+    label: "Approval threshold",
+    section: "approvals",
+    keywords: ["payment", "payroll", "approval", "asset", "minor units"],
   },
 ];
 
