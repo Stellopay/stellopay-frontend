@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
+import { buildCsp } from "./lib/security-headers";
 
 /**
  * Protected routes that require a valid session.
@@ -103,10 +104,25 @@ export function validatePathname(pathname: unknown): string {
 
 export function middleware(request: NextRequest) {
   const pathname = validatePathname(request.nextUrl.pathname);
+  const nonce = btoa(
+    String.fromCharCode(...crypto.getRandomValues(new Uint8Array(16))),
+  );
+  const csp = buildCsp(nonce, process.env.NODE_ENV === "development");
+  const requestHeaders = new Headers(request.headers);
+  requestHeaders.set("x-nonce", nonce);
+  requestHeaders.set("Content-Security-Policy", csp);
+
+  const nextResponse = () => {
+    const response = NextResponse.next({
+      request: { headers: requestHeaders },
+    });
+    response.headers.set("Content-Security-Policy", csp);
+    return response;
+  };
 
   // Allow public routes and static assets through immediately.
   if (PUBLIC_ROUTES.some((route) => pathname.startsWith(route))) {
-    return NextResponse.next();
+    return nextResponse();
   }
 
   // Check whether the request carries a session cookie.
@@ -115,7 +131,7 @@ export function middleware(request: NextRequest) {
   );
 
   if (hasSession) {
-    return NextResponse.next();
+    return nextResponse();
   }
 
   // No valid session on a protected route → redirect to session-expired.
@@ -124,7 +140,9 @@ export function middleware(request: NextRequest) {
   url.search = "";
   url.searchParams.set("returnTo", pathname);
 
-  return NextResponse.redirect(url);
+  const response = NextResponse.redirect(url);
+  response.headers.set("Content-Security-Policy", csp);
+  return response;
 }
 
 export const config = {

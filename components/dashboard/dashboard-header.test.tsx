@@ -1,8 +1,23 @@
 import React from "react";
 import { render, screen, fireEvent } from "@testing-library/react";
+import { beforeEach, vi } from "vitest";
 import { DashboardHeader } from "./dashboard-header";
 
+const mockUseNotifications = vi.fn();
+
+vi.mock("@/lib/notifications-store", () => ({
+  useNotifications: () => mockUseNotifications(),
+  selectUnreadCount: (items: Array<{ read: boolean }> | null | undefined) =>
+    (items ?? []).filter((item) => !item.read).length,
+  invalidateNotifications: vi.fn(),
+  applyNotificationMutation: vi.fn(),
+}));
+
 describe("DashboardHeader Component", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockUseNotifications.mockReturnValue({ data: [] });
+  });
   it("renders the dashboard heading", () => {
     render(<DashboardHeader />);
     expect(screen.getByText("Dashboard")).toBeInTheDocument();
@@ -99,5 +114,18 @@ describe("DashboardHeader Component", () => {
     expect(menuButton).toHaveAttribute("aria-expanded", "false");
     fireEvent.click(menuButton);
     expect(menuButton).toHaveAttribute("aria-expanded", "true");
+  });
+
+  it("shows the unread notification badge from the store", () => {
+    mockUseNotifications.mockReturnValue({
+      data: [
+        { id: "1", read: false },
+        { id: "2", read: false },
+      ],
+    });
+
+    render(<DashboardHeader />);
+
+    expect(screen.getByLabelText("View notifications")).toHaveTextContent("2");
   });
 });

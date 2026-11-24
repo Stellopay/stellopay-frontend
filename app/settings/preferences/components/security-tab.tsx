@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useSearchHighlight } from "@/hooks/useSearchHighlight";
+import { recordAuditEvent } from "@/lib/audit-log";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import {
@@ -460,6 +461,10 @@ export default function SecurityTab({
       closeTwoFactorSetup();
       setBackupCodes(null);
       setBackupCodesCopyStatus("idle");
+      recordAuditEvent({
+        type: "two_factor_disabled",
+        summary: "Two-factor authentication disabled",
+      });
       return;
     }
     setIsTwoFactorSetupOpen(true);
@@ -503,6 +508,10 @@ export default function SecurityTab({
 
       setTwoFactorEnabled(true);
       closeTwoFactorSetup();
+      recordAuditEvent({
+        type: "two_factor_enabled",
+        summary: "Two-factor authentication enabled",
+      });
       // Issue a fresh set of one-time recovery codes so the user has a way back
       // in if they lose their authenticator. Shown once, in the panel below.
       setBackupCodes(generateBackupCodes());
@@ -633,6 +642,15 @@ export default function SecurityTab({
         value: secret,
         action: "created",
       });
+      recordAuditEvent({
+        type: "api_key_created",
+        summary: `Created API key "${key.name}"`,
+        details: {
+          keyId: key.id,
+          keyName: key.name,
+          prefix: key.prefix,
+        },
+      });
     });
   };
 
@@ -659,6 +677,15 @@ export default function SecurityTab({
         value: secret,
         action: "rotated",
       });
+      recordAuditEvent({
+        type: "api_key_rotated",
+        summary: `Rotated API key "${key.name}"`,
+        details: {
+          keyId: key.id,
+          keyName: key.name,
+          prefix: secret.slice(0, 12),
+        },
+      });
     });
   };
 
@@ -669,6 +696,15 @@ export default function SecurityTab({
         setRevealedApiSecret(null);
         setApiSecretCopyStatus("idle");
       }
+      recordAuditEvent({
+        type: "api_key_revoked",
+        summary: `Revoked API key "${key.name}"`,
+        details: {
+          keyId: key.id,
+          keyName: key.name,
+          prefix: key.prefix,
+        },
+      });
     });
   };
 
@@ -796,6 +832,10 @@ export default function SecurityTab({
         type: "success",
       });
       form.reset();
+      recordAuditEvent({
+        type: "password_changed",
+        summary: "Account password changed successfully",
+      });
     } catch {
       setStatus({
         message: "Failed to save changes. Please try again.",

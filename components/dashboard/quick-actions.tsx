@@ -64,10 +64,10 @@ const defaultActions: QuickActionItem[] = [
     icon: ArrowDownToLine,
     title: messages.dashboard.quickActions.actions.requestPayment.title,
     subtitle: messages.dashboard.quickActions.actions.requestPayment.subtitle,
-    disabled: true,
+    href: "/requests",
     shortcut: "p",
-    borderColor: "border-[#E5E5E5] dark:border-[#2E2E2E]",
-    bgColor: "bg-[#F5F5F5] dark:bg-[#1A1A1A]",
+    borderColor: "border-[#16A34A] dark:border-[#4ADE80]",
+    bgColor: "bg-[#F0FDF4] dark:bg-[#1A2E1A]",
     iconColor: "text-[#16A34A] dark:text-[#4ADE80]",
   },
   {

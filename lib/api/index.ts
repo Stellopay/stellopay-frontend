@@ -18,6 +18,13 @@ export type {
   PaymentHistoryItem,
 } from "./transactions";
 export {
+  dismissNotification,
+  getNotifications,
+  markAllNotificationsRead,
+  markNotificationRead,
+  NOTIFICATIONS_ENDPOINT_PATH,
+} from "./notifications";
+export {
   ApiResponseValidationError,
   HORIZON_ASSET_TYPES,
   parseAccountSummary,
