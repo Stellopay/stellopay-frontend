@@ -7,7 +7,9 @@ import {
   SettinIcon,
   TransactionIcon,
 } from "@/public/svg/svg";
+import { Bell } from "lucide-react";
 import { motion } from "framer-motion";
+import { ClipboardCheck } from "lucide-react";
 import { useReducedMotion } from "@/hooks/useReducedMotion";
 import useSidebar from "@/context/sidebar-context";
 import {
@@ -19,7 +21,7 @@ import { useEffect, useId, useState, type MouseEvent, type ReactNode } from "rea
 import { usePathname } from "next/navigation";
 import Link from "next/link";
 import { useTheme } from "@/context/theme-context";
-import { useDirtyGuard } from "@/context/dirty-guard-context";
+import { useDirtyGuard } from "@/context/wallet-context";
 import { transition } from "@/lib/motion";
 import {
   isLinkActive,
@@ -27,11 +29,39 @@ import {
   getActiveLinkLayoutId,
 } from "@/utils/navigationUtils";
 
-type NavItem = {
+export type NavItem = {
   link: string;
   icon: (color: string) => ReactNode;
   route: string;
 };
+
+export const NAV_LINKS: NavItem[] = [
+  {
+    link: "Dashboard",
+    icon: (color: string) => <DashBoardIcon color={color} />,
+    route: "/dashboard",
+  },
+  {
+    link: "Account Summary",
+    icon: (color: string) => <AccountSummaryIcon color={color} />,
+    route: "/account-summary",
+  },
+  {
+    link: "Transactions",
+    icon: (color: string) => <TransactionIcon color={color} />,
+    route: "/transactions",
+  },
+  {
+    link: "Help/Support",
+    icon: (color: string) => <HelpCircleIcon color={color} />,
+    route: "/help/support",
+  },
+  {
+    link: "Settings",
+    icon: (color: string) => <SettinIcon color={color} />,
+    route: "/settings/preferences",
+  },
+];
 
 type CollapsedNavLinkProps = {
   item: NavItem;
@@ -56,17 +86,17 @@ function CollapsedNavLink({
 }: CollapsedNavLinkProps) {
   const [isHovered, setIsHovered] = useState(false);
   const [isFocused, setIsFocused] = useState(false);
-  const { isDirty, confirmNavigation } = useDirtyGuard();
+  const { isDirty, confirmDiscard } = useDirtyGuard();
 
   const handleNavigation = (event: MouseEvent<HTMLAnchorElement>) => {
     if (
-      isDirty &&
+      isDirty() &&
       event.button === 0 &&
       !event.metaKey &&
       !event.ctrlKey &&
       !event.shiftKey &&
       !event.altKey &&
-      !confirmNavigation()
+      !confirmDiscard()
     ) {
       event.preventDefault();
       event.stopPropagation();
@@ -167,12 +197,11 @@ export const NavLink = () => {
 
   const isExpanded = shouldExpandSidebar(isMobile, isSidebarOpen);
 
-  const { isDirty, confirmNavigation } = useDirtyGuard();
+  const { isDirty, confirmDiscard } = useDirtyGuard();
 
   useEffect(() => {
-    if (!isDirty) return;
-
     const handleBeforeUnload = (event: BeforeUnloadEvent) => {
+      if (!isDirty()) return;
       event.preventDefault();
       event.returnValue = "";
     };
@@ -183,13 +212,13 @@ export const NavLink = () => {
 
   const handleNavigation = (event: MouseEvent<HTMLAnchorElement>) => {
     if (
-      isDirty &&
+      isDirty() &&
       event.button === 0 &&
       !event.metaKey &&
       !event.ctrlKey &&
       !event.shiftKey &&
       !event.altKey &&
-      !confirmNavigation()
+      !confirmDiscard()
     ) {
       event.preventDefault();
       event.stopPropagation();
@@ -213,6 +242,14 @@ export const NavLink = () => {
       route: "/transactions",
     },
     {
+      link: "Notifications",
+      icon: (color: string) => (
+        <Bell color={color} size={20} strokeWidth={1.75} aria-hidden="true" />
+      ),
+      route: "/notifications",
+      link: "Approvals",
+      icon: (color: string) => <ClipboardCheck color={color} size={20} />,
+      route: "/approvals",
       link: "Requests",
       icon: (color: string) => (
         <svg
@@ -257,7 +294,7 @@ export const NavLink = () => {
   return (
     <nav className="w-full">
       <ul className="space-y-1 flex items-center flex-col w-full px-2">
-        {links.map((link) => {
+        {NAV_LINKS.map((link) => {
           const isActive = isLinkActive(link.route, pathname);
 
           let iconColor = "";

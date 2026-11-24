@@ -17,6 +17,7 @@ import { BASE_URL } from "./sitemap";
 export const DISALLOWED_PATHS: string[] = [
   "/dashboard",
   "/transactions",
+  "/invoices",
   "/account-summary",
   "/analytics-view",
   "/settings",

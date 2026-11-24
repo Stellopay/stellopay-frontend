@@ -12,8 +12,8 @@ import {
   Settings,
   Check,
   RefreshCw,
-  type LucideIcon,
 } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 import { cn } from "@/utils/commonUtils";
 import { safeStorage } from "@/utils/safeStorage";
 import { EmptyState } from "@/components/ui/empty-state";
