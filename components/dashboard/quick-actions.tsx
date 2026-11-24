@@ -10,8 +10,8 @@ import {
   FileText,
   Users,
   BarChart3,
-  type LucideIcon,
 } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 import { cn } from "@/utils/commonUtils";
 import { messages } from "@/messages";
 
