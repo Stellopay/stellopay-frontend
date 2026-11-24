@@ -9,11 +9,33 @@
  * - Focus returns to the trigger button when the drawer closes.
  * - Drawer has correct ARIA attributes (aria-modal, role="dialog").
  * - Body scroll is locked when drawer is open.
+ *
+ * Also covers the notification bell, which mounts the shared
+ * components/common/notification-panel.tsx.
  */
 import React from "react";
 import { render, screen, fireEvent, act, within } from "@testing-library/react";
 import { describe, it, expect, vi, beforeEach } from "vitest";
+import type { NotificationItem } from "@/types/notification-item";
+
+const fetchNotifications = vi.hoisted(() =>
+  vi.fn<(signal: AbortSignal) => Promise<unknown>>(() => Promise.resolve([])),
+);
+
+vi.mock("@/lib/api/notifications", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@/lib/api/notifications")>();
+  return { ...actual, fetchNotifications };
+});
+
 import DashboardNavbar from "./dashboard-navbar";
+import { invalidateNotifications } from "@/components/common/notification-panel";
+import { NotificationsSourceUnavailableError } from "@/lib/api/notifications";
+
+beforeEach(() => {
+  // The shared notification loader caches at module level; start each test cold.
+  invalidateNotifications();
+  sessionStorage.clear();
+});
 
 // ── Mock external dependencies ────────────────────────────────────────────────
 
@@ -312,5 +334,203 @@ describe("DashboardNavbar – unread notification badge", () => {
     render(<DashboardNavbar />);
     const btn = getDesktopNotificationBtn();
     expect(btn.querySelector(".bg-red-500")).toBeNull();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Notification bell → shared NotificationPanel
+// ---------------------------------------------------------------------------
+
+describe("DashboardNavbar – notification bell panel", () => {
+  const FEED: NotificationItem[] = [
+    { id: "1", title: "Payment received", message: "You received $250", read: false, category: "payments" },
+    { id: "2", title: "New login", message: "From a new device", read: false, category: "security" },
+    { id: "3", title: "Maintenance", message: "Scheduled downtime", read: true, category: "system" },
+  ];
+
+  beforeEach(() => {
+    fetchNotifications.mockReset();
+    fetchNotifications.mockResolvedValue(FEED);
+  });
+
+  async function renderNavbar(props: React.ComponentProps<typeof DashboardNavbar> = {}) {
+    const utils = render(<DashboardNavbar {...props} />);
+    await act(async () => {});
+    return utils;
+  }
+
+  const getBell = () => screen.getByRole("button", { name: /^notifications/i });
+  const queryPanel = () => screen.queryByRole("dialog", { name: "Notifications panel" });
+
+  it("renders the bell as a collapsed popup trigger", async () => {
+    await renderNavbar();
+    const bell = getBell();
+
+    expect(bell).toHaveAttribute("aria-haspopup", "dialog");
+    expect(bell).toHaveAttribute("aria-expanded", "false");
+    expect(queryPanel()).toBeNull();
+  });
+
+  it("derives the unread badge from the shared feed when no count is passed", async () => {
+    await renderNavbar();
+    expect(getBell()).toHaveAttribute("aria-label", "Notifications, 2 unread");
+  });
+
+  it("still honours an explicit unreadCount", async () => {
+    await renderNavbar({ unreadCount: 12 });
+    expect(getBell()).toHaveAttribute("aria-label", "Notifications, 9+ unread");
+  });
+
+  it("opens the shared panel with the feed when the bell is clicked", async () => {
+    await renderNavbar();
+    const bell = getBell();
+
+    fireEvent.click(bell);
+
+    const panel = queryPanel();
+    expect(panel).toBeInTheDocument();
+    expect(bell).toHaveAttribute("aria-expanded", "true");
+    expect(bell).toHaveAttribute("aria-controls", panel!.id);
+    expect(within(panel!).getByRole("listbox", { name: "Notifications list" })).toBeInTheDocument();
+    expect(within(panel!).getByText("Payment received")).toBeInTheDocument();
+    expect(within(panel!).getByRole("tablist", { name: /filter notifications/i })).toBeInTheDocument();
+    expect(within(panel!).getByRole("link", { name: /view all/i })).toHaveAttribute("href", "/notifications");
+  });
+
+  it("closes the panel when the bell is clicked again", async () => {
+    await renderNavbar();
+    const bell = getBell();
+
+    fireEvent.click(bell);
+    fireEvent.click(bell);
+
+    expect(queryPanel()).toBeNull();
+    expect(bell).toHaveAttribute("aria-expanded", "false");
+  });
+
+  it("closes on Escape and returns focus to the bell", async () => {
+    await renderNavbar();
+    const bell = getBell();
+    fireEvent.click(bell);
+
+    fireEvent.keyDown(document, { key: "Escape" });
+
+    expect(queryPanel()).toBeNull();
+    expect(document.activeElement).toBe(bell);
+  });
+
+  it("closes on Escape pressed inside the notification list", async () => {
+    await renderNavbar();
+    const bell = getBell();
+    fireEvent.click(bell);
+
+    const option = within(queryPanel()!).getAllByRole("option")[0];
+    act(() => option.focus());
+    fireEvent.keyDown(option, { key: "Escape" });
+
+    expect(queryPanel()).toBeNull();
+    expect(document.activeElement).toBe(bell);
+  });
+
+  it("closes when the user clicks outside the panel", async () => {
+    await renderNavbar();
+    fireEvent.click(getBell());
+
+    fireEvent.mouseDown(screen.getByRole("link", { name: /stellopay home/i }));
+
+    expect(queryPanel()).toBeNull();
+  });
+
+  it("stays open for clicks inside the panel", async () => {
+    await renderNavbar();
+    fireEvent.click(getBell());
+    const panel = queryPanel()!;
+
+    const securityTab = within(panel).getByRole("tab", { name: /security/i });
+    fireEvent.mouseDown(securityTab);
+    fireEvent.click(securityTab);
+
+    expect(queryPanel()).toBeInTheDocument();
+    expect(within(panel).getByText("New login")).toBeInTheDocument();
+    expect(within(panel).queryByText("Payment received")).not.toBeInTheDocument();
+  });
+
+  it("supports arrow-key navigation through the notifications", async () => {
+    await renderNavbar();
+    fireEvent.click(getBell());
+    const panel = queryPanel()!;
+    const listbox = within(panel).getByRole("listbox");
+
+    fireEvent.keyDown(listbox, { key: "ArrowDown" });
+
+    const options = within(panel).getAllByRole("option");
+    expect(document.activeElement).toBe(options[1]);
+    expect(options[1]).toHaveAttribute("aria-selected", "true");
+  });
+
+  it("forwards notification activation to the host", async () => {
+    const onNotificationClick = vi.fn();
+    await renderNavbar({ onNotificationClick });
+    fireEvent.click(getBell());
+
+    fireEvent.click(within(queryPanel()!).getByText("New login"));
+
+    expect(onNotificationClick).toHaveBeenCalledWith(FEED[1]);
+  });
+
+  it("shares one request between the bell and other consumers", async () => {
+    await renderNavbar();
+    fireEvent.click(getBell());
+    expect(fetchNotifications).toHaveBeenCalledTimes(1);
+  });
+
+  it("explains when no notification source is connected, without a retry", async () => {
+    fetchNotifications.mockRejectedValue(new NotificationsSourceUnavailableError());
+    await renderNavbar();
+    fireEvent.click(getBell());
+
+    const alert = within(queryPanel()!).getByRole("alert");
+    expect(alert).toHaveTextContent(/isn't connected yet/i);
+    expect(within(alert).queryByRole("button", { name: /try again/i })).toBeNull();
+  });
+
+  it("shows a retryable error when loading fails", async () => {
+    fetchNotifications.mockRejectedValueOnce(new Error("offline"));
+    await renderNavbar();
+    fireEvent.click(getBell());
+
+    const alert = within(queryPanel()!).getByRole("alert");
+    expect(alert).toHaveTextContent("Couldn't load notifications.");
+
+    fireEvent.click(within(alert).getByRole("button", { name: /try again/i }));
+    await act(async () => {});
+
+    expect(fetchNotifications).toHaveBeenCalledTimes(2);
+    expect(within(queryPanel()!).getByText("Payment received")).toBeInTheDocument();
+  });
+
+  it("expands the shared panel inline from the mobile drawer", async () => {
+    await renderNavbar();
+    fireEvent.click(screen.getByRole("button", { name: /open navigation menu/i }));
+    const drawer = screen.getByRole("dialog", { name: /mobile navigation menu/i });
+    const mobileBell = within(drawer).getByRole("button", { name: /^notifications/i });
+
+    expect(mobileBell).toHaveAttribute("aria-expanded", "false");
+    fireEvent.click(mobileBell);
+
+    expect(mobileBell).toHaveAttribute("aria-expanded", "true");
+    expect(within(drawer).getByText("Payment received")).toBeInTheDocument();
+
+    fireEvent.click(mobileBell);
+    expect(within(drawer).queryByText("Payment received")).toBeNull();
+  });
+
+  it("keeps theme toggle and wallet controls working while the panel is open", async () => {
+    await renderNavbar();
+    fireEvent.click(getBell());
+
+    expect(screen.getByRole("button", { name: /switch to dark mode/i })).toBeInTheDocument();
+    expect(screen.getByTestId("dashboard-navbar-connect")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Settings" })).toBeInTheDocument();
   });
 });

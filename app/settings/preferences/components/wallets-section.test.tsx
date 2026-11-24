@@ -3,6 +3,7 @@ import { render, screen, fireEvent, waitFor, within } from "@testing-library/rea
 import userEvent from "@testing-library/user-event";
 import { describe, it, expect, vi } from "vitest";
 import { WalletsSection, WalletItem } from "./wallets-section";
+import * as pendingActionModule from "@/hooks/usePendingAction";
 
 const mockWallets: WalletItem[] = [
   { id: "1", nickname: "Test Wallet 1", address: "GABC...1234" },
@@ -79,6 +80,32 @@ describe("WalletsSection", () => {
       expect(screen.queryByRole("dialog")).not.toBeInTheDocument(),
     );
     expect(removeSpy).toHaveBeenCalledTimes(1);
+  });
+
+  it("renders a spinner while wallet removal is pending", () => {
+    const idleAction = {
+      isPending: false,
+      error: null,
+      run: vi.fn(),
+      reset: vi.fn(),
+    };
+    const pendingAction = vi
+      .spyOn(pendingActionModule, "usePendingAction")
+      .mockReturnValue(idleAction);
+
+    try {
+      const { rerender } = render(<WalletsSection wallets={mockWallets} />);
+      fireEvent.click(screen.getAllByRole("button", { name: /remove/i })[0]);
+
+      pendingAction.mockReturnValue({ ...idleAction, isPending: true });
+      rerender(<WalletsSection wallets={mockWallets} />);
+
+      const confirm = screen.getByRole("button", { name: /removing/i });
+      expect(confirm).toBeDisabled();
+      expect(confirm.querySelector("svg.animate-spin")).toBeInTheDocument();
+    } finally {
+      pendingAction.mockRestore();
+    }
   });
 
   it("keeps the dialog open with an error on failure, then retries successfully", async () => {

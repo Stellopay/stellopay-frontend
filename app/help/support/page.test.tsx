@@ -6,6 +6,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { toast } from "sonner"; // VERIFY: match real toast lib
 import SupportPage from "./page";
+import AccountManagementPage from "./accountManagement/page";
 import * as demoData from "@/lib/demo-data-support";
 import { safeStorage } from "@/utils/safeStorage";
 
@@ -22,7 +23,7 @@ vi.mock("sonner", () => ({
 
 vi.mock("@/components/common/support-tabs", () => ({
   default: ({ children, activeTab, setActiveTab }: any) => (
-    <div data-testid="support-tabs">
+    <div data-testid="support-tabs" data-active-tab={activeTab}>
       <button onClick={() => setActiveTab("Client FAQ")}>Client FAQ</button>
       <button onClick={() => setActiveTab("Contact Support")}>Contact Support</button>
       {activeTab === "Client FAQ" && children}
@@ -101,6 +102,33 @@ describe("Support Page", () => {
     const badges = screen.getAllByTestId("faq-article-count");
     expect(badges).toHaveLength(4);
     badges.forEach((badge) => expect(badge.textContent).toBe("6"));
+  });
+});
+
+describe("Account Management Page", () => {
+  beforeEach(() => {
+    localStorage.removeItem("stellopay-help-feedback-password-security");
+  });
+
+  it("switches to Contact Support from the article feedback callback", async () => {
+    const user = userEvent.setup();
+    render(<AccountManagementPage />);
+
+    await user.click(
+      await screen.findByRole("button", {
+        name: "No, this article was not helpful",
+      }),
+    );
+    await user.click(
+      screen.getByRole("button", {
+        name: "Contact support for further assistance",
+      }),
+    );
+
+    expect(screen.getByTestId("support-tabs")).toHaveAttribute(
+      "data-active-tab",
+      "Contact Support",
+    );
   });
 });
 
