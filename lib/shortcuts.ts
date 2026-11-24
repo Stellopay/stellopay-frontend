@@ -85,6 +85,10 @@ export const SHORTCUT_GROUPS: ShortcutGroup[] = [
         href: "/analytics-view",
       },
       {
+        keys: ["g", "r"],
+        description: "Go to Reports",
+      },
+      {
         keys: ["g", "s"],
         description: "Go to Settings",
         href: "/settings/preferences",

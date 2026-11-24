@@ -14,6 +14,7 @@ const PROTECTED_ROUTES = [
   "/recipients",
   "/notifications",
   "/approvals",
+  "/reports",
 ];
 
 /**
