@@ -43,12 +43,11 @@ import { QuickActions, type QuickActionItem } from "./quick-actions";
 // Helpers
 // ---------------------------------------------------------------------------
 
-/** Titles of the four actions that have no destination yet. */
+/** Titles of the three actions that have no destination yet. */
 const COMING_SOON_TITLES = [
   "Request Payment",
   "New Contract",
   "Create Invoice",
-  "Add Recipient",
 ];
 
 /** Default actions rendered when no `actions` prop is supplied. */
@@ -72,6 +71,9 @@ describe("QuickActions – default destinations", () => {
       screen.getByRole("link", { name: "Send Payment" }),
     ).toBeInTheDocument();
     expect(
+      screen.getByRole("link", { name: "Add Recipient" }),
+    ).toBeInTheDocument();
+    expect(
       screen.getByRole("link", { name: "View Reports" }),
     ).toBeInTheDocument();
 
@@ -87,6 +89,13 @@ describe("QuickActions – default destinations", () => {
 
     const link = screen.getByRole("link", { name: "Send Payment" });
     expect(link).toHaveAttribute("href", "/transactions");
+  });
+
+  it("routes Add Recipient to /recipients", () => {
+    renderDefault();
+
+    const link = screen.getByRole("link", { name: "Add Recipient" });
+    expect(link).toHaveAttribute("href", "/recipients");
   });
 
   it("routes View Reports to /analytics-view", () => {
@@ -107,7 +116,7 @@ describe("QuickActions – default destinations", () => {
 
     // Exclude the Customize link (it has no aria-label matching an action)
     const actionLinks = links.filter((el) =>
-      ["Send Payment", "View Reports"].includes(
+      ["Send Payment", "View Reports", "Add Recipient"].includes(
         el.getAttribute("aria-label") ?? "",
       ),
     );
@@ -252,9 +261,10 @@ describe("QuickActions – roving tabindex", () => {
     renderDefault();
 
     const cards = getEnabledCards();
-    expect(cards.length).toBe(2);
+    expect(cards.length).toBe(3);
     expect(cards[0]).toHaveAttribute("aria-label", "Send Payment");
-    expect(cards[1]).toHaveAttribute("aria-label", "View Reports");
+    expect(cards[1]).toHaveAttribute("aria-label", "Add Recipient");
+    expect(cards[2]).toHaveAttribute("aria-label", "View Reports");
   });
 
   it("moves focus on ArrowRight", () => {
@@ -289,9 +299,9 @@ describe("QuickActions – roving tabindex", () => {
     fireEvent.keyDown(grid, { key: "ArrowLeft" });
     expect(document.activeElement).toBe(cards[0]);
 
-    act(() => { cards[1].focus(); });
+    act(() => { cards[cards.length - 1].focus(); });
     fireEvent.keyDown(grid, { key: "ArrowRight" });
-    expect(document.activeElement).toBe(cards[1]);
+    expect(document.activeElement).toBe(cards[cards.length - 1]);
   });
 
   it("moves focus on ArrowDown to the next row", () => {
@@ -327,7 +337,7 @@ describe("QuickActions – roving tabindex", () => {
     expect(document.activeElement).toBe(cards[0]);
 
     fireEvent.keyDown(grid, { key: "End" });
-    expect(document.activeElement).toBe(cards[1]);
+    expect(document.activeElement).toBe(cards[cards.length - 1]);
   });
 
   it("updates tabIndex when focus moves between cards", () => {

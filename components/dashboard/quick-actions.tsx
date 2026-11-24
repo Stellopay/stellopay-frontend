@@ -94,10 +94,10 @@ const defaultActions: QuickActionItem[] = [
     icon: Users,
     title: messages.dashboard.quickActions.actions.addRecipient.title,
     subtitle: messages.dashboard.quickActions.actions.addRecipient.subtitle,
-    disabled: true,
+    href: "/recipients",
     shortcut: "a",
-    borderColor: "border-[#E5E5E5] dark:border-[#2E2E2E]",
-    bgColor: "bg-[#F5F5F5] dark:bg-[#1A1A1A]",
+    borderColor: "border-[#EC4899] dark:border-[#DB2777]",
+    bgColor: "bg-[#FDF2F8] dark:bg-[#3B122D]",
     iconColor: "text-[#EC4899] dark:text-[#F472B6]",
   },
   {
