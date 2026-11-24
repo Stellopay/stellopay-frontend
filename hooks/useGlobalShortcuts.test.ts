@@ -59,6 +59,18 @@ describe("useGlobalShortcuts Hook", () => {
       expect(mockPush).toHaveBeenCalledWith("/transactions");
     });
 
+    it("should navigate to send payment on 'g' then 'p'", () => {
+      renderHook(() => useGlobalShortcuts());
+
+      const event1 = new KeyboardEvent("keydown", { key: "g" });
+      const event2 = new KeyboardEvent("keydown", { key: "p" });
+
+      window.dispatchEvent(event1);
+      window.dispatchEvent(event2);
+
+      expect(mockPush).toHaveBeenCalledWith("/payments/new");
+    });
+
     it("should navigate to settings on 'g' then 's'", () => {
       renderHook(() => useGlobalShortcuts());
 

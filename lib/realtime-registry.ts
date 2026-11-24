@@ -242,7 +242,12 @@ export class RealtimeRegistry {
     }
   }
 
-  private invalidateRequest(key: string): void {
+  /**
+   * Abort and remove a cached request by key. Used by stores that keep
+   * account-scoped request keys (`notifications:<scope>`) so invalidation does
+   * not need to go through the channel/event path.
+   */
+  invalidateRequest(key: string): void {
     const entry = this.requestCache.get(key);
     if (!entry) return;
 

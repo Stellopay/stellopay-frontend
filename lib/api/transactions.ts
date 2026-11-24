@@ -12,6 +12,14 @@ import type {
   SortField,
   SortConfig,
 } from "@/types/transaction";
+import type { Network } from "@/types/wallet";
+import {
+  formatXlmAmount,
+  getAccount,
+  HorizonAccountNotFoundError,
+  isHorizonNetworkId,
+  type HorizonAccount,
+} from "@/lib/stellar/horizon";
 import { allTransactions } from "@/lib/transactions";
 import {
   filterTransactions,
@@ -531,6 +539,17 @@ export async function getTransactions(
   });
 }
 
+export interface AccountBalance {
+  assetCode: string;
+  assetType: "native" | "credit_alphanum4" | "credit_alphanum12" | "liquidity_pool_shares";
+  assetIssuer: string | null;
+  balance: string;
+  limit: string | null;
+  isAuthorized: boolean | null;
+  buyingLiabilities: string;
+  sellingLiabilities: string;
+}
+
 export interface AccountSummary {
   balance: string;
   balanceRaw: number;
@@ -539,12 +558,103 @@ export interface AccountSummary {
   toBePaid: string;
   toBePaidCount: number;
   walletAddress: string;
+  /** `horizon` for live network data, `mock` for the explicitly enabled demo fallback. */
+  source: "horizon" | "mock";
+  network: string;
+  nativeBalance: string;
+  spendableBalance: string;
+  isUnfunded: boolean;
+  balances: AccountBalance[];
+  trustlines: AccountBalance[];
+}
+
+export interface GetAccountSummaryParams {
+  address?: string | null;
+  network?: Network;
+  signal?: AbortSignal;
+}
+
+/** Explicit opt-out used for demos; live Horizon data is the default. */
+function isMockSummaryEnabled(): boolean {
+  return (
+    process.env.NEXT_PUBLIC_ACCOUNT_SUMMARY_MOCK?.trim().toLowerCase() ===
+    "true"
+  );
+}
+
+function horizonSummary(
+  account: HorizonAccount,
+  networkId: string,
+): AccountSummary {
+  return {
+    balance: `${formatXlmAmount(account.spendableBalance)} XLM`,
+    balanceRaw: Number(account.spendableBalance),
+    paidThisMonth: "$ 0",
+    paidThisMonthCount: 0,
+    toBePaid: "$ 0",
+    toBePaidCount: 0,
+    walletAddress: account.accountId,
+    source: "horizon",
+    network: networkId,
+    nativeBalance: account.nativeBalance,
+    spendableBalance: account.spendableBalance,
+    isUnfunded: false,
+    balances: account.balances,
+    trustlines: account.trustlines,
+  };
+}
+
+function unfundedSummary(address: string, networkId: string): AccountSummary {
+  return {
+    balance: "0 XLM",
+    balanceRaw: 0,
+    paidThisMonth: "$ 0",
+    paidThisMonthCount: 0,
+    toBePaid: "$ 0",
+    toBePaidCount: 0,
+    walletAddress: address,
+    source: "horizon",
+    network: networkId,
+    nativeBalance: "0",
+    spendableBalance: "0",
+    isUnfunded: true,
+    balances: [],
+    trustlines: [],
+  };
 }
 
 /**
  * Fetch the account summary displayed on the dashboard.
+ *
+ * With a connected wallet on a supported network this reads the real account
+ * from Horizon. The demo summary is only returned when no wallet/network is
+ * given or when `NEXT_PUBLIC_ACCOUNT_SUMMARY_MOCK=true` is set explicitly; it
+ * is tagged `source: "mock"` so the UI can label it.
  */
-export async function getAccountSummary(): Promise<AccountSummary> {
+export async function getAccountSummary(
+  params: GetAccountSummaryParams = {},
+): Promise<AccountSummary> {
+  const { address, network, signal } = params;
+
+  if (address && network) {
+    if (!isHorizonNetworkId(network.id)) {
+      throw new Error(
+        `Account balances are unavailable on network "${network.id}".`,
+      );
+    }
+    if (!isMockSummaryEnabled()) {
+      try {
+        const account = await getAccount(address, network, signal);
+        return parseAccountSummary(horizonSummary(account, network.id));
+      } catch (error) {
+        if (error instanceof HorizonAccountNotFoundError) {
+          return parseAccountSummary(unfundedSummary(address, network.id));
+        }
+        throw error;
+      }
+    }
+  }
+
   if (process.env.NODE_ENV === "development") {
     await new Promise((r) => setTimeout(r, 400));
   }
@@ -556,7 +666,14 @@ export async function getAccountSummary(): Promise<AccountSummary> {
     paidThisMonthCount: 0,
     toBePaid: "$ 0",
     toBePaidCount: 0,
-    walletAddress: "BaDE1b23U45...67890UzZ",
+    walletAddress: address ?? "BaDE1b23U45...67890UzZ",
+    source: "mock",
+    network: network?.id ?? "",
+    nativeBalance: "0",
+    spendableBalance: "0",
+    isUnfunded: false,
+    balances: [],
+    trustlines: [],
   });
 }
 

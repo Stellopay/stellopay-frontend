@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
+import { buildCsp } from "./lib/security-headers";
 
 /**
  * Protected routes that require a valid session.
@@ -10,6 +11,8 @@ const PROTECTED_ROUTES = [
   "/transactions",
   "/settings",
   "/account-summary",
+  "/notifications",
+  "/approvals",
 ];
 
 /**
@@ -48,7 +51,7 @@ const MAX_PATHNAME_LENGTH = 2048;
 export class MiddlewareValidationError extends Error {
   readonly code: 
     | "EMPTY_PATHNAME"
-    | "INVALID_PATHAME"
+    | "INVALID_PATHNAME"
     | "PATHNAME_TOO_LONG";
 
   constructor(
@@ -69,7 +72,7 @@ export class MiddlewareValidationError extends Error {
 export function validatePathname(pathname: unknown): string {
   if (typeof pathname !== "string") {
     throw new MiddlewareValidationError(
-      "INVALID_PATHAME",
+      "INVALID_PATHNAME",
       "Pathname must be a string.",
     );
   }
@@ -81,10 +84,10 @@ export function validatePathname(pathname: unknown): string {
     );
   }
 
-  if (pathname.length > MAX_PATHAME_LENGTH) {
+  if (pathname.length > MAX_PATHNAME_LENGTH) {
     throw new MiddlewareValidationError(
-      "PATHAMAE_TOO_LONG",
-      `Pathname exceeds the maximum length of ${MAX_PATHAME_LENGTH} characters.`,
+      "PATHNAME_TOO_LONG",
+      `Pathname exceeds the maximum length of ${MAX_PATHNAME_LENGTH} characters.`,
     );
   }
 
@@ -100,10 +103,25 @@ export function validatePathname(pathname: unknown): string {
 
 export function middleware(request: NextRequest) {
   const pathname = validatePathname(request.nextUrl.pathname);
+  const nonce = btoa(
+    String.fromCharCode(...crypto.getRandomValues(new Uint8Array(16))),
+  );
+  const csp = buildCsp(nonce, process.env.NODE_ENV === "development");
+  const requestHeaders = new Headers(request.headers);
+  requestHeaders.set("x-nonce", nonce);
+  requestHeaders.set("Content-Security-Policy", csp);
+
+  const nextResponse = () => {
+    const response = NextResponse.next({
+      request: { headers: requestHeaders },
+    });
+    response.headers.set("Content-Security-Policy", csp);
+    return response;
+  };
 
   // Allow public routes and static assets through immediately.
   if (PUBLIC_ROUTES.some((route) => pathname.startsWith(route))) {
-    return NextResponse.next();
+    return nextResponse();
   }
 
   // Check whether the request carries a session cookie.
@@ -112,7 +130,7 @@ export function middleware(request: NextRequest) {
   );
 
   if (hasSession) {
-    return NextResponse.next();
+    return nextResponse();
   }
 
   // No valid session on a protected route → redirect to session-expired.
@@ -121,7 +139,9 @@ export function middleware(request: NextRequest) {
   url.search = "";
   url.searchParams.set("returnTo", pathname);
 
-  return NextResponse.redirect(url);
+  const response = NextResponse.redirect(url);
+  response.headers.set("Content-Security-Policy", csp);
+  return response;
 }
 
 export const config = {

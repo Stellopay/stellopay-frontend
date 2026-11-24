@@ -9,6 +9,8 @@ interface UseAccountSummaryResult {
   isLoading: boolean;
   error: string | null;
   isStale: boolean;
+  /** True when Horizon reports a valid but not-yet-funded account (404). */
+  isUnfunded: boolean;
   refetch: () => void;
 }
 
@@ -26,6 +28,14 @@ const accountSummaryCache = new Map<string, CacheEntry>();
 
 function readCache(key: string | null): CacheEntry | null {
   return key ? accountSummaryCache.get(key) ?? null : null;
+}
+
+function isAbortError(error: unknown): boolean {
+  return (
+    error instanceof DOMException
+      ? error.name === "AbortError"
+      : (error as { name?: string } | null)?.name === "AbortError"
+  );
 }
 
 export function clearAccountSummaryCache() {
@@ -52,6 +62,8 @@ export function clearAccountSummaryCache() {
  *                flight; `false` when a cached result is served synchronously.
  * - `error`    — `string | null`  A human-readable error message when the most
  *                recent fetch fails, or `null` on success.
+ * - `isUnfunded`— `boolean`  `true` when Horizon reports a valid address that
+ *                has not been funded yet; render an empty state, not an error.
  * - `refetch`  — `() => void`  Stable function that resets `error`, sets
  *                `isLoading = true`, and re-fetches from the API.
  *
@@ -82,6 +94,11 @@ export function clearAccountSummaryCache() {
 export function useAccountSummary(): UseAccountSummaryResult {
   const { address, network } = useWallet();
   const cacheKey = address ? `${network.id}:${address}` : null;
+
+  // Read the current wallet inside the request effect without making the
+  // effect depend on a fresh network object identity on every render.
+  const walletRef = useRef({ address, network });
+  walletRef.current = { address, network };
 
   const [data, setData] = useState<AccountSummary | null>(() => {
     return readCache(cacheKey)?.value ?? null;
@@ -130,6 +147,7 @@ export function useAccountSummary(): UseAccountSummaryResult {
     }
 
     let cancelled = false;
+    const controller = new AbortController();
     const requestId = latestRequestId.current + 1;
     latestRequestId.current = requestId;
 
@@ -138,7 +156,12 @@ export function useAccountSummary(): UseAccountSummaryResult {
     }
     setError(null);
 
-    getAccountSummary()
+    const { address: walletAddress, network: walletNetwork } = walletRef.current;
+    getAccountSummary({
+      address: walletAddress,
+      network: walletNetwork,
+      signal: controller.signal,
+    })
       .then((result) => {
         if (!cancelled && requestId === latestRequestId.current) {
           accountSummaryCache.set(cacheKey, { value: result, fetchedAt: Date.now() });
@@ -148,6 +171,7 @@ export function useAccountSummary(): UseAccountSummaryResult {
         }
       })
       .catch((err: unknown) => {
+        if (controller.signal.aborted || isAbortError(err)) return;
         if (!cancelled && requestId === latestRequestId.current) {
           setError(
             err instanceof Error
@@ -160,6 +184,7 @@ export function useAccountSummary(): UseAccountSummaryResult {
 
     return () => {
       cancelled = true;
+      controller.abort();
     };
   }, [cacheKey, requestTick]);
 
@@ -171,5 +196,12 @@ export function useAccountSummary(): UseAccountSummaryResult {
     return () => window.removeEventListener("online", handleOnline);
   }, []);
 
-  return { data, isLoading, error, isStale, refetch };
+  return {
+    data,
+    isLoading,
+    error,
+    isStale,
+    isUnfunded: data?.isUnfunded ?? false,
+    refetch,
+  };
 }

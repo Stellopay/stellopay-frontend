@@ -1,4 +1,8 @@
 import { render, screen } from "@testing-library/react";
+import { describe, expect, it, vi } from "vitest";
+
+import DashboardPage from "./page";
+
 import { describe, expect, it, vi, beforeEach } from "vitest";
 import React from "react";
 
@@ -10,6 +14,8 @@ vi.mock("@/components/dashboard/dashboard-page", () => ({
   default: () => <div data-testid="dashboard">Dashboard</div>,
 }));
 
+describe("DashboardPage", () => {
+  it("renders the dashboard route content", () => {
 // Mock the notifications store
 vi.mock("@/lib/notifications-store", () => ({
   useNotificationsStore: vi.fn(),

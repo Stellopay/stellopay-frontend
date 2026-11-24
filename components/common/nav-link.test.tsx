@@ -25,6 +25,13 @@ vi.mock("@/context/sidebar-context", () => ({
   default: () => mockSidebar,
 }));
 
+vi.mock("@/context/wallet-context", () => ({
+  useDirtyGuard: () => ({
+    isDirty: () => false,
+    confirmDiscard: vi.fn(),
+  }),
+}));
+
 vi.mock("@/context/theme-context", () => ({
   useTheme: () => ({ theme: "light" }),
 }));
@@ -87,6 +94,42 @@ describe("NavLink aria-current", () => {
     expect(currentLinks[0]).toHaveAccessibleName(/Account Summary/);
     expect(screen.getByRole("link", { name: "Dashboard" })).not.toHaveAttribute(
       "aria-current",
+    );
+  });
+
+  it("lists Notifications once, linking to /notifications", () => {
+    render(<NavLink />);
+
+    const links = screen.getAllByRole("link", { name: "Notifications" });
+    expect(links).toHaveLength(1);
+    expect(links[0]).toHaveAttribute("href", "/notifications");
+  });
+
+  it("marks Notifications active on /notifications", () => {
+    mockPathname.value = "/notifications";
+    render(<NavLink />);
+
+    const currentLinks = screen
+      .getAllByRole("link")
+      .filter((link) => link.getAttribute("aria-current") === "page");
+
+    expect(currentLinks).toHaveLength(1);
+    expect(currentLinks[0]).toHaveAccessibleName(/Notifications/);
+  });
+
+  it("shows the Notifications entry with an accessible label when collapsed", () => {
+    mockSidebar.isSidebarOpen = false;
+    mockPathname.value = "/notifications";
+    render(<NavLink />);
+
+    expect(screen.getByRole("link", { name: "Notifications" })).toHaveAttribute(
+  it("adds an active, accessible link for payment approvals", () => {
+    mockPathname.value = "/approvals";
+    render(<NavLink />);
+
+    expect(screen.getByRole("link", { name: "Approvals" })).toHaveAttribute(
+      "aria-current",
+      "page",
     );
   });
 
