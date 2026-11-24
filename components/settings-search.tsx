@@ -160,6 +160,18 @@ export const SEARCHABLE_CONTROLS: SearchableControl[] = [
     section: "wallets",
     keywords: ["remove", "wallet", "danger", "destructive", "delete"],
   },
+
+  // Audit log section controls
+  {
+    label: "Audit log",
+    section: "audit",
+    keywords: ["audit", "log", "security", "activity", "history", "events", "trail"],
+  },
+  {
+    label: "Export audit log",
+    section: "audit",
+    keywords: ["export", "csv", "download", "audit", "events", "logs"],
+  },
 ];
 
 export interface SettingsSearchResult {

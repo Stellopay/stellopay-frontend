@@ -40,6 +40,7 @@ import TaxDocumentsSection, {
   type TaxDocument,
 } from "./tax-documents-section";
 import WalletsSection from "./wallets-section";
+import AuditLogTab from "./audit-log-tab";
 import { useUnsavedChangesGuard } from "@/hooks/useUnsavedChangesGuard";
 import { isShallowEqual } from "@/utils/objectUtils";
 
@@ -81,6 +82,12 @@ function buildSections(statementCount: number): SettingsHeaderSection[] {
       label: "Statements",
       description: "Periodic statements and tax summaries.",
       badge: `${statementCount} ready`,
+    },
+    {
+      value: "audit",
+      label: "Audit Log",
+      description: "Security and account activity history.",
+      badge: "Activity",
     },
   ];
 }
@@ -280,6 +287,10 @@ export default function SettingsPageShell({
 
         <TabsContent value="documents" className="mt-0">
           <TaxDocumentsSection statements={statements} />
+        </TabsContent>
+
+        <TabsContent value="audit" className="mt-0">
+          <AuditLogTab highlightedSearchLabel={highlightedSearchLabel} />
         </TabsContent>
       </div>
 

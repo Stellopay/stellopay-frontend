@@ -29,6 +29,8 @@ import type {
 } from "@/types/wallet";
 import { isWalletAddress, isWalletConnectionResult } from "@/types/wallet";
 import { createAccountScope, realtimeRegistry } from "@/lib/realtime-registry";
+import { recordAuditEvent } from "@/lib/audit-log";
+import { truncateStellarAddress } from "@/utils/stellarAddress";
 
 export const SUPPORTED_NETWORKS: Network[] = [
   { id: "stellar", name: "Stellar" },
@@ -372,6 +374,14 @@ export const WalletProvider: React.FC<WalletProviderProps> = ({
     if (next === undefined) {
       if (!confirmDiscard()) return;
       setAddress(SYNTHETIC_ADDRESS);
+      recordAuditEvent({
+        type: "wallet_connected",
+        summary: `Connected demo wallet ${truncateStellarAddress(SYNTHETIC_ADDRESS)}`,
+        details: {
+          address: truncateStellarAddress(SYNTHETIC_ADDRESS),
+          network: network.id,
+        },
+      });
       return;
     }
 
@@ -391,7 +401,16 @@ export const WalletProvider: React.FC<WalletProviderProps> = ({
         );
       }
       if (!confirmDiscard()) return;
-      setAddress(next.trim());
+      const targetAddress = next.trim();
+      setAddress(targetAddress);
+      recordAuditEvent({
+        type: "wallet_connected",
+        summary: `Connected wallet ${truncateStellarAddress(targetAddress)}`,
+        details: {
+          address: truncateStellarAddress(targetAddress),
+          network: network.id,
+        },
+      });
       return;
     }
 
@@ -402,16 +421,35 @@ export const WalletProvider: React.FC<WalletProviderProps> = ({
     }
 
     if (!confirmDiscard()) return;
-    setAddress(next.address.trim());
+    const targetAddress = next.address.trim();
+    setAddress(targetAddress);
     if (next.network) {
       applyNetwork(next.network);
     }
-  }, [applyNetwork, confirmDiscard]);
+    recordAuditEvent({
+      type: "wallet_connected",
+      summary: `Connected wallet ${truncateStellarAddress(targetAddress)}`,
+      details: {
+        address: truncateStellarAddress(targetAddress),
+        network: next.network ? next.network.id : network.id,
+      },
+    });
+  }, [applyNetwork, confirmDiscard, network.id]);
 
   const disconnect = useCallback(() => {
     if (!confirmDiscard()) return;
+    const previousAddress = address;
     setAddress(null);
-  }, [confirmDiscard]);
+    recordAuditEvent({
+      type: "wallet_disconnected",
+      summary: previousAddress
+        ? `Disconnected wallet ${truncateStellarAddress(previousAddress)}`
+        : "Disconnected wallet",
+      details: {
+        address: previousAddress ? truncateStellarAddress(previousAddress) : undefined,
+      },
+    });
+  }, [address, confirmDiscard]);
 
   const value = useMemo<WalletContextValue>(
     () => ({
