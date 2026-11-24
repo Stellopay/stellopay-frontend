@@ -7,7 +7,7 @@ import { usePathname } from 'next/navigation';
 import { Menu, X, Bell } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { StellOpayLogo } from '@/public/svg/svg';
-import { useNotifications } from '@/lib/notifications-store';
+import { selectUnreadCount, useNotifications } from '@/lib/notifications-store';
 
 export interface NavItem { label: string; href: string; };
 
@@ -25,7 +25,7 @@ export default function Navbar({ navItems = DEFAULT_NAV_ITEMS }: NavbarProps) {
   const pathname = usePathname();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const { data } = useNotifications();
-  const unreadCount = (data ?? []).filter((n) => !n.read).length;
+  const unreadCount = selectUnreadCount(data);
 
   const isItemActive = (href: string) => {
     if (!pathname) return false;

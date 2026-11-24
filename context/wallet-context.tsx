@@ -29,6 +29,13 @@ import type {
 } from "@/types/wallet";
 import { isWalletAddress, isWalletConnectionResult } from "@/types/wallet";
 import { createAccountScope, realtimeRegistry } from "@/lib/realtime-registry";
+import {
+  isFreighterInstalled,
+  requestFreighterAccess,
+  watchFreighterChanges,
+  FreighterNotInstalledError,
+  FreighterUserRejectedError,
+} from "@/lib/stellar/freighter";
 import { recordAuditEvent } from "@/lib/audit-log";
 import { truncateStellarAddress } from "@/utils/stellarAddress";
 
@@ -114,6 +121,9 @@ export const WalletProvider: React.FC<WalletProviderProps> = ({
     initialNetwork ?? DEFAULT_NETWORK,
   );
   const [isUnsupportedNetwork, setIsUnsupportedNetwork] = useState(false);
+  const [freighterStatus, setFreighterStatus] =
+    useState<import("@/types/wallet").FreighterConnectionStatus>("idle");
+  const [freighterError, setFreighterError] = useState<string | null>(null);
 
   const dirtySourcesRef = useRef(new Map<string, () => boolean>());
 
@@ -440,6 +450,9 @@ export const WalletProvider: React.FC<WalletProviderProps> = ({
     if (!confirmDiscard()) return;
     const previousAddress = address;
     setAddress(null);
+    setFreighterStatus("idle");
+    setFreighterError(null);
+  }, [confirmDiscard]);
     recordAuditEvent({
       type: "wallet_disconnected",
       summary: previousAddress
@@ -450,6 +463,118 @@ export const WalletProvider: React.FC<WalletProviderProps> = ({
       },
     });
   }, [address, confirmDiscard]);
+
+  /**
+   * Initiate a real Freighter wallet connection.
+   *
+   * Flow:
+   * 1. Set status to 'connecting' so the UI can show a spinner.
+   * 2. Call requestFreighterAccess() which opens the Freighter popup.
+   * 3a. On success: validate the returned address (reuses the same guards as
+   *     connect()), store it, and set capabilities.
+   * 3b. On FreighterNotInstalledError: set status 'not_installed'; do not throw.
+   * 3c. On FreighterUserRejectedError: set status 'rejected'; do not throw.
+   * 3d. On any other error: set status 'error' and store the message.
+   *
+   * Returns true when the connection succeeded, false otherwise.
+   */
+  const connectFreighter = useCallback(async (): Promise<boolean> => {
+    if (!confirmDiscard()) return false;
+
+    setFreighterStatus("connecting");
+    setFreighterError(null);
+
+    try {
+      const rawAddress = await requestFreighterAccess();
+
+      // Reuse the same secret-key guard that connect() applies.
+      if (/^S[A-Z2-7]+$/.test(rawAddress.trim())) {
+        // Should never happen with a real Freighter extension, but guard
+        // against a spoofed extension or a test misconfiguration.
+        setFreighterStatus("error");
+        setFreighterError("Freighter returned a value that looks like a secret key.");
+        return false;
+      }
+
+      if (!isWalletAddress(rawAddress)) {
+        setFreighterStatus("error");
+        setFreighterError("Freighter returned an invalid public address.");
+        return false;
+      }
+
+      setAddress(rawAddress.trim());
+      setFreighterStatus("idle");
+      return true;
+    } catch (err) {
+      if (err instanceof FreighterNotInstalledError) {
+        setFreighterStatus("not_installed");
+        return false;
+      }
+      if (err instanceof FreighterUserRejectedError) {
+        setFreighterStatus("rejected");
+        return false;
+      }
+      const msg =
+        err instanceof Error ? err.message : "An unexpected error occurred.";
+      setFreighterStatus("error");
+      setFreighterError(msg);
+      return false;
+    }
+  }, [confirmDiscard]);
+
+  // ── Freighter change watcher ─────────────────────────────────────────────
+  //
+  // When no external subscribeToNetworkChanges / subscribeToAccountChanges
+  // props are supplied, we set up Freighter's built-in WatchWalletChanges
+  // poller.  It fires on every address or network change inside the extension
+  // so the app tracks the user's active account without requiring a manual
+  // reconnect.
+  //
+  // If the caller passes subscribeToNetworkChanges (e.g. in tests), that takes
+  // precedence and we do not start the Freighter watcher at all — the separate
+  // effects above handle those callbacks.
+  useEffect(() => {
+    // Skip in SSR and when the caller has provided their own subscriptions.
+    if (typeof window === "undefined") return;
+    if (subscribeToNetworkChanges || subscribeToAccountChanges) return;
+
+    // isFreighterInstalled is async; run it and start watching only when the
+    // extension is present.  Failure is non-fatal — the app works without it.
+    let stopped = false;
+    let stopWatcher: (() => void) | undefined;
+
+    isFreighterInstalled()
+      .then((installed) => {
+        if (stopped || !installed) return;
+
+        stopWatcher = watchFreighterChanges(({ address: newAddress, network: newNetwork }) => {
+          // Ignore empty / unchanged address — Freighter emits on startup
+          // even before the user has authorised the dApp.
+          if (newAddress && isWalletAddress(newAddress)) {
+            setAddress((prev) => (prev === newAddress ? prev : newAddress));
+          }
+
+          if (newNetwork) {
+            setNetworkState((prev) =>
+              prev.id === newNetwork.id ? prev : newNetwork,
+            );
+            writeNetworkToStorage(newNetwork);
+            setIsUnsupportedNetwork(false);
+          }
+        });
+      })
+      .catch(() => {
+        // Extension not reachable — silently ignore.
+      });
+
+    return () => {
+      stopped = true;
+      stopWatcher?.();
+    };
+    // confirmDiscard is intentionally excluded: address/network callbacks
+    // should not check dirty state — only user-initiated actions do.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [subscribeToNetworkChanges, subscribeToAccountChanges]);
 
   const value = useMemo<WalletContextValue>(
     () => ({
@@ -463,8 +588,11 @@ export const WalletProvider: React.FC<WalletProviderProps> = ({
       setNetwork,
       connect,
       disconnect,
+      connectFreighter,
+      freighterStatus,
+      freighterError,
     }),
-    [address, network, isUnsupportedNetwork, capabilities, getActionState, setNetwork, connect, disconnect],
+    [address, network, isUnsupportedNetwork, capabilities, getActionState, setNetwork, connect, disconnect, connectFreighter, freighterStatus, freighterError],
   );
 
   return (

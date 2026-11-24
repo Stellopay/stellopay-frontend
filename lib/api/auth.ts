@@ -1,12 +1,17 @@
 import { LoginFormValues } from "@/types/auth";
 
+export type AuthErrorKind = "network" | "http" | "unknown";
+
 /**
  * Custom error class for authentication failures.
  */
 export class AuthError extends Error {
-  constructor(message: string) {
+  public readonly kind: AuthErrorKind;
+
+  constructor(message: string, kind: AuthErrorKind = "unknown") {
     super(message);
     this.name = "AuthError";
+    this.kind = kind;
   }
 }
 
@@ -69,8 +74,17 @@ export async function login(credentials: LoginFormValues): Promise<void> {
     });
 
     if (!response.ok) {
+      if (response.status >= 500) {
+        throw new AuthError(
+          "We're having trouble reaching our servers. Please try again.",
+          "network",
+        );
+      }
       // Intentionally not exposing server response details
-      throw new AuthError("Invalid email or password. Please try again.");
+      throw new AuthError(
+        "Invalid email or password. Please try again.",
+        "http",
+      );
     }
   } catch (error) {
     if (error instanceof AuthError) {
@@ -78,7 +92,8 @@ export async function login(credentials: LoginFormValues): Promise<void> {
     }
     // Generic error for network issues, etc.
     throw new AuthError(
-      "An error occurred during login. Please try again later.",
+      "Unable to connect. Please check your internet connection and try again.",
+      "network",
     );
   }
 }
@@ -225,6 +240,7 @@ export async function sendMagicLink(email: string): Promise<void> {
       // Intentionally not exposing server response details
       throw new AuthError(
         "Could not send login link. Please check the email address and try again.",
+        "http",
       );
     }
   } catch (error) {
@@ -233,6 +249,7 @@ export async function sendMagicLink(email: string): Promise<void> {
     }
     throw new AuthError(
       "An error occurred. Please try again later.",
+      "network",
     );
   }
 }
@@ -258,7 +275,7 @@ export async function refreshToken(refreshToken?: string): Promise<{ accessToken
     });
 
     if (!response.ok) {
-      throw new AuthError("Session expired. Please sign in again.");
+      throw new AuthError("Session expired. Please sign in again.", "http");
     }
 
     const data = await response.json().catch(() => ({}));
@@ -270,7 +287,48 @@ export async function refreshToken(refreshToken?: string): Promise<{ accessToken
     if (error instanceof AuthError) {
       throw error;
     }
-    throw new AuthError("Failed to refresh session token.");
+    throw new AuthError("Failed to refresh session token.", "network");
+  }
+}
+
+/**
+ * Sends a password reset email to the given address.
+ *
+ * To prevent user enumeration attacks, responses with status 200, 202, or 404
+ * are treated uniformly as success.
+ *
+ * @param email - The email address to send the password reset link to.
+ * @throws {AuthError} If a network or server error occurs.
+ */
+export async function sendPasswordResetEmail(email: string): Promise<void> {
+  const baseUrl =
+    process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:3000/api";
+
+  try {
+    const response = await fetch(`${baseUrl}/auth/forgot-password`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ email }),
+    });
+
+    if (response.ok || response.status === 202 || response.status === 404) {
+      return;
+    }
+
+    throw new AuthError(
+      "Unable to process password reset request. Please try again later.",
+      "http",
+    );
+  } catch (error) {
+    if (error instanceof AuthError) {
+      throw error;
+    }
+    throw new AuthError(
+      "Unable to connect. Please check your internet connection and try again.",
+      "network",
+    );
   }
 }
 

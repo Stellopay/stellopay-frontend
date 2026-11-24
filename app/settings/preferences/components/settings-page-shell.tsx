@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { Bell, FileText, Shield, UserRound, Users, Wallet } from "lucide-react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Bell, FileText, Shield, UserRound, Wallet } from "lucide-react";
 import { usePathname, useRouter } from "next/navigation";
 import SettingsHeader, {
@@ -23,7 +25,8 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent } from "@/components/ui/tabs";
-import { DEMO_WALLETS } from "@/lib/demo-data";
+import { PermissionsProvider } from "@/context/permissions-context";
+import { DEMO_TEAM_MEMBERS, DEMO_WALLETS } from "@/lib/demo-data";
 import AccountSection, {
   DEFAULT_PROFILE,
   isProfileComplete,
@@ -39,7 +42,9 @@ import TaxDocumentsSection, {
   AVAILABLE_TAX_DOCUMENTS,
   type TaxDocument,
 } from "./tax-documents-section";
+import TeamSection from "./team-section";
 import WalletsSection from "./wallets-section";
+import ApprovalThresholdsSection from "./approval-thresholds-section";
 import AuditLogTab from "./audit-log-tab";
 import { useUnsavedChangesGuard } from "@/hooks/useUnsavedChangesGuard";
 import { isShallowEqual } from "@/utils/objectUtils";
@@ -50,8 +55,12 @@ import { isShallowEqual } from "@/utils/objectUtils";
  * hardcoded "2 linked" literal so the summary stays in sync with reality.
  */
 const linkedWalletCount = DEMO_WALLETS.length;
+const defaultTeamMemberCount = DEMO_TEAM_MEMBERS.length;
 
-function buildSections(statementCount: number): SettingsHeaderSection[] {
+function buildSections(
+  statementCount: number,
+  teamMemberCount: number = defaultTeamMemberCount,
+): SettingsHeaderSection[] {
   return [
     {
       value: "account",
@@ -78,12 +87,22 @@ function buildSections(statementCount: number): SettingsHeaderSection[] {
       badge: `${linkedWalletCount} linked`,
     },
     {
+      value: "team",
+      label: "Team",
+      description: "Members, invitations, and role permissions.",
+      badge: `${teamMemberCount} members`,
+    },
+    {
       value: "documents",
       label: "Statements",
       description: "Periodic statements and tax summaries.",
       badge: `${statementCount} ready`,
     },
     {
+      value: "approvals",
+      label: "Approvals",
+      description: "Per-asset thresholds for payment review.",
+      badge: "Payments",
       value: "audit",
       label: "Audit Log",
       description: "Security and account activity history.",
@@ -94,16 +113,21 @@ function buildSections(statementCount: number): SettingsHeaderSection[] {
 
 interface SettingsPageShellProps {
   initialSection?: string;
+  initialSearchLabel?: string;
   statements?: TaxDocument[];
 }
 
 export default function SettingsPageShell({
   initialSection,
+  initialSearchLabel,
   statements = AVAILABLE_TAX_DOCUMENTS,
 }: SettingsPageShellProps) {
   const router = useRouter();
   const pathname = usePathname();
-  const sections = buildSections(statements.length);
+  const sections = useMemo(
+    () => buildSections(statements.length),
+    [statements.length],
+  );
   const resolvedInitialSection = sections.some(
     (section) => section.value === initialSection,
   )
@@ -150,7 +174,9 @@ export default function SettingsPageShell({
   const statementCoverage = `${statements.length} ready`;
 
   const [pendingSection, setPendingSection] = useState<string | null>(null);
-  const [highlightedSearchLabel, setHighlightedSearchLabel] = useState<string | null>(null);
+  const [highlightedSearchLabel, setHighlightedSearchLabel] = useState<
+    string | null
+  >(initialSearchLabel ?? null);
 
   // Determine if there are unsaved edits. We use a simple deep comparison
   // against the initial defaults since this shell tracks the state.
@@ -164,19 +190,59 @@ export default function SettingsPageShell({
    * change handler and the "Discard changes" dialog go through this so the
    * state transitions live in one place.
    */
-  const commitSectionChange = (nextSection: string, searchLabel?: string) => {
-    setActiveSection(nextSection);
-    setHighlightedSearchLabel(searchLabel ?? null);
-    router.replace(`${pathname}?section=${nextSection}`, {
-      scroll: false,
-    });
-  };
+  const commitSectionChange = useCallback(
+    (nextSection: string, searchLabel?: string) => {
+      setActiveSection(nextSection);
+      setHighlightedSearchLabel(searchLabel ?? null);
+      router.replace(`${pathname}?section=${nextSection}`, {
+        scroll: false,
+      });
+    },
+    [pathname, router],
+  );
 
-  const handleSectionChange = (nextSection: string, searchLabel?: string) => {
-    if (nextSection === activeSection && !searchLabel) return;
-    if (!confirmDiscard()) return;
-    commitSectionChange(nextSection, searchLabel);
-  };
+  const handleSectionChange = useCallback(
+    (nextSection: string, searchLabel?: string) => {
+      if (nextSection === activeSection && !searchLabel) return;
+      if (!confirmDiscard()) return;
+      commitSectionChange(nextSection, searchLabel);
+    },
+    [activeSection, commitSectionChange, confirmDiscard],
+  );
+
+  useEffect(() => {
+    const handleCommandNavigation = (event: Event) => {
+      const navigationEvent = event as CustomEvent<{ href: string }>;
+      const target = new URL(
+        navigationEvent.detail.href,
+        window.location.origin,
+      );
+
+      if (target.pathname !== pathname) {
+        if (!confirmDiscard()) event.preventDefault();
+        return;
+      }
+
+      const section = target.searchParams.get("section");
+      if (!section || !sections.some((item) => item.value === section)) return;
+
+      event.preventDefault();
+      handleSectionChange(
+        section,
+        target.searchParams.get("control") ?? undefined,
+      );
+    };
+
+    window.addEventListener(
+      "stellopay:command-navigation",
+      handleCommandNavigation,
+    );
+    return () =>
+      window.removeEventListener(
+        "stellopay:command-navigation",
+        handleCommandNavigation,
+      );
+  }, [handleSectionChange, pathname, sections]);
 
   // Clear the search highlight after the next render cycle so the
   // section component can pick it up and scroll to the control.
@@ -285,10 +351,20 @@ export default function SettingsPageShell({
           <WalletsSection highlightedSearchLabel={highlightedSearchLabel} />
         </TabsContent>
 
+        <TabsContent value="team" className="mt-0">
+          <PermissionsProvider>
+            <TeamSection highlightedSearchLabel={highlightedSearchLabel} />
+          </PermissionsProvider>
+        </TabsContent>
+
         <TabsContent value="documents" className="mt-0">
           <TaxDocumentsSection statements={statements} />
         </TabsContent>
 
+        <TabsContent value="approvals" className="mt-0">
+          <ApprovalThresholdsSection
+            highlightedSearchLabel={highlightedSearchLabel}
+          />
         <TabsContent value="audit" className="mt-0">
           <AuditLogTab highlightedSearchLabel={highlightedSearchLabel} />
         </TabsContent>
