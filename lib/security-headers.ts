@@ -4,8 +4,9 @@
  * Single source of truth for the app's HTTP security headers.
  *
  * These values are consumed by:
- *  - next.config.ts  (applied to every route via the Next.js `headers()` hook)
- *  - tests/security-headers.spec.ts  (Playwright preview checks)
+ *  - middleware.ts (the request-specific Content-Security-Policy)
+ *  - next.config.ts (the remaining static security headers)
+ *  - tests/security-headers.spec.ts (Playwright preview checks)
  *
  * Centralizing the policy here means the test asserts against the exact
  * directives the server actually sends — a header can't drift without the
@@ -20,18 +21,16 @@
  *  - content-type   → X-Content-Type-Options
  */
 
-/** Collectively enforced CSP directives that reject unsafe inline/cross-origin behavior. */
+/** Static CSP directives shared by all requests. */
 export const CSP_DIRECTIVES: string[] = [
-  // No inline or eval'd scripts: resources must come from the same origin.
   "default-src 'self'",
-  "script-src 'self'",
   // Styles allow inline so Tailwind/Next injected <style> nodes work.
   "style-src 'self' 'unsafe-inline'",
   // Images may be data/blob for icons & avatars; nothing external besides self.
   "img-src 'self' data: blob:",
   "font-src 'self'",
-  // Same-origin API + specific Stellar network hosts only.
-  "connect-src 'self' https://stellar.org https://horizon.stellar.org https://soroban.stellar.org",
+  // Same-origin API + supported Stellar network hosts only.
+  "connect-src 'self' https://stellar.org https://horizon.stellar.org https://soroban.stellar.org https://horizon-testnet.stellar.org https://horizon-futurenet.stellar.org",
   // Reject all framing of this site (clickjacking defence).
   "frame-ancestors 'none'",
   "base-uri 'self'",
@@ -39,8 +38,11 @@ export const CSP_DIRECTIVES: string[] = [
   "upgrade-insecure-requests",
 ];
 
-/** Full serialized Content-Security-Policy header value. */
-export const CONTENT_SECURITY_POLICY = CSP_DIRECTIVES.join("; ");
+/** Build the per-request CSP; eval is permitted only by the development server. */
+export function buildCsp(nonce: string, isDev: boolean): string {
+  const scriptSrc = `script-src 'nonce-${nonce}' 'strict-dynamic'${isDev ? " 'unsafe-eval'" : ""}`;
+  return [scriptSrc, ...CSP_DIRECTIVES].join("; ");
+}
 
 export const X_FRAME_OPTIONS = "DENY";
 
@@ -58,11 +60,10 @@ export const PERMISSIONS_POLICY =
   "camera=(), microphone=(), geolocation=(), interest-cohort=()";
 
 /**
- * The exact { key, value } objects applied by Next.js `headers()`.
- * Exported so the Playwright preview check and config can never disagree.
+ * The exact static headers applied by Next.js `headers()`.
+ * CSP is intentionally omitted because it requires a request-specific nonce.
  */
 export const SECURITY_HEADERS = [
-  { key: "Content-Security-Policy", value: CONTENT_SECURITY_POLICY },
   { key: "X-Frame-Options", value: X_FRAME_OPTIONS },
   { key: "Strict-Transport-Security", value: STRICT_TRANSPORT_SECURITY },
   { key: "Referrer-Policy", value: REFERRER_POLICY },
