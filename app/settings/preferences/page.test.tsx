@@ -101,6 +101,7 @@ describe("SettingsPage — searchParams resolution", () => {
       "security",
       "wallets",
       "documents",
+      "approvals",
     ];
 
     for (const section of validSections) {
