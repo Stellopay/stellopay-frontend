@@ -54,7 +54,7 @@ const defaultActions: QuickActionItem[] = [
     icon: Send,
     title: messages.dashboard.quickActions.actions.sendPayment.title,
     subtitle: messages.dashboard.quickActions.actions.sendPayment.subtitle,
-    href: "/transactions",
+    href: "/payments/new",
     shortcut: "s",
     borderColor: "border-[#3B82F6] dark:border-[#2563EB]",
     bgColor: "bg-[#EFF6FF] dark:bg-[#1E3A5F]",
