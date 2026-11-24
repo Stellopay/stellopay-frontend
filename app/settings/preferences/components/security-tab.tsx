@@ -39,6 +39,7 @@ import {
   calculatePasswordStrength,
   checkPasswordRequirements,
 } from "@/utils/authUtils";
+import { copyToClipboardWithFeedback } from "@/utils/clipboardUtils";
 import DestructiveActionDialog from "./destructive-action-dialog";
 import { DEMO_SECURITY, DEMO_CONNECTED_APPS } from "@/lib/demo-data";
 import { generateTotpSecret, verifyTotpCode } from "@/lib/totp";
@@ -372,6 +373,8 @@ export default function SecurityTab({
   >(null);
   const [twoFactorSubmitting, setTwoFactorSubmitting] = useState(false);
   const [totpSecret, setTotpSecret] = useState<string | null>(null);
+  const [totpSecretCopyStatus, setTotpSecretCopyStatus] =
+    useState<CopyStatus>("idle");
   const [qrCodeDataUrl, setQrCodeDataUrl] = useState<string | null>(null);
   const totpSecretRef = useRef<string | null>(null);
 
@@ -1022,13 +1025,38 @@ export default function SecurityTab({
                             onClick={() =>
                               copyToClipboardWithFeedback(
                                 totpSecret,
-                                "Secret key copied",
+                                () => {
+                                  setTotpSecretCopyStatus("success");
+                                  setTimeout(
+                                    () => setTotpSecretCopyStatus("idle"),
+                                    2000,
+                                  );
+                                },
+                                () => {
+                                  setTotpSecretCopyStatus("error");
+                                  setTimeout(
+                                    () => setTotpSecretCopyStatus("idle"),
+                                    3000,
+                                  );
+                                },
                               )
                             }
                             className="shrink-0 rounded-md p-1.5 text-zinc-400 hover:bg-zinc-100 hover:text-zinc-600 dark:hover:bg-zinc-800 dark:hover:text-zinc-300"
-                            aria-label="Copy secret key"
+                            aria-label={
+                              totpSecretCopyStatus === "success"
+                                ? "Secret key copied"
+                                : totpSecretCopyStatus === "error"
+                                  ? "Failed to copy secret key"
+                                  : "Copy secret key"
+                            }
                           >
-                            <Copy className="h-4 w-4" />
+                            {totpSecretCopyStatus === "success" ? (
+                              <CheckCircle2 className="h-4 w-4 text-emerald-600" />
+                            ) : totpSecretCopyStatus === "error" ? (
+                              <AlertCircle className="h-4 w-4 text-red-500" />
+                            ) : (
+                              <Copy className="h-4 w-4" />
+                            )}
                           </button>
                         </div>
                       )}

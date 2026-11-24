@@ -4,6 +4,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { useState, useEffect } from "react";
 import { safeStorage } from "@/utils/safeStorage";
+import { isValidEmail } from "@/utils/authUtils";
 import { X } from "lucide-react";
 import { messages } from "@/messages";
 
@@ -134,6 +135,72 @@ function persistConsent(value: boolean): void {
   );
 }
 
+// Newsletter email validation gate.
+//
+// Mirrors the typed-result shape used by utils/file-validation.ts so callers
+// branch on a machine-readable `error.code` instead of parsing prose, and so
+// every rejection — malformed, empty, oversized — is reported the same way.
+// The submission handler runs this before touching any state, so rejected
+// input never reaches the submit pipeline.
+
+export const NEWSLETTER_EMAIL_MAX_LENGTH = 254; // RFC 5321 §4.5.3.1.3 total-address cap
+
+export type NewsletterEmailErrorCode =
+  | "EMAIL_EMPTY"
+  | "EMAIL_MALFORMED"
+  | "EMAIL_OVERSIZED";
+
+export interface NewsletterEmailError {
+  code: NewsletterEmailErrorCode;
+  message: string;
+}
+
+export type NewsletterEmailValidationResult =
+  | { valid: true }
+  | { valid: false; error: NewsletterEmailError };
+
+function rejectNewsletterEmail(
+  code: NewsletterEmailErrorCode,
+  message: string,
+): NewsletterEmailValidationResult {
+  return { valid: false, error: { code, message } };
+}
+
+export function validateNewsletterEmail(
+  value: unknown,
+): NewsletterEmailValidationResult {
+  if (value === null || value === undefined) {
+    return rejectNewsletterEmail("EMAIL_EMPTY", "Enter your email address.");
+  }
+  if (typeof value !== "string") {
+    return rejectNewsletterEmail(
+      "EMAIL_MALFORMED",
+      "Email address must be text.",
+    );
+  }
+
+  const email = value.trim();
+  if (email === "") {
+    return rejectNewsletterEmail("EMAIL_EMPTY", "Enter your email address.");
+  }
+  // Length before shape: an oversized value is rejected on size alone, no
+  // matter what else is wrong with it (same ordering as file-validation).
+  if (email.length > NEWSLETTER_EMAIL_MAX_LENGTH) {
+    return rejectNewsletterEmail(
+      "EMAIL_OVERSIZED",
+      `Email address must be ${NEWSLETTER_EMAIL_MAX_LENGTH} characters or fewer.`,
+    );
+  }
+  if (!isValidEmail(email)) {
+    return rejectNewsletterEmail(
+      "EMAIL_MALFORMED",
+      "Enter a valid email address.",
+    );
+  }
+
+  return { valid: true };
+}
+
 export default function Footer() {
   const [email, setEmail] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -164,7 +231,10 @@ export default function Footer() {
 
   const handleSubscribe = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!email) return;
+    // Gate first: a rejected address returns here, before setIsSubmitting,
+    // the async pipeline, or clearing the field. No state is written.
+    const validation = validateNewsletterEmail(email);
+    if (!validation.valid) return;
 
     setIsSubmitting(true);
     await new Promise((resolve) => setTimeout(resolve, 1000));

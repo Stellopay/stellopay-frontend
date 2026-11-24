@@ -150,16 +150,25 @@ export default function SettingsPageShell({
   const isProfileDirty = JSON.stringify(profile) !== JSON.stringify(DEFAULT_PROFILE);
   const isDirty = isProfileDirty;
 
-  const handleSectionChange = (nextSection: string, searchLabel?: string) => {
-    if (nextSection === activeSection && !searchLabel) return;
-    if (!confirmDiscard()) return;
+  /**
+   * Applies a section switch once any unsaved-changes check has passed:
+   * activates the section, sets (or clears) the search highlight, and syncs
+   * the `?section=` query param, which also drops any URL hash. Both the tab
+   * change handler and the "Discard changes" dialog go through this so the
+   * state transitions live in one place.
+   */
+  const commitSectionChange = (nextSection: string, searchLabel?: string) => {
     setActiveSection(nextSection);
-    if (searchLabel) {
-      setHighlightedSearchLabel(searchLabel);
-    }
+    setHighlightedSearchLabel(searchLabel ?? null);
     router.replace(`${pathname}?section=${nextSection}`, {
       scroll: false,
     });
+  };
+
+  const handleSectionChange = (nextSection: string, searchLabel?: string) => {
+    if (nextSection === activeSection && !searchLabel) return;
+    if (!confirmDiscard()) return;
+    commitSectionChange(nextSection, searchLabel);
   };
 
   // Clear the search highlight after the next render cycle so the

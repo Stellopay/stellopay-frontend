@@ -2,6 +2,7 @@
 
 import { Archive, Download, Tag, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { validateSelectedCount } from "./bulk-action-bar-validation";
 
 interface BulkActionBarProps {
   /** Number of currently selected rows. Must be > 0 to render. */
@@ -34,6 +35,9 @@ export function BulkActionBar({
   onArchive,
   onClearSelection,
 }: BulkActionBarProps) {
+  // Validate before any state or render — malformed input never propagates.
+  validateSelectedCount(selectedCount);
+
   if (selectedCount === 0) return null;
 
   const label =

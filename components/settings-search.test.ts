@@ -1,8 +1,9 @@
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, it, expect, vi } from "vitest";
-import React from "react";
+import * as React from "react";
 import SettingsSearch, { searchControls, SEARCHABLE_CONTROLS } from "./settings-search";
+import { validateSearchQuery, SearchValidationError } from "./settings-search";
 
 describe("searchControls", () => {
   it("should return empty array for empty query", () => {
@@ -151,7 +152,7 @@ describe("searchControls", () => {
 
 describe("SettingsSearch component", () => {
   it("renders the search input with correct ARIA attributes", () => {
-    render(<SettingsSearch />);
+    render(React.createElement(SettingsSearch));
 
     const input = screen.getByRole("combobox");
     expect(input).toHaveAttribute("aria-label", "Search settings controls");
@@ -162,7 +163,7 @@ describe("SettingsSearch component", () => {
 
   it("shows results dropdown when typing a query", async () => {
     const user = userEvent.setup();
-    render(<SettingsSearch />);
+    render(React.createElement(SettingsSearch));
 
     const input = screen.getByRole("combobox");
     await user.type(input, "password");
@@ -177,7 +178,7 @@ describe("SettingsSearch component", () => {
 
   it("has aria-activedescendant pointing to highlighted result", async () => {
     const user = userEvent.setup();
-    render(<SettingsSearch />);
+    render(React.createElement(SettingsSearch));
 
     const input = screen.getByRole("combobox");
     await user.type(input, "transfer");
@@ -194,7 +195,7 @@ describe("SettingsSearch component", () => {
 
   it("renders an aria-live region for screen reader announcements", async () => {
     const user = userEvent.setup();
-    render(<SettingsSearch />);
+    render(React.createElement(SettingsSearch));
 
     // Initially no announcement
     const liveRegion = document.querySelector('[aria-live="polite"]');
@@ -209,7 +210,7 @@ describe("SettingsSearch component", () => {
 
   it("announces no results state via aria-live", async () => {
     const user = userEvent.setup();
-    render(<SettingsSearch />);
+    render(React.createElement(SettingsSearch));
 
     const input = screen.getByRole("combobox");
     await user.type(input, "xyzabcnotreal");
@@ -221,7 +222,7 @@ describe("SettingsSearch component", () => {
   it("calls onResultSelect with section and label when result is clicked", async () => {
     const onResultSelect = vi.fn();
     const user = userEvent.setup();
-    render(<SettingsSearch onResultSelect={onResultSelect} />);
+    render(React.createElement(SettingsSearch, { onResultSelect }));
 
     const input = screen.getByRole("combobox");
     await user.type(input, "password");
@@ -238,7 +239,7 @@ describe("SettingsSearch component", () => {
 
   it("shows clear button when query is non-empty", async () => {
     const user = userEvent.setup();
-    render(<SettingsSearch />);
+    render(React.createElement(SettingsSearch));
 
     const input = screen.getByRole("combobox");
 
@@ -251,7 +252,7 @@ describe("SettingsSearch component", () => {
 
   it("clears input when Escape is pressed", async () => {
     const user = userEvent.setup();
-    render(<SettingsSearch />);
+    render(React.createElement(SettingsSearch));
 
     const input = screen.getByRole("combobox");
     await user.type(input, "password");
@@ -264,10 +265,12 @@ describe("SettingsSearch component", () => {
   it("closes dropdown when clicking outside", async () => {
     const user = userEvent.setup();
     render(
-      <div>
-        <SettingsSearch />
-        <div data-testid="outside">Outside</div>
-      </div>,
+      React.createElement(
+        "div",
+        null,
+        React.createElement(SettingsSearch),
+        React.createElement("div", { "data-testid": "outside" }, "Outside"),
+      ),
     );
 
     const input = screen.getByRole("combobox");
@@ -281,11 +284,130 @@ describe("SettingsSearch component", () => {
 
   it("renders start-typing hint when focused but empty", async () => {
     const user = userEvent.setup();
-    render(<SettingsSearch />);
+    render(React.createElement(SettingsSearch));
 
     const input = screen.getByRole("combobox");
     await user.click(input);
 
     expect(screen.getByText("Start typing to search")).toBeInTheDocument();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Input validation
+// ---------------------------------------------------------------------------
+
+describe("validateSearchQuery", () => {
+  it("accepts valid input and returns the trimmed query", () => {
+    expect(validateSearchQuery("password")).toBe("password");
+    expect(validateSearchQuery("  password  ")).toBe("password");
+  });
+
+  it("accepts empty input as a valid no-op query", () => {
+    expect(validateSearchQuery("")).toBe("");
+    expect(validateSearchQuery("   ")).toBe("");
+  });
+
+  it("rejects non-string input with a typed error", () => {
+    for (const bad of [null, undefined, 42, {}, [], true]) {
+      expect(() => validateSearchQuery(bad as unknown as string)).toThrow(
+        SearchValidationError,
+      );
+    }
+  });
+
+  it("rejects oversized input with a typed error", () => {
+    const oversized = "a".repeat(10_000);
+    expect(() => validateSearchQuery(oversized)).toThrow(SearchValidationError);
+  });
+
+  it("exposes a reason on the typed error", () => {
+    try {
+      validateSearchQuery(42 as unknown as string);
+      throw new Error("expected validateSearchQuery to throw");
+    } catch (err) {
+      expect(err).toBeInstanceOf(SearchValidationError);
+      expect((err as SearchValidationError).reason).toBe("invalid-type");
+    }
+
+    try {
+      validateSearchQuery("a".repeat(10_000));
+      throw new Error("expected validateSearchQuery to throw");
+    } catch (err) {
+      expect(err).toBeInstanceOf(SearchValidationError);
+      expect((err as SearchValidationError).reason).toBe("too-long");
+    }
+  });
+});
+
+describe("SettingsSearch input validation", () => {
+  it("does not write state when given malformed input", async () => {
+    const user = userEvent.setup();
+    render(React.createElement(SettingsSearch));
+
+    const input = screen.getByRole("combobox") as HTMLInputElement;
+
+    // Simulate a malformed value bypassing the browser's string coercion.
+    const setter = Object.getOwnPropertyDescriptor(
+      HTMLInputElement.prototype,
+      "value",
+    )?.set;
+    setter?.call(input, 12345 as unknown as string);
+    input.dispatchEvent(new Event("input", { bubbles: true }));
+
+    // No dropdown, no clear button, no announcement — state untouched.
+    expect(screen.queryByRole("listbox")).not.toBeInTheDocument();
+    expect(screen.queryByLabelText("Clear search")).not.toBeInTheDocument();
+    const liveRegion = document.querySelector('[aria-live="polite"]');
+    expect(liveRegion?.textContent ?? "").toBe("");
+  });
+
+  it("rejects oversized input before writing state", async () => {
+    const user = userEvent.setup();
+    render(React.createElement(SettingsSearch));
+
+    const input = screen.getByRole("combobox") as HTMLInputElement;
+    const oversized = "a".repeat(10_000);
+
+    const setter = Object.getOwnPropertyDescriptor(
+      HTMLInputElement.prototype,
+      "value",
+    )?.set;
+    setter?.call(input, oversized);
+    input.dispatchEvent(new Event("input", { bubbles: true }));
+
+    expect(screen.queryByRole("listbox")).not.toBeInTheDocument();
+    expect(screen.queryByLabelText("Clear search")).not.toBeInTheDocument();
+  });
+
+  it("surfaces the rejection reason to the caller", async () => {
+    const onValidationError = vi.fn();
+    const user = userEvent.setup();
+    render(React.createElement(SettingsSearch, { onValidationError }));
+
+    const input = screen.getByRole("combobox") as HTMLInputElement;
+    const setter = Object.getOwnPropertyDescriptor(
+      HTMLInputElement.prototype,
+      "value",
+    )?.set;
+    setter?.call(input, 12345 as unknown as string);
+    input.dispatchEvent(new Event("input", { bubbles: true }));
+
+    expect(onValidationError).toHaveBeenCalledTimes(1);
+    const err = onValidationError.mock.calls[0][0];
+    expect(err).toBeInstanceOf(SearchValidationError);
+    expect(err.reason).toBe("invalid-type");
+  });
+
+  it("leaves valid input behaviour unaffected", async () => {
+    const user = userEvent.setup();
+    render(React.createElement(SettingsSearch));
+
+    const input = screen.getByRole("combobox");
+    await user.type(input, "password");
+
+    expect(input).toHaveValue("password");
+    expect(screen.getByRole("listbox")).toBeInTheDocument();
+    expect(screen.getAllByRole("option").length).toBeGreaterThan(0);
   });
 });
