@@ -53,7 +53,7 @@ Successfully centralized all TypeScript types and interfaces from scattered comp
 ### Existing Type Files (unchanged):
 
 - `types/sidebar.ts` - Sidebar context types
-- `types/NotificationItem.tsx` - Notification types
+- `types/notification-item.ts` - Notification types (canonical)
 - `types/svg.ts` - SVG interface types
 
 ## Components Updated
@@ -138,7 +138,7 @@ types/
 ├── ui.ts               # UI component types (comprehensive)
 ├── transaction.ts      # Transaction-related types
 ├── sidebar.ts          # Sidebar context types
-├── NotificationItem.tsx # Notification types
+├── notification-item.ts # Notification types
 └── svg.ts             # SVG interface types
 ```
 

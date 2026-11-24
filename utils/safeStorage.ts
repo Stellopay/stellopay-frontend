@@ -5,6 +5,8 @@
  */
 export const STORAGE_KEYS = {
   DASHBOARD_TOUR_COMPLETED: "stellopay_dashboard_tour_completed",
+  TIMEZONE: "stellopay_timezone",
+  AUDIT_LOG: "stellopay_audit_log_v1",
 } as const;
 
 export const safeStorage = {

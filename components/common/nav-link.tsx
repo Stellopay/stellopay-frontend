@@ -8,7 +8,9 @@ import {
   SettinIcon,
   TransactionIcon,
 } from "@/public/svg/svg";
+import { Bell } from "lucide-react";
 import { motion } from "framer-motion";
+import { ClipboardCheck } from "lucide-react";
 import { useReducedMotion } from "@/hooks/useReducedMotion";
 import useSidebar from "@/context/sidebar-context";
 import {
@@ -20,7 +22,7 @@ import { useEffect, useId, useState, type MouseEvent, type ReactNode } from "rea
 import { usePathname } from "next/navigation";
 import Link from "next/link";
 import { useTheme } from "@/context/theme-context";
-import { useDirtyGuard } from "@/context/dirty-guard-context";
+import { useDirtyGuard } from "@/context/wallet-context";
 import { transition } from "@/lib/motion";
 import {
   isLinkActive,
@@ -28,11 +30,39 @@ import {
   getActiveLinkLayoutId,
 } from "@/utils/navigationUtils";
 
-type NavItem = {
+export type NavItem = {
   link: string;
   icon: (color: string) => ReactNode;
   route: string;
 };
+
+export const NAV_LINKS: NavItem[] = [
+  {
+    link: "Dashboard",
+    icon: (color: string) => <DashBoardIcon color={color} />,
+    route: "/dashboard",
+  },
+  {
+    link: "Account Summary",
+    icon: (color: string) => <AccountSummaryIcon color={color} />,
+    route: "/account-summary",
+  },
+  {
+    link: "Transactions",
+    icon: (color: string) => <TransactionIcon color={color} />,
+    route: "/transactions",
+  },
+  {
+    link: "Help/Support",
+    icon: (color: string) => <HelpCircleIcon color={color} />,
+    route: "/help/support",
+  },
+  {
+    link: "Settings",
+    icon: (color: string) => <SettinIcon color={color} />,
+    route: "/settings/preferences",
+  },
+];
 
 type CollapsedNavLinkProps = {
   item: NavItem;
@@ -57,17 +87,17 @@ function CollapsedNavLink({
 }: CollapsedNavLinkProps) {
   const [isHovered, setIsHovered] = useState(false);
   const [isFocused, setIsFocused] = useState(false);
-  const { isDirty, confirmNavigation } = useDirtyGuard();
+  const { isDirty, confirmDiscard } = useDirtyGuard();
 
   const handleNavigation = (event: MouseEvent<HTMLAnchorElement>) => {
     if (
-      isDirty &&
+      isDirty() &&
       event.button === 0 &&
       !event.metaKey &&
       !event.ctrlKey &&
       !event.shiftKey &&
       !event.altKey &&
-      !confirmNavigation()
+      !confirmDiscard()
     ) {
       event.preventDefault();
       event.stopPropagation();
@@ -168,12 +198,11 @@ export const NavLink = () => {
 
   const isExpanded = shouldExpandSidebar(isMobile, isSidebarOpen);
 
-  const { isDirty, confirmNavigation } = useDirtyGuard();
+  const { isDirty, confirmDiscard } = useDirtyGuard();
 
   useEffect(() => {
-    if (!isDirty) return;
-
     const handleBeforeUnload = (event: BeforeUnloadEvent) => {
+      if (!isDirty()) return;
       event.preventDefault();
       event.returnValue = "";
     };
@@ -184,13 +213,13 @@ export const NavLink = () => {
 
   const handleNavigation = (event: MouseEvent<HTMLAnchorElement>) => {
     if (
-      isDirty &&
+      isDirty() &&
       event.button === 0 &&
       !event.metaKey &&
       !event.ctrlKey &&
       !event.shiftKey &&
       !event.altKey &&
-      !confirmNavigation()
+      !confirmDiscard()
     ) {
       event.preventDefault();
       event.stopPropagation();
@@ -214,6 +243,40 @@ export const NavLink = () => {
       route: "/transactions",
     },
     {
+      link: "Notifications",
+      icon: (color: string) => (
+        <Bell color={color} size={20} strokeWidth={1.75} aria-hidden="true" />
+      ),
+      route: "/notifications",
+      link: "Approvals",
+      icon: (color: string) => <ClipboardCheck color={color} size={20} />,
+      route: "/approvals",
+      link: "Requests",
+      icon: (color: string) => (
+        <svg
+          width={20}
+          height={20}
+          viewBox="0 0 20 20"
+          fill="none"
+          xmlns="http://www.w3.org/2000/svg"
+        >
+          <path
+            d="M10 2.5C8.01088 2.5 6.10322 3.29018 4.6967 4.6967C3.29018 6.10322 2.5 8.01088 2.5 10C2.5 11.9891 3.29018 13.8968 4.6967 15.3033C6.10322 16.7098 8.01088 17.5 10 17.5C11.9891 17.5 13.8968 16.7098 15.3033 15.3033C16.7098 13.8968 17.5 11.9891 17.5 10C17.5 8.01088 16.7098 6.10322 15.3033 4.6967C13.8968 3.29018 11.9891 2.5 10 2.5Z"
+            stroke={color}
+            strokeWidth="1.25"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+          <path
+            d="M10 6.66667V10L12.5 11.6667"
+            stroke={color}
+            strokeWidth="1.25"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+        </svg>
+      ),
+      route: "/requests",
       link: "Reports",
       icon: (color: string) => <ReportIcon color={color} />,
       route: "/reports",
@@ -235,7 +298,7 @@ export const NavLink = () => {
   return (
     <nav className="w-full">
       <ul className="space-y-1 flex items-center flex-col w-full px-2">
-        {links.map((link) => {
+        {NAV_LINKS.map((link) => {
           const isActive = isLinkActive(link.route, pathname);
 
           let iconColor = "";

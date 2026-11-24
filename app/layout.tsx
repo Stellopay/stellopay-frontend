@@ -1,10 +1,12 @@
 import type { Metadata, Viewport } from "next";
+import { headers } from "next/headers";
 import { Inter } from "next/font/google";
 import localFont from "next/font/local";
 import "./globals.css";
 import { SidebarProvider } from "@/context/sidebar-context";
 import { ThemeProvider } from "@/context/theme-context";
 import { WalletProvider } from "@/context/wallet-context";
+import { RequestsProvider } from "@/lib/requests-store";
 import { OfflineBanner } from "@/components/common/offline-banner";
 import { CookieConsentBanner } from "@/components/common/cookie-consent-banner";
 import { Toaster } from "@/components/ui/toaster";
@@ -110,11 +112,16 @@ export const viewport: Viewport = {
   ],
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const nonce = (await headers()).get("x-nonce");
+  if (!nonce) {
+    throw new Error("Missing request CSP nonce.");
+  }
+
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
@@ -125,6 +132,7 @@ export default function RootLayout({
           the <html> element before React hydrates. This prevents light flash on page load.
         */}
         <script
+          nonce={nonce}
           dangerouslySetInnerHTML={{
             __html: `
               (function() {
@@ -154,6 +162,7 @@ export default function RootLayout({
         */}
         <script
           data-testid="sw-registration-script"
+          nonce={nonce}
           dangerouslySetInnerHTML={{
             __html: `
               if ('serviceWorker' in navigator) {
@@ -186,7 +195,9 @@ export default function RootLayout({
         <CookieConsentBanner />
         <ThemeProvider>
           <WalletProvider>
-            <SidebarProvider>{children}</SidebarProvider>
+            <RequestsProvider>
+              <SidebarProvider>{children}</SidebarProvider>
+            </RequestsProvider>
           </WalletProvider>
           <Toaster />
         </ThemeProvider>

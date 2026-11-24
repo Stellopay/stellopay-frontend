@@ -4,14 +4,22 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import Navbar from "./navbar";
 
 const mockUsePathname = vi.fn();
+const mockUseNotifications = vi.fn();
 
 vi.mock("next/navigation", () => ({
   usePathname: () => mockUsePathname(),
 }));
 
+vi.mock("@/lib/notifications-store", () => ({
+  useNotifications: () => mockUseNotifications(),
+  selectUnreadCount: (items: Array<{ read: boolean }> | null | undefined) =>
+    (items ?? []).filter((item) => !item.read).length,
+}));
+
 describe("Navbar Component (#785 Active Route Sync)", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mockUseNotifications.mockReturnValue({ data: [] });
   });
 
   it("renders active route correctly based on usePathname", () => {
@@ -58,5 +66,20 @@ describe("Navbar Component (#785 Active Route Sync)", () => {
     const closeMenuButton = screen.getByRole("button", { name: /close navigation menu/i });
     expect(closeMenuButton).toHaveAttribute("aria-expanded", "true");
     expect(screen.getByRole("navigation", { name: "Mobile Navigation" })).toBeInTheDocument();
+  });
+
+  it("shows the unread notification badge from the store", () => {
+    mockUsePathname.mockReturnValue("/");
+    mockUseNotifications.mockReturnValue({
+      data: [
+        { id: "1", read: false },
+        { id: "2", read: true },
+        { id: "3", read: false },
+      ],
+    });
+
+    render(<Navbar />);
+
+    expect(screen.getByLabelText("Notifications")).toHaveTextContent("2");
   });
 });

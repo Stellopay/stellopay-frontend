@@ -20,6 +20,8 @@ export interface ShortcutEntry {
   keys: string[];
   /** Human-readable description of what the shortcut does. */
   description: string;
+  /** Optional target route associated with the shortcut. */
+  href?: string;
 }
 
 export interface ShortcutGroup {
@@ -45,6 +47,10 @@ export const SHORTCUT_GROUPS: ShortcutGroup[] = [
         description: "Show / hide this keyboard shortcut reference",
       },
       {
+        keys: ["Ctrl", "K"],
+        description: "Open the command palette (Cmd on Mac)",
+      },
+      {
         keys: ["Esc"],
         description: "Close the current modal or dismiss a popover",
       },
@@ -61,14 +67,22 @@ export const SHORTCUT_GROUPS: ShortcutGroup[] = [
       {
         keys: ["g", "d"],
         description: "Go to Dashboard",
+        href: "/dashboard",
+      },
+      {
+        keys: ["g", "p"],
+        description: "Go to Send Payment",
+        href: "/payments/new",
       },
       {
         keys: ["g", "t"],
         description: "Go to Transactions",
+        href: "/transactions",
       },
       {
         keys: ["g", "a"],
         description: "Go to Analytics",
+        href: "/analytics-view",
       },
       {
         keys: ["g", "r"],
@@ -77,10 +91,12 @@ export const SHORTCUT_GROUPS: ShortcutGroup[] = [
       {
         keys: ["g", "s"],
         description: "Go to Settings",
+        href: "/settings/preferences",
       },
       {
         keys: ["g", "h"],
         description: "Go to Help & Support",
+        href: "/help/support",
       },
     ],
   },
@@ -95,6 +111,7 @@ export const SHORTCUT_GROUPS: ShortcutGroup[] = [
       {
         keys: ["n"],
         description: "Start a new payment",
+        href: "/payments/new",
       },
     ],
   },

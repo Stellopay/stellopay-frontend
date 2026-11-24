@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
-  CONTENT_SECURITY_POLICY,
+  buildCsp,
   CSP_DIRECTIVES,
   PERMISSIONS_POLICY,
   REFERRER_POLICY,
@@ -12,17 +12,54 @@ import {
 } from "./security-headers";
 
 describe("security-headers", () => {
-  it("applies the full set of required headers", () => {
-    const keys = SECURITY_HEADERS.map((h) => h.key);
+  it("builds a nonce-based script policy and allows eval only in development", () => {
+    const productionCsp = buildCsp("request-nonce", false);
+    expect(productionCsp).toBe(
+      "script-src 'nonce-request-nonce' 'strict-dynamic'; " +
+        "default-src 'self'; style-src 'self' 'unsafe-inline'; " +
+        "img-src 'self' data: blob:; font-src 'self'; " +
+        "connect-src 'self' https://stellar.org https://horizon.stellar.org " +
+        "https://soroban.stellar.org https://horizon-testnet.stellar.org " +
+        "https://horizon-futurenet.stellar.org; frame-ancestors 'none'; " +
+        "base-uri 'self'; form-action 'self'; upgrade-insecure-requests",
+    );
+    expect(buildCsp("request-nonce", true)).toBe(
+      productionCsp.replace("'strict-dynamic'", "'strict-dynamic' 'unsafe-eval'"),
+    );
+  });
+
+  it("keeps the existing non-CSP security headers", () => {
+    const keys = SECURITY_HEADERS.map((header) => header.key);
     expect(keys).toEqual(
       expect.arrayContaining([
-        "Content-Security-Policy",
         "X-Frame-Options",
         "Strict-Transport-Security",
         "Referrer-Policy",
         "X-Content-Type-Options",
       ]),
     );
+    expect(keys).not.toContain("Content-Security-Policy");
+    expect(SECURITY_HEADERS).toContainEqual({
+      key: "Permissions-Policy",
+      value: PERMISSIONS_POLICY,
+    });
+    expect(SECURITY_HEADERS).toContainEqual({
+      key: "X-XSS-Protection",
+      value: X_XSS_PROTECTION,
+    });
+  });
+
+  it("allows every supported Horizon host in connect-src", () => {
+    const connectSrc = CSP_DIRECTIVES.find((d) => d.startsWith("connect-src"));
+    expect(connectSrc).toBeDefined();
+    for (const host of [
+      "https://horizon.stellar.org",
+      "https://horizon-testnet.stellar.org",
+      "https://horizon-futurenet.stellar.org",
+    ]) {
+      expect(connectSrc).toContain(host);
+    }
+    expect(CONTENT_SECURITY_POLICY).toContain("connect-src");
   });
 
   it("rejects unsafe inline scripts and eval in script-src", () => {
@@ -35,14 +72,18 @@ describe("security-headers", () => {
 
   it("still permits inline styles required by Next/Tailwind in style-src only", () => {
     const styleSrc = CSP_DIRECTIVES.find((d) => d.startsWith("style-src"));
+  it("allows inline styles only in style-src", () => {
+    const styleSrc = CSP_DIRECTIVES.find((directive) =>
+      directive.startsWith("style-src"),
+    );
     expect(styleSrc).toContain("'self'");
-    // style-src may keep 'unsafe-inline', but script-src must not inherit it.
-    expect(
-      CSP_DIRECTIVES.find((d) => d.startsWith("script-src")),
-    ).not.toContain("'unsafe-inline'");
+    expect(styleSrc).toContain("'unsafe-inline'");
+    expect(buildCsp("request-nonce", false)).not.toContain(
+      "script-src 'unsafe-inline'",
+    );
   });
 
-  it("rejects all cross-origin framing via frame-ancestors 'none'", () => {
+  it("rejects all cross-origin framing", () => {
     expect(CSP_DIRECTIVES).toContain("frame-ancestors 'none'");
     expect(X_FRAME_OPTIONS).toBe("DENY");
   });
