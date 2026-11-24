@@ -51,11 +51,63 @@ const cursorPaginatedTransactionsSchema = z.object({
   data: z.array(transactionSchema), total: z.number().int().nonnegative(),
   nextCursor: z.string().nullable(), hasMore: z.boolean(),
 });
+/** Horizon asset discriminators accepted from the accounts endpoint. */
+export const HORIZON_ASSET_TYPES = [
+  "native",
+  "credit_alphanum4",
+  "credit_alphanum12",
+  "liquidity_pool_shares",
+] as const;
+export type HorizonAssetType = (typeof HORIZON_ASSET_TYPES)[number];
+
+const accountBalanceSchema = z.object({
+  assetCode: nonEmptyString,
+  assetType: z.enum(HORIZON_ASSET_TYPES),
+  assetIssuer: z.string().nullable(),
+  balance: z.string(),
+  limit: z.string().nullable(),
+  isAuthorized: z.boolean().nullable(),
+  buyingLiabilities: z.string(),
+  sellingLiabilities: z.string(),
+});
 const accountSummarySchema = z.object({
   balance: nonEmptyString, balanceRaw: finiteNumber, paidThisMonth: nonEmptyString,
   paidThisMonthCount: z.number().int().nonnegative(), toBePaid: nonEmptyString,
   toBePaidCount: z.number().int().nonnegative(), walletAddress: nonEmptyString,
+  // Newer fields carry defaults so an older (untagged) stream payload is still
+  // accepted and is explicitly treated as demo data by consumers.
+  source: z.enum(["horizon", "mock"]).default("mock"),
+  network: z.string().default(""),
+  nativeBalance: z.string().default("0"),
+  spendableBalance: z.string().default("0"),
+  isUnfunded: z.boolean().default(false),
+  balances: z.array(accountBalanceSchema).default([]),
+  trustlines: z.array(accountBalanceSchema).default([]),
 });
+
+/**
+ * Horizon amounts are decimal strings with at most seven fractional digits.
+ * Rejecting scientific notation here keeps downstream arithmetic exact.
+ */
+const horizonAmount = z.string().regex(/^\d+(?:\.\d{1,7})?$/, "Expected a Horizon decimal amount string");
+const horizonBalanceSchema = z.object({
+  asset_type: z.enum(HORIZON_ASSET_TYPES),
+  asset_code: z.string().optional(),
+  asset_issuer: z.string().optional(),
+  liquidity_pool_id: z.string().optional(),
+  balance: horizonAmount,
+  limit: horizonAmount.optional(),
+  buying_liabilities: horizonAmount.optional(),
+  selling_liabilities: horizonAmount.optional(),
+  is_authorized: z.boolean().optional(),
+});
+const horizonAccountSchema = z.object({
+  id: nonEmptyString,
+  account_id: nonEmptyString,
+  subentry_count: z.number().int().nonnegative(),
+  balances: z.array(horizonBalanceSchema),
+});
+export type RawHorizonAccount = z.infer<typeof horizonAccountSchema>;
 // Profile strings are deliberately plain `z.string()` rather than
 // `nonEmptyString`: a half-completed profile is a legitimate server state and
 // the form must render it rather than reject the whole response. What is
@@ -85,6 +137,7 @@ export const parseTransaction = (input: unknown): Transaction => parse(transacti
 export const parsePaginatedTransactions = (input: unknown): PaginatedTransactions => parse(paginatedTransactionsSchema, input, "transactions");
 export const parseCursorPaginatedTransactions = (input: unknown): CursorPaginatedTransactions => parse(cursorPaginatedTransactionsSchema, input, "transactions");
 export const parseAccountSummary = (input: unknown): AccountSummary => parse(accountSummarySchema, input, "account summary");
+export const parseHorizonAccount = (input: unknown): RawHorizonAccount => parse(horizonAccountSchema, input, "Horizon account");
 export const parseNotifications = (input: unknown): NotificationItem[] => parse(z.array(notificationSchema), input, "notifications");
 export const parseNotification = (input: unknown): NotificationItem => parse(notificationSchema, input, "notification");
 export const parseProfile = (input: unknown): ProfileData => parse(profileSchema, input, "profile");

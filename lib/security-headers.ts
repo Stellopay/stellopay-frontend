@@ -30,8 +30,8 @@ export const CSP_DIRECTIVES: string[] = [
   // Images may be data/blob for icons & avatars; nothing external besides self.
   "img-src 'self' data: blob:",
   "font-src 'self'",
-  // Same-origin API + specific Stellar network hosts only.
-  "connect-src 'self' https://stellar.org https://horizon.stellar.org https://soroban.stellar.org",
+  // Same-origin API + the Horizon hosts for every supported Stellar network.
+  "connect-src 'self' https://stellar.org https://horizon.stellar.org https://horizon-testnet.stellar.org https://horizon-futurenet.stellar.org https://soroban.stellar.org",
   // Reject all framing of this site (clickjacking defence).
   "frame-ancestors 'none'",
   "base-uri 'self'",
