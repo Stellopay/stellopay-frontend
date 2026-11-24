@@ -25,6 +25,19 @@ describe("security-headers", () => {
     );
   });
 
+  it("allows every supported Horizon host in connect-src", () => {
+    const connectSrc = CSP_DIRECTIVES.find((d) => d.startsWith("connect-src"));
+    expect(connectSrc).toBeDefined();
+    for (const host of [
+      "https://horizon.stellar.org",
+      "https://horizon-testnet.stellar.org",
+      "https://horizon-futurenet.stellar.org",
+    ]) {
+      expect(connectSrc).toContain(host);
+    }
+    expect(CONTENT_SECURITY_POLICY).toContain("connect-src");
+  });
+
   it("rejects unsafe inline scripts and eval in script-src", () => {
     const scriptSrc = CSP_DIRECTIVES.find((d) => d.startsWith("script-src"));
     expect(scriptSrc).toBe("script-src 'self'");

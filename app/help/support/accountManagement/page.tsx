@@ -2,7 +2,7 @@
 import { ArrowLeft, Search, Check } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import Link from "next/link";
 import SupportTabs from "@/components/common/support-tabs";
 import { WasThisHelpful } from "@/components/common/was-this-helpful";
