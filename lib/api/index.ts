@@ -8,8 +8,10 @@ export {
   getTransactionsCursor,
 } from "./transactions";
 export type {
+  AccountBalance,
   AccountSummary,
   CursorPaginatedTransactions,
+  GetAccountSummaryParams,
   GetTransactionsCursorParams,
   GetTransactionsParams,
   PaginatedTransactions,
@@ -17,7 +19,9 @@ export type {
 } from "./transactions";
 export {
   ApiResponseValidationError,
+  HORIZON_ASSET_TYPES,
   parseAccountSummary,
+  parseHorizonAccount,
   parseCursorPaginatedTransactions,
   parseNotification,
   parseNotifications,
@@ -26,7 +30,11 @@ export {
   parseStreamPayload,
   parseTransaction,
 } from "./response-validation";
-export type { ValidatedStreamPayload } from "./response-validation";
+export type {
+  HorizonAssetType,
+  RawHorizonAccount,
+  ValidatedStreamPayload,
+} from "./response-validation";
 export {
   getApiBaseUrl,
   getProfile,
