@@ -4,6 +4,7 @@ import { useState } from "react";
 import Image from "next/image";
 import { copyToClipboardWithTimeout } from "@/utils/clipboardUtils";
 import { AccountSummaryCardSkeleton } from "@/components/ui/card-skeleton";
+import { EmptyState } from "@/components/ui/empty-state";
 import { ErrorState } from "@/components/ui/error-state";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useAccountSummary } from "@/hooks/useAccountSummary";
@@ -28,13 +29,40 @@ export default function AccountSummary() {
     );
   }
 
-  if (error || !data) {
+  if (error) {
+    return (
+      <div className="max-w-full my-6">
+        <ErrorState
+          title="Failed to Load"
+          description={error}
+          onRetry={refetch}
+          retrying={isLoading}
+        />
+      </div>
+    );
+  }
+
+  if (!data) {
     return (
       <div className="max-w-full my-6">
         <ErrorState
           title="Failed to Load"
           description="Failed to load account summary."
           onRetry={refetch}
+          retrying={isLoading}
+        />
+      </div>
+    );
+  }
+
+  if (data.isUnfunded) {
+    return (
+      <div className="max-w-full my-6">
+        <EmptyState
+          variant="default"
+          title="Account not funded yet"
+          description="This address has no account on the Stellar network yet. Fund it with XLM from another wallet or a network faucet, then refresh to see your balances."
+          action={{ label: "Refresh", onClick: refetch }}
         />
       </div>
     );
@@ -48,6 +76,13 @@ export default function AccountSummary() {
       item: "Copy Address",
       address: data.walletAddress,
       accountImage: "/piggy-bank.png",
+      note:
+        data.trustlines.length > 0
+          ? `${data.trustlines.length} trustline${data.trustlines.length === 1 ? "" : "s"}`
+          : "",
+      noteTitle: data.trustlines
+        .map((line) => `${line.assetCode}: ${line.balance}`)
+        .join(", "),
     },
     {
       accountInfo: "Paid This Month",
@@ -55,6 +90,8 @@ export default function AccountSummary() {
       item: "ITEMS",
       address: String(data.paidThisMonthCount),
       accountImage: "/dollar-02.png",
+      note: "",
+      noteTitle: "",
     },
     {
       accountInfo: "To be Paid",
@@ -62,6 +99,8 @@ export default function AccountSummary() {
       item: "ITEMS",
       address: String(data.toBePaidCount),
       accountImage: "/dollar-01.png",
+      note: "",
+      noteTitle: "",
     },
   ];
 
@@ -81,6 +120,14 @@ export default function AccountSummary() {
         <h1 className="font-[Inter] text-base leading-[145%] align-middle">
           Account Summary
         </h1>
+        {data.source === "mock" && (
+          <span
+            data-testid="demo-data-badge"
+            className="rounded border border-[#2D2D2D] px-2 py-0.5 text-[11px] text-[#8A8A8A]"
+          >
+            Demo data
+          </span>
+        )}
       </div>
 
       <div className="max-w-full h-[7.5rem] gap-4 justify-between flex overflow-hidden">
@@ -100,13 +147,22 @@ export default function AccountSummary() {
                   aria-hidden="true"
                 />
               </div>
-              <div className="font-semibold text-2xl align-middle font-[Inter] mb-1">
+              <div className="font-semibold text-2xl align-middle font-[Inter] mb-1 font-mono tabular-nums">
                 {info.amount}
               </div>
               <p className="max-w-[16.4375rem] h-[17px] flex items-center font-medium text-xs align-middle font-[Inter] text-[#3B3B3B]">
                 {info.item} :
                 <span className="text-[#D8D8D8] cursor-pointer">
                   {info.address}
+                  {info.note && (
+                    <span
+                      className="ml-2"
+                      title={info.noteTitle}
+                      aria-label={`${info.note}: ${info.noteTitle}`}
+                    >
+                      · {info.note}
+                    </span>
+                  )}
                 </span>
                 {info.image && (
                   <button

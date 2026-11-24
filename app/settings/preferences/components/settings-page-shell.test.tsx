@@ -89,6 +89,16 @@ describe("SettingsPageShell summary cards", () => {
       within(summaryValue("Alerts enabled")).queryByText("5 active"),
     ).not.toBeInTheDocument();
   });
+
+  it("renders the Team section when navigated to or initialized with section='team'", () => {
+    render(<SettingsPageShell initialSection="team" />);
+
+    expect(screen.getByRole("tab", { name: /team/i })).toHaveAttribute(
+      "data-state",
+      "active",
+    );
+    expect(screen.getByTestId("team-section")).toBeInTheDocument();
+  });
 });
 
 describe("SettingsPageShell unsaved-changes navigation guard", () => {

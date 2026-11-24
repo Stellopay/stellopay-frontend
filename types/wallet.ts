@@ -42,6 +42,23 @@ export interface WalletActionState {
   alternative: string;
 }
 
+/**
+ * The state of a Freighter connection attempt. Set by connectFreighter() and
+ * reset to 'idle' on disconnect.
+ *
+ * - 'idle': no active attempt
+ * - 'connecting': requestAccess() is in-flight
+ * - 'not_installed': Freighter extension was not detected
+ * - 'rejected': the user dismissed the Freighter popup
+ * - 'error': an unexpected error occurred (see freighterError)
+ */
+export type FreighterConnectionStatus =
+  | "idle"
+  | "connecting"
+  | "not_installed"
+  | "rejected"
+  | "error";
+
 export interface WalletContextValue {
   // Public Stellar G-address of the currently connected account, or null
   // when no wallet is connected.
@@ -79,6 +96,30 @@ export interface WalletContextValue {
   // changing the public contract.
   connect: (payload?: string | WalletConnectionResult) => void;
   disconnect: () => void;
+
+  /**
+   * Initiate a real wallet connection through the Freighter browser
+   * extension.  Calling this opens the Freighter popup; the returned Promise
+   * resolves when the user approves or rejects. Use `freighterStatus` to
+   * react to in-progress and terminal states.
+   *
+   * - Resolves to `true` on success (address stored in context).
+   * - Resolves to `false` when the user rejects or Freighter is absent
+   *   (a toast is shown; no error is thrown).
+   */
+  connectFreighter: () => Promise<boolean>;
+
+  /**
+   * Last known status of the Freighter connection lifecycle.
+   * Components can read this to show install CTAs, spinners, or error states.
+   */
+  freighterStatus: FreighterConnectionStatus;
+
+  /**
+   * Human-readable error message from the last failed connectFreighter call,
+   * or null when freighterStatus is not 'error'.
+   */
+  freighterError: string | null;
 }
 
 export interface WalletProviderProps {
