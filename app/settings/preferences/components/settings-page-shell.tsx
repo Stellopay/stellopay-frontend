@@ -45,6 +45,7 @@ import TaxDocumentsSection, {
 import TeamSection from "./team-section";
 import WalletsSection from "./wallets-section";
 import ApprovalThresholdsSection from "./approval-thresholds-section";
+import AuditLogTab from "./audit-log-tab";
 import { useUnsavedChangesGuard } from "@/hooks/useUnsavedChangesGuard";
 import { isShallowEqual } from "@/utils/objectUtils";
 
@@ -102,6 +103,10 @@ function buildSections(
       label: "Approvals",
       description: "Per-asset thresholds for payment review.",
       badge: "Payments",
+      value: "audit",
+      label: "Audit Log",
+      description: "Security and account activity history.",
+      badge: "Activity",
     },
   ];
 }
@@ -360,6 +365,8 @@ export default function SettingsPageShell({
           <ApprovalThresholdsSection
             highlightedSearchLabel={highlightedSearchLabel}
           />
+        <TabsContent value="audit" className="mt-0">
+          <AuditLogTab highlightedSearchLabel={highlightedSearchLabel} />
         </TabsContent>
       </div>
 

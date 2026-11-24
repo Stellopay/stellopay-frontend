@@ -186,6 +186,16 @@ export const SEARCHABLE_CONTROLS: SearchableControl[] = [
     label: "Approval threshold",
     section: "approvals",
     keywords: ["payment", "payroll", "approval", "asset", "minor units"],
+  // Audit log section controls
+  {
+    label: "Audit log",
+    section: "audit",
+    keywords: ["audit", "log", "security", "activity", "history", "events", "trail"],
+  },
+  {
+    label: "Export audit log",
+    section: "audit",
+    keywords: ["export", "csv", "download", "audit", "events", "logs"],
   },
 ];
 
