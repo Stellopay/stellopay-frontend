@@ -38,9 +38,16 @@ type FeedbackFormValues = z.infer<typeof feedbackSchema>;
 
 // ── Floating Button ──────────────────────────────────────────────────────────
 
-function FloatingButton({ onClick }: { onClick: () => void }) {
+function FloatingButton({
+  onClick,
+  buttonRef,
+}: {
+  onClick: () => void;
+  buttonRef: React.Ref<HTMLButtonElement>;
+}) {
   return (
     <motion.button
+      ref={buttonRef}
       type="button"
       onClick={onClick}
       aria-label="Open feedback form"
@@ -143,6 +150,8 @@ interface FeedbackWidgetProps { onSubmitSuccess?: () => void; }
 
 export default function FeedbackWidget({ onSubmitSuccess }: FeedbackWidgetProps = {}) {
   const [isOpen, setIsOpen] = React.useState(false);
+  const triggerRef = React.useRef<HTMLButtonElement>(null);
+  const wasOpenRef = React.useRef(false);
   const [feedbackType, setFeedbackType] = React.useState<FeedbackType>("bug");
   const [screenshot, setScreenshot] = React.useState<File | null>(null);
   const [subject, setSubject] = React.useState("");
@@ -150,6 +159,15 @@ export default function FeedbackWidget({ onSubmitSuccess }: FeedbackWidgetProps 
   const [errors, setErrors] = React.useState<{ subject?: string; description?: string }>({});
   const [submitStatus, setSubmitStatus] = React.useState<"idle" | "loading" | "success" | "error">("idle");
   const [submitMessage, setSubmitMessage] = React.useState("");
+
+  React.useEffect(() => {
+    if (isOpen) {
+      wasOpenRef.current = true;
+    } else if (wasOpenRef.current) {
+      wasOpenRef.current = false;
+      triggerRef.current?.focus();
+    }
+  }, [isOpen]);
 
   React.useEffect(() => {
     if (!isOpen) {
@@ -240,7 +258,9 @@ export default function FeedbackWidget({ onSubmitSuccess }: FeedbackWidgetProps 
 
   return (
     <>
-      <AnimatePresence>{!isOpen && <FloatingButton onClick={handleOpen} />}</AnimatePresence>
+      <AnimatePresence>
+        {!isOpen && <FloatingButton onClick={handleOpen} buttonRef={triggerRef} />}
+      </AnimatePresence>
 
       {isOpen && (
         <div
