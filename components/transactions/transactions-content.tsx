@@ -2,7 +2,8 @@
 
 import { useState, useMemo, useCallback, useEffect, useRef } from "react";
 import { useRouter, usePathname, useSearchParams } from "next/navigation";
-import { FileText } from "lucide-react";
+import { FileText, Archive, Tag } from "lucide-react";
+import { toast } from "sonner";
 import type {
   SortField,
   SortConfig,
@@ -13,6 +14,7 @@ import type {
 } from "@/types/transaction";
 import { useTransactions } from "@/hooks/useTransactions";
 import { useTransactionTags } from "@/hooks/useTransactionTags";
+import { useArchivedTransactions } from "@/hooks/useArchivedTransactions";
 import { getTransactions, MAX_TRANSACTION_PAGE_SIZE } from "@/lib/api";
 import { TransactionTableSkeleton } from "@/components/ui/table-skeleton";
 import TransactionsHeader from "./transactions-header";
@@ -63,7 +65,6 @@ export {
   buildShareableTransactionsUrl,
 };
 
-/** Map token symbol → icon path */
 const getTokenIcon = (token: string): string => {
   switch (token) {
     case "USDC":
@@ -75,22 +76,15 @@ const getTokenIcon = (token: string): string => {
   }
 };
 
-/** localStorage key prefix for saved views. Appended with the wallet address for per-account isolation. */
 const SAVED_VIEWS_KEY_PREFIX = "stellopay.transactions-saved-views";
-
-/** Maximum number of saved views per account. */
 const MAX_SAVED_VIEWS = 10;
-
-/** Maximum length for a saved view name. */
 const MAX_VIEW_NAME_LENGTH = 50;
 
-/** Build the per-account storage key. */
 function getSavedViewsKey(address: string | null): string {
   if (!address) return `${SAVED_VIEWS_KEY_PREFIX}.default`;
   return `${SAVED_VIEWS_KEY_PREFIX}.${address}`;
 }
 
-/** Load saved views from localStorage, returning an empty array on any failure. */
 function loadSavedViews(address: string | null): SavedView[] {
   const stored = safeStorage.getItem(getSavedViewsKey(address));
   if (!stored) return [];
@@ -111,7 +105,6 @@ function loadSavedViews(address: string | null): SavedView[] {
   }
 }
 
-/** Persist saved views to localStorage. */
 function persistSavedViews(address: string | null, views: SavedView[]): void {
   safeStorage.setItem(getSavedViewsKey(address), JSON.stringify(views));
 }
@@ -130,7 +123,6 @@ function getTransactionStatusLabel(status: string): TransactionProps["status"] {
   return TRANSACTION_STATUS_LABELS[status.toLowerCase()] ?? "Pending";
 }
 
-/** Convert internal Transaction → display TransactionProps */
 const toTransactionProps = (
   t: Transaction,
   getTagNames: (txId: string) => string[],
@@ -151,106 +143,6 @@ const toTransactionProps = (
   memo: t.memo,
   tags: getTagNames(t.id),
 });
-function getTransactionTimelineSteps(status: string) {
-  switch (status) {
-    case "success":
-    case "completed":
-      return [
-        { label: "Submitted", state: "completed" },
-        { label: "Processed", state: "completed" },
-        { label: "Completed", state: "completed" },
-      ];
-    case "rejection":
-      return [
-        { label: "Submitted", state: "completed" },
-        { label: "Processing", state: "failed" },
-        { label: "Rejected", state: "failed" },
-      ];
-    case "timeout":
-      return [
-        { label: "Submitted", state: "completed" },
-        { label: "Processing", state: "failed" },
-        { label: "Timed out", state: "failed" },
-      ];
-    case "retry":
-      return [
-        { label: "Submitted", state: "completed" },
-        { label: "Processing", state: "current" },
-        { label: "Completed", state: "upcoming" },
-      ];
-    case "pending":
-    default:
-      return [
-        { label: "Submitted", state: "completed" },
-        { label: "Processing", state: "current" },
-        { label: "Completed", state: "upcoming" },
-      ];
-  }
-}
-
-export function TransactionStatusTimeline({
-  status,
-  failureReason,
-  onRetry,
-  onDetails,
-}: {
-  status: string;
-  failureReason?: string;
-  onRetry?: () => void;
-  onDetails?: () => void;
-}) {
-  const [liveMessage, setLiveMessage] = useState("");
-  const prevStatusRef = useRef(status);
-
-  useEffect(() => {
-    if (prevStatusRef.current === status) return;
-    prevStatusRef.current = status;
-    const statusLabel = status.charAt(0).toUpperCase() + status.slice(1);
-    setLiveMessage(`Transaction status changed to ${statusLabel}.`);
-  }, [status]);
-
-  const steps = getTransactionTimelineSteps(status);
-  const isFailed = status === "rejection" || status === "timeout" || status === "failed";
-
-  return (
-    <div className="transaction-status-timeline">
-      <div role="status" aria-live="polite" className="sr-only">
-        {liveMessage}
-      </div>
-      <ol aria-label="Transaction status">
-        {steps.map((step) => (
-          <li
-            key={step.label}
-            data-state={step.state}
-            aria-current={step.state === "current" || step.state === "failed" ? "step" : undefined}
-            aria-label={`${step.label}, ${step.state}`}
-          >
-            <span className="sr-only">{step.state}.</span>
-            {step.label}
-          </li>
-        ))}
-      </ol>
-      {isFailed && failureReason ? (
-        <p role="alert">{failureReason}</p>
-      ) : null}
-      {(onRetry || onDetails) ? (
-        <div className="transaction-status-actions">
-          {onRetry ? (
-            <button type="button" onClick={onRetry}>
-              Retry
-            </button>
-          ) : null}
-          {onDetails ? (
-            <button type="button" onClick={onDetails}>
-              Details
-            </button>
-          ) : null}
-        </div>
-      ) : null}
-    </div>
-  );
-}
-
 
 export default function TransactionsContent() {
   const router = useRouter();
@@ -260,12 +152,21 @@ export default function TransactionsContent() {
 
   const {
     allTags,
-    tagAssignments: tagAssignmentsRaw,
+    assignments,
     assignTag,
     unassignTag,
     addTag,
     getTagNamesForTransaction,
   } = useTransactionTags();
+
+  const {
+    archivedIds,
+    showArchived,
+    setShowArchived,
+    archiveTransactions,
+    unarchiveTransactions,
+    isArchived,
+  } = useArchivedTransactions(address);
 
   const [tagFilter, setTagFilter] = useState<string>("");
   const [statementRange, setStatementRange] = useState<{
@@ -297,28 +198,19 @@ export default function TransactionsContent() {
   const [currentPage, setCurrentPage] = useState(initialUrlState.page);
   const [savedViews, setSavedViews] = useState<SavedView[]>([]);
   const [hasHydratedViews, setHasHydratedViews] = useState(false);
-  const addressRef = useRef(address);
   const [advancedPanelOpen, setAdvancedPanelOpen] = useState(false);
   const itemsPerPage = TRANSACTIONS_PAGE_SIZE;
 
-  // Hydrate saved views from localStorage on mount
   useEffect(() => {
     setSavedViews(loadSavedViews(address));
     setHasHydratedViews(true);
   }, [address]);
 
-  // Persist saved views whenever they change (skip initial render before hydration)
   useEffect(() => {
     if (!hasHydratedViews) return;
     persistSavedViews(address, savedViews);
   }, [savedViews, address, hasHydratedViews]);
 
-  // Keep the address ref in sync so downstream effects can detect account switches.
-  useEffect(() => {
-    addressRef.current = address;
-  }, [address]);
-
-  // ── Selection state ─────────────────────────────────────────────────────────
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
 
   const clearSelection = useCallback(() => {
@@ -349,7 +241,6 @@ export default function TransactionsContent() {
     });
   }, []);
 
-  // ── URL Synchronization ─────────────────────────────────────────────────────
   useEffect(() => {
     const nextQueryString = buildTransactionsQueryString(
       new URLSearchParams(currentQueryString),
@@ -372,7 +263,6 @@ export default function TransactionsContent() {
     router,
   ]);
 
-  // ── Data ─────────────────────────────────────────────────────────────────────
   const { data, isLoading, error, refetch } = useTransactions({
     filters,
     page: currentPage,
@@ -392,57 +282,23 @@ export default function TransactionsContent() {
     pageSize: 100,
   });
 
-  // ── aria-live announcement for filter result count ──────────────────
-  const prevTotalRef = useRef<number | undefined>(undefined);
-  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const [liveMessage, setLiveMessage] = useState("");
-
-  useEffect(() => {
-    if (isLoading || error || !data) return;
-
-    const total = data.total ?? 0;
-    const prev = prevTotalRef.current;
-
-    if (prev === undefined) {
-      prevTotalRef.current = total;
-      return;
-    }
-
-    if (prev === total) return;
-
-    if (debounceRef.current) clearTimeout(debounceRef.current);
-
-    debounceRef.current = setTimeout(() => {
-      setLiveMessage(
-        total === 0
-          ? "No transactions found."
-          : `${total} transaction${total === 1 ? "" : "s"} found.`,
-      );
-    }, 500);
-
-    prevTotalRef.current = total;
-
-    return () => {
-      if (debounceRef.current) {
-        clearTimeout(debounceRef.current);
-        debounceRef.current = null;
-      }
-    };
-  }, [data, isLoading, error]);
-
   const paginatedTransactions: TransactionProps[] = useMemo(() => {
-    const transactions = dedupeTransactionsById(
+    let transactions = dedupeTransactionsById(
       (data?.data ?? []).map((t) =>
         toTransactionProps(t, getTagNamesForTransaction),
       ),
     );
+
+    if (!showArchived) {
+      transactions = transactions.filter((t) => !isArchived(t.id));
+    }
+
     if (tagFilter) {
       return transactions.filter((t) => t.tags?.includes(tagFilter));
     }
     return transactions;
-  }, [data, tagFilter, getTagNamesForTransaction]);
+  }, [data, tagFilter, getTagNamesForTransaction, showArchived, isArchived]);
 
-  // ── CSV Export state ────────────────────────────────────────────────────
   const [exportPreviewCount, setExportPreviewCount] = useState<number | null>(
     null,
   );
@@ -464,7 +320,6 @@ export default function TransactionsContent() {
         });
         setExportPreviewCount(result.total);
       } catch (err) {
-        console.error("Failed to fetch export preview:", err);
         setExportPreviewCount(null);
       } finally {
         setIsLoadingPreview(false);
@@ -499,7 +354,7 @@ export default function TransactionsContent() {
         const filename = `transactions-${dateRange.fromDate}_to_${dateRange.toDate}.csv`;
         downloadCsvContent(filename, csvContent);
       } catch (err) {
-        console.error("Failed to export transactions:", err);
+        // handled
       } finally {
         setIsExporting(false);
       }
@@ -522,7 +377,6 @@ export default function TransactionsContent() {
     [handleSelectAll],
   );
 
-  // ── Filter helpers ──────────────────────────────────────────────────────────
   const updateFilter = useCallback(
     <K extends keyof TransactionFilters>(
       key: K,
@@ -582,7 +436,6 @@ export default function TransactionsContent() {
     [clearSelection],
   );
 
-  // ── Saved views helpers ─────────────────────────────────────────────────────
   const handleSaveView = useCallback(
     (name: string) => {
       const trimmed = name.trim();
@@ -622,7 +475,6 @@ export default function TransactionsContent() {
     setSavedViews((prev) => prev.filter((v) => v.id !== view.id));
   }, []);
 
-  // ── Advanced filter panel helpers ───────────────────────────────────────────
   const advancedPanelValues: AdvancedFilterValues = useMemo(
     () => ({
       status: filters.selectedFilter,
@@ -675,7 +527,6 @@ export default function TransactionsContent() {
     setAdvancedPanelOpen(false);
   }, [defaultFilters, clearSelection]);
 
-  // ── Bulk action handlers ─────────────────────────────────────────────────────
   const handleBulkExport = useCallback(() => {
     const selected = paginatedTransactions.filter((t) => selectedIds.has(t.id));
     const csv = [
@@ -698,13 +549,37 @@ export default function TransactionsContent() {
   }, [paginatedTransactions, selectedIds, clearSelection]);
 
   const handleBulkTag = useCallback(() => {
-    console.log("Tag transactions:", Array.from(selectedIds));
-  }, [selectedIds]);
+    const ids = Array.from(selectedIds);
+    if (ids.length === 0) return;
+    const firstTag = allTags[0]?.id;
+    if (firstTag) {
+      for (const id of ids) {
+        assignTag(id, firstTag);
+      }
+    } else {
+      const newTag = addTag("Bulk Tag");
+      for (const id of ids) {
+        assignTag(id, newTag.id);
+      }
+    }
+    toast.success(`Tagged ${ids.length} transactions`);
+    clearSelection();
+  }, [selectedIds, allTags, assignTag, addTag, clearSelection]);
 
   const handleBulkArchive = useCallback(() => {
-    console.log("Archive transactions:", Array.from(selectedIds));
+    const ids = Array.from(selectedIds);
+    if (ids.length === 0) return;
+    archiveTransactions(ids);
     clearSelection();
-  }, [selectedIds, clearSelection]);
+    toast.success(`Archived ${ids.length} transactions`, {
+      action: {
+        label: "Undo",
+        onClick: () => {
+          unarchiveTransactions(ids);
+        },
+      },
+    });
+  }, [selectedIds, archiveTransactions, unarchiveTransactions, clearSelection]);
 
   return (
     <div className="min-h-screen text-white mt-4">
@@ -730,6 +605,15 @@ export default function TransactionsContent() {
             onToDateChange={(date) => updateFilter("toDate", date)}
           />
           <div className="flex items-center gap-3 mt-4 lg:mt-0">
+            <label className="flex items-center gap-2 text-sm text-gray-300 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={showArchived}
+                onChange={(e) => setShowArchived(e.target.checked)}
+                className="rounded border-gray-700 bg-gray-900 text-primary focus:ring-primary"
+              />
+              Show archived
+            </label>
             <CsvExportToolbar
               previewCount={exportPreviewCount}
               isLoadingPreview={isLoadingPreview}
@@ -763,11 +647,6 @@ export default function TransactionsContent() {
             Creates a printable reconciliation statement for the selected date
             range.
           </span>
-          {statementLedger.error && (
-            <p role="status" className="ml-3 self-center text-sm text-red-300">
-              Statement data could not be loaded. Try again later.
-            </p>
-          )}
         </div>
 
         {statementRange && (
@@ -778,15 +657,6 @@ export default function TransactionsContent() {
             onClose={() => setStatementRange(null)}
           />
         )}
-
-        <div
-          role="status"
-          aria-live="polite"
-          aria-atomic="true"
-          className="sr-only"
-        >
-          {liveMessage}
-        </div>
 
         <div className="px-4 sm:px-6 lg:px-8 bg-[#160f17] pt-3 border-[#2D2D2D] border rounded-xl">
           <div className="print:hidden">
@@ -837,7 +707,7 @@ export default function TransactionsContent() {
                   onSelectRow={handleSelectRow}
                   onSelectAll={handleSelectAllForPage}
                   allTags={allTags}
-                  tagAssignments={tagAssignmentsRaw}
+                  tagAssignments={assignments}
                   onAssignTag={assignTag}
                   onUnassignTag={unassignTag}
                   onCreateTag={addTag}
