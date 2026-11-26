@@ -74,7 +74,7 @@ const defaultActions: QuickActionItem[] = [
     icon: Plus,
     title: messages.dashboard.quickActions.actions.newContract.title,
     subtitle: messages.dashboard.quickActions.actions.newContract.subtitle,
-    disabled: true,
+    href: "/contracts/new",
     shortcut: "c",
     borderColor: "border-[#E5E5E5] dark:border-[#2E2E2E]",
     bgColor: "bg-[#F5F5F5] dark:bg-[#1A1A1A]",

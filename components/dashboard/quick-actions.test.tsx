@@ -49,14 +49,8 @@ import { QuickActions, type QuickActionItem } from "./quick-actions";
 // Helpers
 // ---------------------------------------------------------------------------
 
-/** Titles of the three actions that have no destination yet. */
-const COMING_SOON_TITLES = [
-  "Request Payment",
-  "New Contract",
-  "Create Invoice",
-];
 /** Titles of the actions that have no destination yet. */
-const COMING_SOON_TITLES = ["Request Payment", "New Contract", "Add Recipient"];
+const COMING_SOON_TITLES = ["Request Payment"];
 
 /** Default actions rendered when no `actions` prop is supplied. */
 function renderDefault() {
@@ -77,6 +71,9 @@ describe("QuickActions – default destinations", () => {
 
     expect(
       screen.getByRole("link", { name: "Send Payment" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("link", { name: "New Contract" }),
     ).toBeInTheDocument();
     expect(
       screen.getByRole("link", { name: "Add Recipient" }),
@@ -107,6 +104,13 @@ describe("QuickActions – default destinations", () => {
     expect(link).toHaveAttribute("href", "/invoices/new");
   });
 
+  it("routes New Contract to /contracts/new", () => {
+    renderDefault();
+
+    const link = screen.getByRole("link", { name: "New Contract" });
+    expect(link).toHaveAttribute("href", "/contracts/new");
+  });
+
   it("routes Add Recipient to /recipients", () => {
     renderDefault();
 
@@ -114,7 +118,6 @@ describe("QuickActions – default destinations", () => {
     expect(link).toHaveAttribute("href", "/recipients");
   });
 
-  it("routes View Reports to /analytics-view", () => {
   it("routes View Reports to /reports", () => {
     renderDefault();
 
@@ -133,10 +136,13 @@ describe("QuickActions – default destinations", () => {
 
     // Exclude the Customize link (it has no aria-label matching an action)
     const actionLinks = links.filter((el) =>
-      ["Send Payment", "View Reports", "Add Recipient"].includes(
-      ["Send Payment", "Create Invoice", "View Reports"].includes(
-        el.getAttribute("aria-label") ?? "",
-      ),
+      [
+        "Send Payment",
+        "New Contract",
+        "Create Invoice",
+        "Add Recipient",
+        "View Reports",
+      ].includes(el.getAttribute("aria-label") ?? ""),
     );
 
     const hrefs = actionLinks.map((el) => el.getAttribute("href"));
@@ -279,11 +285,12 @@ describe("QuickActions – roving tabindex", () => {
     renderDefault();
 
     const cards = getEnabledCards();
-    expect(cards.length).toBe(3);
+    expect(cards.length).toBe(5);
     expect(cards[0]).toHaveAttribute("aria-label", "Send Payment");
-    expect(cards[1]).toHaveAttribute("aria-label", "Add Recipient");
-    expect(cards[1]).toHaveAttribute("aria-label", "Create Invoice");
-    expect(cards[2]).toHaveAttribute("aria-label", "View Reports");
+    expect(cards[1]).toHaveAttribute("aria-label", "New Contract");
+    expect(cards[2]).toHaveAttribute("aria-label", "Create Invoice");
+    expect(cards[3]).toHaveAttribute("aria-label", "Add Recipient");
+    expect(cards[4]).toHaveAttribute("aria-label", "View Reports");
   });
 
   it("moves focus on ArrowRight", () => {
@@ -573,6 +580,9 @@ describe("QuickActions – keyboard shortcuts", () => {
 
     fireEvent.keyDown(window, { key: "s" });
     expect(mockPush).toHaveBeenCalledWith("/payments/new");
+
+    fireEvent.keyDown(window, { key: "c" });
+    expect(mockPush).toHaveBeenCalledWith("/contracts/new");
 
     fireEvent.keyDown(window, { key: "i" });
     expect(mockPush).toHaveBeenCalledWith("/invoices/new");
