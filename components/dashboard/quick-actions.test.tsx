@@ -1,5 +1,11 @@
 import React from "react";
-import { render, screen, fireEvent, waitFor, act } from "@testing-library/react";
+import {
+  render,
+  screen,
+  fireEvent,
+  waitFor,
+  act,
+} from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { Send, BarChart3 } from "lucide-react";
 
@@ -43,13 +49,14 @@ import { QuickActions, type QuickActionItem } from "./quick-actions";
 // Helpers
 // ---------------------------------------------------------------------------
 
-/** Titles of the four actions that have no destination yet. */
+/** Titles of the three actions that have no destination yet. */
 const COMING_SOON_TITLES = [
   "Request Payment",
   "New Contract",
   "Create Invoice",
-  "Add Recipient",
 ];
+/** Titles of the actions that have no destination yet. */
+const COMING_SOON_TITLES = ["Request Payment", "New Contract", "Add Recipient"];
 
 /** Default actions rendered when no `actions` prop is supplied. */
 function renderDefault() {
@@ -72,6 +79,10 @@ describe("QuickActions – default destinations", () => {
       screen.getByRole("link", { name: "Send Payment" }),
     ).toBeInTheDocument();
     expect(
+      screen.getByRole("link", { name: "Add Recipient" }),
+      screen.getByRole("link", { name: "Create Invoice" }),
+    ).toBeInTheDocument();
+    expect(
       screen.getByRole("link", { name: "View Reports" }),
     ).toBeInTheDocument();
 
@@ -82,18 +93,33 @@ describe("QuickActions – default destinations", () => {
     }
   });
 
-  it("routes Send Payment to /transactions", () => {
+  it("routes Send Payment to /payments/new", () => {
     renderDefault();
 
     const link = screen.getByRole("link", { name: "Send Payment" });
-    expect(link).toHaveAttribute("href", "/transactions");
+    expect(link).toHaveAttribute("href", "/payments/new");
+  });
+
+  it("routes Create Invoice to /invoices/new", () => {
+    renderDefault();
+
+    const link = screen.getByRole("link", { name: "Create Invoice" });
+    expect(link).toHaveAttribute("href", "/invoices/new");
+  });
+
+  it("routes Add Recipient to /recipients", () => {
+    renderDefault();
+
+    const link = screen.getByRole("link", { name: "Add Recipient" });
+    expect(link).toHaveAttribute("href", "/recipients");
   });
 
   it("routes View Reports to /analytics-view", () => {
+  it("routes View Reports to /reports", () => {
     renderDefault();
 
     const link = screen.getByRole("link", { name: "View Reports" });
-    expect(link).toHaveAttribute("href", "/analytics-view");
+    expect(link).toHaveAttribute("href", "/reports");
   });
 
   it("no two distinct active actions share the same href", () => {
@@ -107,7 +133,8 @@ describe("QuickActions – default destinations", () => {
 
     // Exclude the Customize link (it has no aria-label matching an action)
     const actionLinks = links.filter((el) =>
-      ["Send Payment", "View Reports"].includes(
+      ["Send Payment", "View Reports", "Add Recipient"].includes(
+      ["Send Payment", "Create Invoice", "View Reports"].includes(
         el.getAttribute("aria-label") ?? "",
       ),
     );
@@ -252,16 +279,20 @@ describe("QuickActions – roving tabindex", () => {
     renderDefault();
 
     const cards = getEnabledCards();
-    expect(cards.length).toBe(2);
+    expect(cards.length).toBe(3);
     expect(cards[0]).toHaveAttribute("aria-label", "Send Payment");
-    expect(cards[1]).toHaveAttribute("aria-label", "View Reports");
+    expect(cards[1]).toHaveAttribute("aria-label", "Add Recipient");
+    expect(cards[1]).toHaveAttribute("aria-label", "Create Invoice");
+    expect(cards[2]).toHaveAttribute("aria-label", "View Reports");
   });
 
   it("moves focus on ArrowRight", () => {
     renderDefault();
 
     const cards = getEnabledCards();
-    act(() => { cards[0].focus(); });
+    act(() => {
+      cards[0].focus();
+    });
 
     const grid = document.querySelector('[role="group"]')!;
     fireEvent.keyDown(grid, { key: "ArrowRight" });
@@ -272,7 +303,9 @@ describe("QuickActions – roving tabindex", () => {
     renderDefault();
 
     const cards = getEnabledCards();
-    act(() => { cards[1].focus(); });
+    act(() => {
+      cards[1].focus();
+    });
 
     const grid = document.querySelector('[role="group"]')!;
     fireEvent.keyDown(grid, { key: "ArrowLeft" });
@@ -285,20 +318,27 @@ describe("QuickActions – roving tabindex", () => {
     const cards = getEnabledCards();
 
     const grid = document.querySelector('[role="group"]')!;
-    act(() => { cards[0].focus(); });
+    act(() => {
+      cards[0].focus();
+    });
     fireEvent.keyDown(grid, { key: "ArrowLeft" });
     expect(document.activeElement).toBe(cards[0]);
 
-    act(() => { cards[1].focus(); });
+    act(() => { cards[cards.length - 1].focus(); });
+    act(() => {
+      cards[cards.length - 1].focus();
+    });
     fireEvent.keyDown(grid, { key: "ArrowRight" });
-    expect(document.activeElement).toBe(cards[1]);
+    expect(document.activeElement).toBe(cards[cards.length - 1]);
   });
 
   it("moves focus on ArrowDown to the next row", () => {
     renderDefault();
 
     const cards = getEnabledCards();
-    act(() => { cards[0].focus(); });
+    act(() => {
+      cards[0].focus();
+    });
 
     const grid = document.querySelector('[role="group"]')!;
     fireEvent.keyDown(grid, { key: "ArrowDown" });
@@ -309,7 +349,9 @@ describe("QuickActions – roving tabindex", () => {
     renderDefault();
 
     const cards = getEnabledCards();
-    act(() => { cards[0].focus(); });
+    act(() => {
+      cards[0].focus();
+    });
 
     const grid = document.querySelector('[role="group"]')!;
     fireEvent.keyDown(grid, { key: "ArrowUp" });
@@ -320,21 +362,25 @@ describe("QuickActions – roving tabindex", () => {
     renderDefault();
 
     const cards = getEnabledCards();
-    act(() => { cards[1].focus(); });
+    act(() => {
+      cards[1].focus();
+    });
 
     const grid = document.querySelector('[role="group"]')!;
     fireEvent.keyDown(grid, { key: "Home" });
     expect(document.activeElement).toBe(cards[0]);
 
     fireEvent.keyDown(grid, { key: "End" });
-    expect(document.activeElement).toBe(cards[1]);
+    expect(document.activeElement).toBe(cards[cards.length - 1]);
   });
 
   it("updates tabIndex when focus moves between cards", () => {
     renderDefault();
 
     const cards = getEnabledCards();
-    act(() => { cards[1].focus(); });
+    act(() => {
+      cards[1].focus();
+    });
 
     expect(cards[0]).toHaveAttribute("tabindex", "-1");
     expect(cards[1]).toHaveAttribute("tabindex", "0");
@@ -418,7 +464,7 @@ describe("QuickActions – href link variant", () => {
         icon: BarChart3,
         title: "Go to Reports",
         subtitle: "See data",
-        href: "/analytics-view",
+        href: "/reports",
         borderColor: "border-zinc-200",
         bgColor: "bg-zinc-50",
         iconColor: "text-zinc-500",
@@ -428,7 +474,7 @@ describe("QuickActions – href link variant", () => {
     render(<QuickActions actions={customActions} />);
 
     const link = screen.getByRole("link", { name: "Go to Reports" });
-    expect(link).toHaveAttribute("href", "/analytics-view");
+    expect(link).toHaveAttribute("href", "/reports");
     expect(link).toHaveAttribute("aria-label", "Go to Reports");
   });
 
@@ -526,10 +572,13 @@ describe("QuickActions – keyboard shortcuts", () => {
     renderDefault();
 
     fireEvent.keyDown(window, { key: "s" });
-    expect(mockPush).toHaveBeenCalledWith("/transactions");
+    expect(mockPush).toHaveBeenCalledWith("/payments/new");
+
+    fireEvent.keyDown(window, { key: "i" });
+    expect(mockPush).toHaveBeenCalledWith("/invoices/new");
 
     fireEvent.keyDown(window, { key: "r" });
-    expect(mockPush).toHaveBeenCalledWith("/analytics-view");
+    expect(mockPush).toHaveBeenCalledWith("/reports");
   });
 
   it("triggers onClick callback when key for custom onClick action is pressed", () => {
@@ -558,10 +607,10 @@ describe("QuickActions – keyboard shortcuts", () => {
     renderDefault();
 
     fireEvent.keyDown(window, { key: "S" });
-    expect(mockPush).toHaveBeenCalledWith("/transactions");
+    expect(mockPush).toHaveBeenCalledWith("/payments/new");
 
     fireEvent.keyDown(window, { key: "R" });
-    expect(mockPush).toHaveBeenCalledWith("/analytics-view");
+    expect(mockPush).toHaveBeenCalledWith("/reports");
   });
 
   it("suppresses shortcuts when an input field has focus", () => {
@@ -569,7 +618,7 @@ describe("QuickActions – keyboard shortcuts", () => {
       <div>
         <input data-testid="test-input" type="text" />
         <QuickActions />
-      </div>
+      </div>,
     );
 
     const input = screen.getByTestId("test-input");
@@ -584,7 +633,7 @@ describe("QuickActions – keyboard shortcuts", () => {
       <div>
         <textarea data-testid="test-textarea" />
         <QuickActions />
-      </div>
+      </div>,
     );
 
     const textarea = screen.getByTestId("test-textarea");
@@ -601,7 +650,7 @@ describe("QuickActions – keyboard shortcuts", () => {
           <option value="1">Option 1</option>
         </select>
         <QuickActions />
-      </div>
+      </div>,
     );
 
     const select = screen.getByTestId("test-select");
@@ -616,7 +665,7 @@ describe("QuickActions – keyboard shortcuts", () => {
       <div>
         <div data-testid="test-editable" contentEditable="true" />
         <QuickActions />
-      </div>
+      </div>,
     );
 
     const editable = screen.getByTestId("test-editable");
@@ -663,6 +712,7 @@ describe("QuickActions – keyboard shortcuts", () => {
     renderDefault();
 
     expect(screen.getByText("S")).toBeInTheDocument();
+    expect(screen.getByText("I")).toBeInTheDocument();
     expect(screen.getByText("R")).toBeInTheDocument();
 
     const sendLink = screen.getByRole("link", { name: "Send Payment" });

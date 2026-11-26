@@ -419,6 +419,27 @@ export const AccountSummaryIcon: React.FC<svgInterface> = ({ color }) => (
   </svg>
 );
 
+export const ReportIcon: React.FC<svgInterface> = ({ color }) => (
+  <svg
+    width="20"
+    height="20"
+    viewBox="0 0 20 20"
+    fill="none"
+    xmlns="http://www.w3.org/2000/svg"
+  >
+    <path
+      d="M3 3v14h14"
+      stroke={color}
+      strokeWidth="1.5"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+    <rect x="6" y="10" width="2.5" height="5" fill={color} rx="0.5" />
+    <rect x="10" y="7" width="2.5" height="8" fill={color} rx="0.5" />
+    <rect x="14" y="5" width="2.5" height="10" fill={color} rx="0.5" />
+  </svg>
+);
+
 export const StellarIcon = () => (
   <svg
     width="20"

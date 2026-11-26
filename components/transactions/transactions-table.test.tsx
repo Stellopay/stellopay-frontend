@@ -117,6 +117,23 @@ describe("TransactionsTable — basic rendering", () => {
     expect(screen.getByText("Deposit")).toBeInTheDocument();
     expect(screen.getByText("#1")).toBeInTheDocument();
   });
+
+  it("links transaction identifiers and mobile rows to the detail route", () => {
+    render(<TransactionsTable transactions={mockTransactions} />);
+
+    expect(
+      screen.getByRole("link", { name: "View transaction 1" }),
+    ).toHaveAttribute("href", "/transactions/1");
+    expect(
+      screen.getByRole("link", {
+        name: "View transaction 1 by transaction ID TX123",
+        hidden: true,
+      }),
+    ).toHaveAttribute("href", "/transactions/1");
+    expect(
+      screen.getByRole("link", { name: "View full details for transaction 1" }),
+    ).toHaveAttribute("href", "/transactions/1");
+  });
 });
 
 describe("TransactionsTable — status icons (WCAG 1.4.1)", () => {

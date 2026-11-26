@@ -9,11 +9,10 @@ export interface ReceiptTransaction {
   timestamp: string; // ISO date string
 }
 
-// Update this to match how you build a transaction detail URL elsewhere in the app.
-function getVerificationUrl(transactionId: string) {
+export function getVerificationUrl(transactionId: string) {
   const origin =
     typeof window !== "undefined" ? window.location.origin : "";
-  return `${origin}/transactions/${transactionId}`;
+  return `${origin}/transactions/${encodeURIComponent(transactionId)}`;
 }
 
 async function loadImageAsDataUrl(path: string): Promise<string> {

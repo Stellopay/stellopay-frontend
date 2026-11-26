@@ -13,7 +13,6 @@ import React, {
   useCallback,
   useContext,
   useEffect,
-  useId,
   useMemo,
   useRef,
   useState,
@@ -29,6 +28,18 @@ import type {
 } from "@/types/wallet";
 import { isWalletAddress, isWalletConnectionResult } from "@/types/wallet";
 import { createAccountScope, realtimeRegistry } from "@/lib/realtime-registry";
+import {
+  isFreighterInstalled,
+  requestFreighterAccess,
+  watchFreighterChanges,
+  FreighterNotInstalledError,
+  FreighterUserRejectedError,
+} from "@/lib/stellar/freighter";
+import { recordAuditEvent } from "@/lib/audit-log";
+import { truncateStellarAddress } from "@/utils/stellarAddress";
+  DirtyGuardProvider,
+  useDirtyGuard,
+} from "@/context/dirty-guard-context";
 
 export const SUPPORTED_NETWORKS: Network[] = [
   { id: "stellar", name: "Stellar" },
@@ -49,19 +60,6 @@ const DEFAULT_CAPABILITIES: WalletCapabilities = {
   canSignMessage: false,
   canSwitchNetwork: false,
 };
-
-type DirtySource = () => boolean;
-
-interface DirtyGuardContextValue {
-  isDirty: () => boolean;
-  registerDirtySource: (sourceId: string, isDirty: DirtySource) => () => void;
-  confirmDiscard: () => boolean;
-}
-
-const DirtyGuardContext = createContext<DirtyGuardContextValue | undefined>(undefined);
-
-const DISCARD_WARNING =
-  "You have unsaved changes. Discard them and continue?";
 
 const WalletContext = createContext<WalletContextValue | undefined>(undefined);
 
@@ -99,7 +97,7 @@ function writeNetworkToStorage(network: Network): void {
   }
 }
 
-export const WalletProvider: React.FC<WalletProviderProps> = ({
+const WalletProviderContent: React.FC<WalletProviderProps> = ({
   children,
   initialAddress = null,
   initialNetwork,
@@ -107,13 +105,15 @@ export const WalletProvider: React.FC<WalletProviderProps> = ({
   subscribeToAccountChanges,
   providerCapabilities = {},
 }) => {
+  const { confirmNavigation } = useDirtyGuard();
   const [address, setAddress] = useState<string | null>(initialAddress);
   const [network, setNetworkState] = useState<Network>(
     initialNetwork ?? DEFAULT_NETWORK,
   );
   const [isUnsupportedNetwork, setIsUnsupportedNetwork] = useState(false);
-
-  const dirtySourcesRef = useRef(new Map<string, () => boolean>());
+  const [freighterStatus, setFreighterStatus] =
+    useState<import("@/types/wallet").FreighterConnectionStatus>("idle");
+  const [freighterError, setFreighterError] = useState<string | null>(null);
 
   // Account scope of the currently active wallet context. All realtime
   // subscriptions opened by views are owned by this scope, so the provider
@@ -215,85 +215,6 @@ export const WalletProvider: React.FC<WalletProviderProps> = ({
     [address, capabilities, isUnsupportedNetwork],
   );
 
-  const isDirty = useCallback(() => {
-    for (const source of dirtySourcesRef.current.values()) {
-      if (source()) return true;
-    }
-    return false;
-  }, []);
-
-  const registerDirtySource = useCallback(
-    (sourceId: string, isDirtySource: DirtySource) => {
-      dirtySourcesRef.current.set(sourceId, isDirtySource);
-      return () => {
-        dirtySourcesRef.current.delete(sourceId);
-      };
-    },
-    [],
-  );
-
-  const confirmDiscard = useCallback(() => {
-    if (!isDirty()) return true;
-    if (typeof window === "undefined") return true;
-    return window.confirm(DISCARD_WARNING);
-  }, [isDirty]);
-
-  const dirtyGuardValue = useMemo<DirtyGuardContextValue>(
-    () => ({
-      isDirty,
-      registerDirtySource,
-      confirmDiscard,
-    }),
-    [isDirty, registerDirtySource, confirmDiscard],
-  );
-
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-    const handleBeforeUnload = (event: BeforeUnloadEvent) => {
-      if (!isDirty()) return;
-      event.preventDefault();
-      event.returnValue = "";
-    };
-    window.addEventListener("beforeunload", handleBeforeUnload);
-    return () => window.removeEventListener("beforeunload", handleBeforeUnload);
-  }, [isDirty]);
-
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-    const handleClick = (event: MouseEvent) => {
-      if (
-        event.button !== 0 ||
-        event.metaKey ||
-        event.ctrlKey ||
-        event.shiftKey ||
-        event.altKey
-      ) {
-        return;
-      }
-      const target = event.target;
-      if (!(target instanceof Element)) return;
-      const anchor = target.closest("a[href]");
-      if (!anchor) return;
-      if (anchor.target === "_blank" || anchor.hasAttribute("download")) return;
-      const href = anchor.getAttribute("href");
-      if (
-        !href ||
-        href.startsWith("#") ||
-        href.startsWith("javascript:") ||
-        href.startsWith("mailto:") ||
-        href.startsWith("tel:")
-      ) {
-        return;
-      }
-      if (!confirmDiscard()) {
-        event.preventDefault();
-        event.stopPropagation();
-      }
-    };
-    document.addEventListener("click", handleClick, true);
-    return () => document.removeEventListener("click", handleClick, true);
-  }, [confirmDiscard]);
-
   // Hydrate the network on the client. Running this in an effect (rather than
   // in useState's initializer) keeps server and first client render in sync,
   // avoiding the React hydration mismatch warning.
@@ -319,7 +240,7 @@ export const WalletProvider: React.FC<WalletProviderProps> = ({
     if (!subscribeToNetworkChanges) return;
 
     const cleanup = subscribeToNetworkChanges((networkId: string) => {
-      if (!confirmDiscard()) return;
+      if (!confirmNavigation()) return;
       const matched = SUPPORTED_NETWORKS.find((n) => n.id === networkId);
       if (matched) {
         setNetworkState(matched);
@@ -336,20 +257,20 @@ export const WalletProvider: React.FC<WalletProviderProps> = ({
     return () => {
       cleanup?.();
     };
-  }, [subscribeToNetworkChanges, confirmDiscard]);
+  }, [subscribeToNetworkChanges, confirmNavigation]);
 
   useEffect(() => {
     if (!subscribeToAccountChanges) return;
 
     const cleanup = subscribeToAccountChanges((nextAddress: string | null) => {
-      if (!confirmDiscard()) return;
+      if (!confirmNavigation()) return;
       setAddress(nextAddress);
     });
 
     return () => {
       cleanup?.();
     };
-  }, [subscribeToAccountChanges, confirmDiscard]);
+  }, [subscribeToAccountChanges, confirmNavigation]);
 
   const applyNetwork = useCallback((next: Network) => {
     const supported = SUPPORTED_NETWORKS.some((n) => n.id === next.id);
@@ -362,16 +283,24 @@ export const WalletProvider: React.FC<WalletProviderProps> = ({
 
   const setNetwork = useCallback(
     (next: Network) => {
-      if (!confirmDiscard()) return;
+      if (!confirmNavigation()) return;
       applyNetwork(next);
     },
-    [applyNetwork, confirmDiscard],
+    [applyNetwork, confirmNavigation],
   );
 
   const connect = useCallback((next?: string | WalletConnectionResult) => {
     if (next === undefined) {
-      if (!confirmDiscard()) return;
+      if (!confirmNavigation()) return;
       setAddress(SYNTHETIC_ADDRESS);
+      recordAuditEvent({
+        type: "wallet_connected",
+        summary: `Connected demo wallet ${truncateStellarAddress(SYNTHETIC_ADDRESS)}`,
+        details: {
+          address: truncateStellarAddress(SYNTHETIC_ADDRESS),
+          network: network.id,
+        },
+      });
       return;
     }
 
@@ -391,6 +320,17 @@ export const WalletProvider: React.FC<WalletProviderProps> = ({
         );
       }
       if (!confirmDiscard()) return;
+      const targetAddress = next.trim();
+      setAddress(targetAddress);
+      recordAuditEvent({
+        type: "wallet_connected",
+        summary: `Connected wallet ${truncateStellarAddress(targetAddress)}`,
+        details: {
+          address: truncateStellarAddress(targetAddress),
+          network: network.id,
+        },
+      });
+      if (!confirmNavigation()) return;
       setAddress(next.trim());
       return;
     }
@@ -402,16 +342,161 @@ export const WalletProvider: React.FC<WalletProviderProps> = ({
     }
 
     if (!confirmDiscard()) return;
+    const targetAddress = next.address.trim();
+    setAddress(targetAddress);
+    if (next.network) {
+      applyNetwork(next.network);
+    }
+    recordAuditEvent({
+      type: "wallet_connected",
+      summary: `Connected wallet ${truncateStellarAddress(targetAddress)}`,
+      details: {
+        address: truncateStellarAddress(targetAddress),
+        network: next.network ? next.network.id : network.id,
+      },
+    });
+  }, [applyNetwork, confirmDiscard, network.id]);
+
+  const disconnect = useCallback(() => {
+    if (!confirmDiscard()) return;
+    const previousAddress = address;
+    setAddress(null);
+    setFreighterStatus("idle");
+    setFreighterError(null);
+  }, [confirmDiscard]);
+    recordAuditEvent({
+      type: "wallet_disconnected",
+      summary: previousAddress
+        ? `Disconnected wallet ${truncateStellarAddress(previousAddress)}`
+        : "Disconnected wallet",
+      details: {
+        address: previousAddress ? truncateStellarAddress(previousAddress) : undefined,
+      },
+    });
+  }, [address, confirmDiscard]);
+
+  /**
+   * Initiate a real Freighter wallet connection.
+   *
+   * Flow:
+   * 1. Set status to 'connecting' so the UI can show a spinner.
+   * 2. Call requestFreighterAccess() which opens the Freighter popup.
+   * 3a. On success: validate the returned address (reuses the same guards as
+   *     connect()), store it, and set capabilities.
+   * 3b. On FreighterNotInstalledError: set status 'not_installed'; do not throw.
+   * 3c. On FreighterUserRejectedError: set status 'rejected'; do not throw.
+   * 3d. On any other error: set status 'error' and store the message.
+   *
+   * Returns true when the connection succeeded, false otherwise.
+   */
+  const connectFreighter = useCallback(async (): Promise<boolean> => {
+    if (!confirmDiscard()) return false;
+
+    setFreighterStatus("connecting");
+    setFreighterError(null);
+
+    try {
+      const rawAddress = await requestFreighterAccess();
+
+      // Reuse the same secret-key guard that connect() applies.
+      if (/^S[A-Z2-7]+$/.test(rawAddress.trim())) {
+        // Should never happen with a real Freighter extension, but guard
+        // against a spoofed extension or a test misconfiguration.
+        setFreighterStatus("error");
+        setFreighterError("Freighter returned a value that looks like a secret key.");
+        return false;
+      }
+
+      if (!isWalletAddress(rawAddress)) {
+        setFreighterStatus("error");
+        setFreighterError("Freighter returned an invalid public address.");
+        return false;
+      }
+
+      setAddress(rawAddress.trim());
+      setFreighterStatus("idle");
+      return true;
+    } catch (err) {
+      if (err instanceof FreighterNotInstalledError) {
+        setFreighterStatus("not_installed");
+        return false;
+      }
+      if (err instanceof FreighterUserRejectedError) {
+        setFreighterStatus("rejected");
+        return false;
+      }
+      const msg =
+        err instanceof Error ? err.message : "An unexpected error occurred.";
+      setFreighterStatus("error");
+      setFreighterError(msg);
+      return false;
+    }
+  }, [confirmDiscard]);
+    if (!confirmNavigation()) return;
     setAddress(next.address.trim());
     if (next.network) {
       applyNetwork(next.network);
     }
-  }, [applyNetwork, confirmDiscard]);
+  }, [applyNetwork, confirmNavigation]);
 
   const disconnect = useCallback(() => {
-    if (!confirmDiscard()) return;
+    if (!confirmNavigation()) return;
     setAddress(null);
-  }, [confirmDiscard]);
+  }, [confirmNavigation]);
+
+  // ── Freighter change watcher ─────────────────────────────────────────────
+  //
+  // When no external subscribeToNetworkChanges / subscribeToAccountChanges
+  // props are supplied, we set up Freighter's built-in WatchWalletChanges
+  // poller.  It fires on every address or network change inside the extension
+  // so the app tracks the user's active account without requiring a manual
+  // reconnect.
+  //
+  // If the caller passes subscribeToNetworkChanges (e.g. in tests), that takes
+  // precedence and we do not start the Freighter watcher at all — the separate
+  // effects above handle those callbacks.
+  useEffect(() => {
+    // Skip in SSR and when the caller has provided their own subscriptions.
+    if (typeof window === "undefined") return;
+    if (subscribeToNetworkChanges || subscribeToAccountChanges) return;
+
+    // isFreighterInstalled is async; run it and start watching only when the
+    // extension is present.  Failure is non-fatal — the app works without it.
+    let stopped = false;
+    let stopWatcher: (() => void) | undefined;
+
+    isFreighterInstalled()
+      .then((installed) => {
+        if (stopped || !installed) return;
+
+        stopWatcher = watchFreighterChanges(({ address: newAddress, network: newNetwork }) => {
+          // Ignore empty / unchanged address — Freighter emits on startup
+          // even before the user has authorised the dApp.
+          if (newAddress && isWalletAddress(newAddress)) {
+            setAddress((prev) => (prev === newAddress ? prev : newAddress));
+          }
+
+          if (newNetwork) {
+            setNetworkState((prev) =>
+              prev.id === newNetwork.id ? prev : newNetwork,
+            );
+            writeNetworkToStorage(newNetwork);
+            setIsUnsupportedNetwork(false);
+          }
+        });
+      })
+      .catch(() => {
+        // Extension not reachable — silently ignore.
+      });
+
+    return () => {
+      stopped = true;
+      stopWatcher?.();
+    };
+    // confirmDiscard is intentionally excluded: address/network callbacks
+    // should not check dirty state — only user-initiated actions do.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [subscribeToNetworkChanges, subscribeToAccountChanges]);
 
   const value = useMemo<WalletContextValue>(
     () => ({
@@ -425,16 +510,21 @@ export const WalletProvider: React.FC<WalletProviderProps> = ({
       setNetwork,
       connect,
       disconnect,
+      connectFreighter,
+      freighterStatus,
+      freighterError,
     }),
-    [address, network, isUnsupportedNetwork, capabilities, getActionState, setNetwork, connect, disconnect],
+    [address, network, isUnsupportedNetwork, capabilities, getActionState, setNetwork, connect, disconnect, connectFreighter, freighterStatus, freighterError],
   );
 
-  return (
-    <DirtyGuardContext.Provider value={dirtyGuardValue}>
-      <WalletContext.Provider value={value}>{children}</WalletContext.Provider>
-    </DirtyGuardContext.Provider>
-  );
+  return <WalletContext.Provider value={value}>{children}</WalletContext.Provider>;
 };
+
+export const WalletProvider: React.FC<WalletProviderProps> = (props) => (
+  <DirtyGuardProvider>
+    <WalletProviderContent {...props} />
+  </DirtyGuardProvider>
+);
 
 // Read the wallet context. Throws a clear error when called outside of a
 // WalletProvider, which is the contract the issue calls out explicitly.
@@ -446,35 +536,6 @@ export function useWallet(): WalletContextValue {
     );
   }
   return ctx;
-}
-
-// Read the shared dirty-state guard. Throws when used outside of the
-// WalletProvider, same contract as useWallet.
-export function useDirtyGuard(): DirtyGuardContextValue {
-  const ctx = useContext(DirtyGuardContext);
-  if (!ctx) {
-    throw new Error(
-      "useDirtyGuard must be used within a WalletProvider. Wrap the tree in <WalletProvider>.",
-    );
-  }
-  return ctx;
-}
-
-// Register a form's dirty state with the shared guard. While `isDirty` is
-// true, wallet changes, route navigations, and browser unloads will warn.
-// Set `isDirty` to false on successful submit to clear the guard.
-export function useDirtyForm(isDirty: boolean): void {
-  const { registerDirtySource } = useDirtyGuard();
-  const id = useId();
-  const isDirtyRef = useRef(isDirty);
-
-  useEffect(() => {
-    isDirtyRef.current = isDirty;
-  }, [isDirty]);
-
-  useEffect(() => {
-    return registerDirtySource(id, () => isDirtyRef.current);
-  }, [registerDirtySource, id]);
 }
 
 // Truncate a Stellar address for display: GABC...F123. Kept here so every

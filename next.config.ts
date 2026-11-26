@@ -20,8 +20,8 @@ const nextConfig: NextConfig = {
     minimumCacheTTL: 60,
   },
 
-  // Apply the security policy to every route so the deployed preview and
-  // production serve identical protection.
+  // Apply the static security headers to every route. CSP is generated per
+  // request in middleware because its nonce must match rendered scripts.
   headers: async () => [
     {
       source: "/(.*)",

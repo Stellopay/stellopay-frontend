@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useSearchHighlight } from "@/hooks/useSearchHighlight";
+import { recordAuditEvent } from "@/lib/audit-log";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import {
@@ -39,6 +40,7 @@ import {
   calculatePasswordStrength,
   checkPasswordRequirements,
 } from "@/utils/authUtils";
+import { copyToClipboardWithFeedback } from "@/utils/clipboardUtils";
 import DestructiveActionDialog from "./destructive-action-dialog";
 import { DEMO_SECURITY, DEMO_CONNECTED_APPS } from "@/lib/demo-data";
 import { generateTotpSecret, verifyTotpCode } from "@/lib/totp";
@@ -372,6 +374,8 @@ export default function SecurityTab({
   >(null);
   const [twoFactorSubmitting, setTwoFactorSubmitting] = useState(false);
   const [totpSecret, setTotpSecret] = useState<string | null>(null);
+  const [totpSecretCopyStatus, setTotpSecretCopyStatus] =
+    useState<CopyStatus>("idle");
   const [qrCodeDataUrl, setQrCodeDataUrl] = useState<string | null>(null);
   const totpSecretRef = useRef<string | null>(null);
 
@@ -457,6 +461,10 @@ export default function SecurityTab({
       closeTwoFactorSetup();
       setBackupCodes(null);
       setBackupCodesCopyStatus("idle");
+      recordAuditEvent({
+        type: "two_factor_disabled",
+        summary: "Two-factor authentication disabled",
+      });
       return;
     }
     setIsTwoFactorSetupOpen(true);
@@ -500,6 +508,10 @@ export default function SecurityTab({
 
       setTwoFactorEnabled(true);
       closeTwoFactorSetup();
+      recordAuditEvent({
+        type: "two_factor_enabled",
+        summary: "Two-factor authentication enabled",
+      });
       // Issue a fresh set of one-time recovery codes so the user has a way back
       // in if they lose their authenticator. Shown once, in the panel below.
       setBackupCodes(generateBackupCodes());
@@ -630,6 +642,15 @@ export default function SecurityTab({
         value: secret,
         action: "created",
       });
+      recordAuditEvent({
+        type: "api_key_created",
+        summary: `Created API key "${key.name}"`,
+        details: {
+          keyId: key.id,
+          keyName: key.name,
+          prefix: key.prefix,
+        },
+      });
     });
   };
 
@@ -656,6 +677,15 @@ export default function SecurityTab({
         value: secret,
         action: "rotated",
       });
+      recordAuditEvent({
+        type: "api_key_rotated",
+        summary: `Rotated API key "${key.name}"`,
+        details: {
+          keyId: key.id,
+          keyName: key.name,
+          prefix: secret.slice(0, 12),
+        },
+      });
     });
   };
 
@@ -666,6 +696,15 @@ export default function SecurityTab({
         setRevealedApiSecret(null);
         setApiSecretCopyStatus("idle");
       }
+      recordAuditEvent({
+        type: "api_key_revoked",
+        summary: `Revoked API key "${key.name}"`,
+        details: {
+          keyId: key.id,
+          keyName: key.name,
+          prefix: key.prefix,
+        },
+      });
     });
   };
 
@@ -793,6 +832,10 @@ export default function SecurityTab({
         type: "success",
       });
       form.reset();
+      recordAuditEvent({
+        type: "password_changed",
+        summary: "Account password changed successfully",
+      });
     } catch {
       setStatus({
         message: "Failed to save changes. Please try again.",
@@ -1022,13 +1065,38 @@ export default function SecurityTab({
                             onClick={() =>
                               copyToClipboardWithFeedback(
                                 totpSecret,
-                                "Secret key copied",
+                                () => {
+                                  setTotpSecretCopyStatus("success");
+                                  setTimeout(
+                                    () => setTotpSecretCopyStatus("idle"),
+                                    2000,
+                                  );
+                                },
+                                () => {
+                                  setTotpSecretCopyStatus("error");
+                                  setTimeout(
+                                    () => setTotpSecretCopyStatus("idle"),
+                                    3000,
+                                  );
+                                },
                               )
                             }
                             className="shrink-0 rounded-md p-1.5 text-zinc-400 hover:bg-zinc-100 hover:text-zinc-600 dark:hover:bg-zinc-800 dark:hover:text-zinc-300"
-                            aria-label="Copy secret key"
+                            aria-label={
+                              totpSecretCopyStatus === "success"
+                                ? "Secret key copied"
+                                : totpSecretCopyStatus === "error"
+                                  ? "Failed to copy secret key"
+                                  : "Copy secret key"
+                            }
                           >
-                            <Copy className="h-4 w-4" />
+                            {totpSecretCopyStatus === "success" ? (
+                              <CheckCircle2 className="h-4 w-4 text-emerald-600" />
+                            ) : totpSecretCopyStatus === "error" ? (
+                              <AlertCircle className="h-4 w-4 text-red-500" />
+                            ) : (
+                              <Copy className="h-4 w-4" />
+                            )}
                           </button>
                         </div>
                       )}

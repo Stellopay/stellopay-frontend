@@ -25,6 +25,13 @@ vi.mock("@/context/sidebar-context", () => ({
   default: () => mockSidebar,
 }));
 
+vi.mock("@/context/wallet-context", () => ({
+  useDirtyGuard: () => ({
+    isDirty: () => false,
+    confirmDiscard: vi.fn(),
+  }),
+}));
+
 vi.mock("@/context/theme-context", () => ({
   useTheme: () => ({ theme: "light" }),
 }));
@@ -116,6 +123,11 @@ describe("NavLink aria-current", () => {
     render(<NavLink />);
 
     expect(screen.getByRole("link", { name: "Notifications" })).toHaveAttribute(
+  it("adds an active, accessible link for payment approvals", () => {
+    mockPathname.value = "/approvals";
+    render(<NavLink />);
+
+    expect(screen.getByRole("link", { name: "Approvals" })).toHaveAttribute(
       "aria-current",
       "page",
     );

@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { MoreVertical, X, Search, Bell, Settings } from 'lucide-react';
-import { useNotifications } from '@/lib/notifications-store';
+import { selectUnreadCount, useNotifications } from '@/lib/notifications-store';
 
 export { useNotifications, invalidateNotifications, applyNotificationMutation } from '@/lib/notifications-store';
 
@@ -19,7 +19,7 @@ export const DashboardHeader: React.FC<DashboardHeaderProps> = ({
 }) => {
   const [menuOpen, setMenuOpen] = useState(false);
   const { data } = useNotifications();
-  const unreadCount = (data ?? []).filter((n) => !n.read).length;
+  const unreadCount = selectUnreadCount(data);
 
   return (
     <header className="flex items-center justify-between p-4 bg-white border-b border-gray-200 relative">

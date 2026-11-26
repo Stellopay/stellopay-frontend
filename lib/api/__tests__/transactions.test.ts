@@ -1,12 +1,24 @@
 import {
   MAX_TRANSACTION_PAGE_SIZE,
   MIN_TRANSACTION_PAGE_SIZE,
+  getTransactionById,
   getTransactions,
   getTransactionsCursor,
   getAccountSummary,
   getPaymentHistory,
+  TransactionNotFoundError,
 } from "../transactions";
 import { allTransactions } from "@/lib/transactions";
+import {
+  getAccount,
+  HorizonAccountNotFoundError,
+  type HorizonAccount,
+} from "@/lib/stellar/horizon";
+
+vi.mock("@/lib/stellar/horizon", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@/lib/stellar/horizon")>()),
+  getAccount: vi.fn(),
+}));
 
 beforeAll(() => {
   vi.stubEnv("NODE_ENV", "test");
@@ -166,6 +178,37 @@ describe("getTransactions", () => {
       expect(typeof t.amount).toBe("number");
       expect(["Completed", "Pending", "Failed"]).toContain(t.status);
     });
+  });
+});
+
+describe("getTransactionById", () => {
+  it("returns a validated transaction by its id", async () => {
+    const transaction = await getTransactionById("1");
+
+    expect(transaction).toMatchObject({
+      id: "1",
+      txId: "#TXNT2345",
+      amount: -607.87,
+    });
+  });
+
+  it("trims a valid id and rejects invalid or unknown ids with a typed error", async () => {
+    await expect(getTransactionById(" 1 ")).resolves.toMatchObject({ id: "1" });
+    await expect(getTransactionById("  ")).rejects.toBeInstanceOf(
+      TransactionNotFoundError,
+    );
+    await expect(getTransactionById("not-a-transaction")).rejects.toMatchObject(
+      { code: "TRANSACTION_NOT_FOUND" },
+    );
+  });
+
+  it("rejects when the signal is already aborted", async () => {
+    const controller = new AbortController();
+    controller.abort();
+
+    await expect(
+      getTransactionById("1", controller.signal),
+    ).rejects.toMatchObject({ name: "AbortError" });
   });
 });
 
@@ -378,7 +421,41 @@ describe("dev-only demo delay", () => {
   });
 });
 
+const mainnet = { id: "stellar", name: "Stellar" };
+const testnet = { id: "testnet", name: "Testnet" };
+const horizonAccount: HorizonAccount = {
+  id: "GABC",
+  accountId: "GABC",
+  subentryCount: 1,
+  balances: [
+    {
+      assetCode: "XLM", assetType: "native", assetIssuer: null,
+      balance: "72.8563792", limit: null, isAuthorized: null,
+      buyingLiabilities: "0", sellingLiabilities: "1.0000000",
+    },
+    {
+      assetCode: "USDC", assetType: "credit_alphanum4", assetIssuer: "GISSUER",
+      balance: "3.0000000", limit: null, isAuthorized: true,
+      buyingLiabilities: "0", sellingLiabilities: "0",
+    },
+  ],
+  trustlines: [
+    {
+      assetCode: "USDC", assetType: "credit_alphanum4", assetIssuer: "GISSUER",
+      balance: "3.0000000", limit: null, isAuthorized: true,
+      buyingLiabilities: "0", sellingLiabilities: "0",
+    },
+  ],
+  nativeBalance: "72.8563792",
+  nativeSellingLiabilities: "1.0000000",
+  spendableBalance: "70.8563792",
+};
+
 describe("getAccountSummary", () => {
+  beforeEach(() => {
+    vi.mocked(getAccount).mockReset();
+  });
+
   it("returns summary with required fields", async () => {
     const summary = await getAccountSummary();
     expect(summary).toHaveProperty("balance");
@@ -387,6 +464,87 @@ describe("getAccountSummary", () => {
     expect(summary).toHaveProperty("toBePaid");
     expect(summary).toHaveProperty("walletAddress");
     expect(typeof summary.balanceRaw).toBe("number");
+    expect(summary.source).toBe("mock");
+    expect(getAccount).not.toHaveBeenCalled();
+  });
+
+  it("maps real Horizon balances and trustlines for a connected wallet", async () => {
+    vi.mocked(getAccount).mockResolvedValueOnce(horizonAccount);
+
+    const summary = await getAccountSummary({
+      address: "GABC",
+      network: testnet,
+    });
+
+    expect(getAccount).toHaveBeenCalledWith("GABC", testnet, undefined);
+    expect(summary).toMatchObject({
+      source: "horizon",
+      network: "testnet",
+      walletAddress: "GABC",
+      balance: "70.8563792 XLM",
+      spendableBalance: "70.8563792",
+      nativeBalance: "72.8563792",
+      isUnfunded: false,
+    });
+    expect(summary.balances).toHaveLength(2);
+    expect(summary.trustlines).toEqual(horizonAccount.trustlines);
+  });
+
+  it("turns a Horizon 404 into an unfunded state", async () => {
+    vi.mocked(getAccount).mockRejectedValueOnce(
+      new HorizonAccountNotFoundError("GABC"),
+    );
+
+    const summary = await getAccountSummary({
+      address: "GABC",
+      network: mainnet,
+    });
+
+    expect(summary).toMatchObject({
+      source: "horizon",
+      network: "stellar",
+      walletAddress: "GABC",
+      isUnfunded: true,
+      balance: "0 XLM",
+      balances: [],
+      trustlines: [],
+    });
+  });
+
+  it("propagates network failures to the hook's error state", async () => {
+    vi.mocked(getAccount).mockRejectedValueOnce(
+      new Error("Horizon request timed out."),
+    );
+
+    await expect(
+      getAccountSummary({ address: "GABC", network: testnet }),
+    ).rejects.toThrow("Horizon request timed out.");
+  });
+
+  it("rejects unsupported networks instead of silently serving mock data", async () => {
+    await expect(
+      getAccountSummary({
+        address: "GABC",
+        network: { id: "unknown", name: "Unknown" },
+      }),
+    ).rejects.toThrow("unavailable on network");
+    expect(getAccount).not.toHaveBeenCalled();
+  });
+
+  it("uses the labelled mock only when explicitly enabled", async () => {
+    vi.stubEnv("NEXT_PUBLIC_ACCOUNT_SUMMARY_MOCK", "true");
+    try {
+      const summary = await getAccountSummary({
+        address: "GABC",
+        network: testnet,
+      });
+      expect(summary.source).toBe("mock");
+      expect(summary.walletAddress).toBe("GABC");
+      expect(getAccount).not.toHaveBeenCalled();
+    } finally {
+      vi.unstubAllEnvs();
+      vi.stubEnv("NODE_ENV", "test");
+    }
   });
 });
 

@@ -15,8 +15,8 @@ import {
   ArrowRight,
   BarChart3,
   ArrowUpRight,
-  type LucideIcon,
 } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 import dynamic from "next/dynamic";
 import Link from "next/link";
 import {
@@ -44,6 +44,7 @@ import Skeleton from "@/components/ui/skeleton";
 import { EmptyState } from "@/components/ui/empty-state";
 import { ErrorState } from "@/components/ui/error-state";
 import { useTransactions } from "@/hooks/useTransactions";
+import { useRecipients } from "@/lib/recipients-store";
 import type { Transaction } from "@/types/transaction";
 import { safeStorage } from "@/utils/safeStorage";
 
@@ -719,6 +720,7 @@ function DashboardOnboardingEmptyState() {
 }
 
 export default function Dashboard() {
+  const { recentRecipients } = useRecipients();
   const [isLoading, setIsLoading] = useState(true);
   const accountSummaryRef = useRef<HTMLDivElement>(null);
   const quickActionsRef = useRef<HTMLDivElement>(null);
