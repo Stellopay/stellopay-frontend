@@ -495,6 +495,26 @@ describe("LoginForm", () => {
     expect(screen.getByText(/user@example.com/i)).toBeInTheDocument();
   });
 
+  it("magic-link form shows the first Zod validation error and does not call sendMagicLink for an invalid email", async () => {
+    const mockSendMagicLink = vi.mocked(sendMagicLink);
+    render(<LoginForm />);
+
+    await userEvent.click(screen.getByRole("tab", { name: /send link/i }));
+
+    const emailInput = screen.getByPlaceholderText(/Enter your email/i);
+    const submitButton = screen.getByRole("button", { name: /send login link/i });
+
+    await userEvent.type(emailInput, "not-an-email");
+    await userEvent.click(submitButton);
+
+    await waitFor(() => {
+      expect(screen.getByRole("alert")).toHaveTextContent(
+        "Please enter a valid email address.",
+      );
+    });
+    expect(mockSendMagicLink).not.toHaveBeenCalled();
+  });
+
   it("magic-link confirmation shows a resend button with cooldown", async () => {
     vi.mocked(sendMagicLink).mockResolvedValue();
     render(<LoginForm />);
