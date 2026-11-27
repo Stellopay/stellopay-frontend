@@ -50,11 +50,10 @@ export default defineConfig({
         "**/*.stories.{ts,tsx}",
         // These fail to parse under this vitest/coverage-v8 version's
         // uncovered-file remap step and can't currently be measured.
-        // 3 have a genuine pre-existing syntax error (`tsc --noEmit` also
+        // 2 have a genuine pre-existing syntax error (`tsc --noEmit` also
         // rejects them, unrelated to this issue — a separate fix):
         "app/settings/preferences/components/notifications-section.tsx",
         "app/verify-email/page.tsx",
-        "components/landing/video-facade.tsx",
         // The other 5 are valid TS/TSX (tsc is fine with them) that only
         // the coverage remapper's parser chokes on (loses TS/TSX context;
         // see the `all` comment below). Re-include once that's fixed:

@@ -10,9 +10,6 @@ const matchers = (toHaveNoViolationsExport as any).default || toHaveNoViolations
 expect.extend(matchers);
 
 
-import { VideoFacade } from "./video-facade";
-
-
 const TEST_VIDEO_ID = "dQw4w9WgXcQ";
 const TEST_VIDEO_TITLE = "Test Video Title";
 
@@ -93,8 +90,11 @@ describe("VideoFacade", () => {
       ).not.toBeInTheDocument();
 
       // Gradient background div should exist
-      const gradientDiv = screen.getByRole("button").querySelector("div");
+      const gradientDiv = screen
+        .getByRole("button")
+        .querySelector(".bg-gradient-to-br");
       expect(gradientDiv).toBeInTheDocument();
+      expect(gradientDiv).toHaveClass("from-blue-600", "to-purple-700");
     });
   });
 
@@ -268,8 +268,6 @@ describe("VideoFacade", () => {
 
       const aspectContainer = container.querySelector(
 
-        "[style*='aspect']"
-
         "[style*='aspect-ratio']"
 
       );
@@ -294,8 +292,6 @@ describe("VideoFacade", () => {
       await waitFor(() => {
         const aspectContainer = container.querySelector(
 
-          "[style*='aspect']"
-
           "[style*='aspect-ratio']"
 
         );
@@ -313,8 +309,6 @@ describe("VideoFacade", () => {
       );
 
       const aspectContainer = container.querySelector(
-
-        "[style*='aspect']"
 
         "[style*='aspect-ratio']"
 
@@ -439,14 +433,6 @@ describe("VideoFacade", () => {
       });
 
 
-      const results = await axe(container, {
-        iframes: false,
-        rules: {
-          "frame-tested": { enabled: false },
-        },
-      });
-      expect(results).toHaveNoViolations();
-
       // axe-core cannot analyse cross-origin iframes in jsdom (they have no
       // real content), so we exclude the iframe element from the scan.
       const results = await axe(container, {
@@ -520,8 +506,6 @@ describe("VideoFacade", () => {
 
       // Check for overflow on the aspect container
       const aspectContainer = container.querySelector(
-
-        "[style*='aspect']"
 
         "[style*='aspect-ratio']"
 
