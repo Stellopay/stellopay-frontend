@@ -268,8 +268,6 @@ describe("VideoFacade", () => {
 
       const aspectContainer = container.querySelector(
 
-        "[style*='aspect']"
-
         "[style*='aspect-ratio']"
 
       );
@@ -294,8 +292,6 @@ describe("VideoFacade", () => {
       await waitFor(() => {
         const aspectContainer = container.querySelector(
 
-          "[style*='aspect']"
-
           "[style*='aspect-ratio']"
 
         );
@@ -313,8 +309,6 @@ describe("VideoFacade", () => {
       );
 
       const aspectContainer = container.querySelector(
-
-        "[style*='aspect']"
 
         "[style*='aspect-ratio']"
 
@@ -512,8 +506,6 @@ describe("VideoFacade", () => {
 
       // Check for overflow on the aspect container
       const aspectContainer = container.querySelector(
-
-        "[style*='aspect']"
 
         "[style*='aspect-ratio']"
 
